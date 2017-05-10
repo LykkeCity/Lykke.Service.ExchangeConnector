@@ -1,1 +1,3 @@
 # TradingBot
+
+AlgoTrading platform
