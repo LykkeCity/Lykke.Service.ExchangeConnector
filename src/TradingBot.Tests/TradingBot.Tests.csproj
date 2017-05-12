@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\TradingBot.csproj" />
+    <ProjectReference Include="..\TradingBot\TradingBot.csproj" />
   </ItemGroup>
 
   <ItemGroup>
