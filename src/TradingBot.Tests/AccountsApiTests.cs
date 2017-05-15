@@ -1,8 +1,8 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using TradingBot.OandaApi;
-using TradingBot.OandaApi.ApiEndpoints;
+using TradingBot.Exchanges.OandaApi;
+using TradingBot.Exchanges.OandaApi.ApiEndpoints;
 using Xunit;
 
 namespace TradingBot.Tests
