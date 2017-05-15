@@ -2,6 +2,6 @@
 {
     public class AlphaEngineConfig
     {
-        public static readonly decimal DirectionalChangeThreshold = 0.00002m;
+        public static readonly decimal DirectionalChangeThreshold = 0.0002m;
     }
 }

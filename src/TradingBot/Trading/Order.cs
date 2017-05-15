@@ -1,0 +1,31 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace TradingBot.Trading
+{
+    public enum OrderType
+    {
+        Market,
+        Limit
+    }
+
+    public class Order
+    {
+        public Order(string instrument, OrderType type, Signal signal)
+        {
+            Instrument = instrument;
+            Type = type;
+            Signal = signal;
+        }
+
+        public string Instrument { get; }
+        
+        private decimal stopLoss;
+        private decimal takeProfit;
+        
+        public OrderType Type { get; }
+
+        public Signal Signal { get; }
+    }
+}

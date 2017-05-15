@@ -3,14 +3,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using TradingBot.Infrastructure;
+using TradingBot.Trading;
 
 namespace TradingBot.AlphaEngine
 {
-    public class InstrumentAgent
+    public class EngineAgent
     {
-        private ILogger logger = Logging.CreateLogger<InstrumentAgent>();
+        private ILogger logger = Logging.CreateLogger<EngineAgent>();
 
-        public InstrumentAgent(string instrument, 
+        public EngineAgent(string instrument, 
             decimal directionalChangeTrheshold)
         {
             Instrument = instrument;
@@ -20,7 +21,7 @@ namespace TradingBot.AlphaEngine
             AdjustThresholds();
         }
 
-        public InstrumentAgent(string instrument,
+        public EngineAgent(string instrument,
             decimal upDcTrheshold, decimal downDcThreshold)
         {
             Instrument = instrument;
@@ -40,48 +41,69 @@ namespace TradingBot.AlphaEngine
 
         public IReadOnlyList<IntrinsicTimeEvent> IntrinsicTimeEvents => intrinsicTimeEvents;
 
-        public long DirectionalChangesToUp => intrinsicTimeEvents.OfType<DirectionalChange>().Count(x => x.Mode == AlgorithmMode.Up);
 
-        public long DirectionalChangesToDown => intrinsicTimeEvents.OfType<DirectionalChange>().Count(x => x.Mode == AlgorithmMode.Down);
+        public long UpwardDirectionalChangesCount => 
+            intrinsicTimeEvents.OfType<DirectionalChange>().Count(x => x.Mode == AlgorithmMode.Up);
+
+        public long DownwardDirectionalChangesCount => 
+            intrinsicTimeEvents.OfType<DirectionalChange>().Count(x => x.Mode == AlgorithmMode.Down);
+
+        public long UpwardOvershootsCount => 
+            intrinsicTimeEvents.OfType<Overshoot>().Count(x => x.Mode == AlgorithmMode.Up);
+
+        public long DownwardOvershootsCount =>
+            intrinsicTimeEvents.OfType<Overshoot>().Count(x => x.Mode == AlgorithmMode.Down);
+
+
+        public event Action<IntrinsicTimeEvent> NewEventAdded;
+
 
         private decimal extremPrice;
         private AlgorithmMode mode;
-        private decimal dcPrice;
+
+
         private decimal cascadingSizeInUnits = 1m;
         private decimal probabilityIndicator = 1m;
-        private decimal cumulativeLongPositionInUnits = 0m;
+        private decimal cumulativeLongPositionInUnits = 0m; // todo: use type Trading.Position
         private decimal cumulativeShortPositionInUnits = 0m;
-
+        
         private decimal upwardDirectionalChangeThreshold;
         private decimal downwardDirectionalChangeThreshold;
         private decimal upwardDirectionalChangeOriginalThreshold;
         private decimal downwardDirectionalChangeOriginalThreshold;
 
+        private decimal LastEventPrice => intrinsicTimeEvents.LastOrDefault()?.Price ?? 0;
+
+        private decimal LastDirectionalChangePrice => intrinsicTimeEvents.OfType<DirectionalChange>().LastOrDefault()?.Price ?? 0;
 
         public void HandlePriceChange(decimal price, DateTime time)
         {
-            decimal priceChange = extremPrice == 0 ? 0 : price / extremPrice - 1;
+            decimal priceChangeFromExtrem = CalcPriceChange(price, extremPrice);
+            decimal priceChangeFromLastEvent = CalcPriceChange(price, LastEventPrice);
 
             if (mode == AlgorithmMode.Up)
             {
                 if (price > extremPrice)
                 {
                     extremPrice = price;
-                }
-                else if (priceChange <= -downwardDirectionalChangeThreshold)
-                {
-                    if (extremPrice > dcPrice)
+                    
+                    if (priceChangeFromLastEvent >= upwardDirectionalChangeThreshold)
                     {
-                        intrinsicTimeEvents.Add(
-                            new Overshoot(time, AlgorithmMode.Up, extremPrice - dcPrice));
+                        AddNewEvent(new Overshoot(time, AlgorithmMode.Up, price, price - LastEventPrice));
+                    }
+                }
+                else if (priceChangeFromExtrem <= -downwardDirectionalChangeThreshold)
+                {
+                    if (LastDirectionalChangePrice != 0 && extremPrice > LastDirectionalChangePrice)
+                    {
+                        AddNewEvent(new Overshoot(time, AlgorithmMode.Up, price, extremPrice - LastDirectionalChangePrice));
 
-                        logger.LogInformation($"{Instrument}: Overwhoot to UP event registered");
+                        logger.LogInformation($"{Instrument}: Overshoot to UP event registered");
                     }
 
-                    intrinsicTimeEvents.Add(
-                        new DirectionalChange(time, AlgorithmMode.Down, price - extremPrice));
+                    AddNewEvent(new DirectionalChange(time, AlgorithmMode.Down, price, price - extremPrice));
+
                     extremPrice = price;
-                    dcPrice = price;
                     mode = AlgorithmMode.Down;
 
                     logger.LogInformation($"{Instrument}: DirectionalChange to DOWN event registered");
@@ -92,26 +114,43 @@ namespace TradingBot.AlphaEngine
                 if (price < extremPrice)
                 {
                     extremPrice = price;
-                }
-                else if (priceChange >= upwardDirectionalChangeThreshold)
-                {
-                    if (extremPrice < dcPrice)
+
+                    if (priceChangeFromLastEvent <= -downwardDirectionalChangeThreshold)
                     {
-                        intrinsicTimeEvents.Add(
-                            new Overshoot(time, AlgorithmMode.Down, dcPrice - extremPrice));
+                        AddNewEvent(new Overshoot(time, AlgorithmMode.Down, price, price - LastEventPrice));
+                    }
+                }
+                else if (priceChangeFromExtrem >= upwardDirectionalChangeThreshold)
+                {
+                    if (LastDirectionalChangePrice != 0 && extremPrice < LastDirectionalChangePrice)
+                    {
+                        AddNewEvent(new Overshoot(time, AlgorithmMode.Down, price, LastDirectionalChangePrice - extremPrice));
 
                         logger.LogInformation($"{Instrument}: Overwhoot to DOWN event registered");
                     }
 
-                    intrinsicTimeEvents.Add(
-                        new DirectionalChange(time, AlgorithmMode.Up, price - extremPrice));
+                    AddNewEvent(new DirectionalChange(time, AlgorithmMode.Up, price, price - extremPrice));
                     extremPrice = price;
-                    dcPrice = price;
                     mode = AlgorithmMode.Up;
                     
                     logger.LogInformation($"{Instrument}: DirectionalChange to UP event registered");
                 }
             }
+        }
+
+        private decimal CalcPriceChange(decimal currentPrice, decimal basePrice)
+        {
+            if (basePrice == 0)
+                return 0;
+
+            return currentPrice / basePrice - 1;
+        }
+
+        private void AddNewEvent(IntrinsicTimeEvent intrinsicTimeEvent)
+        {
+            intrinsicTimeEvents.Add(intrinsicTimeEvent);
+
+            NewEventAdded?.Invoke(intrinsicTimeEvent);
         }
 
         public Tuple<decimal, decimal> GetAvaregesForDcAndFollowedOs()
@@ -144,6 +183,13 @@ namespace TradingBot.AlphaEngine
                 return 0.5m;
 
             return 1m;
+        }
+
+        private void AddLongPosition(decimal sumInUnits)
+        {
+            cumulativeLongPositionInUnits += sumInUnits;
+
+            AdjustThresholds();
         }
 
         private void AdjustThresholds()

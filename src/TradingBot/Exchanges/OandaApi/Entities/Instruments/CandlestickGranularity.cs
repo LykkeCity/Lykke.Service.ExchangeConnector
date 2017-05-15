@@ -3,7 +3,7 @@
     /// <summary>
     /// http://developer.oanda.com/rest-live-v20/instrument-df/#CandlestickGranularity
     /// </summary>
-    public enum CanglestickGranularity
+    public enum CandlestickGranularity
     {
         /// <summary>
         /// 5 second candlesticks, minute alignment

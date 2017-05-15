@@ -13,5 +13,6 @@
   <ItemGroup>
     <Folder Include="Exchanges\BitfinexApi\" />
     <Folder Include="ExchangeAbstractions\" />
+    <Folder Include="Exchanges\OandaApi\Entities\Orders\" />
   </ItemGroup>
 </Project>

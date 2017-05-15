@@ -12,7 +12,7 @@ namespace TradingBot.Exchanges.OandaApi.Entities.Instruments
         /// <summary>
         /// The granularity of the candlesticks provided.
         /// </summary>
-        public CanglestickGranularity Granularity { get; set; }
+        public CandlestickGranularity Granularity { get; set; }
 
         /// <summary>
         /// The list of candlesticks that satisfy the request.

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using TradingBot.AlphaEngine;
 using TradingBot.Exchanges.OandaApi;
 using TradingBot.Exchanges.OandaApi.ApiEndpoints;
+using TradingBot.Exchanges.OandaApi.Entities.Instruments;
 using TradingBot.Infrastructure;
 
 namespace TradingBot
@@ -20,6 +21,9 @@ namespace TradingBot
 
             var client = new ApiClient(OandaAuth.Token);
             var accountsApi = new AccountsApi(client);
+            var pricesApi = new PricesApi(client);
+            var instrumentsApi = new InstrumentsApi(client);
+
 
             var accountsList = accountsApi.GetAccounts().Result;
             Logger.LogInformation($"Received {accountsList.Accounts.Count} accounts");
@@ -30,17 +34,30 @@ namespace TradingBot
             Logger.LogInformation($"Balance: {details.Account.Balance}");
 
             var instruments = accountsApi.GetAccountInstruments(accountId).Result;
-            //Console.WriteLine($"Available instruments: {instruments.Instruments.Count}");
+            Logger.LogInformation($"{instruments.Instruments.Count} instruments available for account");
 
-            Logger.LogDebug("Opening stream...");
-
-            var pricesApi = new PricesApi(client);
+            
 
             var instrumentsToProcess = instruments.Instruments.Select(x => x.Name).Take(10).ToArray();
             var instrumentAgents = instrumentsToProcess
-                .ToDictionary(x => x, x => new InstrumentAgent(x, AlphaEngineConfig.DirectionalChangeThreshold));
+                .ToDictionary(x => x, x => new EngineAgent(x, AlphaEngineConfig.DirectionalChangeThreshold));
             
+            Logger.LogInformation("Get historical data");
+
+            var getCandlesTask = instrumentsApi.GetCandles("EUR_USD", DateTime.UtcNow.AddDays(-1), null, CandlestickGranularity.S30);
+            var candlesResponse = getCandlesTask.Result;
+
+            var eurUsdHistorical = new EngineAgent("EUR_USD", AlphaEngineConfig.DirectionalChangeThreshold);
+
+            foreach(var candle in candlesResponse.Candles)
+            {
+                eurUsdHistorical.HandlePriceChange(candle.Mid.Closing, candle.Time);
+            }
+
+
             var ctSourse = new CancellationTokenSource();
+
+            Logger.LogInformation("Opening stream...");
             
             var task = Task.Run(() => {
                 pricesApi.OpenPricesStream(accountId, ctSourse.Token,
