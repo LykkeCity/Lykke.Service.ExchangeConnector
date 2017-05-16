@@ -2,7 +2,7 @@
 {
     public enum AlgorithmMode
     {
-        Up,
-        Down
+        Down = 0,
+        Up = 1
     }
 }

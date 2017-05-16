@@ -40,14 +40,14 @@ namespace TradingBot
 
             var instrumentsToProcess = instruments.Instruments.Select(x => x.Name).Take(10).ToArray();
             var instrumentAgents = instrumentsToProcess
-                .ToDictionary(x => x, x => new EngineAgent(x, AlphaEngineConfig.DirectionalChangeThreshold));
+                .ToDictionary(x => x, x => new IntrinsicTime(x, AlphaEngineConfig.DirectionalChangeThreshold));
             
             Logger.LogInformation("Get historical data");
 
             var getCandlesTask = instrumentsApi.GetCandles("EUR_USD", DateTime.UtcNow.AddDays(-1), null, CandlestickGranularity.S30);
             var candlesResponse = getCandlesTask.Result;
 
-            var eurUsdHistorical = new EngineAgent("EUR_USD", AlphaEngineConfig.DirectionalChangeThreshold);
+            var eurUsdHistorical = new IntrinsicTime("EUR_USD", AlphaEngineConfig.DirectionalChangeThreshold);
 
             foreach(var candle in candlesResponse.Candles)
             {

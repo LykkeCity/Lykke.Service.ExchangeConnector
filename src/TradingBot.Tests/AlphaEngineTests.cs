@@ -17,9 +17,9 @@ namespace TradingBot.Tests
             var instrument = "EUR_USD";
             var threshold = 0.002m;
 
-            var engineAgent = new EngineAgent(instrument, threshold);
+            var engineAgent = new IntrinsicTime(instrument, threshold);
             var tradingAgent = new TradingAgent(instrument);
-            engineAgent.NewEventAdded += tradingAgent.HandleEvent;
+            engineAgent.NewIntrinsicTimeEventGenerated += tradingAgent.HandleEvent;
 
             var position = new Position(instrument);
             tradingAgent.NewSignalGenerated += position.AddSignal;

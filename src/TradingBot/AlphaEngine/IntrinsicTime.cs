@@ -3,15 +3,17 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using TradingBot.Infrastructure;
-using TradingBot.Trading;
 
 namespace TradingBot.AlphaEngine
 {
-    public class EngineAgent
+    /// <summary>
+    /// Produce IntrinsicTimeEvents depending on directional change threshold
+    /// </summary>
+    public class IntrinsicTime
     {
-        private ILogger logger = Logging.CreateLogger<EngineAgent>();
+        private ILogger logger = Logging.CreateLogger<IntrinsicTime>();
 
-        public EngineAgent(string instrument, 
+        public IntrinsicTime(string instrument, 
             decimal directionalChangeTrheshold)
         {
             Instrument = instrument;
@@ -21,7 +23,7 @@ namespace TradingBot.AlphaEngine
             AdjustThresholds();
         }
 
-        public EngineAgent(string instrument,
+        public IntrinsicTime(string instrument,
             decimal upDcTrheshold, decimal downDcThreshold)
         {
             Instrument = instrument;
@@ -55,7 +57,7 @@ namespace TradingBot.AlphaEngine
             intrinsicTimeEvents.OfType<Overshoot>().Count(x => x.Mode == AlgorithmMode.Down);
 
 
-        public event Action<IntrinsicTimeEvent> NewEventAdded;
+        public event Action<IntrinsicTimeEvent> NewIntrinsicTimeEventGenerated;
 
 
         private decimal extremPrice;
@@ -75,6 +77,8 @@ namespace TradingBot.AlphaEngine
         private decimal LastEventPrice => intrinsicTimeEvents.LastOrDefault()?.Price ?? 0;
 
         private decimal LastDirectionalChangePrice => intrinsicTimeEvents.OfType<DirectionalChange>().LastOrDefault()?.Price ?? 0;
+
+        public DirectionalChange LastDirectionalChange => intrinsicTimeEvents.OfType<DirectionalChange>().LastOrDefault();
 
         public void HandlePriceChange(decimal price, DateTime time)
         {
@@ -150,7 +154,7 @@ namespace TradingBot.AlphaEngine
         {
             intrinsicTimeEvents.Add(intrinsicTimeEvent);
 
-            NewEventAdded?.Invoke(intrinsicTimeEvent);
+            NewIntrinsicTimeEventGenerated?.Invoke(intrinsicTimeEvent);
         }
 
         public Tuple<decimal, decimal> GetAvaregesForDcAndFollowedOs()
