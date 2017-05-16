@@ -1,8 +1,7 @@
-using System;
-using System.IO;
 using System.Threading.Tasks;
-using TradingBot.Exchanges.OandaApi;
-using TradingBot.Exchanges.OandaApi.ApiEndpoints;
+using TradingBot.Exchanges.Abstractions;
+using TradingBot.Exchanges.Concrete.Oanda;
+using TradingBot.Exchanges.Concrete.Oanda.Endpoints;
 using Xunit;
 
 namespace TradingBot.Tests
@@ -12,9 +11,10 @@ namespace TradingBot.Tests
         private string GetToken => OandaAuth.Token;
         private string accountId => "{PLACE-YOUR-ACCOUNTID-HERE}";
 
-        private AccountsApi CreateAccountsApi()
+
+        private Accounts CreateAccountsApi()
         {
-            return new AccountsApi(new ApiClient(GetToken));
+            return new Accounts(new ApiClient(OandaHttpClient.CreateHttpClient(GetToken)));
         }
 
         [Fact]

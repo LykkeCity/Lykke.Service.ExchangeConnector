@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using TradingBot.Exchanges.OandaApi;
-using TradingBot.Exchanges.OandaApi.ApiEndpoints;
-using TradingBot.Exchanges.OandaApi.Entities.Instruments;
+using TradingBot.Exchanges.Abstractions;
+using TradingBot.Exchanges.Concrete.Oanda;
+using TradingBot.Exchanges.Concrete.Oanda.Endpoints;
+using TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments;
 using Xunit;
 
 namespace TradingBot.Tests
@@ -12,9 +13,9 @@ namespace TradingBot.Tests
     {
         private string GetToken => OandaAuth.Token;
 
-        private InstrumentsApi CreateInstrumentsApi()
+        private Instruments CreateInstrumentsApi()
         {
-            return new InstrumentsApi(new ApiClient(GetToken));
+            return new Instruments(new ApiClient(OandaHttpClient.CreateHttpClient(GetToken)));
         }
 
         [Fact]

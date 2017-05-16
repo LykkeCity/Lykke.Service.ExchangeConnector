@@ -11,8 +11,8 @@
     <PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Exchanges\BitfinexApi\" />
-    <Folder Include="ExchangeAbstractions\" />
-    <Folder Include="Exchanges\OandaApi\Entities\Orders\" />
+    <Folder Include="Exchanges\Concrete\Bitstamp\" />
+    <Folder Include="Exchanges\Concrete\ICMarkets\" />
+    <Folder Include="Exchanges\Concrete\Oanda\Entities\Orders\" />
   </ItemGroup>
 </Project>

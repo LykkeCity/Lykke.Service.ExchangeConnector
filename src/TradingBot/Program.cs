@@ -4,9 +4,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.AlphaEngine;
-using TradingBot.Exchanges.OandaApi;
-using TradingBot.Exchanges.OandaApi.ApiEndpoints;
-using TradingBot.Exchanges.OandaApi.Entities.Instruments;
+using TradingBot.Exchanges.Abstractions;
+using TradingBot.Exchanges.Concrete.Oanda;
+using TradingBot.Exchanges.Concrete.Oanda.Endpoints;
+using TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments;
 using TradingBot.Infrastructure;
 
 namespace TradingBot
@@ -19,10 +20,10 @@ namespace TradingBot
         {
             Logger.LogInformation("Connecting to OANDA api...");
 
-            var client = new ApiClient(OandaAuth.Token);
-            var accountsApi = new AccountsApi(client);
-            var pricesApi = new PricesApi(client);
-            var instrumentsApi = new InstrumentsApi(client);
+            var client = new ApiClient(OandaHttpClient.CreateHttpClient(OandaAuth.Token));
+            var accountsApi = new Accounts(client);
+            var pricesApi = new Prices(client);
+            var instrumentsApi = new Instruments(client);
 
 
             var accountsList = accountsApi.GetAccounts().Result;
