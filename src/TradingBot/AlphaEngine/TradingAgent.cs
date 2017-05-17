@@ -32,12 +32,12 @@ namespace TradingBot.AlphaEngine
             {
                 if (intrinsicTimeEvent.Mode == AlgorithmMode.Down)
                 {
-                    AddNewSignal(new Signal(SignalType.Short, intrinsicTimeEvent.Price, 1));
+                    AddNewSignal(new Signal(SignalType.Long, intrinsicTimeEvent.Price, 1));
                     // it's required to get units from engine agent
                 }
                 else
                 {
-                    AddNewSignal(new Signal(SignalType.Long, intrinsicTimeEvent.Price, 1));
+                    AddNewSignal(new Signal(SignalType.Short, intrinsicTimeEvent.Price, 1));
                 }
             }
         }

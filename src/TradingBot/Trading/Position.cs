@@ -11,9 +11,13 @@ namespace TradingBot.Trading
             Instrument = instrument;
         }
 
-        public decimal Amount => amount;
+        public decimal Count => count;
 
-        private decimal amount;
+        private decimal count;
+
+        private decimal money;
+
+        public decimal Money => money;
         
         private List<Signal> signals = new List<Signal>();
 
@@ -23,11 +27,13 @@ namespace TradingBot.Trading
 
             if (signal.Type == SignalType.Long)
             {
-                amount += signal.Amount;
+                count += signal.Count;
+                money -= signal.Amount;
             }
             else if (signal.Type == SignalType.Short)
             {
-                amount -= signal.Amount;
+                count -= signal.Count;
+                money += signal.Amount;
             }
         }
     }

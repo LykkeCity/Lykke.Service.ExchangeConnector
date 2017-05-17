@@ -61,7 +61,7 @@ namespace TradingBot.AlphaEngine
 
 
         private decimal extremPrice;
-        private AlgorithmMode mode;
+        private AlgorithmMode mode = AlgorithmMode.Up;
 
 
         private decimal cascadingSizeInUnits = 1m;
@@ -174,6 +174,9 @@ namespace TradingBot.AlphaEngine
                     i++;
                 }
             }
+
+            if (!dcMagnitudes.Any())
+                return Tuple.Create(0m, 0m);
 
             return Tuple.Create(dcMagnitudes.Sum() / dcMagnitudes.Count, osMagnitudes.Sum() / osMagnitudes.Count);
         }

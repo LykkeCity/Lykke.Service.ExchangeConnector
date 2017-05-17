@@ -1,8 +1,6 @@
 ﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
 
-namespace TradingBot.Exchanges.Concrete.Kraken.Responses
+namespace TradingBot.Exchanges.Concrete.Kraken.Entities
 {
     public class AssetInfo
     {
@@ -15,12 +13,5 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Responses
 
         [JsonProperty("display_decimals")]
         public int DisplayDecimals { get; set; }
-    }
-
-    public enum AssetClass
-    {
-        Test,
-        Unknown,
-        Currency
     }
 }
