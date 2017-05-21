@@ -12,7 +12,7 @@ namespace TradingBot.Trading
 
     public class Order
     {
-        public Order(string instrument, OrderType type, Signal signal)
+        public Order(string instrument, OrderType type, TradingSignal signal)
         {
             Instrument = instrument;
             Type = type;
@@ -26,6 +26,6 @@ namespace TradingBot.Trading
         
         public OrderType Type { get; }
 
-        public Signal Signal { get; }
+        public TradingSignal Signal { get; }
     }
 }

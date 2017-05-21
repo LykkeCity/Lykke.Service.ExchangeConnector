@@ -73,6 +73,16 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
             return MakeGetRequestAsync<Dictionary<string, OrderBook>>(url);
         }
 
+        public Task<TradesResult> GetTrades(string pair, long? since = null)
+        {
+            var url = $"Trades?pair={pair}";
+            if (since.HasValue)
+                url += $"&since={since}";
+            
+
+            return MakeGetRequestAsync<TradesResult>(url);
+        }
+
         private async Task<T> MakeGetRequestAsync<T>(string url)
         {
             var response = await apiClient.MakeGetRequestAsync<ResponseBase<T>>($"{EndpointUrl}/{url}");

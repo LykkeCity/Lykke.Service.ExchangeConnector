@@ -4,9 +4,9 @@ namespace TradingBot.Trading
 {
     public class Position
     {
-        public string Instrument { get; }
+        public Instrument Instrument { get; }
 
-        public Position(string instrument)
+        public Position(Instrument instrument)
         {
             Instrument = instrument;
         }
@@ -18,10 +18,12 @@ namespace TradingBot.Trading
         private decimal money;
 
         public decimal Money => money;
-        
-        private List<Signal> signals = new List<Signal>();
 
-        public void AddSignal(Signal signal)
+        public decimal Average => money / count;
+        
+        private List<TradingSignal> signals = new List<TradingSignal>();
+
+        public void AddSignal(TradingSignal signal)
         {
             signals.Add(signal);
 
@@ -35,6 +37,15 @@ namespace TradingBot.Trading
                 count -= signal.Count;
                 money += signal.Amount;
             }
+        }
+
+        public Position AddAnother(Position another)
+        {
+            return new Position(Instrument)
+            {
+                count = count + another.count,
+                money = money + another.money
+            };
         }
     }
 }

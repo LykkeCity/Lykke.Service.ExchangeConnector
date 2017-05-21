@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using TradingBot.Trading;
 
 namespace TradingBot.AlphaEngine
 {
@@ -45,27 +46,29 @@ namespace TradingBot.AlphaEngine
         public void Init()
         {
             intrinsicTimes = new List<IntrinsicTime>(dimension);
-
-            int i = 0;
+            
             foreach (var threshold in thresholds)
             {
-                intrinsicTimes.Add(new IntrinsicTime($"{i++}", threshold));
+                intrinsicTimes.Add(new IntrinsicTime(threshold));
             }
         }
 
-        public void HandlePrice(decimal price, DateTime time)
+        public void OnPriceChange(PriceTime priceTime)
         {
+            //var tasks = intrinsicTimes.Select(x => Task.Run(() => x.HandlePriceChange(price, time)));
+            //Task.WaitAll(tasks.ToArray());
+
+            //intrinsicTimes.AsParallel().ForAll(it => it.HandlePriceChange(price, time));
+
             foreach (var it in intrinsicTimes)
             {
-                it.HandlePriceChange(price, time);
+                it.OnPriceChange(priceTime);
             }
         }
 
         public string GetStateString()
         {
-            var defaultMode = AlgorithmMode.Up;
-
-            return string.Join("", intrinsicTimes.Select(x => (int)(x.LastDirectionalChange?.Mode ?? defaultMode)));
+            return string.Join("", intrinsicTimes.Select(x => (int)(x.Mode)));
         }
     }
 }

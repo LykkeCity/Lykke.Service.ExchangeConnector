@@ -9,6 +9,7 @@ using TradingBot.Exchanges.Concrete.Oanda;
 using TradingBot.Exchanges.Concrete.Oanda.Endpoints;
 using TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments;
 using TradingBot.Infrastructure;
+using TradingBot.Trading;
 
 namespace TradingBot
 {
@@ -41,18 +42,18 @@ namespace TradingBot
 
             var instrumentsToProcess = instruments.Instruments.Select(x => x.Name).Take(10).ToArray();
             var instrumentAgents = instrumentsToProcess
-                .ToDictionary(x => x, x => new IntrinsicTime(x, AlphaEngineConfig.DirectionalChangeThreshold));
+                .ToDictionary(x => x, x => new IntrinsicTime(AlphaEngineConfig.DirectionalChangeThreshold));
             
             Logger.LogInformation("Get historical data");
 
             var getCandlesTask = instrumentsApi.GetCandles("EUR_USD", DateTime.UtcNow.AddDays(-1), null, CandlestickGranularity.S30);
             var candlesResponse = getCandlesTask.Result;
 
-            var eurUsdHistorical = new IntrinsicTime("EUR_USD", AlphaEngineConfig.DirectionalChangeThreshold);
+            var eurUsdHistorical = new IntrinsicTime(AlphaEngineConfig.DirectionalChangeThreshold);
 
             foreach(var candle in candlesResponse.Candles)
             {
-                eurUsdHistorical.HandlePriceChange(candle.Mid.Closing, candle.Time);
+                eurUsdHistorical.OnPriceChange(new PriceTime(candle.Mid.Closing, candle.Time));
             }
 
 
@@ -64,7 +65,7 @@ namespace TradingBot
                 pricesApi.OpenPricesStream(accountId, ctSourse.Token,
                     price => {
                         Logger.LogInformation($"Price received: {price}");
-                        instrumentAgents[price.Instrument].HandlePriceChange(price.CloseoutBid, price.Time);
+                        instrumentAgents[price.Instrument].OnPriceChange(new PriceTime(price.CloseoutBid, price.Time));
                     },
                     heartbeat => {
                         Logger.LogInformation($"Heartbeat received: {heartbeat}");

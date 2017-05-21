@@ -6,9 +6,9 @@
         Short
     }
 
-    public class Signal
+    public class TradingSignal
     {
-        public Signal(SignalType type, decimal price, decimal count)
+        public TradingSignal(SignalType type, decimal price, decimal count)
         {
             Type = type;
             Price = price;

@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Kraken.Endpoints;
+using TradingBot.Helpers;
 using Xunit;
 
 namespace TradingBot.Tests.KrakenApiTests
@@ -60,6 +61,15 @@ namespace TradingBot.Tests.KrakenApiTests
             var result = await PublicData.GetOrderBook("XXBTZUSD");
 
             Assert.True(result.Single().Value.Bids.Any());
+        }
+
+        [Fact]
+        public async Task GetTrades()
+        {
+            var result = await PublicData.GetTrades("XXBTZUSD");
+
+            Assert.Equal(1, result.Count);
+            Assert.NotNull(result.Last);
         }
     }
 }
