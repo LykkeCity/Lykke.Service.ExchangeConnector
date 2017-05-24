@@ -11,6 +11,15 @@ namespace TradingBot.Trading
             Instrument = instrument;
         }
 
+        private decimal ProfitLoss;
+
+        private decimal UnrealizedProfitLoss;
+        
+        public PositionSide Long { get; }
+        
+        public PositionSide Short { get; }
+
+
         public decimal Count => count;
 
         private decimal count;

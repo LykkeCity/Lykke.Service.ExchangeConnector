@@ -12,9 +12,9 @@ using TradingBot.Exchanges.Concrete.Kraken.Endpoints;
 using TradingBot.Trading;
 using Xunit;
 
-namespace TradingBot.Tests
+namespace TradingBot.Tests.AlphaEngineTests
 {
-    public class AlphaEngineTests
+    public class AlphaEngineTestsOnData
     {
         private class HistoricalDataReader : IDisposable, IEnumerable<PriceTime>
         {

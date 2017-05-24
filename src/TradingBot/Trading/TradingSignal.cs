@@ -1,4 +1,6 @@
-﻿namespace TradingBot.Trading
+﻿using System;
+
+namespace TradingBot.Trading
 {
     public enum SignalType
     {
@@ -8,12 +10,15 @@
 
     public class TradingSignal
     {
-        public TradingSignal(SignalType type, decimal price, decimal count)
+        public TradingSignal(SignalType type, decimal price, decimal count, DateTime time)
         {
             Type = type;
             Price = price;
             Count = count;
+            Time = time;
         }
+
+        public DateTime Time { get; }
 
         public SignalType Type { get; }
 

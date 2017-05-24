@@ -34,6 +34,23 @@ namespace TradingBot.AlphaEngine
             this.thresholds = thresholds;
         }
 
+        public IntrinsicNetwork(int dimension, decimal firstThreshold)
+        {
+            if (dimension < 1)
+                throw new ArgumentOutOfRangeException(nameof(dimension), "Dimension must be greater then zero");
+            
+            var thresholds = new decimal[dimension];
+
+            thresholds[0] = firstThreshold;
+
+            for (int i = 1; i < dimension; i++)
+            {
+                thresholds[i] = thresholds[i - 1] * 2;
+            }
+
+            this.thresholds = thresholds;
+        }
+
         private int dimension;
 
         public int Dimension => dimension;
@@ -68,7 +85,16 @@ namespace TradingBot.AlphaEngine
 
         public string GetStateString()
         {
-            return string.Join("", intrinsicTimes.Select(x => (int)(x.Mode)));
+            return string.Join("", intrinsicTimes.Select(x => (int)x.Mode));
+        }
+
+        /// <summary>
+        /// Returns the network's state, where state[0] is for smallest threshold
+        /// </summary>
+        /// <returns></returns>
+        public byte[] GetState()
+        {
+            return intrinsicTimes.Select(x => (byte)x.Mode).ToArray();
         }
     }
 }

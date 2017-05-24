@@ -31,41 +31,45 @@ namespace TradingBot
             Logger.LogInformation($"Received {accountsList.Accounts.Count} accounts");
 
             var accountId = accountsList.Accounts.First().Id;
-            
+
             var details = accountsApi.GetAccountDetails(accountId).Result;
             Logger.LogInformation($"Balance: {details.Account.Balance}");
 
             var instruments = accountsApi.GetAccountInstruments(accountId).Result;
             Logger.LogInformation($"{instruments.Instruments.Count} instruments available for account");
 
-            
 
-            var instrumentsToProcess = instruments.Instruments.Select(x => x.Name).Take(10).ToArray();
-            var instrumentAgents = instrumentsToProcess
-                .ToDictionary(x => x, x => new IntrinsicTime(AlphaEngineConfig.DirectionalChangeThreshold));
-            
+
+
             Logger.LogInformation("Get historical data");
 
             var getCandlesTask = instrumentsApi.GetCandles("EUR_USD", DateTime.UtcNow.AddDays(-1), null, CandlestickGranularity.S30);
             var candlesResponse = getCandlesTask.Result;
 
-            var eurUsdHistorical = new IntrinsicTime(AlphaEngineConfig.DirectionalChangeThreshold);
+            var eurUsdHistorical = new AlphaEngineAgent(new Trading.Instrument("EUR_USD"));
 
-            foreach(var candle in candlesResponse.Candles)
+            foreach (var candle in candlesResponse.Candles)
             {
                 eurUsdHistorical.OnPriceChange(new PriceTime(candle.Mid.Closing, candle.Time));
             }
+
+            Logger.LogInformation($"Total value: {eurUsdHistorical.GetCumulativePosition().Money}");
 
 
             var ctSourse = new CancellationTokenSource();
 
             Logger.LogInformation("Opening stream...");
-            
+
+            var instrumentsToProcess = instruments.Instruments.Select(x => x.Name).Take(10).ToArray();
+
+            var agents = instrumentsToProcess
+                .ToDictionary(x => x, x => new AlphaEngineAgent(new Trading.Instrument(x)));
+
             var task = Task.Run(() => {
                 pricesApi.OpenPricesStream(accountId, ctSourse.Token,
                     price => {
                         Logger.LogInformation($"Price received: {price}");
-                        instrumentAgents[price.Instrument].OnPriceChange(new PriceTime(price.CloseoutBid, price.Time));
+                        agents[price.Instrument].OnPriceChange(new PriceTime(price.CloseoutBid, price.Time));
                     },
                     heartbeat => {
                         Logger.LogInformation($"Heartbeat received: {heartbeat}");
@@ -74,11 +78,20 @@ namespace TradingBot
                 ).Wait();
             });
 
-            Task.Delay(TimeSpan.FromMinutes(2)).Wait();
+
+            Console.ReadLine();
 
             ctSourse.Cancel();
 
             task.Wait();
+
+            Logger.LogInformation("Trading results:");
+            foreach (var agent in agents)
+            {
+                Logger.LogInformation($"{agent.Key}: {agent.Value.GetCumulativePosition().Money}");
+            }
+
+            Console.ReadLine();
         }
     }
 }

@@ -7,7 +7,7 @@ using TradingBot.Exchanges.Concrete.Oanda.Endpoints;
 using TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments;
 using Xunit;
 
-namespace TradingBot.Tests
+namespace TradingBot.Tests.OandaApiTests
 {
     public class InstrumentsApiTests
     {

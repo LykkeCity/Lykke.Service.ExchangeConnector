@@ -21,11 +21,7 @@ namespace TradingBot.AlphaEngine
 
             AdjustThresholds(0);
         }
-
-        public decimal UpwardDirectionalChangeThreshold => upwardDirectionalChangeThreshold;
-
-        public decimal DownwardDirectionalChangeThreshold => downwardDirectionalChangeThreshold;
-
+        
         private List<IntrinsicTimeEvent> intrinsicTimeEvents = new List<IntrinsicTimeEvent>();
 
         public IReadOnlyList<IntrinsicTimeEvent> IntrinsicTimeEvents => intrinsicTimeEvents;

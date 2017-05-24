@@ -10,16 +10,24 @@ namespace TradingBot.AlphaEngine
             Instrument = instrument;
             coastlineTraders = new List<CoastlineTrader>
             {
-                new CoastlineTrader(instrument, new IntrinsicTime(0.0025m)),
-                new CoastlineTrader(instrument, new IntrinsicTime(0.005m)),
-                new CoastlineTrader(instrument, new IntrinsicTime(0.01m)),
-                new CoastlineTrader(instrument, new IntrinsicTime(0.015m))
+                new CoastlineTrader(instrument, new IntrinsicTime(0.00025m)),
+                new CoastlineTrader(instrument, new IntrinsicTime(0.0005m)),
+                new CoastlineTrader(instrument, new IntrinsicTime(0.001m)),
+                new CoastlineTrader(instrument, new IntrinsicTime(0.0015m))
             };
+
+            intrinsicNetwork = new IntrinsicNetwork(IntrinsicNetworkDimensions, firstThreshold: 0.00025m);
         }
+
+        private const int IntrinsicNetworkDimensions = 5;
 
         public Instrument Instrument { get; set; }
 
         private List<CoastlineTrader> coastlineTraders;
+
+        private IntrinsicNetwork intrinsicNetwork;
+
+        //private byte[] intrinsicNetworkState = new byte[IntrinsicNetworkDimensions];
 
         public void OnPriceChange(PriceTime priceTime)
         {
