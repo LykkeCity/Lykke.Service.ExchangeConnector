@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
+using System.Collections;
 using TradingBot.Infrastructure;
+using TradingBot.Infrastructure.Exceptions;
 
 namespace TradingBot.AlphaEngine
 {
@@ -12,7 +14,7 @@ namespace TradingBot.AlphaEngine
     {
         private static ILogger Logger = Logging.CreateLogger<ProbabilityIndicator>();
 
-        public static int CalculateFirstDifference(byte[] state)
+        public static int CalculateFirstDifference(BitArray state)
         {
             int i;
             for (i = 1; i < state.Length && state[i] == state[0]; i++)
@@ -24,8 +26,8 @@ namespace TradingBot.AlphaEngine
             return firstDifference;
         }
 
-        public static double Calculate(byte[] previousState, 
-            byte[] currentState,
+        public static double Calculate(BitArray previousState, 
+            BitArray currentState,
             decimal[] deltas)
         {
             double result = 0;
@@ -45,7 +47,7 @@ namespace TradingBot.AlphaEngine
                 }
                 else
                 {
-                    Logger.LogError("Unexpected Probabilty Indicator state");
+                    throw new ProbabilityCalculationException("Unexpected Probabilty Indicator state");
                 }
             }
             else if (firstDifference > 1)
@@ -82,7 +84,7 @@ namespace TradingBot.AlphaEngine
             }
             else
             {
-                Logger.LogError($"Unexpected {nameof(firstDifference)} value {firstDifference}");
+                throw new ProbabilityCalculationException($"Unexpected {nameof(firstDifference)} value {firstDifference}");
             }
 
             return result;

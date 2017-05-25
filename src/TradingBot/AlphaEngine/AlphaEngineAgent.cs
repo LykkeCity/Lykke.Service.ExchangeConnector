@@ -16,10 +16,11 @@ namespace TradingBot.AlphaEngine
                 new CoastlineTrader(instrument, new IntrinsicTime(0.0015m))
             };
 
-            intrinsicNetwork = new IntrinsicNetwork(IntrinsicNetworkDimensions, firstThreshold: 0.00025m);
+            intrinsicNetwork = new IntrinsicNetwork(IntrinsicNetworkDimensions, 
+                firstThreshold: 0.00025m);
         }
 
-        private const int IntrinsicNetworkDimensions = 5;
+        private const int IntrinsicNetworkDimensions = 12;
 
         public Instrument Instrument { get; set; }
 
@@ -42,6 +43,11 @@ namespace TradingBot.AlphaEngine
             var position = new Position(Instrument);
             coastlineTraders.ForEach(x => position = position.AddAnother(x.Position));
             return position;
+        }
+
+        private decimal CalcProbabilityIndicator()
+        {
+            return ProbabilityIndicator.CalculateFirstDifference(intrinsicNetwork.GetState());
         }
     }
 }

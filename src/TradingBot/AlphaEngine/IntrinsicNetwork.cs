@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TradingBot.Trading;
@@ -57,8 +58,8 @@ namespace TradingBot.AlphaEngine
 
 
         private decimal[] thresholds;
-
         private List<IntrinsicTime> intrinsicTimes;
+        private List<Surprise> surprises;
 
         public void Init()
         {
@@ -68,6 +69,8 @@ namespace TradingBot.AlphaEngine
             {
                 intrinsicTimes.Add(new IntrinsicTime(threshold));
             }
+
+            surprises = new List<Surprise>();
         }
 
         public void OnPriceChange(PriceTime priceTime)
@@ -77,10 +80,52 @@ namespace TradingBot.AlphaEngine
 
             //intrinsicTimes.AsParallel().ForAll(it => it.HandlePriceChange(price, time));
 
+            var previousState = GetState();
+
             foreach (var it in intrinsicTimes)
             {
                 it.OnPriceChange(priceTime);
             }
+
+            var currentState = GetState();
+            surprises.Any();
+
+            bool equals = true;
+            for (int i = 0; i < previousState.Length; i++)
+            {
+                if (previousState[i] != currentState[i])
+                {
+                    equals = false;
+                    break;
+                }
+            }
+
+            if (!equals)
+            {
+                surprises.Add(new Surprise(priceTime.Time,
+                    ProbabilityIndicator.Calculate(previousState, currentState, thresholds)));
+            }
+        }
+
+        /// <summary>
+        /// The number of transitions within time interval on the intrinsic network,
+        /// in fact equals to the sum of all directional changes related to thresholds 
+        /// δ1; ... ; δn that occurred within time interval, representing
+        /// the measurement of activity across multiple scales.
+        /// </summary>
+        /// <param>Time interval</param>
+        public int CalcK(DateTime from, DateTime to)
+        {
+            return intrinsicTimes.SelectMany(x => x.IntrinsicTimeEvents)
+                .OfType<DirectionalChange>()
+                .Where(x => from <= x.Time && x.Time <= to)
+                .Count();
+        }
+
+        public double CalcTotalSurprise(DateTime from, DateTime to)
+        {
+            return surprises.Where(x => from <= x.Time && x.Time <= to)
+                .Sum(x => x.Value);
         }
 
         public string GetStateString()
@@ -91,10 +136,9 @@ namespace TradingBot.AlphaEngine
         /// <summary>
         /// Returns the network's state, where state[0] is for smallest threshold
         /// </summary>
-        /// <returns></returns>
-        public byte[] GetState()
+        public BitArray GetState()
         {
-            return intrinsicTimes.Select(x => (byte)x.Mode).ToArray();
+            return new BitArray(intrinsicTimes.Select(x => x.Mode == AlgorithmMode.Up).ToArray());
         }
     }
 }
