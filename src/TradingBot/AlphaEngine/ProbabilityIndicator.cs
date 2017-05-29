@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
-using System.Collections;
 using TradingBot.Infrastructure;
 using TradingBot.Infrastructure.Exceptions;
 
@@ -13,37 +12,26 @@ namespace TradingBot.AlphaEngine
     public class ProbabilityIndicator
     {
         private static ILogger Logger = Logging.CreateLogger<ProbabilityIndicator>();
-
-        public static int CalculateFirstDifference(BitArray state)
-        {
-            int i;
-            for (i = 1; i < state.Length && state[i] == state[0]; i++)
-            {
-            }
-
-            int firstDifference = i < state.Length ? i : 1;
-
-            return firstDifference;
-        }
-
-        public static double Calculate(BitArray previousState, 
-            BitArray currentState,
+        
+        public static double Calculate(
+            NetworkState previousState, 
+            NetworkState currentState,
             decimal[] deltas)
         {
             double result = 0;
 
-            int firstDifference = CalculateFirstDifference(previousState);
+            int firstDifference = previousState.FirstDifference();
 
             if (firstDifference == 1)
             {
                 var exp = Math.Exp(decimal.ToDouble(-(deltas[1] - deltas[0]) / deltas[0]));
                 if (previousState[0] != currentState[0])
                 {
-                    result = exp;
+                    result = 1 - exp;
                 }
                 else if (previousState[1] != currentState[1])
                 {
-                    result = 1 - exp;
+                    result = exp;
                 }
                 else
                 {
@@ -61,7 +49,7 @@ namespace TradingBot.AlphaEngine
                 double sum = 0;
                 for (int i = 1; i < firstDifference; i++)
                 {
-                    double firstVal = Math.Exp(decimal.ToDouble(-(deltas[i] - deltas[i - 1]) / deltas[i - 1]));
+                    double firstVal = 1 - Math.Exp(decimal.ToDouble(-(deltas[i] - deltas[i - 1]) / deltas[i - 1]));
                     double mult = 1;
 
                     for (int j = i + 1; j <= firstDifference; j++)
@@ -75,11 +63,11 @@ namespace TradingBot.AlphaEngine
 
                 if (currentState[0] != previousState[0])
                 {
-                    result = numerator / denominator;
+                    result = 1 - numerator / denominator;
                 }
                 else if (currentState[firstDifference] != previousState[firstDifference])
                 {
-                    result = 1 - numerator / denominator;
+                    result = numerator / denominator;
                 }
             }
             else

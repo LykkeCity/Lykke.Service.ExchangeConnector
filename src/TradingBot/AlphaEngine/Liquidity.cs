@@ -4,6 +4,21 @@ namespace TradingBot.AlphaEngine
 {
     public class Liquidity
     {
+        public Liquidity(DateTime time, double value)
+        {
+            Time = time;
+            Value = value;
+        }
+
+        public DateTime Time { get; }
+        public double Value { get; }
+
+        public override string ToString()
+        {
+            return $"{Time}, L={Value}";
+        }
+
+
         /// <summary>
         /// First order informativeness
         /// </summary>
@@ -22,7 +37,7 @@ namespace TradingBot.AlphaEngine
         public static double Calculate(double totalSurprise, int K)
         {
             var argument = (totalSurprise - K * H1) / Math.Sqrt(K * H2);
-
+            
             return 1 - Phi(argument);
         }
 

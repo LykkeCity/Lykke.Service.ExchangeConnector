@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using TradingBot.Trading;
 
 namespace TradingBot.AlphaEngine
@@ -17,7 +18,8 @@ namespace TradingBot.AlphaEngine
             };
 
             intrinsicNetwork = new IntrinsicNetwork(IntrinsicNetworkDimensions, 
-                firstThreshold: 0.00025m);
+                firstThreshold: 0.00025m, 
+                liquiditySlidingWindow: TimeSpan.FromMinutes(10));
         }
 
         private const int IntrinsicNetworkDimensions = 12;
@@ -43,11 +45,6 @@ namespace TradingBot.AlphaEngine
             var position = new Position(Instrument);
             coastlineTraders.ForEach(x => position = position.AddAnother(x.Position));
             return position;
-        }
-
-        private decimal CalcProbabilityIndicator()
-        {
-            return ProbabilityIndicator.CalculateFirstDifference(intrinsicNetwork.GetState());
         }
     }
 }

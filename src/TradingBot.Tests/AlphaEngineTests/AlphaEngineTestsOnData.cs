@@ -102,8 +102,7 @@ namespace TradingBot.Tests.AlphaEngineTests
         [Fact]
         public void TestIntrinsicNetwork()
         {
-            var network = new IntrinsicNetwork(5, .00025m, .0005m, .001m, .002m, .004m);
-            network.Init();
+            var network = new IntrinsicNetwork(5, .00025m, TimeSpan.FromMinutes(10));
 
             var states = new StringBuilder();
             string prevState = "";

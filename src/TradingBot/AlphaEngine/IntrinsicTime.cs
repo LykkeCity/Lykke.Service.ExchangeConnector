@@ -14,10 +14,10 @@ namespace TradingBot.AlphaEngine
     {
         private ILogger logger = Logging.CreateLogger<IntrinsicTime>();
 
-        public IntrinsicTime(decimal directionalChangeTrheshold)
+        public IntrinsicTime(decimal directionalChangeThreshold)
         {
-            upwardDirectionalChangeOriginalThreshold = directionalChangeTrheshold;
-            downwardDirectionalChangeOriginalThreshold = directionalChangeTrheshold;
+            upwardDirectionalChangeOriginalThreshold = directionalChangeThreshold;
+            downwardDirectionalChangeOriginalThreshold = directionalChangeThreshold;
 
             AdjustThresholds(0);
         }
@@ -46,16 +46,13 @@ namespace TradingBot.AlphaEngine
         private decimal upwardOvershootThreshold => upwardDirectionalChangeThreshold * overshootMultiplier;
         private decimal downwardOvershootThreshold => downwardDirectionalChangeThreshold * overshootMultiplier;
 
-        private const decimal overshootMultiplier = 2.525729m;
+        private const decimal overshootMultiplier = 1;//2.525729m;
 
 
         private decimal cascadingUnits => defaultCascadingUnits * upwardDirectionalChangeThreshold / downwardDirectionalChangeThreshold;
         
 
-        private decimal LastEventPrice => intrinsicTimeEvents.LastOrDefault()?.Price ?? 0;
-
-        private decimal LastDirectionalChangePrice => 
-            intrinsicTimeEvents.OfType<DirectionalChange>().LastOrDefault()?.Price ?? 0;
+        private decimal LastEventPrice => intrinsicTimeEvents.LastOrDefault()?.Price ?? extremPrice;
         
         public IntrinsicTimeEvent OnPriceChange(PriceTime priceTime)
         {

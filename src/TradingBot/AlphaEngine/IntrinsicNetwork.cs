@@ -12,30 +12,8 @@ namespace TradingBot.AlphaEngine
     /// </summary>
     public class IntrinsicNetwork
     {
-        public IntrinsicNetwork(int dimension, params decimal[] thresholds)
-        {
-            if (dimension < 1)
-                throw new ArgumentOutOfRangeException(nameof(dimension), "Dimension must be greater then zero");
-
-            if (thresholds == null)
-                throw new ArgumentNullException(nameof(thresholds));
-
-            if (thresholds.Length < dimension)
-                throw new ArgumentException(nameof(dimension), "Number of thresholds must be the same as dimension");
-
-            for (int i = 0; i < dimension - 1; i++)
-            {
-                if (thresholds[i] > thresholds[i+1])
-                {
-                    throw new ArgumentException(nameof(thresholds), "Thresholds must be in order from smallest to the bigger");
-                }
-            }
-
-            this.dimension = dimension;
-            this.thresholds = thresholds;
-        }
-
-        public IntrinsicNetwork(int dimension, decimal firstThreshold)
+        public IntrinsicNetwork(int dimension, decimal firstThreshold, 
+            TimeSpan liquiditySlidingWindow)
         {
             if (dimension < 1)
                 throw new ArgumentOutOfRangeException(nameof(dimension), "Dimension must be greater then zero");
@@ -50,36 +28,32 @@ namespace TradingBot.AlphaEngine
             }
 
             this.thresholds = thresholds;
+            this.dimension = dimension;
+            this.liquiditySlidingWindow = liquiditySlidingWindow;
+            
+            intrinsicTimes = thresholds.Select(x => new IntrinsicTime(x)).ToList();
         }
 
         private int dimension;
 
         public int Dimension => dimension;
 
-
+        
         private decimal[] thresholds;
         private List<IntrinsicTime> intrinsicTimes;
-        private List<Surprise> surprises;
 
-        public void Init()
-        {
-            intrinsicTimes = new List<IntrinsicTime>(dimension);
-            
-            foreach (var threshold in thresholds)
-            {
-                intrinsicTimes.Add(new IntrinsicTime(threshold));
-            }
+        private List<Surprise> surprises = new List<Surprise>();
+        private List<Liquidity> liquidities = new List<Liquidity>();
 
-            surprises = new List<Surprise>();
-        }
+        public IReadOnlyList<Liquidity> Liquidities => liquidities;
 
+
+        private TimeSpan liquiditySlidingWindow;
+        private DateTime lastLiquidityCalcTime;
+        private DateTime firstDayAfterWeekend;
+        
         public void OnPriceChange(PriceTime priceTime)
         {
-            //var tasks = intrinsicTimes.Select(x => Task.Run(() => x.HandlePriceChange(price, time)));
-            //Task.WaitAll(tasks.ToArray());
-
-            //intrinsicTimes.AsParallel().ForAll(it => it.HandlePriceChange(price, time));
-
             var previousState = GetState();
 
             foreach (var it in intrinsicTimes)
@@ -88,25 +62,67 @@ namespace TradingBot.AlphaEngine
             }
 
             var currentState = GetState();
-            surprises.Any();
+            
+            if (previousState.Equals(currentState))
+                return;
 
-            bool equals = true;
-            for (int i = 0; i < previousState.Length; i++)
+            var surprise = new Surprise(priceTime.Time,
+                previousState, currentState, thresholds);
+
+            surprises.Add(surprise);
+
+
+            TimeSpan liquidityResolution = TimeSpan.FromMinutes(1);
+            TimeSpan weekend = TimeSpan.FromDays(2);
+
+            //if (firstDayAfterWeekend == default(DateTime))
+            //{
+            //    firstDayAfterWeekend = priceTime.Time;
+            //}
+
+            if (lastLiquidityCalcTime == default(DateTime))
             {
-                if (previousState[i] != currentState[i])
+                lastLiquidityCalcTime = priceTime.Time;
+            }
+
+            if (priceTime.Time - lastLiquidityCalcTime > weekend) // skip weekend
+            {
+                //firstDayAfterWeekend = priceTime.Time;
+                lastLiquidityCalcTime = lastLiquidityCalcTime.Add(weekend);
+
+                foreach (var item in slidingSurprises)
                 {
-                    equals = false;
-                    break;
+                    item.MoveTime(weekend);
                 }
             }
 
-            if (!equals)
+            slidingSurprises.AddLast(surprise);
+
+            if (priceTime.Time - lastLiquidityCalcTime >= liquidityResolution)
             {
-                surprises.Add(new Surprise(priceTime.Time,
-                    ProbabilityIndicator.Calculate(previousState, currentState, thresholds)));
+                var value = Liquidity.Calculate(
+                    slidingSurprises.Sum(x => x.Value),
+                    slidingSurprises.Count());
+
+                liquidities.Add(new Liquidity(priceTime.Time, value));
+
+                lastLiquidityCalcTime = priceTime.Time;
+
+                while (slidingSurprises.Any() && slidingSurprises.First().Time < priceTime.Time - liquiditySlidingWindow)
+                    slidingSurprises.RemoveFirst();
+
+                //while (slidingSurprises.Any() && (slidingSurprises.First().Time < firstDayAfterWeekend 
+                //        ? slidingSurprises.First().Time.Add(weekend) 
+                //        : slidingSurprises.First().Time) 
+                //                < priceTime.Time - liquiditySlidingWindow)
+                //{
+                //    slidingSurprises.RemoveFirst();
+                //}   
             }
         }
 
+        private LinkedList<Surprise> slidingSurprises = new LinkedList<Surprise>();
+        
         /// <summary>
         /// The number of transitions within time interval on the intrinsic network,
         /// in fact equals to the sum of all directional changes related to thresholds 
@@ -136,9 +152,9 @@ namespace TradingBot.AlphaEngine
         /// <summary>
         /// Returns the network's state, where state[0] is for smallest threshold
         /// </summary>
-        public BitArray GetState()
+        public NetworkState GetState()
         {
-            return new BitArray(intrinsicTimes.Select(x => x.Mode == AlgorithmMode.Up).ToArray());
+            return new NetworkState(intrinsicTimes.Select(x => x.Mode));
         }
     }
 }

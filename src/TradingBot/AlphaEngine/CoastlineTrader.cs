@@ -24,19 +24,15 @@ namespace TradingBot.AlphaEngine
         public TradingSignal OnPriceChange(PriceTime priceTime)
         {
             var intrinsicTimeEvent = IntrinsicTime.OnPriceChange(priceTime);
-            TradingSignal result = null;
-
-            if (intrinsicTimeEvent != null)
-            {
-                return OnIntrinsicTimeEvent(intrinsicTimeEvent);
-            }
-
-            return result;
+            return OnIntrinsicTimeEvent(intrinsicTimeEvent);
         }
 
         public TradingSignal OnIntrinsicTimeEvent(IntrinsicTimeEvent intrinsicTimeEvent)
         {
             TradingSignal result = null;
+
+            if (intrinsicTimeEvent == null)
+                return result;
             
             if (intrinsicTimeEvent.Mode == AlgorithmMode.Down)
             {
