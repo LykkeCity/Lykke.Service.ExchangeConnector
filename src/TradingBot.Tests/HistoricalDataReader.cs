@@ -54,6 +54,22 @@ namespace TradingBot.Tests
         {
             return GetEnumerator();
         }
+
+        public void ForEach(Action<PriceTime> action)
+        {
+            for (int i = 0; i < paths.Length; i++)
+            {
+                var lines = File.ReadAllLines(paths[i]);
+                
+                foreach (var line in lines)
+                {
+                    var priceTime = lineParser(line);
+                    if (priceTime == null) continue;
+
+                    action(priceTime);
+                }
+            }
+        }
     }
 
     public class LineParsers
@@ -91,7 +107,7 @@ namespace TradingBot.Tests
         /// </summary>
         public static PriceTime ParseTickLine(string line)
         {
-            if (line.StartsWith("Gmt")) return null; // skip heading
+            if (line[0] == 'G') return null; // skip heading
 
             var columns = line.Split(',');
 

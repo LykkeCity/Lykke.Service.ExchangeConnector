@@ -4,10 +4,23 @@ namespace TradingBot.AlphaEngine
 {
     public class Liquidity
     {
-        public Liquidity(DateTime time, double value)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="time"></param>
+        /// <param name="totalSurprise"></param>
+        /// <param name="K">
+        /// The number of transitions within time interval on the intrinsic network,
+        /// in fact equals to the sum of all directional changes related to thresholds 
+        /// δ1; ... ; δn that occurred within time interval, representing
+        /// the measurement of activity across multiple scales.
+        /// </param>
+        public Liquidity(DateTime time, double totalSurprise, int K)
         {
             Time = time;
-            Value = value;
+
+            var argument = (totalSurprise - K * H1) / Math.Sqrt(K * H2);
+            Value = 1 - Phi(argument);
         }
 
         public DateTime Time { get; }
@@ -28,11 +41,7 @@ namespace TradingBot.AlphaEngine
         /// Second oreder informativeness
         /// </summary>
         private const double H2 = 0.70818;
-
-        public static double Calculate(IntrinsicNetwork network, DateTime from, DateTime to)
-        {
-            return Calculate(network.CalcTotalSurprise(from, to), network.CalcK(from, to));
-        }
+        
 
         public static double Calculate(double totalSurprise, int K)
         {

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TradingBot.Trading;
@@ -51,10 +50,15 @@ namespace TradingBot.AlphaEngine
         private TimeSpan liquiditySlidingWindow;
         private DateTime lastLiquidityCalcTime;
         private DateTime firstDayAfterWeekend;
+        private NetworkState previousState;
+        private TimeSpan weekend = TimeSpan.FromDays(2);
         
-        public void OnPriceChange(PriceTime priceTime)
+        public Liquidity OnPriceChange(PriceTime priceTime)
         {
-            var previousState = GetState();
+            Liquidity result = null;
+
+            if (previousState == null)
+                previousState = GetState();
 
             foreach (var it in intrinsicTimes)
             {
@@ -64,21 +68,17 @@ namespace TradingBot.AlphaEngine
             var currentState = GetState();
             
             if (previousState.Equals(currentState))
-                return;
-
-            var surprise = new Surprise(priceTime.Time,
-                previousState, currentState, thresholds);
-
+                return result;
+            
+            var surprise = new Surprise(priceTime.Time, previousState, currentState, thresholds);
             surprises.Add(surprise);
 
+            previousState = currentState;
 
-            TimeSpan liquidityResolution = TimeSpan.FromMinutes(1);
-            TimeSpan weekend = TimeSpan.FromDays(2);
-
-            //if (firstDayAfterWeekend == default(DateTime))
-            //{
-            //    firstDayAfterWeekend = priceTime.Time;
-            //}
+            if (firstDayAfterWeekend == default(DateTime))
+            {
+                firstDayAfterWeekend = priceTime.Time;
+            }
 
             if (lastLiquidityCalcTime == default(DateTime))
             {
@@ -87,7 +87,7 @@ namespace TradingBot.AlphaEngine
 
             if (priceTime.Time - lastLiquidityCalcTime > weekend) // skip weekend
             {
-                //firstDayAfterWeekend = priceTime.Time;
+                firstDayAfterWeekend = priceTime.Time;
                 lastLiquidityCalcTime = lastLiquidityCalcTime.Add(weekend);
 
                 foreach (var item in slidingSurprises)
@@ -98,52 +98,21 @@ namespace TradingBot.AlphaEngine
 
             slidingSurprises.AddLast(surprise);
 
-            if (priceTime.Time - lastLiquidityCalcTime >= liquidityResolution)
+            while (slidingSurprises.First().Time < priceTime.Time - liquiditySlidingWindow)
             {
-                var value = Liquidity.Calculate(
-                    slidingSurprises.Sum(x => x.Value),
-                    slidingSurprises.Count());
-
-                liquidities.Add(new Liquidity(priceTime.Time, value));
-
-                lastLiquidityCalcTime = priceTime.Time;
-
-                while (slidingSurprises.Any() && slidingSurprises.First().Time < priceTime.Time - liquiditySlidingWindow)
-                    slidingSurprises.RemoveFirst();
-
-                //while (slidingSurprises.Any() && (slidingSurprises.First().Time < firstDayAfterWeekend 
-                //        ? slidingSurprises.First().Time.Add(weekend) 
-                //        : slidingSurprises.First().Time) 
-                //                < priceTime.Time - liquiditySlidingWindow)
-                //{
-                //    slidingSurprises.RemoveFirst();
-                //}   
+                slidingSurprises.RemoveFirst();
             }
+            
+            result = new Liquidity(priceTime.Time, slidingSurprises.Sum(x => x.Value), slidingSurprises.Count);
+
+            liquidities.Add(result);
+            lastLiquidityCalcTime = priceTime.Time;
+
+            return result;
         }
 
         private LinkedList<Surprise> slidingSurprises = new LinkedList<Surprise>();
         
-        /// <summary>
-        /// The number of transitions within time interval on the intrinsic network,
-        /// in fact equals to the sum of all directional changes related to thresholds 
-        /// δ1; ... ; δn that occurred within time interval, representing
-        /// the measurement of activity across multiple scales.
-        /// </summary>
-        /// <param>Time interval</param>
-        public int CalcK(DateTime from, DateTime to)
-        {
-            return intrinsicTimes.SelectMany(x => x.IntrinsicTimeEvents)
-                .OfType<DirectionalChange>()
-                .Where(x => from <= x.Time && x.Time <= to)
-                .Count();
-        }
-
-        public double CalcTotalSurprise(DateTime from, DateTime to)
-        {
-            return surprises.Where(x => from <= x.Time && x.Time <= to)
-                .Sum(x => x.Value);
-        }
-
         public string GetStateString()
         {
             return string.Join("", intrinsicTimes.Select(x => (int)x.Mode));

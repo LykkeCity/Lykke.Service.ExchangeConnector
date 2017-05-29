@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -31,43 +32,42 @@ namespace TradingBot.Tests.AlphaEngineTests
         {
             var network = new IntrinsicNetwork(12, 0.00025m, TimeSpan.FromDays(1));
 
-            var paths =
-                Enumerable.Range(1, 31)
-                .Select(x => $"EURCHF_2011_07_{x:00}.csv")
-                .Concat(
-                    Enumerable.Range(1, 31)
-                    .Select(x => $"EURCHF_2011_08_{x:00}.csv")
-                )
-                .Concat(
-                    Enumerable.Range(1, 30)
-                    .Select(x => $"EURCHF_2011_09_{x:00}.csv")
-                )
-                .Select(x => AppContext.BaseDirectory + "/../../../../../../FxData/EURCHF_2011/" + x)
-                .ToArray();
-            
-            using (var reader = new HistoricalDataReader(paths, LineParsers.ParseTickLine))
-                foreach (var priceTime in reader)
-                {
-                    network.OnPriceChange(priceTime);
-                }
+            var paths = new List<string>();
 
-
-            var lines = new List<string>();
-
-            var startTime = new DateTime(2011, 07, 01, 0, 0, 0);
-            var endTime = new DateTime(2011, 09, 30, 23, 59, 59);
-            for (DateTime time = startTime; time <= endTime; time = time.AddMinutes(1))
+            var startDay = new DateTime(2011, 07, 01);
+            var endDay = new DateTime(2011, 09, 30);
+            for (DateTime day = startDay; day <= endDay; day = day.AddDays(1))
             {
-                var liquidity = network.Liquidities.Last(x => x.Time <= time);
-
-                var line = $"{time}\t{liquidity.Value}";
-
-                lines.Add(line);
+                var fileName = $"EURCHF_{day.ToString("yyyy_MM_dd")}.csv";
+                paths.Add(
+                    AppContext.BaseDirectory + "/../../../../../../FxData/EURCHF_2011/" + fileName);
             }
 
-            File.WriteAllLines(AppContext.BaseDirectory + "/../../../Data/EURCHF_2011_08_Liquidities.csv",
-                //network.Liquidities.Select(x => $"{x.Time}\t{x.Value}")
-                lines);
+            List<string> outputLines = new List<string>(500000);
+            Liquidity prevLiquidity = null;
+
+            using (var reader = new HistoricalDataReader(paths.ToArray(), LineParsers.ParseTickLine))
+            {
+                TimeSpan outputResolution = TimeSpan.FromSeconds(30);
+                DateTime previousOutput = new DateTime();
+
+                //foreach (var priceTime in reader)
+                reader.ForEach(priceTime =>
+                {
+                    var liquidity = network.OnPriceChange(priceTime) ?? prevLiquidity;
+
+                    if (priceTime.Time - previousOutput > outputResolution)
+                    {
+                        outputLines.Add($"{priceTime.Time.ToString("dd.MM.yyyy HH:mm:ss,fff", CultureInfo.InvariantCulture)}\t" +
+                              $"{priceTime.Price}\t{liquidity?.Value}");
+                        previousOutput = priceTime.Time;
+                    }
+
+                    prevLiquidity = liquidity;
+                });
+            }
+
+            File.WriteAllLines(AppContext.BaseDirectory + "/../../../Data/EURCHF_2011_Liquidities.csv", outputLines);
         }
 
         [Fact]
@@ -86,29 +86,31 @@ namespace TradingBot.Tests.AlphaEngineTests
                     AppContext.BaseDirectory + "/../../../../../../FxData/USDJPY_2007/" + fileName);
             }
 
+            List<string> outputLines = new List<string>(500000);
+            Liquidity prevLiquidity = null;
+
             using (var reader = new HistoricalDataReader(paths.ToArray(), LineParsers.ParseTickLine))
-                foreach (var priceTime in reader)
-                {
-                    network.OnPriceChange(priceTime);
-                }
-
-
-            var lines = new List<string>();
-
-            var startTime = new DateTime(2007, 05, 02, 0, 0, 0);
-            var endTime = new DateTime(2007, 08, 31, 23, 59, 59);
-            for (DateTime time = startTime; time <= endTime; time = time.AddMinutes(1))
             {
-                var liquidity = network.Liquidities.Last(x => x.Time <= time);
+                TimeSpan outputResolution = TimeSpan.FromSeconds(30);
+                DateTime previousOutput = new DateTime();
 
-                var line = $"{time}\t{liquidity.Value}";
+                //foreach (var priceTime in reader)
+                reader.ForEach(priceTime => 
+                {
+                    var liquidity = network.OnPriceChange(priceTime) ?? prevLiquidity;
 
-                lines.Add(line);
+                    if (priceTime.Time - previousOutput > outputResolution)
+                    {
+                        outputLines.Add($"{priceTime.Time.ToString("dd.MM.yyyy HH:mm:ss,fff", CultureInfo.InvariantCulture)}\t" +
+                              $"{priceTime.Price}\t{liquidity?.Value}");
+                        previousOutput = priceTime.Time;
+                    }
+
+                    prevLiquidity = liquidity;
+                });
             }
-
-            File.WriteAllLines(AppContext.BaseDirectory + "/../../../Data/USDJPY_2007_Liquidities.csv",
-                //network.Liquidities.Select(x => $"{x.Time}\t{x.Value}")
-                lines);
+            
+            File.WriteAllLines(AppContext.BaseDirectory + "/../../../Data/USDJPY_2007_Liquidities.csv", outputLines);
         }
     }
 }

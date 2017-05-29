@@ -31,8 +31,7 @@ namespace TradingBot.AlphaEngine
 
         public AlgorithmMode Mode => mode;
         
-        private decimal probabilityIndicator = 1m;
-
+        
         private decimal defaultCascadingUnits = 1m;
         private decimal defaultDecascadingUnits = 1m;
 
@@ -60,9 +59,15 @@ namespace TradingBot.AlphaEngine
             DateTime time = priceTime.Time;
 
             IntrinsicTimeEvent result = null;
-
-            decimal priceChangeFromExtrem = CalcPriceChange(price, extremPrice);
-            decimal priceChangeFromLastEvent = CalcPriceChange(price, LastEventPrice);
+            
+            if (extremPrice == 0)
+            {
+                extremPrice = priceTime.Price;
+                return result;
+            }
+            
+            decimal priceChangeFromExtrem = price / extremPrice - 1m; //CalcPriceChange(price, extremPrice);
+            decimal priceChangeFromLastEvent = price / LastEventPrice - 1m; //CalcPriceChange(price, LastEventPrice);
 
             if (mode == AlgorithmMode.Up)
             {
@@ -84,7 +89,7 @@ namespace TradingBot.AlphaEngine
                     extremPrice = price;
                     mode = AlgorithmMode.Down;
 
-                    logger.LogInformation($"DirectionalChange to DOWN event registered");
+                    //logger.LogInformation($"DirectionalChange to DOWN event registered");
                 }
             }
             else if (mode == AlgorithmMode.Down)
@@ -107,7 +112,7 @@ namespace TradingBot.AlphaEngine
                     extremPrice = price;
                     mode = AlgorithmMode.Up;
                     
-                    logger.LogInformation($"DirectionalChange to UP event registered");
+                    //logger.LogInformation($"DirectionalChange to UP event registered");
                 }
             }
 

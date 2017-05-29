@@ -19,6 +19,7 @@ namespace TradingBot.AlphaEngine
             NetworkState currentState,
             decimal[] thresholds)
         {
+            this.time = time;
             this.previousState = previousState;
             this.currentState = currentState;
 
