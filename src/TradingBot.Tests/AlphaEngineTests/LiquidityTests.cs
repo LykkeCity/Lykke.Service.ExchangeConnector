@@ -59,7 +59,7 @@ namespace TradingBot.Tests.AlphaEngineTests
                     if (priceTime.Time - previousOutput > outputResolution)
                     {
                         outputLines.Add($"{priceTime.Time.ToString("dd.MM.yyyy HH:mm:ss,fff", CultureInfo.InvariantCulture)}\t" +
-                              $"{priceTime.Price}\t{liquidity?.Value}");
+                              $"{priceTime.Mid}\t{liquidity?.Value}");
                         previousOutput = priceTime.Time;
                     }
 
@@ -102,7 +102,7 @@ namespace TradingBot.Tests.AlphaEngineTests
                     if (priceTime.Time - previousOutput > outputResolution)
                     {
                         outputLines.Add($"{priceTime.Time.ToString("dd.MM.yyyy HH:mm:ss,fff", CultureInfo.InvariantCulture)}\t" +
-                              $"{priceTime.Price}\t{liquidity?.Value}");
+                              $"{priceTime.Mid}\t{liquidity?.Value}");
                         previousOutput = priceTime.Time;
                     }
 

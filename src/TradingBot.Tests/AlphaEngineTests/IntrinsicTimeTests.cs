@@ -13,8 +13,8 @@ namespace TradingBot.Tests.AlphaEngineTests
             var threshold = .01m;
             var intrinsicTime = new IntrinsicTime(threshold);
 
-            var price1 = new PriceTime(100m, DateTime.Now.AddMinutes(-1));
-            var price2 = new PriceTime(99m, DateTime.Now);
+            var price1 = new TickPrice(DateTime.Now.AddMinutes(-1), 100m);
+            var price2 = new TickPrice(DateTime.Now, 99m);
 
 
             var event1 = intrinsicTime.OnPriceChange(price1);
@@ -32,8 +32,8 @@ namespace TradingBot.Tests.AlphaEngineTests
             var threshold = .01m;
             var intrinsicTime = new IntrinsicTime(threshold);
 
-            var price1 = new PriceTime(100m, DateTime.Now.AddMinutes(-1));
-            var price2 = new PriceTime(99.1m, DateTime.Now);
+            var price1 = new TickPrice(DateTime.Now.AddMinutes(-1), 100m);
+            var price2 = new TickPrice(DateTime.Now, 99.1m);
 
 
             var event1 = intrinsicTime.OnPriceChange(price1);
@@ -49,8 +49,8 @@ namespace TradingBot.Tests.AlphaEngineTests
             var threshold = .01m;
             var intrinsicTime = new IntrinsicTime(threshold);
 
-            var price1 = new PriceTime(100m, DateTime.Now.AddMinutes(-1));
-            var price2 = new PriceTime(103m, DateTime.Now);
+            var price1 = new TickPrice(DateTime.Now.AddMinutes(-1), 100m);
+            var price2 = new TickPrice(DateTime.Now, 103m);
 
 
             var event1 = intrinsicTime.OnPriceChange(price1);

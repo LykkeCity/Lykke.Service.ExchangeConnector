@@ -53,40 +53,34 @@ namespace TradingBot.AlphaEngine
 
         private decimal LastEventPrice => intrinsicTimeEvents.LastOrDefault()?.Price ?? extremPrice;
         
-        public IntrinsicTimeEvent OnPriceChange(PriceTime priceTime)
+        public IntrinsicTimeEvent OnPriceChange(TickPrice tickPrice)
         {
-            decimal price = priceTime.Price;
-            DateTime time = priceTime.Time;
-
             IntrinsicTimeEvent result = null;
             
             if (extremPrice == 0)
             {
-                extremPrice = priceTime.Price;
+                extremPrice = tickPrice.Mid;
                 return result;
             }
             
-            decimal priceChangeFromExtrem = price / extremPrice - 1m; //CalcPriceChange(price, extremPrice);
-            decimal priceChangeFromLastEvent = price / LastEventPrice - 1m; //CalcPriceChange(price, LastEventPrice);
-
             if (mode == AlgorithmMode.Up)
             {
-                if (price > extremPrice)
+                if (tickPrice.Bid > extremPrice)
                 {
-                    extremPrice = price;
+                    extremPrice = tickPrice.Bid;
                     
-                    if (priceChangeFromLastEvent >= upwardOvershootThreshold)
+                    if (tickPrice.Bid / LastEventPrice - 1m >= upwardOvershootThreshold)
                     {
-                        result = new Overshoot(time, AlgorithmMode.Up, price, price - LastEventPrice, cascadingUnits);
+                        result = new Overshoot(tickPrice.Time, AlgorithmMode.Up, tickPrice.Bid, tickPrice.Bid - LastEventPrice, cascadingUnits);
                         AddNewEvent(result);
                     }
                 }
-                else if (priceChangeFromExtrem <= -downwardDirectionalChangeThreshold)
+                else if (tickPrice.Ask / extremPrice - 1m <= -downwardDirectionalChangeThreshold)
                 {
-                    result = new DirectionalChange(time, AlgorithmMode.Down, price, price - extremPrice, cascadingUnits);
+                    result = new DirectionalChange(tickPrice.Time, AlgorithmMode.Down, tickPrice.Bid, tickPrice.Bid - extremPrice, cascadingUnits);
                     AddNewEvent(result);
 
-                    extremPrice = price;
+                    extremPrice = tickPrice.Bid;
                     mode = AlgorithmMode.Down;
 
                     //logger.LogInformation($"DirectionalChange to DOWN event registered");
@@ -94,22 +88,22 @@ namespace TradingBot.AlphaEngine
             }
             else if (mode == AlgorithmMode.Down)
             {
-                if (price < extremPrice)
+                if (tickPrice.Ask < extremPrice)
                 {
-                    extremPrice = price;
+                    extremPrice = tickPrice.Ask;
 
-                    if (priceChangeFromLastEvent <= -downwardOvershootThreshold)
+                    if (tickPrice.Ask / LastEventPrice - 1m <= -downwardOvershootThreshold)
                     {
-                        result = new Overshoot(time, AlgorithmMode.Down, price, price - LastEventPrice, cascadingUnits);
+                        result = new Overshoot(tickPrice.Time, AlgorithmMode.Down, tickPrice.Ask, tickPrice.Ask - LastEventPrice, cascadingUnits);
                         AddNewEvent(result);
                     }
                 }
-                else if (priceChangeFromExtrem >= upwardDirectionalChangeThreshold)
+                else if (tickPrice.Bid / extremPrice - 1m >= upwardDirectionalChangeThreshold)
                 {
-                    result = new DirectionalChange(time, AlgorithmMode.Up, price, price - extremPrice, cascadingUnits);
+                    result = new DirectionalChange(tickPrice.Time, AlgorithmMode.Up, tickPrice.Ask, tickPrice.Ask - extremPrice, cascadingUnits);
                     AddNewEvent(result);
 
-                    extremPrice = price;
+                    extremPrice = tickPrice.Ask;
                     mode = AlgorithmMode.Up;
                     
                     //logger.LogInformation($"DirectionalChange to UP event registered");
@@ -117,14 +111,6 @@ namespace TradingBot.AlphaEngine
             }
 
             return result;
-        }
-
-        private decimal CalcPriceChange(decimal currentPrice, decimal basePrice)
-        {
-            if (basePrice == 0)
-                return 0;
-
-            return currentPrice / basePrice - 1;
         }
 
         private void AddNewEvent(IntrinsicTimeEvent intrinsicTimeEvent)

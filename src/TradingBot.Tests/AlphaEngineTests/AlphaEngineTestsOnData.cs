@@ -16,7 +16,7 @@ namespace TradingBot.Tests.AlphaEngineTests
 {
     public class AlphaEngineTestsOnData
     {
-        private class HistoricalDataReader : IDisposable, IEnumerable<PriceTime>
+        private class HistoricalDataReader : IDisposable, IEnumerable<TickPrice>
         {
             public HistoricalDataReader()
             {
@@ -31,7 +31,7 @@ namespace TradingBot.Tests.AlphaEngineTests
                 reader.Dispose();
             }
 
-            public IEnumerator<PriceTime> GetEnumerator()
+            public IEnumerator<TickPrice> GetEnumerator()
             {
                 while (!reader.EndOfStream)
                 {
@@ -41,7 +41,7 @@ namespace TradingBot.Tests.AlphaEngineTests
                     DateTime time = DateTime.Parse(lineSplit[1]);
                     decimal price = decimal.Parse(lineSplit[2], System.Globalization.CultureInfo.InvariantCulture);
 
-                    yield return new PriceTime(price, time);
+                    yield return new TickPrice(time, price);
                 }
             }
 
@@ -90,7 +90,7 @@ namespace TradingBot.Tests.AlphaEngineTests
             
             foreach (var item in valuesFromKraken.Data[instrument.Name])
             {
-                coastlineTrader.OnPriceChange(new PriceTime(item.Open, item.Time));
+                coastlineTrader.OnPriceChange(new TickPrice(item.Time, item.Close));
             }
 
 

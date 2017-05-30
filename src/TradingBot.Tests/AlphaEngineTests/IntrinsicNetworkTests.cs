@@ -15,8 +15,8 @@ namespace TradingBot.Tests.AlphaEngineTests
                 firstThreshold: 0.01m, 
                 liquiditySlidingWindow: TimeSpan.FromMinutes(1));
             
-            var price1 = new PriceTime(100m, DateTime.Now.AddMinutes(-1));
-            var price2 = new PriceTime(99m, DateTime.Now);
+            var price1 = new TickPrice(DateTime.Now.AddMinutes(-1), 100m);
+            var price2 = new TickPrice(DateTime.Now, 99m);
 
 
             network.OnPriceChange(price1);
@@ -38,8 +38,8 @@ namespace TradingBot.Tests.AlphaEngineTests
                 firstThreshold: 0.01m,
                 liquiditySlidingWindow: TimeSpan.FromMinutes(1));
 
-            var price1 = new PriceTime(100m, DateTime.Now.AddMinutes(-1));
-            var price2 = new PriceTime(98m, DateTime.Now);
+            var price1 = new TickPrice(DateTime.Now.AddMinutes(-1), 100m);
+            var price2 = new TickPrice(DateTime.Now, 98m);
 
 
             network.OnPriceChange(price1);
@@ -61,8 +61,8 @@ namespace TradingBot.Tests.AlphaEngineTests
                 firstThreshold: 0.01m,
                 liquiditySlidingWindow: TimeSpan.FromMinutes(1));
 
-            var price1 = new PriceTime(100m, DateTime.Now.AddMinutes(-1));
-            var price2 = new PriceTime(110m, DateTime.Now);
+            var price1 = new TickPrice(DateTime.Now.AddMinutes(-1), 100m);
+            var price2 = new TickPrice(DateTime.Now, 110m);
 
 
             network.OnPriceChange(price1);

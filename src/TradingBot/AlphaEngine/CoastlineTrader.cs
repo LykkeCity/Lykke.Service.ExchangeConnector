@@ -21,7 +21,7 @@ namespace TradingBot.AlphaEngine
 
         public IntrinsicTime IntrinsicTime { get; }
 
-        public TradingSignal OnPriceChange(PriceTime priceTime)
+        public TradingSignal OnPriceChange(TickPrice priceTime)
         {
             var intrinsicTimeEvent = IntrinsicTime.OnPriceChange(priceTime);
             return OnIntrinsicTimeEvent(intrinsicTimeEvent);

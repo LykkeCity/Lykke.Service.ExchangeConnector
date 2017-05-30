@@ -53,7 +53,7 @@ namespace TradingBot.AlphaEngine
         private NetworkState previousState;
         private TimeSpan weekend = TimeSpan.FromDays(2);
         
-        public Liquidity OnPriceChange(PriceTime priceTime)
+        public Liquidity OnPriceChange(TickPrice tickPrice)
         {
             Liquidity result = null;
 
@@ -62,7 +62,7 @@ namespace TradingBot.AlphaEngine
 
             foreach (var it in intrinsicTimes)
             {
-                it.OnPriceChange(priceTime);
+                it.OnPriceChange(tickPrice);
             }
 
             var currentState = GetState();
@@ -70,24 +70,24 @@ namespace TradingBot.AlphaEngine
             if (previousState.Equals(currentState))
                 return result;
             
-            var surprise = new Surprise(priceTime.Time, previousState, currentState, thresholds);
+            var surprise = new Surprise(tickPrice.Time, previousState, currentState, thresholds);
             surprises.Add(surprise);
 
             previousState = currentState;
 
             if (firstDayAfterWeekend == default(DateTime))
             {
-                firstDayAfterWeekend = priceTime.Time;
+                firstDayAfterWeekend = tickPrice.Time;
             }
 
             if (lastLiquidityCalcTime == default(DateTime))
             {
-                lastLiquidityCalcTime = priceTime.Time;
+                lastLiquidityCalcTime = tickPrice.Time;
             }
 
-            if (priceTime.Time - lastLiquidityCalcTime > weekend) // skip weekend
+            if (tickPrice.Time - lastLiquidityCalcTime > TimeSpan.FromDays(1.5)) // skip weekend
             {
-                firstDayAfterWeekend = priceTime.Time;
+                firstDayAfterWeekend = tickPrice.Time;
                 lastLiquidityCalcTime = lastLiquidityCalcTime.Add(weekend);
 
                 foreach (var item in slidingSurprises)
@@ -98,15 +98,15 @@ namespace TradingBot.AlphaEngine
 
             slidingSurprises.AddLast(surprise);
 
-            while (slidingSurprises.First().Time < priceTime.Time - liquiditySlidingWindow)
+            while (slidingSurprises.First().Time < tickPrice.Time - liquiditySlidingWindow)
             {
                 slidingSurprises.RemoveFirst();
             }
             
-            result = new Liquidity(priceTime.Time, slidingSurprises.Sum(x => x.Value), slidingSurprises.Count);
+            result = new Liquidity(tickPrice.Time, slidingSurprises.Sum(x => x.Value), slidingSurprises.Count);
 
             liquidities.Add(result);
-            lastLiquidityCalcTime = priceTime.Time;
+            lastLiquidityCalcTime = tickPrice.Time;
 
             return result;
         }

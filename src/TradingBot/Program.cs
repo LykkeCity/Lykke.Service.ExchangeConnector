@@ -50,7 +50,7 @@ namespace TradingBot
 
             foreach (var candle in candlesResponse.Candles)
             {
-                eurUsdHistorical.OnPriceChange(new PriceTime(candle.Mid.Closing, candle.Time));
+                eurUsdHistorical.OnPriceChange(new TickPrice(candle.Time, candle.Mid.Closing));
             }
 
             Logger.LogInformation($"Total value: {eurUsdHistorical.GetCumulativePosition().Money}");
@@ -69,7 +69,7 @@ namespace TradingBot
                 pricesApi.OpenPricesStream(accountId, ctSourse.Token,
                     price => {
                         Logger.LogInformation($"Price received: {price}");
-                        agents[price.Instrument].OnPriceChange(new PriceTime(price.CloseoutBid, price.Time));
+                        agents[price.Instrument].OnPriceChange(new TickPrice(price.Time, price.CloseoutAsk, price.CloseoutBid));
                     },
                     heartbeat => {
                         Logger.LogInformation($"Heartbeat received: {heartbeat}");

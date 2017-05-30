@@ -32,7 +32,7 @@ namespace TradingBot.AlphaEngine
 
         //private byte[] intrinsicNetworkState = new byte[IntrinsicNetworkDimensions];
 
-        public void OnPriceChange(PriceTime priceTime)
+        public void OnPriceChange(TickPrice priceTime)
         {
             foreach (var ct in coastlineTraders)
             {
