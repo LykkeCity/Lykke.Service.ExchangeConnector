@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using TradingBot.Infrastructure;
+using TradingBot.Infrastructure.Configuration;
 
 namespace TradingBot.Communications
 {

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Infrastructure;
+using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 
 namespace TradingBot

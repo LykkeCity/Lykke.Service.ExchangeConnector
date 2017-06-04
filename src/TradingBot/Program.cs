@@ -1,9 +1,11 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Threading.Tasks;
 using TradingBot.Infrastructure;
-using TradingBot.Exchanges.Concrete.StubImplementation;
-using System.Collections.Generic;
+using System.IO;
+using TradingBot.Infrastructure.Configuration;
+using TradingBot.Exchanges;
 using TradingBot.Trading;
 
 namespace TradingBot
@@ -14,22 +16,17 @@ namespace TradingBot
 
         static void Main(string[] args)
         {
-            Configuration config;
+            var configBuilder = new ConfigurationBuilder();
+            configBuilder
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: true)
+                .AddCommandLine(args);
+            
+            Configuration config = Configuration.FromConfigurationRoot(configBuilder.Build());
 
-            if (args == null || args.Length == 0)
-            {
-                Logger.LogInformation("TradingBot started without arguments.\n Use default settings.");
-                config = Configuration.CreateDefaultConfig();
-            }
-            else
-            {
-                // TODO: parse exchange name and pairs list
-				Logger.LogInformation("Unsupported argument. Use default settings.");
-				config = Configuration.CreateDefaultConfig();
-            }
+            var exchange = ExchangeFactory.CreateExchange(config.ExchangeConfig);
+            var instruments = new [] { new Instrument(config.ExchangeConfig.Instrument)};
 
-            var exchange = config.Exchange;
-            var instruments = config.Instruments.ToArray();
 
             var cycle = new GetPricesCycle(exchange, instruments);
 
