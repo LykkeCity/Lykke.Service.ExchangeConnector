@@ -14,5 +14,7 @@
   <ItemGroup>
     <Folder Include="Exchanges\Concrete\Bitstamp\" />
     <Folder Include="Exchanges\Concrete\Oanda\Entities\Orders\" />
+    <Folder Include="Exchanges\Concrete\StubImplementation\" />
+    <Folder Include="Communications\" />
   </ItemGroup>
 </Project>

@@ -35,7 +35,7 @@ namespace TradingBot.AlphaEngine
                 }
                 else
                 {
-                    throw new ProbabilityCalculationException("Unexpected Probabilty Indicator state");
+                    throw new ProbabilityCalculationException($"Unexpected Probabilty Indicator state: {previousState} -> {currentState}");
                 }
             }
             else if (firstDifference > 1)

@@ -7,6 +7,7 @@ using System.IO;
 using Microsoft.Extensions.Logging;
 using TradingBot.Infrastructure;
 using System;
+using System.Threading;
 
 namespace TradingBot.Exchanges.Abstractions
 {
@@ -21,11 +22,11 @@ namespace TradingBot.Exchanges.Abstractions
             this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         }
         
-        public async Task<TResponse> MakeGetRequestAsync<TResponse>(string url)
+        public async Task<TResponse> MakeGetRequestAsync<TResponse>(string url, CancellationToken cancellationToken)
         {
             Log($"Making request to url: {url}");
 
-            using (var response = await httpClient.GetAsync(url)) // todo: ConfigureAwait(false) ??
+            using (var response = await httpClient.GetAsync(url, cancellationToken)) // todo: ConfigureAwait(false) ??
             {
                 if (response.StatusCode != HttpStatusCode.OK)
                 {

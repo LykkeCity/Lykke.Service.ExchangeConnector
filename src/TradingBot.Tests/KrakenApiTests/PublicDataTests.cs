@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Kraken.Endpoints;
@@ -16,7 +17,7 @@ namespace TradingBot.Tests.KrakenApiTests
         [Fact]
         public async Task GetServerTimeTest()
         {
-            var result = await PublicData.GetServerTime();
+            var result = await PublicData.GetServerTime(CancellationToken.None);
 
             Assert.True((result.Rfc1123 - DateTime.Now) < TimeSpan.FromMinutes(1));
             Assert.Equal(result.Rfc1123, result.FromUnixTime.ToLocalTime());
@@ -25,7 +26,7 @@ namespace TradingBot.Tests.KrakenApiTests
         [Fact]
         public async Task GetAssetInfoTest()
         {
-            var result = await PublicData.GetAssetInfo();
+            var result = await PublicData.GetAssetInfo(CancellationToken.None);
 
             Assert.True(result.Count > 0);
         }
@@ -33,7 +34,7 @@ namespace TradingBot.Tests.KrakenApiTests
         [Fact]
         public async Task GetAssetPairs()
         {
-            var result = await PublicData.GetAssetPairs();
+            var result = await PublicData.GetAssetPairs(CancellationToken.None);
 
             Assert.True(result.Count > 0);
         }
@@ -41,7 +42,8 @@ namespace TradingBot.Tests.KrakenApiTests
         [Fact]
         public async Task GetTickerInformationTest()
         {
-            var result = await PublicData.GetTickerInformation("DASHEUR", "DASHUSD");
+            var result = await PublicData.GetTickerInformation(CancellationToken.None, 
+                "DASHEUR", "DASHUSD");
 
             Assert.True(result.Count == 2);
         }
@@ -49,7 +51,7 @@ namespace TradingBot.Tests.KrakenApiTests
         [Fact]
         public async Task GetOHLCTest()
         {
-            var result = await PublicData.GetOHLC("DASHEUR");
+            var result = await PublicData.GetOHLC(CancellationToken.None, "DASHEUR");
 
             Assert.NotNull(result);
             Assert.True(result.Data.Values.First().Any());
@@ -58,7 +60,7 @@ namespace TradingBot.Tests.KrakenApiTests
         [Fact]
         public async Task GetOrderBook()
         {
-            var result = await PublicData.GetOrderBook("XXBTZUSD");
+            var result = await PublicData.GetOrderBook(CancellationToken.None, "XXBTZUSD");
 
             Assert.True(result.Single().Value.Bids.Any());
         }
@@ -66,7 +68,7 @@ namespace TradingBot.Tests.KrakenApiTests
         [Fact]
         public async Task GetTrades()
         {
-            var result = await PublicData.GetTrades("XXBTZUSD");
+            var result = await PublicData.GetTrades(CancellationToken.None, "XXBTZUSD");
 
             Assert.Equal(1, result.Count);
             Assert.NotNull(result.Last);

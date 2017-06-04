@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.AlphaEngine;
 using TradingBot.Exchanges.Abstractions;
@@ -86,7 +87,7 @@ namespace TradingBot.Tests.AlphaEngineTests
             var intrinsicTime = new IntrinsicTime(threshold);
             var coastlineTrader = new CoastlineTrader(instrument, intrinsicTime);
 
-            var valuesFromKraken = await new PublicData(new ApiClient(new HttpClient())).GetOHLC(instrument.Name);
+            var valuesFromKraken = await new PublicData(new ApiClient(new HttpClient())).GetOHLC(CancellationToken.None, instrument.Name);
             
             foreach (var item in valuesFromKraken.Data[instrument.Name])
             {

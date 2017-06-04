@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments;
@@ -13,7 +14,9 @@ namespace TradingBot.Exchanges.Concrete.Oanda.Endpoints
         {
         }
 
-        public Task<CandlesResponse> GetCandles(string instrument, 
+        public Task<CandlesResponse> GetCandles(
+            CancellationToken cancellationToken,
+            string instrument, 
             DateTime from, 
             DateTime? to,
             CandlestickGranularity granularity)
@@ -32,7 +35,7 @@ namespace TradingBot.Exchanges.Concrete.Oanda.Endpoints
 
             var queryString = string.Join("&", queryParams.Select(x => $"{x.Key}={x.Value}"));
 
-            return ApiClient.MakeGetRequestAsync<CandlesResponse>($"{apiUrl}?{queryString}");
+            return ApiClient.MakeGetRequestAsync<CandlesResponse>($"{apiUrl}?{queryString}", cancellationToken);
         }
 
         private string FormatDateTimeToQuery(DateTime time)

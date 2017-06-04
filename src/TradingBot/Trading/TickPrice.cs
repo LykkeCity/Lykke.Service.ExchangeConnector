@@ -35,5 +35,10 @@ namespace TradingBot.Trading
         public decimal Bid { get; }
 
         public decimal Mid { get; }
+
+        public override string ToString()
+        {
+            return string.Format("[TickPrice: Time={0}, Ask={1:C}, Bid={2:C}, Mid={3:C}]", Time, Ask, Bid, Mid);
+        }
     }
 }

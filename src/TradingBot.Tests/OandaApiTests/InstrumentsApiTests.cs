@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Oanda;
@@ -24,7 +25,9 @@ namespace TradingBot.Tests.OandaApiTests
             var api = CreateInstrumentsApi();
             var instrument = "EUR_USD";
 
-            var result = await api.GetCandles(instrument, 
+            var result = await api.GetCandles(
+                CancellationToken.None,
+                instrument, 
                 from: DateTime.UtcNow.AddHours(-1), 
                 to: null,
                 granularity: CandlestickGranularity.S5);

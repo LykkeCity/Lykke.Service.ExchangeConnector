@@ -1,0 +1,30 @@
+version: '2'
+
+services:
+  # RabbitMQ
+  rabbit:
+    hostname: rabbit
+    image: rabbitmq:latest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  # TradingBot
+  traingbot:
+    build:
+      context: TradingBot/
+      dockerfile: Dockerfile
+    hostname: tradingbot
+    #ports:
+    # - "5000:5000"
+    links:
+      - rabbit
+
+  # # Receiver
+  # receiver:
+  #   build:
+  #     context: Receiver/
+  #     dockerfile: Dockerfile
+  #   hostname: receiver
+  #   links:
+  #     - rabbit

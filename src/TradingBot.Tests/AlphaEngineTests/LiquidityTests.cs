@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Text;
 using TradingBot.AlphaEngine;
 using Xunit;
 
@@ -11,22 +9,6 @@ namespace TradingBot.Tests.AlphaEngineTests
 {
     public class LiquidityTests
     {
-        [Fact]
-        public void RealData_EURCHF_2011_Test()
-        {
-            var network = new IntrinsicNetwork(12, 0.00025m, TimeSpan.FromMinutes(10));
-            
-            var path = AppContext.BaseDirectory + "/../../../Data/DAT_MT_EURCHF_M1_2011.csv";
-            using (var reader = new HistoricalDataReader(path, LineParsers.ParseMTLine))
-                foreach(var priceTime in reader)
-                {
-                    network.OnPriceChange(priceTime);
-                }
-
-            File.WriteAllLines(AppContext.BaseDirectory + "/../../../Data/EURCHF_M1_2011_Liquidities.csv",
-                network.Liquidities.Select(x => $"{x.Time}\t{x.Value}"));
-        }
-
         [Fact]
         public void RealData_EURCHF_2011_Ticks_Test()
         {

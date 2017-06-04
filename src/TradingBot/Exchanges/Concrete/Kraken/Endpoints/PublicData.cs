@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Kraken.Entities;
@@ -26,31 +27,31 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
             this.apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
         }
 
-        public Task<ServerTime> GetServerTime()
+        public Task<ServerTime> GetServerTime(CancellationToken cancellationToken)
         {
-            return MakeGetRequestAsync<ServerTime>("Time");
+            return MakeGetRequestAsync<ServerTime>("Time", cancellationToken);
         }
 
-        public Task<Dictionary<string, AssetInfo>> GetAssetInfo()
+        public Task<Dictionary<string, AssetInfo>> GetAssetInfo(CancellationToken cancellationToken)
         {
-            return MakeGetRequestAsync<Dictionary<string, AssetInfo>>("Assets");
+            return MakeGetRequestAsync<Dictionary<string, AssetInfo>>("Assets", cancellationToken);
         }
 
-        public Task<Dictionary<string, AssetPair>> GetAssetPairs()
+        public Task<Dictionary<string, AssetPair>> GetAssetPairs(CancellationToken cancellationToken)
         {
-            return MakeGetRequestAsync<Dictionary<string, AssetPair>>("AssetPairs");
+            return MakeGetRequestAsync<Dictionary<string, AssetPair>>("AssetPairs", cancellationToken);
         }
 
-        public Task<Dictionary<string, Ticker>> GetTickerInformation(params string[] pairs)
+        public Task<Dictionary<string, Ticker>> GetTickerInformation(CancellationToken cancellationToken, params string[] pairs)
         {
             var queryString = string.Join(",", pairs);
-            return MakeGetRequestAsync<Dictionary<string, Ticker>>($"Ticker?pair={queryString}");
+            return MakeGetRequestAsync<Dictionary<string, Ticker>>($"Ticker?pair={queryString}", cancellationToken);
         }
         
-        public async Task<OhlcDataResult> GetOHLC(params string[] pairs)
+        public async Task<OhlcDataResult> GetOHLC(CancellationToken cancellationToken, params string[] pairs)
         {
             var query = string.Join(",", pairs);
-            var jObject = await MakeGetRequestAsync<JObject>($"OHLC?pair={query}");
+            var jObject = await MakeGetRequestAsync<JObject>($"OHLC?pair={query}", cancellationToken);
 
             var res = new OhlcDataResult()
             {
@@ -64,28 +65,50 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
             return res;
         }
 
-        public Task<Dictionary<string, OrderBook>> GetOrderBook(string pair, int? count = null)
+		public async Task<SpreadDataResult> GetSpread(CancellationToken cancellationToken, string pair, long since = 0)
+		{
+            string query = $"Spread?pair={pair}";
+            if (since != 0)
+                query += $"&since={since}";
+
+            var jObject = await MakeGetRequestAsync<JObject>(query, cancellationToken);
+
+			var res = new SpreadDataResult()
+			{
+				Last = (long)jObject["last"],
+				Data = jObject.Properties().Where(x => x.Name != "last")
+					.ToDictionary(x => x.Name, x => x.Values().Select(v => new SpreadData(
+							v.Select(i => decimal.Parse(i.ToString(), CultureInfo.InvariantCulture)).ToArray()
+						)))
+			};
+
+			return res;
+		}
+
+        public Task<Dictionary<string, OrderBook>> GetOrderBook(CancellationToken cancellationToken, string pair, int? count = null)
         {
             var url = $"Depth?pair={pair}";
             if (count.HasValue)
                 url += $"&count={count}";
 
-            return MakeGetRequestAsync<Dictionary<string, OrderBook>>(url);
+            return MakeGetRequestAsync<Dictionary<string, OrderBook>>(url, cancellationToken);
         }
 
-        public Task<TradesResult> GetTrades(string pair, long? since = null)
+        public Task<TradesResult> GetTrades(CancellationToken cancellationToken, string pair, long? since = null)
         {
             var url = $"Trades?pair={pair}";
             if (since.HasValue)
                 url += $"&since={since}";
             
 
-            return MakeGetRequestAsync<TradesResult>(url);
+            return MakeGetRequestAsync<TradesResult>(url, cancellationToken);
         }
 
-        private async Task<T> MakeGetRequestAsync<T>(string url)
+
+
+        private async Task<T> MakeGetRequestAsync<T>(string url, CancellationToken cancellationToken)
         {
-            var response = await apiClient.MakeGetRequestAsync<ResponseBase<T>>($"{EndpointUrl}/{url}");
+            var response = await apiClient.MakeGetRequestAsync<ResponseBase<T>>($"{EndpointUrl}/{url}", cancellationToken);
 
             if (response.Error.Any())
             {
