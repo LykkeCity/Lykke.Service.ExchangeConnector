@@ -40,6 +40,14 @@ namespace TradingBot.Common.Communications
 				connection = factory.CreateConnection();
 				channel = connection.CreateModel();
 
+				//channel.ExchangeDeclare(exchange: RabbitMQAuth.ExchangeName, type: "fanout");
+				//var queueName = channel.QueueDeclare().QueueName;
+				//channel.QueueBind(
+				//queue: queueName,
+				//exchange: RabbitMQAuth.ExchangeName,
+				//routingKey: "");
+
+
 				channel.QueueDeclare(queue: queueName,
 					durable: false,
 					exclusive: false,

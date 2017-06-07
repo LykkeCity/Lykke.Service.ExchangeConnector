@@ -12,21 +12,21 @@ namespace TheAlphaEngine.NET
     {
         private ILogger Logger = Logging.CreateLogger<CoastlineTrader>();
 
-        double tP; /* -- total position -- */
+        decimal totalPosition;
 
-        public double TotalPosition => tP;
+        public decimal TotalPosition => totalPosition;
 
-        LinkedList<Double> prices;
-        LinkedList<Double> sizes;
+        LinkedList<decimal> prices;
+        LinkedList<decimal> sizes;
 
         double profitTarget;
-        double pnl, tempPnl;
+        decimal pnl, tempPnl;
         double deltaUp, deltaDown, deltaLiq, deltaOriginal;
-        double shrinkFlong, shrinkFshort;
+        decimal shrinkFlong, shrinkFshort;
 
         double pnlPerc;
 
-        int longShort;
+        OrderType ordersType;
 
         bool initalized;
         Runner runner;
@@ -41,18 +41,19 @@ namespace TheAlphaEngine.NET
 
         LocalLiquidity liquidity;
 
-        public CoastlineTrader(double dOriginal, double dUp, double dDown, double profitT, string FxRate, int lS)
+        public CoastlineTrader(double dOriginal, double dUp, double dDown, double profitT, string FxRate, OrderType ordersType)
         {
-            prices = new LinkedList<Double>();
-            sizes = new LinkedList<Double>();
-            tP = 0.0; /* -- total position -- */
+            prices = new LinkedList<decimal>();
+            sizes = new LinkedList<decimal>();
+            totalPosition = 0m;
 
             profitTarget = cashLimit = profitT;
-            pnl = tempPnl = pnlPerc = 0.0;
+            pnl = tempPnl = 0m;
+            pnlPerc = 0.0;
             deltaOriginal = dOriginal;
             deltaUp = dUp; deltaDown = dDown;
-            longShort = lS; // 1 for only longs, -1 for only shorts
-            shrinkFlong = shrinkFshort = 1.0;
+            this.ordersType = ordersType;
+            shrinkFlong = shrinkFshort = 1m;
             increaseLong = increaseShort = 0.0;
 
             fxRate = FxRate;
@@ -107,7 +108,7 @@ namespace TheAlphaEngine.NET
 
             if (!liquidity.Computation(price))
             {
-                Console.WriteLine("Didn't compute liquidity!");
+                Logger.LogError("Didn't compute liquidity!");
             }
 
             if (tryToClose(price))
@@ -119,25 +120,27 @@ namespace TheAlphaEngine.NET
             int @event = 0;
 
 
-            double fraction = 1.0;
-            double size = (liquidity.Liq < 0.5 ? 0.5 : 1.0);
-            size = (liquidity.Liq < 0.1 ? 0.1 : size);
+            decimal fraction = 1m;
 
-            if (longShort == 1)
-            { // long positions only
+            decimal size = (liquidity.Liq < 0.5 ? 0.5m : 1.0m);
+
+            size = (liquidity.Liq < 0.1 ? 0.1m : size);
+
+            if (ordersType == OrderType.Long)
+            {
                 @event = runner.Run(price);
 
-                if (15.0 <= tP && tP < 30.0)
+                if (15m <= totalPosition && totalPosition < 30m)
                 {
                     @event = runnerG[0, 0].Run(price);
                     runnerG[0, 1].Run(price);
-                    fraction = 0.5;
+                    fraction = 0.5m;
                 }
-                else if (tP >= 30.0)
+                else if (totalPosition >= 30m)
                 {
                     @event = runnerG[0, 1].Run(price);
                     runnerG[0, 0].Run(price);
-                    fraction = 0.25;
+                    fraction = 0.25m;
                 }
                 else
                 {
@@ -147,46 +150,53 @@ namespace TheAlphaEngine.NET
 
                 if (@event < 0)
                 {
-                    if (tP == 0.0)
+                    if (totalPosition == 0m)
                     { // open long position
                         int sign = -runner.Type;
                         if (Math.Abs(oppositeInv) > 15.0)
                         {
-                            size = 1.0;
+                            size = 1m;
                             if (Math.Abs(oppositeInv) > 30.0)
                             {
-                                size = 1.0;
+                                size = 1m;
                             }
                         }
-                        double sizeToAdd = sign * size;
-                        tP += sizeToAdd;
+
+                        decimal sizeToAdd = sign * size;
+
+                        totalPosition += sizeToAdd;
+
                         sizes.AddLast(sizeToAdd);
 
-                        prices.AddLast((double)(sign == 1 ? price.Ask : price.Bid));
+                        prices.AddLast(sign == 1 ? price.Ask : price.Bid);
+
                         assignCashTarget();
                         Logger.LogInformation("Open long");
 
                     }
-                    else if (tP > 0.0)
+                    else if (totalPosition > 0m)
                     { // increase long position (buy)
                         int sign = -runner.Type;
-                        double sizeToAdd = sign * size * fraction * shrinkFlong;
-                        if (sizeToAdd < 0.0)
+
+                        decimal sizeToAdd = sign * size * fraction * shrinkFlong;
+
+                        if (sizeToAdd < 0m)
                         {
                             Logger.LogError("How did this happen! increase position but neg size: " + sizeToAdd);
                             sizeToAdd = -sizeToAdd;
                         }
+
                         increaseLong += 1.0;
-                        tP += sizeToAdd;
+                        totalPosition += sizeToAdd;
                         sizes.AddLast(sizeToAdd);
 
-                        prices.AddLast((double)(sign == 1 ? price.Ask : price.Bid));
+                        prices.AddLast(sign == 1 ? price.Ask : price.Bid);
                         Logger.LogInformation("Cascade");
                     }
                 }
-                else if (@event > 0 && tP > 0.0)
+                else if (@event > 0 && totalPosition > 0m)
                 { // possibility to decrease long position only at intrinsic @events
-                    double pricE = (double)(tP > 0.0 ? price.Bid : price.Ask);
+                    decimal pricE = totalPosition > 0m ? price.Bid : price.Ask;
 
                     var currentPrice = prices.First;
                     var currentSize = sizes.First;
@@ -196,16 +206,19 @@ namespace TheAlphaEngine.NET
                         currentPrice = currentPrice.Next;
                         currentSize = currentSize.Next;
 
-                        double tempP = (tP > 0.0 ? Math.Log(pricE / currentPrice.Value) : Math.Log(currentPrice.Value / pricE));
-                        if (tempP >= (tP > 0.0 ? deltaUp : deltaDown))
+                        double tempP = (totalPosition > 0m ? 
+                                         Math.Log(decimal.ToDouble(pricE / currentPrice.Value)) : 
+                                         Math.Log(decimal.ToDouble(currentPrice.Value / pricE)));
+
+                        if (tempP >= (totalPosition > 0m ? deltaUp : deltaDown))
                         {
-                            double addPnl = (pricE - prices.ElementAt(i)) * sizes.ElementAt(i);
-                            if (addPnl < 0.0)
+                            decimal addPnl = (pricE - prices.ElementAt(i)) * sizes.ElementAt(i);
+                            if (addPnl < 0m)
                             {
                                 Logger.LogInformation("Descascade with a loss: " + addPnl);
                             }
                             tempPnl += addPnl;
-                            tP -= sizes.ElementAt(i);
+                            totalPosition -= sizes.ElementAt(i);
 
 
                             sizes.Remove(currentSize);
@@ -217,20 +230,20 @@ namespace TheAlphaEngine.NET
                     }
                 }
             }
-            else if (longShort == -1)
-            { // short positions only
+            else if (ordersType == OrderType.Short)
+            {
                 @event = runner.Run(price);
-                if (-30.0 < tP && tP < -15.0)
+                if (-30m < totalPosition && totalPosition < -15m)
                 {
                     @event = runnerG[1, 0].Run(price);
                     runnerG[1, 1].Run(price);
-                    fraction = 0.5;
+                    fraction = 0.5m;
                 }
-                else if (tP <= -30.0)
+                else if (totalPosition <= -30m)
                 {
                     @event = runnerG[1, 1].Run(price);
                     runnerG[1, 0].Run(price);
-                    fraction = 0.25;
+                    fraction = 0.25m;
                 }
                 else
                 {
@@ -240,52 +253,59 @@ namespace TheAlphaEngine.NET
 
                 if (@event > 0)
                 {
-                    if (tP == 0.0)
+                    if (totalPosition == 0m)
                     { // open short position
                         int sign = -runner.Type;
                         if (Math.Abs(oppositeInv) > 15.0)
                         {
-                            size = 1.0;
+                            size = 1m;
                             if (Math.Abs(oppositeInv) > 30.0)
                             {
-                                size = 1.0;
+                                size = 1m;
                             }
                         }
-                        double sizeToAdd = sign * size;
-                        if (sizeToAdd > 0.0)
+
+                        decimal sizeToAdd = sign * size;
+
+                        if (sizeToAdd > 0m)
                         {
                             Logger.LogError("How did this happen! increase position but pos size: " + sizeToAdd);
                             sizeToAdd = -sizeToAdd;
                         }
-                        tP += sizeToAdd;
+
+                        totalPosition += sizeToAdd;
+
                         sizes.AddLast(sizeToAdd);
 
-                        prices.AddLast((double)(sign == 1 ? price.Bid : price.Ask));
+                        prices.AddLast(sign == 1 ? price.Bid : price.Ask);
 
                         Logger.LogInformation("Open short");
                         assignCashTarget();
                     }
-                    else if (tP < 0.0)
+                    else if (totalPosition < 0m)
                     {
                         int sign = -runner.Type;
-                        double sizeToAdd = sign * size * fraction * shrinkFshort;
-                        if (sizeToAdd > 0.0)
+
+                        decimal sizeToAdd = sign * size * fraction * shrinkFshort;
+
+                        if (sizeToAdd > 0m)
                         {
                             Logger.LogError("How did this happen! increase position but pos size: " + sizeToAdd);
                             sizeToAdd = -sizeToAdd;
                         }
 
-                        tP += sizeToAdd;
+                        totalPosition += sizeToAdd;
                         sizes.AddLast(sizeToAdd);
                         increaseShort += 1.0;
 
-                        prices.AddLast((double)(sign == 1 ? price.Bid : price.Ask));
+                        prices.AddLast(sign == 1 ? price.Bid : price.Ask);
+
                         Logger.LogInformation("Cascade");
                     }
                 }
-                else if (@event < 0.0 && tP < 0.0)
+                else if (@event < 0.0 && totalPosition < 0m)
                 {
-                    double pricE = (double)(tP > 0.0 ? price.Bid : price.Ask);
+                    decimal pricE = totalPosition > 0m ? price.Bid : price.Ask;
 
                     var currentPrice = prices.First;
                     var currentSize = sizes.First;
@@ -295,17 +315,20 @@ namespace TheAlphaEngine.NET
                         currentSize = currentSize.Next;
                         currentPrice = currentPrice.Next;
 
-                        double tempP = (tP > 0.0 ? Math.Log(pricE / currentPrice.Value) : Math.Log(currentPrice.Value / pricE));
-                        if (tempP >= (tP > 0.0 ? deltaUp : deltaDown))
+                        double tempP = (totalPosition > 0m ? 
+                                        Math.Log(decimal.ToDouble(pricE / currentPrice.Value)) : 
+                                        Math.Log(decimal.ToDouble(currentPrice.Value / pricE)));
+
+                        if (tempP >= (totalPosition > 0m ? deltaUp : deltaDown))
                         {
-                            double addPnl = (pricE - currentPrice.Value) * currentSize.Value;
-                            if (addPnl < 0.0)
+                            decimal addPnl = (pricE - currentPrice.Value) * currentSize.Value;
+                            if (addPnl < 0m)
                             {
                                 Logger.LogInformation("Descascade with a loss: " + addPnl);
                             }
 
                             tempPnl += (pricE - currentPrice.Value) * currentSize.Value;
-                            tP -= currentSize.Value;
+                            totalPosition -= currentSize.Value;
 
                             sizes.Remove(currentSize);
                             prices.Remove(currentPrice);
@@ -318,7 +341,7 @@ namespace TheAlphaEngine.NET
             }
             else
             {
-                Logger.LogError("Should never happen! " + longShort);
+                Logger.LogError("Should never happen! " + ordersType);
             }
             return true;
         }
