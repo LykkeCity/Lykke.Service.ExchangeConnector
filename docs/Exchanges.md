@@ -8,7 +8,7 @@ This is the list of exchanges (Trading Venues) and their possibilities. The Alph
  - [Kraken](#kraken)
  - [Bitmaps](#bitmaps)
  - [ICMarkets](#icmarkets)
- - [OANDA](oanda)
+ - [OANDA](#oanda)
 
 
 ## Kraken
