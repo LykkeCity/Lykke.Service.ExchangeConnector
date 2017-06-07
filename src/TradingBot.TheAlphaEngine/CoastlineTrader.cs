@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using TradingBot.Common.Infrastructure;
 using TradingBot.Common.Trading;
 
-namespace TheAlphaEngine.NET
+namespace TradingBot.TheAlphaEngine
 {
 
     public class CoastlineTrader
@@ -59,7 +59,7 @@ namespace TheAlphaEngine.NET
             fxRate = FxRate;
         }
 
-        double computePnl(PriceFeedData price)
+        double computePnl(TickPrice price)
         {
             // compute PnL with current price
             return 0.0;
@@ -70,7 +70,7 @@ namespace TheAlphaEngine.NET
             // compute PnL with last available price
             return 0.0;
         }
-        double getPercPnl(PriceFeedData price)
+        double getPercPnl(TickPrice price)
         {
             // percentage PnL
             return 0.0;
@@ -88,7 +88,7 @@ namespace TheAlphaEngine.NET
             return true;
         }
 
-        public bool RunPriceAsymm(TickPrice price, double oppositeInv)
+        public bool RunPriceAsymm(TickPrice price, decimal oppositeInv)
         {
             if (!initalized)
             {
@@ -153,10 +153,10 @@ namespace TheAlphaEngine.NET
                     if (totalPosition == 0m)
                     { // open long position
                         int sign = -runner.Type;
-                        if (Math.Abs(oppositeInv) > 15.0)
+                        if (Math.Abs(oppositeInv) > 15m)
                         {
                             size = 1m;
-                            if (Math.Abs(oppositeInv) > 30.0)
+                            if (Math.Abs(oppositeInv) > 30m)
                             {
                                 size = 1m;
                             }
@@ -256,10 +256,10 @@ namespace TheAlphaEngine.NET
                     if (totalPosition == 0m)
                     { // open short position
                         int sign = -runner.Type;
-                        if (Math.Abs(oppositeInv) > 15.0)
+                        if (Math.Abs(oppositeInv) > 15m)
                         {
                             size = 1m;
-                            if (Math.Abs(oppositeInv) > 30.0)
+                            if (Math.Abs(oppositeInv) > 30m)
                             {
                                 size = 1m;
                             }

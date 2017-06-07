@@ -1,7 +1,7 @@
 ﻿using System;
 using TradingBot.Common.Trading;
 
-namespace TheAlphaEngine.NET
+namespace TradingBot.TheAlphaEngine
 {
 	public class Runner
 	{

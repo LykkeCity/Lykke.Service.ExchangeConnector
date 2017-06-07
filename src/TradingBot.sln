@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TradingBot", "TradingBot\Tr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TradingBot.Tests", "TradingBot.Tests\TradingBot.Tests.csproj", "{D4465346-0F25-4B56-BABF-FDB094803279}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TheAlphaEngine.NET", "TheAlphaEngine.NET\TheAlphaEngine.NET.csproj", "{9CBAB58C-7ECF-4A4E-81C9-EB47D14DDC65}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TradingBot.TheAlphaEngine", "TradingBot.TheAlphaEngine\TradingBot.TheAlphaEngine.csproj", "{9CBAB58C-7ECF-4A4E-81C9-EB47D14DDC65}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TradingBot.Common", "TradingBot.Common\TradingBot.Common.csproj", "{82BF2B41-B587-4EF0-B390-8669B8702B33}"
 EndProject

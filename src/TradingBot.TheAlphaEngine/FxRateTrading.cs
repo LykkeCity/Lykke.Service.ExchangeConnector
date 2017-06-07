@@ -1,7 +1,7 @@
 ﻿using System;
 using TradingBot.Common.Trading;
 
-namespace TheAlphaEngine.NET
+namespace TradingBot.TheAlphaEngine
 {
 	public class FxRateTrading
 	{
@@ -23,8 +23,8 @@ namespace TheAlphaEngine.NET
 
             for (int i = 0; i < coastTraderLong.Length; ++i)
 			{
-				coastTraderLong[i] = new CoastlineTrader(deltas[i], deltas[i], deltas[i], deltas[i], rate, 1);
-				coastTraderShort[i] = new CoastlineTrader(deltas[i], deltas[i], deltas[i], deltas[i], rate, -1);
+                coastTraderLong[i] = new CoastlineTrader(deltas[i], deltas[i], deltas[i], deltas[i], rate, OrderType.Long);
+                coastTraderShort[i] = new CoastlineTrader(deltas[i], deltas[i], deltas[i], deltas[i], rate, OrderType.Short);
 			}
 			init = false;
 		}

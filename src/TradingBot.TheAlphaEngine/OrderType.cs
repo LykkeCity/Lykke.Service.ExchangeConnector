@@ -1,5 +1,4 @@
-﻿using System;
-namespace TheAlphaEngine.NET
+﻿namespace TradingBot.TheAlphaEngine
 {
     public enum OrderType
     {

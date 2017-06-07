@@ -11,7 +11,7 @@ using TradingBot.Common.Communications;
 using Newtonsoft.Json;
 using TradingBot.Common.Trading;
 
-namespace TheAlphaEngine.NET
+namespace TradingBot.TheAlphaEngine
 {
     class Program
     {
@@ -47,11 +47,7 @@ namespace TheAlphaEngine.NET
                     Logger.LogDebug("RabbitMQ connected");
 
                     rabbit.AddConsumer(bytes => {
-                        Logger.LogDebug("Bytes received");
-
                         string serialized = Encoding.UTF8.GetString(bytes);
-                        Logger.LogDebug($"Serialized string: {serialized}");
-
                         var prices = JsonConvert.DeserializeObject<TickPrice[]>(serialized);
 
                         Logger.LogDebug($"Received {prices.Length} prices");
@@ -73,7 +69,7 @@ namespace TheAlphaEngine.NET
 
 			Console.CancelKeyPress += (sender, eventArgs) =>
 				{
-                    eventArgs.Cancel = true; // Don't terminate the process immediately, wait for the Main thread to exit gracefully.
+                    eventArgs.Cancel = true;
                     ctSource.Cancel();
 
 					if (task.Status == TaskStatus.Running)
@@ -82,7 +78,6 @@ namespace TheAlphaEngine.NET
 						task.Wait();
 					}
 				};
-
 
 			task.Wait();
 

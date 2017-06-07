@@ -19,6 +19,7 @@
     <Folder Include="Exchanges\Concrete\Oanda\Entities\Orders\" />
     <Folder Include="Exchanges\Concrete\StubImplementation\" />
     <Folder Include="Infrastructure\Configuration\" />
+    <Folder Include="Exchanges\Concrete\ICMarkets\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TradingBot.Common\TradingBot.Common.csproj" />

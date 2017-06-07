@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using TradingBot.Common.Trading;
 
-namespace TheAlphaEngine.NET
+namespace TradingBot.TheAlphaEngine
 {
 
     public class Liquidity
@@ -20,7 +21,7 @@ namespace TheAlphaEngine.NET
             
             public String fileName;
             
-            public Runner(double threshUp, double threshDown, PriceFeedData price, string file)
+            public Runner(double threshUp, double threshDown, TickPrice price, string file)
             {
                 prevDC = (double)price.Mid; 
                 extreme = (double)price.Mid; 
@@ -54,7 +55,7 @@ namespace TheAlphaEngine.NET
                 fileName = file;
             }
             
-            public int run(PriceFeedData price)
+            public int run(TickPrice price)
             {
                 if( price == null )
                     return 0;
@@ -168,7 +169,7 @@ namespace TheAlphaEngine.NET
             
         }
 
-        public Liquidity(PriceFeedData price, double delta1, double delta2, int lgt)
+        public Liquidity(TickPrice price, double delta1, double delta2, int lgt)
         {
             double prob = Math.Exp(-1.0);
 
@@ -261,7 +262,7 @@ namespace TheAlphaEngine.NET
             Console.WriteLine("H1:" + H1 + " H2:" + H2);
         }
         
-        public bool Trigger(PriceFeedData price)
+        public bool Trigger(TickPrice price)
         {
             // -- update values -- 
             bool doComp = false;
