@@ -5,18 +5,18 @@ This is the list of exchanges (Trading Venues) and their possibilities. The Alph
 
 **Contents**:
 
- - Kraken
- - Bitmaps
- - ICMarkets
- - OANDA
+ - [Kraken](#kraken)
+ - [Bitmaps](#bitmaps)
+ - [ICMarkets](#icmarkets)
+ - [OANDA](oanda)
 
 
 ## Kraken
-==========
 
 ### API Info
 
 Url: https://www.kraken.com
+
 API documentation: https://www.kraken.com/en-us/help/api
 
 **API call rate limits**:
@@ -146,7 +146,6 @@ ml = margin level = (equity / initial margin) * 100
 
 
 ## Bitmaps
-===========
 
 Separate version of API implements FIX Protocol of version 4.4
 
@@ -191,7 +190,6 @@ Do not make more than 600 requests per 10 minutes or we will ban your IP address
 
 
 ## ICMarkets
-=============
 
 ### Info
 
@@ -303,7 +301,6 @@ Order Status Request (In)
 
 
 ## OANDA
-=========
 
 Url: https://www.oanda.com
 API documentation: http://developer.oanda.com/rest-live/introduction/
