@@ -48,7 +48,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Entities
             FeesArrayToTuples(FeesMaker);
 
         private IEnumerable<Tuple<int, decimal>> FeesArrayToTuples(decimal[][] fees)
-            => fees.Select(x => Tuple.Create((int)x[0], x[1]));
+            => fees?.Select(x => Tuple.Create((int)x[0], x[1]));
 
         [JsonProperty("fee_volume_currency")]
         public string FeeVolumeCurrency { get; set; }
@@ -58,5 +58,10 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Entities
 
         [JsonProperty("margin_stop")]
         public int MarginStop { get; set; }
+
+        public override string ToString()
+        {
+            return string.Format("{0}, Base={1}, Quote={2}", AltName, Base, Quote);
+        }
     }
 }

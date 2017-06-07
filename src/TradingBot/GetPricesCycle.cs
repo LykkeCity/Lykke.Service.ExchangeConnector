@@ -1,11 +1,13 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using TradingBot.Communications;
+using TradingBot.Common.Configuration;
+using TradingBot.Common.Infrastructure;
+using TradingBot.Common.Communications;
 using TradingBot.Exchanges.Abstractions;
-using TradingBot.Infrastructure;
-using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
+using Newtonsoft.Json;
 
 namespace TradingBot
 {
@@ -22,15 +24,17 @@ namespace TradingBot
 
         private Exchange exchange;
 
-        private bool stopRequested;
+        private CancellationTokenSource ctSource;
 
         public async Task Start(RabbitMQConfiguration rabbitConfig)
         {
-            stopRequested = false;
+            ctSource = new CancellationTokenSource();
+            var token = ctSource.Token;
 
             Logger.LogInformation($"Price cycle starting for exchange {exchange.Name}...");
 
-            bool connectionTestPassed = await new Reconnector(times: 5, pause: TimeSpan.FromSeconds(10)).ConnectAsync(exchange.TestConnection);
+            bool connectionTestPassed = await new Reconnector(times: 5, pause: TimeSpan.FromSeconds(10))
+                .ConnectAsync(exchange.TestConnection, token);
 
             if (!connectionTestPassed)
             {
@@ -40,7 +44,9 @@ namespace TradingBot
 
             using(var rabbit = new RabbitMQClient(rabbitConfig))
             {
-                bool connected = await new Reconnector(times: 5, pause: TimeSpan.FromSeconds(15)).Connect(rabbit.OpenConnection);
+                bool connected = await new Reconnector(times: 5, pause: TimeSpan.FromSeconds(15))
+                    .Connect(rabbit.OpenConnection, token);
+                
                 if (!connected)
                     return;
 
@@ -48,14 +54,14 @@ namespace TradingBot
 				var task = exchange.OpenPricesStream(instruments,
 					 tickPrices => 
 		                {
-                            string message = string.Join<TickPrice>(", ", tickPrices);
-		                    Logger.LogDebug($"{DateTime.Now}. Prices received: {message}");
+                            string message = JsonConvert.SerializeObject(tickPrices);
+                            Logger.LogDebug($"{DateTime.Now}. Prices received: {message}");
 		                    rabbit.SendMessage(message);
 		                });
 
-				while (!stopRequested)
+                while (!token.IsCancellationRequested)
 				{
-					await Task.Delay(TimeSpan.FromSeconds(5));
+                    await Task.Delay(TimeSpan.FromSeconds(5), token);
 					Logger.LogDebug($"GetPricesCycle Heartbeat: {DateTime.Now}");
 				}
 
@@ -69,7 +75,7 @@ namespace TradingBot
         public void Stop()
         {
             Logger.LogInformation("Stop requested");
-            stopRequested = true;
+            ctSource.Cancel();
 
             exchange.ClosePricesStream();
         }

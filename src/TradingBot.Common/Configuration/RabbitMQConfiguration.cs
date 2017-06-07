@@ -1,4 +1,4 @@
-﻿namespace TradingBot.Infrastructure.Configuration
+﻿namespace TradingBot.Common.Configuration
 {
     public class RabbitMQConfiguration
 	{

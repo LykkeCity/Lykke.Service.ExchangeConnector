@@ -1,9 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Threading;
 using System.Threading.Tasks;
-using TradingBot.Infrastructure;
 using System;
 using TradingBot.Trading;
+using TradingBot.Common.Infrastructure;
 
 namespace TradingBot.Exchanges.Abstractions
 {

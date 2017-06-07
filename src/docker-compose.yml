@@ -10,13 +10,22 @@ services:
       - "15672:15672"
 
   # TradingBot
-  traingbot:
+  tradingbot:
     build:
       context: TradingBot/
       dockerfile: Dockerfile
     hostname: tradingbot
     #ports:
     # - "5000:5000"
+    links:
+      - rabbit
+
+  # AlphaEngine
+  alphaengine:
+    build:
+      context: TheAlphaEngine.NET/
+      dockerfile: Dockerfile
+    hostname: alphaengine
     links:
       - rabbit
 

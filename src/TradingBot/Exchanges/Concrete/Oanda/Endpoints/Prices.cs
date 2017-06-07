@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Oanda.Entities.Prices;
-using TradingBot.Infrastructure;
+using TradingBot.Common.Infrastructure;
 
 namespace TradingBot.Exchanges.Concrete.Oanda.Endpoints
 {

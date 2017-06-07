@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TradingBot\TradingBot.csproj" />
+    <ProjectReference Include="..\TradingBot.Common\TradingBot.Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
-using TradingBot.Infrastructure;
 using TradingBot.Infrastructure.Exceptions;
+using TradingBot.Common.Infrastructure;
 
 namespace TradingBot.AlphaEngine
 {

@@ -5,9 +5,9 @@ using Newtonsoft.Json;
 using TradingBot.Infrastructure.Exceptions;
 using System.IO;
 using Microsoft.Extensions.Logging;
-using TradingBot.Infrastructure;
 using System;
 using System.Threading;
+using TradingBot.Common.Infrastructure;
 
 namespace TradingBot.Exchanges.Abstractions
 {

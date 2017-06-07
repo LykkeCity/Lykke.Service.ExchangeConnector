@@ -2,11 +2,11 @@
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Threading.Tasks;
-using TradingBot.Infrastructure;
 using System.IO;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Exchanges;
 using TradingBot.Trading;
+using TradingBot.Common.Infrastructure;
 
 namespace TradingBot
 {
@@ -27,7 +27,6 @@ namespace TradingBot
             var exchange = ExchangeFactory.CreateExchange(config.ExchangeConfig);
             var instruments = new [] { new Instrument(config.ExchangeConfig.Instrument)};
 
-
             var cycle = new GetPricesCycle(exchange, instruments);
 
             var task = cycle.Start(config.RabbitMQConfig);
@@ -36,22 +35,21 @@ namespace TradingBot
 
             Console.CancelKeyPress += (sender, eventArgs) => 
 	            {
+					eventArgs.Cancel = true; // Don't terminate the process immediately, wait for the Main thread to exit gracefully.
+
 					cycle.Stop();
 
 					if (task.Status == TaskStatus.Running)
 					{
-						Console.WriteLine("Waiting for prices cycle completion");
+                        Logger.LogInformation("Waiting for prices cycle completion");
 						task.Wait();
-					}
-
-					// Don't terminate the process immediately, wait for the Main thread to exit gracefully.
-					//eventArgs.Cancel = true;
+					}	
 	            };
 
 
             task.Wait();
 
-            Console.WriteLine("Applicatoin stopped.");
+            Logger.LogInformation("Applicatoin stopped.");
             Environment.Exit(0);
 
 

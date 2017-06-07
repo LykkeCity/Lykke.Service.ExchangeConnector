@@ -1,6 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿﻿﻿using Microsoft.Extensions.Logging;
 
-namespace TradingBot.Infrastructure
+namespace TradingBot.Common.Infrastructure
 {
     public static class Logging
     {
