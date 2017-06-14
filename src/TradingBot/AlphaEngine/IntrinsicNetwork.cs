@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using TradingBot.Common.Trading;
 using TradingBot.Trading;
 
 namespace TradingBot.AlphaEngine

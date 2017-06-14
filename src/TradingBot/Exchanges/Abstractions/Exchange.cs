@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System;
 using TradingBot.Trading;
 using TradingBot.Common.Infrastructure;
+using TradingBot.Common.Trading;
 
 namespace TradingBot.Exchanges.Abstractions
 {

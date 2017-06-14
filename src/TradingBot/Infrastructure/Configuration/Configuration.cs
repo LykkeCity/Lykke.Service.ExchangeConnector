@@ -9,6 +9,8 @@ namespace TradingBot.Infrastructure.Configuration
 
         public RabbitMQConfiguration RabbitMQConfig { get; set; }
 
+        public AzureTableConfiguration AzureTableConfig { get; set; }
+
         public static Configuration CreateDefaultConfig()
         {
             return new Configuration()
@@ -20,8 +22,13 @@ namespace TradingBot.Infrastructure.Configuration
                 },
                 RabbitMQConfig = new RabbitMQConfiguration()
                 {
+                    Enabled = true,
                     Host = "rabbit",
                     QueueName = $"kraken.XXBTZUSD"
+                },
+                AzureTableConfig = new AzureTableConfiguration()
+                {
+                    Enabled = false
                 }
             };
         }
@@ -31,7 +38,8 @@ namespace TradingBot.Infrastructure.Configuration
             return new Configuration()
             {
                 ExchangeConfig = config.GetSection("exchange").Get<ExchangeConfiguration>(),
-                RabbitMQConfig = config.GetSection("rabbitMQ").Get<RabbitMQConfiguration>()
+                RabbitMQConfig = config.GetSection("rabbitMQ").Get<RabbitMQConfiguration>(),
+                AzureTableConfig = config.GetSection("azureTable").Get<AzureTableConfiguration>()
             };
         }
     }

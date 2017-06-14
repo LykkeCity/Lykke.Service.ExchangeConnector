@@ -6,6 +6,7 @@ using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Oanda.Endpoints;
 using System;
 using TradingBot.Trading;
+using TradingBot.Common.Trading;
 
 namespace TradingBot.Exchanges.Concrete.Oanda
 {

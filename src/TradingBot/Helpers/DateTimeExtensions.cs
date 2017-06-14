@@ -22,5 +22,10 @@ namespace TradingBot.Helpers
             long ticks = decimal.ToInt64(unixtime * 10000000);
             return new DateTime(ticks + baseTicks);
         }
+
+        public static DateTime TruncSeconds(this DateTime time)
+        {
+            return new DateTime(time.Year, time.Month, time.Day, time.Hour, time.Minute, 0);
+        }
     }
 }

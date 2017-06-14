@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using TradingBot.Common.Trading;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Kraken.Endpoints;
 using TradingBot.Exchanges.Concrete.Kraken.Entities;
@@ -26,7 +27,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             var serverTime = await PublicData.GetServerTime(cancellationToken);
             var now = DateTime.UtcNow;
             long differenceTicks = Math.Abs(serverTime.FromUnixTime.Ticks - now.Ticks);
-            bool differenceInThreshold = differenceTicks <= TimeSpan.FromMinutes(1).Ticks;
+            bool differenceInThreshold = differenceTicks <= TimeSpan.FromMinutes(2).Ticks;
 
             Logger.LogDebug($"Server time: {serverTime.FromUnixTime}; now: {now}; difference ticks: {differenceTicks}. In threshold: {differenceInThreshold}");
 
