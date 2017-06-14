@@ -23,7 +23,7 @@ services:
   # AlphaEngine
   alphaengine:
     build:
-      context: TheAlphaEngine.NET/
+      context: TradingBot.TheAlphaEngine/
       dockerfile: Dockerfile
     hostname: alphaengine
     links:

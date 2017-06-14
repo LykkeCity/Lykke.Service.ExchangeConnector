@@ -22,7 +22,5 @@ namespace TradingBot.TheAlphaEngine
                 fxRateTrading.RunTradingAsymm(price);
             }
         }
-
-
     }
 }

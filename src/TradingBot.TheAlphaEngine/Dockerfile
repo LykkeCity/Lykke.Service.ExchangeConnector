@@ -2,4 +2,4 @@
 COPY published/ app/
 COPY appsettings.json app/appsettings.json
 WORKDIR app/
-ENTRYPOINT ["dotnet", "TheAlphaEngine.NET.dll"]
+ENTRYPOINT ["dotnet", "TradingBot.TheAlphaEngine.dll"]

@@ -5,9 +5,13 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Text;
 using System.Threading;
+using Common;
+using Common.Log;
+using Lykke.RabbitMqBroker;
+using Lykke.RabbitMqBroker.Subscriber;
 using TradingBot.Common.Infrastructure;
 using TradingBot.Common.Configuration;
-using TradingBot.Common.Communications;
+//using TradingBot.Common.Communications;
 using Newtonsoft.Json;
 using TradingBot.Common.Trading;
 
@@ -19,6 +23,8 @@ namespace TradingBot.TheAlphaEngine
 
         static void Main(string[] args)
         {
+	        Logger.LogInformation("The Alpha Engine, version 0.1.0");
+	        
 			var configBuilder = new ConfigurationBuilder();
 			configBuilder
 				.SetBasePath(Directory.GetCurrentDirectory())
@@ -34,55 +40,58 @@ namespace TradingBot.TheAlphaEngine
 
 
             var engine = new AlphaEngine("");
+	        
+	        var rabbitSettings = new RabbitMqSubscriberSettings()
+	        {
+		        ConnectionString = rabbitConfig.Host,
+		        ExchangeName = rabbitConfig.ExchangeName,
+		        QueueName = rabbitConfig.QueueName
+	        };
 
-            var task = Task.Run(async () => {
-				using (var rabbit = new RabbitMQClient(rabbitConfig))
-				{
-                    bool connected = await new Reconnector(times: 5, pause: TimeSpan.FromSeconds(15))
-                        .Connect(rabbit.OpenConnection, token);
-                    
-					if (!connected)
-						return;
-
-                    Logger.LogDebug("RabbitMQ connected");
-
-                    rabbit.AddConsumer(bytes => {
-                        string serialized = Encoding.UTF8.GetString(bytes);
-                        var prices = JsonConvert.DeserializeObject<TickPrice[]>(serialized);
-
-                        Logger.LogDebug($"Received {prices.Length} prices");
-
-                        engine.OnPriceChanged(prices);
-
-                        Logger.LogDebug($"engine result: ");
-                    });
-                    
-                    while (!token.IsCancellationRequested)
+	        var rabbit = new RabbitMqSubscriber<string>(rabbitSettings)
+		        .SetMessageDeserializer(new DefaultStringDeserializer())
+		        .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
+	        	//.SetConsole(new RabbitConsole())
+	        	.SetLogger(new LogToConsole())
+		        .Subscribe(serialized =>
 					{
-						await Task.Delay(TimeSpan.FromSeconds(5));
-						Logger.LogDebug($"AlphaEngine Heartbeat: {DateTime.Now}");
-					}
-				}
-            });
-
+						Logger.LogDebug("Alpha Engine has received data!");
+						
+						var prices = JsonConvert.DeserializeObject<TickPrice[]>(serialized);
+	
+						Logger.LogDebug($"Received {prices.Length} prices");
+	
+						engine.OnPriceChanged(prices);
+	
+						return Task.FromResult(0);
+					})
+		        .Start();
+	        
 			Logger.LogInformation("Press Ctrl+C for exit");
 
 			Console.CancelKeyPress += (sender, eventArgs) =>
 				{
                     eventArgs.Cancel = true;
+					((IStopable)rabbit).Stop();
                     ctSource.Cancel();
-
-					if (task.Status == TaskStatus.Running)
-					{
-						Console.WriteLine("Waiting for prices cycle completion");
-						task.Wait();
-					}
 				};
 
-			task.Wait();
+	        while (!token.IsCancellationRequested)
+	        {
+		        Task.Delay(TimeSpan.FromSeconds(5), token).Wait();
+		        Logger.LogDebug($"AlphaEngine Heartbeat: {DateTime.Now}");
+	        }
 
 			Console.WriteLine("Applicatoin stopped.");
 			Environment.Exit(0);
         }
     }
+
+	public class RabbitConsole : IConsole
+	{
+		public void WriteLine(string line)
+		{
+			Console.WriteLine(line);
+		}
+	}
 }

@@ -6,6 +6,7 @@
     <AssemblyName>TradingBot</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Lykke.RabbitMqBroker" Version="1.0.63" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="1.1.2" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="1.1.2" />
     <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="1.1.2" />
