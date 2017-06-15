@@ -7,12 +7,9 @@ using TradingBot.Common.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Trading;
 using Newtonsoft.Json;
-using AzureStorage.Tables;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Exchanges;
-using AzureStorage;
 using System.Linq;
-using System.Globalization;
 using System.Text;
 using Common;
 using Common.Log;
@@ -20,6 +17,7 @@ using Lykke.RabbitMqBroker.Publisher;
 using System.Collections.Generic;
 using TradingBot.Helpers;
 using TradingBot.Common.Trading;
+using TradingBot.Communications;
 
 namespace TradingBot
 {
@@ -27,18 +25,12 @@ namespace TradingBot
     {
         private readonly ILogger Logger = Logging.CreateLogger<GetPricesCycle>();
 
-        public GetPricesCycle(Exchange exchange, Instrument[] instruments)
-        {
-            this.instruments = instruments ?? throw new ArgumentNullException(nameof(instruments));
-            this.exchange = exchange ?? throw new ArgumentNullException(nameof(exchange));
-        }
-
         public GetPricesCycle(Configuration config)
         {
             this.config = config;
 
 			exchange = ExchangeFactory.CreateExchange(config.ExchangeConfig);
-			instruments = new[] { new Instrument(config.ExchangeConfig.Instrument) };
+            instruments = config.ExchangeConfig.Instruments.Select(x => new Instrument(x)).ToArray();
         }
 
 
@@ -52,7 +44,7 @@ namespace TradingBot
 
         private RabbitMqPublisher<string> rabbitPublisher;
 
-        private INoSQLTableStorage<PriceTableEntity> tableStorage;
+        private Dictionary<Instrument, AzureTablePricesPublisher> azurePublishers;
 
         public async Task Start()
         {
@@ -91,9 +83,9 @@ namespace TradingBot
 
             if (config.AzureTableConfig.Enabled)
             {
-                tableStorage = new AzureTableStorage<PriceTableEntity>(config.AzureTableConfig.StorageConnectionString, 
-                                                                       config.AzureTableConfig.TableName, 
-                                                                       new LogToConsole());
+                azurePublishers = instruments.ToDictionary(
+	                x => x,
+	                x => new AzureTablePricesPublisher(x, config.AzureTableConfig.TableName, config.AzureTableConfig.StorageConnectionString));
             }
 
 
@@ -111,9 +103,9 @@ namespace TradingBot
 			}
         }
 
-        private async void PublishTickPrices(TickPrice[] prices)
+        private async void PublishTickPrices(InstrumentTickPrices prices)
         {
-            Logger.LogDebug($"{DateTime.Now}. Prices received: {prices.Length}");
+            Logger.LogDebug($"{DateTime.Now}. {prices.TickPrices.Length} prices received for: {prices.Instrument}");
 
 			if (config.RabbitMQConfig.Enabled)
 			{
@@ -123,53 +115,10 @@ namespace TradingBot
 
             if (config.AzureTableConfig.Enabled)
             {
-                await PublishToAzureStorage(prices);
+                await azurePublishers[prices.Instrument].Publish(prices);
             }
         }
 
-
-        private Queue<TickPrice> pricesQueue = new Queue<TickPrice>();
-        private Queue<PriceTableEntity> tablePricesQueue = new Queue<PriceTableEntity>();
-        private DateTime currentPriceMinute;
-
-        private async Task PublishToAzureStorage(TickPrice[] prices)
-        {
-            if (currentPriceMinute == default(DateTime))
-                currentPriceMinute = prices[0].Time.TruncSeconds();
-
-            foreach (var price in prices)
-            {
-                var timeWithoutSeconds = price.Time.TruncSeconds();
-
-                if (timeWithoutSeconds > currentPriceMinute)
-                {
-                    var tablePrice = new PriceTableEntity(instruments[0].Name,
-                                                                  currentPriceMinute,
-                                                                  pricesQueue.ToArray());
-                    pricesQueue.Clear();
-
-                    try
-                    {
-						await tableStorage.InsertAsync(tablePrice);
-					}
-                    catch (Microsoft.WindowsAzure.Storage.StorageException ex)
-                        when (ex.Message == "Conflict")
-                    {
-                        Logger.LogInformation($"Conflict on writing. Skip chank for {currentPriceMinute}");
-                    }
-                    catch (Exception ex)
-                    {
-                        tablePricesQueue.Enqueue(tablePrice);
-                        Logger.LogError(new EventId(), ex, $"Can't write to Azure Table Storage, will try later. Now in queue: {tablePricesQueue.Count}");
-                    }
-
-                    currentPriceMinute = timeWithoutSeconds;
-                }
-
-				pricesQueue.Enqueue(price);
-            }
-
-        }
 
         public void Stop()
         {

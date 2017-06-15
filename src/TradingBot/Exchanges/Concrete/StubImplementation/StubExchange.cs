@@ -22,7 +22,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
         private bool closePricesStreamRequested;
         private Random random;
 
-		public override async Task OpenPricesStream(Instrument[] instruments, Action<TickPrice[]> callback)
+		public override async Task OpenPricesStream(Instrument[] instruments, Action<InstrumentTickPrices> callback)
 		{
             closePricesStreamRequested = false;
             random = new Random();
@@ -40,7 +40,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
                 else
                     price -= delta;
 
-                callback(new[] { new TickPrice(DateTime.Now, price) });
+                callback(new InstrumentTickPrices(instruments[0], new[] { new TickPrice(DateTime.Now, price) }));
 
                 await Task.Delay(TimeSpan.FromSeconds(0.5));
             }

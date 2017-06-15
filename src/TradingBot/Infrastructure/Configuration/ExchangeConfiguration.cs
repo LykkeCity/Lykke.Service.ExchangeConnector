@@ -4,6 +4,6 @@
     {
         public string Name { get; set; }
 
-        public string Instrument { get; set; }
+        public string[] Instruments { get; set; }
     }
 }

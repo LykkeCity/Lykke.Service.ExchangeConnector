@@ -18,7 +18,7 @@ namespace TradingBot.Infrastructure.Configuration
                 ExchangeConfig = new ExchangeConfiguration()
                 {
                     Name = "kraken",
-                    Instrument = "XXBTZUSD"
+                    Instruments = new [] { "XXBTZUSD" }
                 },
                 RabbitMQConfig = new RabbitMQConfiguration()
                 {

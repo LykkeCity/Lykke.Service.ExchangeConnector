@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using TradingBot.Common.Trading;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Trading;
 
@@ -18,7 +17,7 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
             throw new NotImplementedException();
         }
 
-        public override Task OpenPricesStream(Instrument[] instruments, Action<TickPrice[]> callback)
+        public override Task OpenPricesStream(Instrument[] instruments, Action<InstrumentTickPrices> callback)
         {
             throw new NotImplementedException();
         }

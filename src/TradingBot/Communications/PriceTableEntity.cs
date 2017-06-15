@@ -1,9 +1,9 @@
-﻿using System;
+﻿﻿using System;
 using Microsoft.WindowsAzure.Storage.Table;
 using Newtonsoft.Json;
 using TradingBot.Common.Trading;
 
-namespace TradingBot
+namespace TradingBot.Communications
 {
     public class PriceTableEntity : TableEntity // TODO: move to TradingBot.Common
     {
