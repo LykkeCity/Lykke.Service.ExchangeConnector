@@ -4,10 +4,8 @@ using System;
 using System.Threading.Tasks;
 using System.IO;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Exchanges;
-using TradingBot.Trading;
-using TradingBot.Common.Infrastructure;
 using System.Threading;
+using TradingBot.Infrastructure.Logging;
 
 namespace TradingBot
 {
@@ -26,6 +24,10 @@ namespace TradingBot
 					.AddCommandLine(args);
 
 				Configuration config = Configuration.FromConfigurationRoot(configBuilder.Build());
+
+
+                Logging.LoggerFactory
+                       .AddLykkeLog(config.CommonConfig.LoggerStorageConnectionString);
 
 				var cycle = new GetPricesCycle(config);
 				var task = cycle.Start();

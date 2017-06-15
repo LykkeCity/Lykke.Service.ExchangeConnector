@@ -11,6 +11,8 @@ namespace TradingBot.Infrastructure.Configuration
 
         public AzureTableConfiguration AzureTableConfig { get; set; }
 
+        public CommonConfiguration CommonConfig { get; set; }
+
         public static Configuration CreateDefaultConfig()
         {
             return new Configuration()
@@ -39,7 +41,8 @@ namespace TradingBot.Infrastructure.Configuration
             {
                 ExchangeConfig = config.GetSection("exchange").Get<ExchangeConfiguration>(),
                 RabbitMQConfig = config.GetSection("rabbitMQ").Get<RabbitMQConfiguration>(),
-                AzureTableConfig = config.GetSection("azureTable").Get<AzureTableConfiguration>()
+                AzureTableConfig = config.GetSection("azureTable").Get<AzureTableConfiguration>(),
+                CommonConfig = config.GetSection("common").Get<CommonConfiguration>()
             };
         }
     }

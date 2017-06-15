@@ -58,7 +58,7 @@ namespace TradingBot.Exchanges.Abstractions
         //public abstract Task<AccountInfo> GetAccountInfo(CancellationToken cancellationToken);
 
 
-        public abstract Task OpenPricesStream(Instrument[] instruments, Action<TickPrice[]> callback);
+        public abstract Task OpenPricesStream(Instrument[] instruments, Action<InstrumentTickPrices> callback);
 
         public abstract void ClosePricesStream();
     }

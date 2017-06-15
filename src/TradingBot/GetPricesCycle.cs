@@ -2,7 +2,6 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using TradingBot.Common.Infrastructure;
 using TradingBot.Common.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Trading;
@@ -15,9 +14,8 @@ using Common;
 using Common.Log;
 using Lykke.RabbitMqBroker.Publisher;
 using System.Collections.Generic;
-using TradingBot.Helpers;
-using TradingBot.Common.Trading;
 using TradingBot.Communications;
+using TradingBot.Infrastructure.Logging;
 
 namespace TradingBot
 {
