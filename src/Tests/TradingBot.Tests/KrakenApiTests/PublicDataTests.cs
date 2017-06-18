@@ -36,6 +36,10 @@ namespace TradingBot.Tests.KrakenApiTests
         {
             var result = await PublicData.GetAssetPairs(CancellationToken.None);
 
+            var lines = result.Select(x => x.Value.ToString()).ToList();
+
+            System.IO.File.WriteAllLines("pairs.txt", lines);
+
             Assert.True(result.Count > 0);
         }
 

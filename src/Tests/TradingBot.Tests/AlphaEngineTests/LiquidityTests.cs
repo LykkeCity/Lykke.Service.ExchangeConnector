@@ -20,9 +20,9 @@ namespace TradingBot.Tests.AlphaEngineTests
             var endDay = new DateTime(2011, 09, 30);
             for (DateTime day = startDay; day <= endDay; day = day.AddDays(1))
             {
-                var fileName = $"EURCHF_{day.ToString("yyyy_MM_dd")}.csv";
+                var fileName = $"EURCHF_{day:yyyy_MM_dd}.csv";
                 paths.Add(
-                    AppContext.BaseDirectory + "/../../../../../../FxData/EURCHF_2011/" + fileName);
+                    AppContext.BaseDirectory + "/../../../../../../../FxData/EURCHF_2011/" + fileName);
             }
 
             List<string> outputLines = new List<string>(500000);
@@ -49,7 +49,7 @@ namespace TradingBot.Tests.AlphaEngineTests
                 });
             }
 
-            File.WriteAllLines(AppContext.BaseDirectory + "/../../../Data/EURCHF_2011_Liquidities.csv", outputLines);
+            File.WriteAllLines(AppContext.BaseDirectory + "/../../../TestResults/EURCHF_2011_Liquidities.csv", outputLines);
         }
 
         [Fact]
@@ -63,9 +63,9 @@ namespace TradingBot.Tests.AlphaEngineTests
             var endDay = new DateTime(2007, 08, 31);
             for (DateTime day = startDay; day <= endDay; day = day.AddDays(1))
             {
-                var fileName = $"USDJPY_{day.ToString("yyyy_MM_dd")}.csv";
+                var fileName = $"USDJPY_{day:yyyy_MM_dd}.csv";
                 paths.Add(
-                    AppContext.BaseDirectory + "/../../../../../../FxData/USDJPY_2007/" + fileName);
+                    AppContext.BaseDirectory + "/../../../../../../../FxData/USDJPY_2007/" + fileName);
             }
 
             List<string> outputLines = new List<string>(500000);
@@ -92,7 +92,7 @@ namespace TradingBot.Tests.AlphaEngineTests
                 });
             }
             
-            File.WriteAllLines(AppContext.BaseDirectory + "/../../../Data/USDJPY_2007_Liquidities.csv", outputLines);
+            File.WriteAllLines(AppContext.BaseDirectory + "/../../../TestResults/USDJPY_2007_Liquidities.csv", outputLines);
         }
     }
 }

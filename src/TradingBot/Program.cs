@@ -25,8 +25,8 @@ namespace TradingBot
 
 				Configuration config = Configuration.FromConfigurationRoot(configBuilder.Build());
 
-
-                Logging.LoggerFactory
+                if (config.CommonConfig.LykkeLoggerEnabled)
+                    Logging.LoggerFactory
                        .AddLykkeLog(config.CommonConfig.LoggerStorageConnectionString);
 
 				var cycle = new GetPricesCycle(config);
