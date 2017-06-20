@@ -1,6 +1,6 @@
 ﻿namespace TradingBot.Common.Configuration
 {
-    public class RabbitMQConfiguration
+    public class RabbitMqConfiguration
 	{
         public bool Enabled { get; set; }
 

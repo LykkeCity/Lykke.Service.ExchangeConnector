@@ -11,9 +11,8 @@ namespace TradingBot.Infrastructure.Logging
     {
         private readonly ILog lykkeLogger;
 
-        public LykkeLogger(string applicationName, string connectionString, 
-                           ISlackNotificationsSender slackNotificationsSender = null,
-                           string tableName = "Logs")
+        public LykkeLogger(string applicationName, string connectionString,
+            string tableName, ISlackNotificationsSender slackNotificationsSender = null)
         {
 			//var applicationName1 =
 	        //    Microsoft.Extensions.PlatformAbstractions.PlatformServices.Default.Application.ApplicationName;

@@ -4,16 +4,18 @@ namespace TradingBot.Infrastructure.Logging
 {
     public class LykkeLogLoggerProvider : ILoggerProvider
     {
-        readonly string connectionString;
+        private readonly string connectionString;
+        private readonly string tableName;
 
-        public LykkeLogLoggerProvider(string connectionString)
+        public LykkeLogLoggerProvider(string connectionString, string tableName)
         {
             this.connectionString = connectionString;
+            this.tableName = tableName;
         }
 
         public ILogger CreateLogger(string categoryName)
         {
-            return new LykkeLogger(categoryName, connectionString);
+            return new LykkeLogger(categoryName, connectionString, tableName);
         }
 
         public void Dispose()

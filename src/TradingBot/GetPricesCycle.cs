@@ -21,14 +21,18 @@ namespace TradingBot
 {
     public class GetPricesCycle
     {
-        private readonly ILogger Logger = Logging.CreateLogger<GetPricesCycle>();
+        private readonly ILogger logger = Logging.CreateLogger<GetPricesCycle>();
 
         public GetPricesCycle(Configuration config)
         {
             this.config = config;
 
-			exchange = ExchangeFactory.CreateExchange(config.ExchangeConfig);
-            instruments = config.ExchangeConfig.Instruments.Select(x => new Instrument(x)).ToArray();
+			exchange = ExchangeFactory.CreateExchange(config.Exchanges);
+
+            if (config.Exchanges.Icm.Enabled) // TODO
+                instruments = config.Exchanges.Icm.Instruments.Select(x => new Instrument(x)).ToArray();
+            else if (config.Exchanges.Kraken.Enabled)
+                instruments = config.Exchanges.Kraken.Instruments.Select(x => new Instrument(x)).ToArray();
         }
 
 
@@ -38,7 +42,7 @@ namespace TradingBot
 
 		private CancellationTokenSource ctSource;
 
-        private Configuration config;
+        private readonly Configuration config;
 
         private RabbitMqPublisher<string> rabbitPublisher;
 
@@ -49,24 +53,24 @@ namespace TradingBot
             ctSource = new CancellationTokenSource();
             var token = ctSource.Token;
 
-            Logger.LogInformation($"Price cycle starting for exchange {exchange.Name}...");
+            logger.LogInformation($"Price cycle starting for exchange {exchange.Name}...");
 
             bool connectionTestPassed = await new Reconnector(times: 5, pause: TimeSpan.FromSeconds(10))
                 .ConnectAsync(exchange.TestConnection, token);
 
             if (!connectionTestPassed)
             {
-                Logger.LogError($"Price cycle not started: no connection to exchange {exchange.Name}");
+                logger.LogError($"Price cycle not started: no connection to exchange {exchange.Name}");
                 return;
             }
 
-            if (config.RabbitMQConfig.Enabled)
+            if (config.RabbitMq.Enabled)
             {
 
                 var rabbitSettings = new RabbitMqPublisherSettings()
                 {
-                    ConnectionString = config.RabbitMQConfig.Host,
-                    ExchangeName = config.RabbitMQConfig.ExchangeName
+                    ConnectionString = config.RabbitMq.Host,
+                    ExchangeName = config.RabbitMq.ExchangeName
                 };
                 
                 var rabbitConsole = new RabbitConsole();
@@ -79,11 +83,11 @@ namespace TradingBot
                     .Start();
             }
 
-            if (config.AzureTableConfig.Enabled)
+            if (config.AzureTable.Enabled)
             {
                 azurePublishers = instruments.ToDictionary(
 	                x => x,
-	                x => new AzureTablePricesPublisher(x, config.AzureTableConfig.TableName, config.AzureTableConfig.StorageConnectionString));
+	                x => new AzureTablePricesPublisher(x, config.AzureTable.TableName, config.AzureTable.StorageConnectionString));
             }
 
 
@@ -92,7 +96,7 @@ namespace TradingBot
             while (!token.IsCancellationRequested)
 			{
                 await Task.Delay(TimeSpan.FromSeconds(15), token);
-				Logger.LogDebug($"GetPricesCycle Heartbeat: {DateTime.Now}");
+				logger.LogDebug($"GetPricesCycle Heartbeat: {DateTime.Now}");
 			}
 
 			if (task.Status == TaskStatus.Running)
@@ -103,15 +107,15 @@ namespace TradingBot
 
         private async void PublishTickPrices(InstrumentTickPrices prices)
         {
-            Logger.LogDebug($"{DateTime.Now}. {prices.TickPrices.Length} prices received for: {prices.Instrument}");
+            logger.LogDebug($"{DateTime.Now}. {prices.TickPrices.Length} prices received for: {prices.Instrument}");
 
-			if (config.RabbitMQConfig.Enabled)
+			if (config.RabbitMq.Enabled)
 			{
                 string message = JsonConvert.SerializeObject(prices); // TODO: make serializator
 			    await rabbitPublisher.ProduceAsync(message);
 			}
 
-            if (config.AzureTableConfig.Enabled)
+            if (config.AzureTable.Enabled)
             {
                 await azurePublishers[prices.Instrument].Publish(prices);
             }
@@ -120,7 +124,7 @@ namespace TradingBot
 
         public void Stop()
         {
-            Logger.LogInformation("Stop requested");
+            logger.LogInformation("Stop requested");
             ctSource.Cancel();
 
             exchange.ClosePricesStream();

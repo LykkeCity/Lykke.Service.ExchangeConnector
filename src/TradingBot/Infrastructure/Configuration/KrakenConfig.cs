@@ -1,9 +1,9 @@
 ﻿namespace TradingBot.Infrastructure.Configuration
 {
-    public class ExchangeConfiguration
+    public class KrakenConfig
     {
-        public string Name { get; set; }
-
+        public bool Enabled { get; set; }
+        
         public string[] Instruments { get; set; }
     }
 }

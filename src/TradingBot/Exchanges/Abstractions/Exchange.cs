@@ -12,11 +12,11 @@ namespace TradingBot.Exchanges.Abstractions
     {
         protected ILogger Logger = Logging.CreateLogger<Exchange>();
 
-        private string name;
+        private readonly string name;
 
         public string Name => name;
 
-        public Exchange(string name)
+        protected Exchange(string name)
         {
             this.name = name;
         }

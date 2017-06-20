@@ -1,25 +1,21 @@
 ﻿using TradingBot.Exchanges.Abstractions;
+using TradingBot.Exchanges.Concrete.ICMarkets;
+using TradingBot.Exchanges.Concrete.Kraken;
+using TradingBot.Exchanges.Concrete.StubImplementation;
 using TradingBot.Infrastructure.Configuration;
 
 namespace TradingBot.Exchanges
 {
     public static class ExchangeFactory
     {
-        public static Exchange CreateExchange(ExchangeConfiguration config)
+        public static Exchange CreateExchange(ExchangesConfiguration config)
         {
-			Exchange exchange;
-
-            switch (config.Name)
-			{
-				case "kraken":
-					exchange = new Concrete.Kraken.KrakenExchange();
-					break;
-				default:
-                    exchange = new Concrete.StubImplementation.StubExchange();
-					break;
-			}
-
-            return exchange;
+	        if (config.Icm.Enabled)
+		        return new ICMarketsExchange();
+	        else if(config.Kraken.Enabled)
+		        return new KrakenExchange();
+	        else
+	        	return new StubExchange();
         }
     }
 }

@@ -17,17 +17,10 @@ namespace TradingBot
         {
             try
             {
-				var configBuilder = new ConfigurationBuilder();
-				configBuilder
-					.SetBasePath(Directory.GetCurrentDirectory())
-					.AddJsonFile("appsettings.json", optional: true)
-					.AddCommandLine(args);
+	            var config = GetConfig(args);
 
-				Configuration config = Configuration.FromConfigurationRoot(configBuilder.Build());
-
-                if (config.CommonConfig.LykkeLoggerEnabled)
-                    Logging.LoggerFactory
-                       .AddLykkeLog(config.CommonConfig.LoggerStorageConnectionString);
+                if (config.Logger.Enabled)
+                    Logging.LoggerFactory.AddLykkeLog(config.AzureTable.StorageConnectionString, config.Logger.TableName);
 
 				var cycle = new GetPricesCycle(config);
 				var task = cycle.Start();
@@ -37,7 +30,7 @@ namespace TradingBot
 
 				Console.CancelKeyPress += (sender, eventArgs) =>
 					{
-						eventArgs.Cancel = true; // Don't terminate the process immediately, wait for the Main thread to exit gracefully.
+						eventArgs.Cancel = true;
 
 						ctSource.Cancel();
 					    cycle.Stop();
@@ -61,5 +54,34 @@ namespace TradingBot
                 Environment.Exit(-1);
             }
         }
+	
+	    private static Configuration GetConfig(string[] args)
+	    {
+		    var configBuilder = new ConfigurationBuilder();
+	            
+	            
+		    string settingsUrl = Environment.GetEnvironmentVariable("SettingsUrl");
+
+		    if (string.IsNullOrEmpty(settingsUrl))
+		    {
+			    Logger.LogInformation("Empty SettingsUrl environment variable. Apply settings from appsettings.json file.");
+
+			    configBuilder
+					.SetBasePath(Directory.GetCurrentDirectory())
+					.AddJsonFile("appsettings.json", optional: true)
+					.AddCommandLine(args);
+		    }
+		    else
+		    {
+		        Logger.LogInformation("Apply settings from SettingsUrl");
+			    
+			    configBuilder
+				    .AddJsonFile(new LykkeSettingsFileProvider(), path: settingsUrl, optional: false, reloadOnChange: false);    
+		    }
+	            
+		    Configuration config = Configuration.FromConfigurationRoot(configBuilder.Build());
+
+		    return config;
+	    }
     }
 }

@@ -5,45 +5,18 @@ namespace TradingBot.Infrastructure.Configuration
 {
     public class Configuration
     {
-        public ExchangeConfiguration ExchangeConfig { get; set; }
+        public ExchangesConfiguration Exchanges { get; set; }
 
-        public RabbitMQConfiguration RabbitMQConfig { get; set; }
+        public RabbitMqConfiguration RabbitMq { get; set; }
 
-        public AzureTableConfiguration AzureTableConfig { get; set; }
+        public AzureTableConfiguration AzureTable { get; set; }
 
-        public CommonConfiguration CommonConfig { get; set; }
+        public LoggerConfiguration Logger { get; set; }
 
-        public static Configuration CreateDefaultConfig()
-        {
-            return new Configuration()
-            {
-                ExchangeConfig = new ExchangeConfiguration()
-                {
-                    Name = "kraken",
-                    Instruments = new [] { "XXBTZUSD" }
-                },
-                RabbitMQConfig = new RabbitMQConfiguration()
-                {
-                    Enabled = true,
-                    Host = "rabbit",
-                    QueueName = $"kraken.XXBTZUSD"
-                },
-                AzureTableConfig = new AzureTableConfiguration()
-                {
-                    Enabled = false
-                }
-            };
-        }
-
+        
         public static Configuration FromConfigurationRoot(IConfigurationRoot config)
         {
-            return new Configuration()
-            {
-                ExchangeConfig = config.GetSection("exchange").Get<ExchangeConfiguration>(),
-                RabbitMQConfig = config.GetSection("rabbitMQ").Get<RabbitMQConfiguration>(),
-                AzureTableConfig = config.GetSection("azureTable").Get<AzureTableConfiguration>(),
-                CommonConfig = config.GetSection("common").Get<CommonConfiguration>()
-            };
+            return config.GetSection("TradingBot").Get<Configuration>();
         }
     }
 }
