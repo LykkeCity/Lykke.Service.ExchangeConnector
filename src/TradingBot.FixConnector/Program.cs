@@ -46,7 +46,7 @@ namespace TradingBot.FixConnector
 				//task.Wait();
                 while (!ctSource.IsCancellationRequested)
                 {
-                    Task.Delay(TimeSpan.FromMinutes(1), ctSource.Token);
+                    Task.Delay(TimeSpan.FromMinutes(1), ctSource.Token).Wait();
                 }
 
 			}

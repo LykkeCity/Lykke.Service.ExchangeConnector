@@ -18,16 +18,16 @@ namespace TradingBot.FixConnector
         private ConnectionConfig config;
 
         private Dictionary<string, AssetBook> books = new Dictionary<string, AssetBook>();
-        private Queue<FullOrderBook> outQueue = new Queue<FullOrderBook>();
+        private Queue<FullOrderBook> outQueue;// = new Queue<FullOrderBook>();
 
-        public ICMConnector(ConnectionConfig config)
+        public ICMConnector(ConnectionConfig config, Queue<FullOrderBook> outQueue)
         {
             this.config = config;
+            this.outQueue = outQueue;
         }
 
         public void FromAdmin(QuickFix.Message message, SessionID sessionID)
         {
-            throw new NotSupportedException();
         }
 
         public void FromApp(QuickFix.Message message, SessionID sessionID)
@@ -125,6 +125,7 @@ namespace TradingBot.FixConnector
                         book.Ask.OrderBy(x => x.Price).Select(x => new PriceVolume(x.Price, x.Volume)));
                     
                     outQueue.Enqueue(new FullOrderBook(config.Name, book.Asset, now, asks, bids));
+                    Logger.LogInformation("Put orderBook into the queue");
 			    }
 			}
 			catch (Exception e) 
@@ -142,7 +143,8 @@ namespace TradingBot.FixConnector
         {
             session = sessionID;
             Logger.LogInformation($"Logon for session {sessionID}");
-            // TODO: subscribe to assets
+	        
+	        SubscribeToAssets();
         }
 
         public void OnLogout(SessionID sessionID)
@@ -157,7 +159,7 @@ namespace TradingBot.FixConnector
 
 		    try
 			{
-				if (header.GetString(0 /*TODO: MsgType.FIELD*/) == MsgType.LOGON)
+                if (header.GetString(Tags.MsgType) == MsgType.LOGON)
 				{
                     message.SetField(new Username(config.Username));
                     message.SetField(new Password(config.Password));
@@ -172,7 +174,6 @@ namespace TradingBot.FixConnector
 
         public void ToApp(QuickFix.Message message, SessionID sessionId)
         {
-            throw new NotSupportedException();
         }
 
 

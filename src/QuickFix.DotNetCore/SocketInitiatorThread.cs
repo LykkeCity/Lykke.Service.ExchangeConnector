@@ -201,8 +201,7 @@ namespace QuickFix
         public void Disconnect()
         {
             isDisconnectRequested_ = true;
-            if (stream_ != null)
-                stream_.Dispose(); //stream_.Close();
+            stream_?.Dispose(); //stream_.Close();
         }
 
         #endregion

@@ -6,6 +6,8 @@ using QuickFix;
 using QuickFix.Transport;
 using TradingBot.Common.Infrastructure;
 using TradingBot.FixConnector.Configuration;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace TradingBot.FixConnector
 {
@@ -15,7 +17,9 @@ namespace TradingBot.FixConnector
 
         public async Task StartAsync(ConnectionConfig config, SessionSettings settings, CancellationToken token)
         {
-            var application = new ICMConnector(config);
+            var queue = new Queue<FullOrderBook>();
+
+            var application = new ICMConnector(config, queue);
             var storeFactory = new FileStoreFactory(settings);
             var logFactory = new ScreenLogFactory(settings);
 
