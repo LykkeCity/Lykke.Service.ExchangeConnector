@@ -34,7 +34,7 @@ namespace TradingBot
 		            .UseContentRoot(Directory.GetCurrentDirectory())
 		            //.UseIISIntegration()
 		            .UseStartup<Startup>()
-		            //.UseUrls("*:5000")
+		            .UseUrls("http://127.0.0.1:5040")
 		            .Build();
 
 	            host.Run();
