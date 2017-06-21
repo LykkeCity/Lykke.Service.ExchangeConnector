@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.IO;
 using TradingBot.Infrastructure.Configuration;
 using System.Threading;
+using Microsoft.AspNetCore.Hosting;
 using TradingBot.Infrastructure.Logging;
 
 namespace TradingBot
@@ -28,22 +29,32 @@ namespace TradingBot
 
 				Logger.LogInformation("Press Ctrl+C for exit");
 
-				Console.CancelKeyPress += (sender, eventArgs) =>
-					{
-						eventArgs.Cancel = true;
+	            var host = new WebHostBuilder()
+		            .UseKestrel()
+		            .UseContentRoot(Directory.GetCurrentDirectory())
+		            //.UseIISIntegration()
+		            .UseStartup<Startup>()
+		            //.UseUrls("*:5000")
+		            .Build();
 
-						ctSource.Cancel();
-					    cycle.Stop();
-
-						if (task.Status == TaskStatus.Running)
-						{
-							Logger.LogInformation("Waiting for prices cycle completion");
-							task.Wait();
-						}
-					};
-
-
-                task.Wait(ctSource.Token);
+	            host.Run();
+	            
+//				Console.CancelKeyPress += (sender, eventArgs) =>
+//					{
+//						eventArgs.Cancel = true;
+//
+//						ctSource.Cancel();
+//					    cycle.Stop();
+//
+//						if (task.Status == TaskStatus.Running)
+//						{
+//							Logger.LogInformation("Waiting for prices cycle completion");
+//							task.Wait();
+//						}
+//					};
+//
+//
+//                task.Wait(ctSource.Token);
 
 				Logger.LogInformation("Applicatoin stopped.");
 				Environment.Exit(0);
