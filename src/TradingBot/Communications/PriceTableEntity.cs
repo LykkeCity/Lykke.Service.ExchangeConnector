@@ -27,5 +27,10 @@ namespace TradingBot.Communications
         }
 
         public string SerializedPrices { get; set; }
+
+        public override string ToString()
+        {
+            return $"{PartitionKey}|{RowKey}|{SerializedPrices}";
+        }
     }
 }

@@ -16,7 +16,9 @@ namespace TradingBot.Infrastructure.Configuration
         
         public static Configuration FromConfigurationRoot(IConfigurationRoot config)
         {
-            return config.GetSection("TradingBot").Get<Configuration>();
+            return Instance = config.GetSection("TradingBot").Get<Configuration>();
         }
+        
+        public static Configuration Instance { get; protected set; }
     }
 }

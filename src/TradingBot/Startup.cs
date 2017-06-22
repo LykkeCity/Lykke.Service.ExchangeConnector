@@ -9,8 +9,11 @@ namespace TradingBot
     {
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
-            app.Run(async (context) => {
-                await context.Response.WriteAsync("Hello");
+            app.Run(async (context) =>
+            {
+                var report = await StatusReport.Create();
+                
+                await context.Response.WriteAsync(string.Join("<br/>", report.LastPrices));
             });
         }
     }
