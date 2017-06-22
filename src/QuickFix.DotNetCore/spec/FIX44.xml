@@ -3226,7 +3226,7 @@
     <field name="TotalNumPosReports" required="N" />
     <field name="UnsolicitedIndicator" required="N" />
     <field name="PosReqResult" required="Y" />
-    <field name="ClearingBusinessDate" required="Y" />
+    <field name="ClearingBusinessDate" required="N" /> <!-- changed for compatibility with ICMarkets -->
     <field name="SettlSessID" required="N" />
     <field name="SettlSessSubID" required="N" />
     <component name="Parties" required="Y" />
@@ -3237,7 +3237,7 @@
     <field name="Currency" required="N" />
     <field name="SettlPrice" required="Y" />   
     <field name="SettlPriceType" required="Y" />
-    <field name="PriorSettlPrice" required="Y" />   
+    <field name="PriorSettlPrice" required="N" />  <!-- changed for compatibility with ICMarkets -->  
     <group name="NoLegs" required="N">
       <component name="InstrumentLeg" required="N" />
     </group>
@@ -6138,6 +6138,7 @@
       <value enum="TOT" description="TOTAL_TRANSACTION_QTY" />
       <value enum="XM" description="CROSS_MARGIN_QTY" />
       <value enum="SPL" description="INTEGRAL_SPLIT" />
+      <value enum="OPN" description="OPEN_POSITION" /> <!-- added manually for ICMarkets -->
     </field>
     <field number="704" name="LongQty" type="QTY" />
     <field number="705" name="ShortQty" type="QTY" />

@@ -25,8 +25,7 @@ namespace TradingBot
 
 				var cycle = new GetPricesCycle(config);
 				var task = cycle.Start();
-                var ctSource = new CancellationTokenSource();
-
+	            
 				Logger.LogInformation("Press Ctrl+C for exit");
 
 	            var host = new WebHostBuilder()
@@ -38,23 +37,6 @@ namespace TradingBot
 		            .Build();
 
 	            host.Run();
-	            
-//				Console.CancelKeyPress += (sender, eventArgs) =>
-//					{
-//						eventArgs.Cancel = true;
-//
-//						ctSource.Cancel();
-//					    cycle.Stop();
-//
-//						if (task.Status == TaskStatus.Running)
-//						{
-//							Logger.LogInformation("Waiting for prices cycle completion");
-//							task.Wait();
-//						}
-//					};
-//
-//
-//                task.Wait(ctSource.Token);
 
 				Logger.LogInformation("Applicatoin stopped.");
 				Environment.Exit(0);

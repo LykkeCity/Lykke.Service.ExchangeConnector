@@ -12,6 +12,15 @@ namespace QuickFix
             public RequestForPositions() : base()
             {
                 this.Header.SetField(new QuickFix.Fields.MsgType("AN"));
+
+                _fieldOrder = new[] // TODO: Use Groups for NoPartyIDs: { {PartyID, PartyRole}, ... }
+                {
+                    Tags.MsgType, Tags.PosReqID, Tags.PosReqType, Tags.SubscriptionRequestType,
+                    Tags.NoPartyIDs, 
+                    Tags.PartyID,
+                    Tags.PartyIDSource,
+                    Tags.PartyRole
+                };
             }
 
             public RequestForPositions(
