@@ -1,4 +1,5 @@
-﻿using TradingBot.Exchanges.Abstractions;
+﻿using System.Globalization;
+using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.ICMarkets;
 using TradingBot.Exchanges.Concrete.Kraken;
 using TradingBot.Exchanges.Concrete.StubImplementation;
@@ -11,9 +12,9 @@ namespace TradingBot.Exchanges
         public static Exchange CreateExchange(ExchangesConfiguration config)
         {
 	        if (config.Icm.Enabled)
-		        return new ICMarketsExchange();
+		        return new ICMarketsExchange(config.Icm);
 	        else if(config.Kraken.Enabled)
-		        return new KrakenExchange();
+		        return new KrakenExchange(config.Kraken);
 	        else
 	        	return new StubExchange();
         }

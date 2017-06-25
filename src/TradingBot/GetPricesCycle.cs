@@ -55,7 +55,7 @@ namespace TradingBot
 
             logger.LogInformation($"Price cycle starting for exchange {exchange.Name}...");
 
-            bool connectionTestPassed = await new Reconnector(times: 5, pause: TimeSpan.FromSeconds(10))
+            bool connectionTestPassed = await new Reconnector(times: 5, pause: TimeSpan.FromSeconds(10)) // TODO: Use Polly
                 .ConnectAsync(exchange.TestConnection, token);
 
             if (!connectionTestPassed)

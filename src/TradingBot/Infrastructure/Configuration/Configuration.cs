@@ -5,6 +5,8 @@ namespace TradingBot.Infrastructure.Configuration
 {
     public class Configuration
     {
+        public AspNetConfiguration AspNet { get; set; }
+        
         public ExchangesConfiguration Exchanges { get; set; }
 
         public RabbitMqConfiguration RabbitMq { get; set; }

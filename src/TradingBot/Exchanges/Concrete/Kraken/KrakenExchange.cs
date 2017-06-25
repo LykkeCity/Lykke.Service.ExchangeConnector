@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -10,6 +9,7 @@ using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Kraken.Endpoints;
 using TradingBot.Exchanges.Concrete.Kraken.Entities;
 using TradingBot.Helpers;
+using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Trading;
 
@@ -17,8 +17,11 @@ namespace TradingBot.Exchanges.Concrete.Kraken
 {
     public class KrakenExchange : Exchange
     {
-        public KrakenExchange() : base("Kraken")
+        private readonly KrakenConfig config;
+
+        public KrakenExchange(KrakenConfig config) : base("Kraken")
         {
+            this.config = config;
         }
 
         private readonly PublicData PublicData = new PublicData(new ApiClient(new HttpClient() { Timeout = TimeSpan.FromSeconds(3)}));
