@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using TradingBot.Common.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Trading;
-using Newtonsoft.Json;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Exchanges;
 using System.Linq;
@@ -44,7 +43,7 @@ namespace TradingBot
 
         private readonly Configuration config;
 
-        private RabbitMqPublisher<string> rabbitPublisher;
+        private RabbitMqPublisher<InstrumentTickPrices> rabbitPublisher;
 
         private Dictionary<Instrument, AzureTablePricesPublisher> azurePublishers;
 
@@ -75,8 +74,8 @@ namespace TradingBot
                 
                 var rabbitConsole = new RabbitConsole();
                 
-                rabbitPublisher = new RabbitMqPublisher<string>(rabbitSettings)
-                    .SetSerializer(new MessageSerializer())
+                rabbitPublisher = new RabbitMqPublisher<InstrumentTickPrices>(rabbitSettings)
+                    .SetSerializer(new InstrumentTickPricesSerializer())
                     .SetLogger(new LogToConsole())
                     .SetPublishStrategy(new DefaultFnoutPublishStrategy())
                     .SetConsole(rabbitConsole)
@@ -111,8 +110,7 @@ namespace TradingBot
 
 			if (config.RabbitMq.Enabled)
 			{
-                string message = JsonConvert.SerializeObject(prices); // TODO: make serializator
-			    await rabbitPublisher.ProduceAsync(message);
+			    await rabbitPublisher.ProduceAsync(prices);
 			}
 
             if (config.AzureTable.Enabled)
