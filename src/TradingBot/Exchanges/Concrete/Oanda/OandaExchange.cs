@@ -5,8 +5,7 @@ using System.Threading.Tasks;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Oanda.Endpoints;
 using System;
-using TradingBot.Trading;
-using TradingBot.Common.Trading;
+using TradingBot.Infrastructure.Configuration;
 
 namespace TradingBot.Exchanges.Concrete.Oanda
 {
@@ -16,7 +15,7 @@ namespace TradingBot.Exchanges.Concrete.Oanda
         private Prices prices;
         private Instruments instruments;
 
-        public OandaExchange() : base("OANDA")
+        public OandaExchange(OandaConfiguration config) : base("OANDA", config)
         {
             var client = new ApiClient(OandaHttpClient.CreateHttpClient(OandaAuth.Token));
 
@@ -30,7 +29,7 @@ namespace TradingBot.Exchanges.Concrete.Oanda
             throw new NotImplementedException();
         }
 
-        public override Task OpenPricesStream(Instrument[] instruments, Action<InstrumentTickPrices> callback)
+        public override Task OpenPricesStream(Action<InstrumentTickPrices> callback)
         {
             throw new NotImplementedException();
         }

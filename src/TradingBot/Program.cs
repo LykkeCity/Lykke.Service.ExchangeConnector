@@ -1,10 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using System;
-using System.Threading.Tasks;
 using System.IO;
 using TradingBot.Infrastructure.Configuration;
-using System.Threading;
 using Microsoft.AspNetCore.Hosting;
 using TradingBot.Infrastructure.Logging;
 
@@ -38,7 +36,10 @@ namespace TradingBot
 
 	            host.Run();
 
-				Logger.LogInformation("Applicatoin stopped.");
+	            cycle.Stop();
+	            task?.Wait();
+	            
+				Logger.LogInformation("The service is stopped.");
 				Environment.Exit(0);
             }
             catch(Exception e)

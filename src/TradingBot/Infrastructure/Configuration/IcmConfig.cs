@@ -1,6 +1,6 @@
 ﻿namespace TradingBot.Infrastructure.Configuration
 {
-    public class IcmConfig
+    public class IcmConfig : IExchangeConfiguration
     {
         public bool Enabled { get; set; }
         

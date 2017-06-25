@@ -1,16 +1,21 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.Common.Trading;
 using TradingBot.Exchanges.Abstractions;
+using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.StubImplementation
 {
     public class StubExchange : Exchange
     {
-        public StubExchange() : base("Stub Exchange Implementation")
+        private readonly StubExchangeConfiguration config;
+
+        public StubExchange(StubExchangeConfiguration config) : base("Stub Exchange Implementation", config)
         {
+            this.config = config;
         }
 
         protected override Task<bool> TestConnectionImpl(CancellationToken cancellationToken)
@@ -22,27 +27,32 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
         private bool closePricesStreamRequested;
         private Random random;
 
-		public override async Task OpenPricesStream(Instrument[] instruments, Action<InstrumentTickPrices> callback)
+		public override async Task OpenPricesStream(Action<InstrumentTickPrices> callback)
 		{
             closePricesStreamRequested = false;
             random = new Random();
 
-            decimal price = 100m;
+		    var prices = Instruments.ToDictionary(x => x, x => 100m);
 
             while (!closePricesStreamRequested)
             {
-                bool grow = random.NextDouble() >= 0.5;
-                decimal percents = (decimal) random.NextDouble() / 100;
-                decimal delta = price * percents;
+                foreach (var instrument in Instruments)
+                {                
+                    bool grow = random.NextDouble() >= 0.5;
+                    decimal percents = (decimal) random.NextDouble() / 100;
+                    decimal delta = prices[instrument] * percents;
 
-                if (grow)
-                    price += delta;
-                else
-                    price -= delta;
+                    if (grow)
+                        prices[instrument] += delta;
+                    else
+                        prices[instrument] -= delta;
 
-                callback(new InstrumentTickPrices(instruments[0], new[] { new TickPrice(DateTime.Now, price) }));
-
-                await Task.Delay(TimeSpan.FromSeconds(0.5));
+                    prices[instrument] = Math.Round(prices[instrument], 4);
+                
+                    callback(new InstrumentTickPrices(instrument, new[] { new TickPrice(DateTime.Now, prices[instrument]) }));
+                }
+                
+                await Task.Delay(config.PricesIntervalInMilliseconds);
             }
 		}
 

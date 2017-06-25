@@ -1,6 +1,6 @@
 ﻿namespace TradingBot.Infrastructure.Configuration
 {
-    public class KrakenConfig : IExchangeConfiguration
+    public class OandaConfiguration : IExchangeConfiguration
     {
         public bool Enabled { get; set; }
         

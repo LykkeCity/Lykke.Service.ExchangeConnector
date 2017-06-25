@@ -5,5 +5,7 @@
         public IcmConfig Icm { get; set; }
         
         public KrakenConfig Kraken { get; set; }
+        
+        public StubExchangeConfiguration Stub { get; set; }
     }
 }

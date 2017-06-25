@@ -15,7 +15,7 @@ namespace TradingBot.Communications
             : base(assetId, minute.ToString("yyyy-MM-dd HH:mm:ss"))
         {
         }
-
+        
         public PriceTableEntity(string assetId, DateTime minute, string serializedPrices) : this(assetId, minute)
         {
             SerializedPrices = serializedPrices;

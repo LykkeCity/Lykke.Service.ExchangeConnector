@@ -27,17 +27,10 @@ namespace TradingBot
             this.config = config;
 
 			exchange = ExchangeFactory.CreateExchange(config.Exchanges);
-
-            if (config.Exchanges.Icm.Enabled) // TODO
-                instruments = config.Exchanges.Icm.Instruments.Select(x => new Instrument(x)).ToArray();
-            else if (config.Exchanges.Kraken.Enabled)
-                instruments = config.Exchanges.Kraken.Instruments.Select(x => new Instrument(x)).ToArray();
         }
 
 
         private readonly Exchange exchange;
-		
-        private readonly Instrument[] instruments;
 
 		private CancellationTokenSource ctSource;
 
@@ -52,6 +45,13 @@ namespace TradingBot
             ctSource = new CancellationTokenSource();
             var token = ctSource.Token;
 
+            if (exchange == null)
+            {
+                logger.LogInformation("There is no enabled exchange.");
+                return;
+            }
+            
+            
             logger.LogInformation($"Price cycle starting for exchange {exchange.Name}...");
 
             bool connectionTestPassed = await new Reconnector(times: 5, pause: TimeSpan.FromSeconds(10)) // TODO: Use Polly
@@ -84,13 +84,13 @@ namespace TradingBot
 
             if (config.AzureTable.Enabled)
             {
-                azurePublishers = instruments.ToDictionary(
+                azurePublishers = exchange.Instruments.ToDictionary(
 	                x => x,
 	                x => new AzureTablePricesPublisher(x, config.AzureTable.TableName, config.AzureTable.StorageConnectionString));
             }
 
 
-            var task = exchange.OpenPricesStream(instruments, PublishTickPrices);
+            var task = exchange.OpenPricesStream(PublishTickPrices);
 
             while (!token.IsCancellationRequested)
 			{
@@ -125,7 +125,7 @@ namespace TradingBot
             logger.LogInformation("Stop requested");
             ctSource.Cancel();
 
-            exchange.ClosePricesStream();
+            exchange?.ClosePricesStream();
 
             ((IStopable) rabbitPublisher)?.Stop();
         }
