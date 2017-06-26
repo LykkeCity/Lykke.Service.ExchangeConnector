@@ -14,7 +14,7 @@ namespace TradingBot.Infrastructure.Configuration
         public AzureTableConfiguration AzureTable { get; set; }
 
         public LoggerConfiguration Logger { get; set; }
-
+        
         
         public static Configuration FromConfigurationRoot(IConfigurationRoot config)
         {

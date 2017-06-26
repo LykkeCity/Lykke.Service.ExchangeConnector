@@ -13,6 +13,9 @@ using Common;
 using Common.Log;
 using Lykke.RabbitMqBroker.Publisher;
 using System.Collections.Generic;
+using AzureStorage;
+using AzureStorage.Tables;
+using Microsoft.WindowsAzure.Storage.Table;
 using TradingBot.Communications;
 using TradingBot.Infrastructure.Logging;
 
@@ -51,6 +54,7 @@ namespace TradingBot
                 return;
             }
             
+            UpdateAssetsTable();
             
             logger.LogInformation($"Price cycle starting for exchange {exchange.Name}...");
 
@@ -102,6 +106,31 @@ namespace TradingBot
 			{
 				task.Wait();
 			}
+        }
+
+        private async void UpdateAssetsTable()
+        {
+            if (!config.AzureTable.Enabled)
+                return;
+
+            try
+            {
+                logger.LogInformation($"Updating Assets table...");
+            
+                INoSQLTableStorage<TableEntity> tableStorage = new AzureTableStorage<TableEntity>(
+                    config.AzureTable.StorageConnectionString, 
+                    config.AzureTable.AssetsTableName, 
+                    new LogToConsole());
+
+                var exchangeName = exchange.Name;
+
+                await tableStorage.InsertOrReplaceBatchAsync(
+                    exchange.Instruments.Select(x => new TableEntity(exchangeName.GetAzureFriendlyName(), x.Name.GetAzureFriendlyName())));
+            }
+            catch (Exception e)
+            {
+                logger.LogError(new EventId(), e, "Can't update Assets table");
+            }
         }
 
         private async void PublishTickPrices(InstrumentTickPrices prices)
