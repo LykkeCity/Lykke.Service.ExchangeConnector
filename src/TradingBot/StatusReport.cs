@@ -38,7 +38,7 @@ namespace TradingBot
                 new LogToConsole());
             
             var now = DateTime.UtcNow;
-            var timePoint = now.AddMinutes(-1);
+            var timePoint = now.AddMinutes(-3);
             var rowKey = timePoint.ToString("yyyy-MM-dd HH:mm:ss");
 
             var query = new TableQuery<PriceTableEntity>()
