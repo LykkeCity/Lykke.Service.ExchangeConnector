@@ -29,7 +29,7 @@ namespace TradingBot
                 new LogToConsole());
 
             var now = DateTimeOffset.UtcNow;
-            var timePoint = now.AddMinutes(-5);
+            var timePoint = now.AddMinutes(-1);
 
             var prices = await pricesStorage.GetDataAsync(x => x.Timestamp >= timePoint);
 
