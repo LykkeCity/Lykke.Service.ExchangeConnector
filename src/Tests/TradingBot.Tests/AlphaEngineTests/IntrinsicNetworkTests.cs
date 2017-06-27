@@ -1,6 +1,6 @@
 ﻿using System;
-using TradingBot.AlphaEngine;
-using TradingBot.Trading;
+using TradingBot.Common.Trading;
+using TradingBot.TheAlphaEngine.TradingAlgorithms.AlphaEngine;
 using Xunit;
 
 namespace TradingBot.Tests.AlphaEngineTests

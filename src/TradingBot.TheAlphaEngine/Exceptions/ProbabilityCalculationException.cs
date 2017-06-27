@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace TradingBot.Infrastructure.Exceptions
+namespace TradingBot.TheAlphaEngine.Exceptions
 {
     public class ProbabilityCalculationException : Exception
     {

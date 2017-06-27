@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace TradingBot.Trading
+namespace TradingBot.Common.Trading
 {
     public enum SignalType
     {
@@ -8,19 +8,29 @@ namespace TradingBot.Trading
         Short
     }
 
+    public enum OrderType
+    {
+        Market,
+        Limit
+    }
+
     public class TradingSignal
     {
-        public TradingSignal(SignalType type, decimal price, decimal count, DateTime time)
+        public TradingSignal(SignalType type, decimal price, decimal count, DateTime time, 
+            OrderType orderType = OrderType.Market)
         {
             Type = type;
             Price = price;
             Count = count;
             Time = time;
+            OrderType = orderType;
         }
 
         public DateTime Time { get; }
 
         public SignalType Type { get; }
+        
+        public OrderType OrderType { get; }
 
         public decimal Price { get; }
 

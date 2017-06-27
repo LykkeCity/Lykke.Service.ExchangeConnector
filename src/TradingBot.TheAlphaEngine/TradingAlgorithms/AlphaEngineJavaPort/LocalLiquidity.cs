@@ -1,7 +1,7 @@
 ﻿using System;
 using TradingBot.Common.Trading;
 
-namespace TradingBot.TheAlphaEngine
+namespace TradingBot.TheAlphaEngine.TradingAlgorithms.AlphaEngineJavaPort
 {
 
     public class LocalLiquidity
@@ -83,7 +83,7 @@ namespace TradingBot.TheAlphaEngine
             return n;
         }
 
-        public int Run(TickPrice price)
+        int Run(TickPrice price)
         {
             if (price == null)
                 return 0;

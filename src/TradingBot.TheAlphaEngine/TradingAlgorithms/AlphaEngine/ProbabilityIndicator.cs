@@ -1,9 +1,9 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
-using TradingBot.Infrastructure.Exceptions;
+﻿using System;
+using Microsoft.Extensions.Logging;
 using TradingBot.Common.Infrastructure;
+using TradingBot.TheAlphaEngine.Exceptions;
 
-namespace TradingBot.AlphaEngine
+namespace TradingBot.TheAlphaEngine.TradingAlgorithms.AlphaEngine
 {
     /// <summary>
     /// Calculated as in paper "Multi-scale Representation of High Frequency Market

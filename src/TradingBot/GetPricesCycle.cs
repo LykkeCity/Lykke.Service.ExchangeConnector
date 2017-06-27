@@ -2,7 +2,6 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using TradingBot.Common.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Trading;
 using TradingBot.Infrastructure.Configuration;
@@ -17,6 +16,7 @@ using AzureStorage;
 using AzureStorage.Tables;
 using Microsoft.WindowsAzure.Storage.Table;
 using Polly;
+using TradingBot.Common.Trading;
 using TradingBot.Communications;
 using TradingBot.Infrastructure.Logging;
 

@@ -2,7 +2,7 @@
 
 namespace TradingBot.Infrastructure.Logging
 {
-    public static class Logging
+    public static class Logging // TODO: move to Common
     {
         public static ILoggerFactory LoggerFactory { get; } = new LoggerFactory()
             .AddConsole(LogLevel.Debug);

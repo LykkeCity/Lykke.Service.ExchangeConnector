@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using TradingBot.Common.Trading;
-using TradingBot.Trading;
-using TradingBot.TradingAlgorithms;
 
-namespace TradingBot.AlphaEngine
+namespace TradingBot.TheAlphaEngine.TradingAlgorithms.AlphaEngine
 {
     public class AlphaEngineAgent : ITradingAgent
     {
@@ -44,6 +42,14 @@ namespace TradingBot.AlphaEngine
                 {
                     TradingSignalGenerated?.Invoke(signal);    
                 }
+            }
+        }
+
+        public void OnPriceChange(TickPrice[] tickPrices)
+        {
+            foreach (var tickPrice in tickPrices)
+            {
+                OnPriceChange(tickPrice);
             }
         }
 

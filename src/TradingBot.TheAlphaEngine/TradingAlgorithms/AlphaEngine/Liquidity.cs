@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace TradingBot.AlphaEngine
+namespace TradingBot.TheAlphaEngine.TradingAlgorithms.AlphaEngine
 {
     public class Liquidity
     {

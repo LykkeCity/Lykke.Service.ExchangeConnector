@@ -1,4 +1,4 @@
-﻿using TradingBot.AlphaEngine;
+﻿using TradingBot.TheAlphaEngine.TradingAlgorithms.AlphaEngine;
 using Xunit;
 
 namespace TradingBot.Tests.AlphaEngineTests

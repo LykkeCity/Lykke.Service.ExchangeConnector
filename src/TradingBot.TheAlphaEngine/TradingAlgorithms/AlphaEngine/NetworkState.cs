@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 
-namespace TradingBot.AlphaEngine
+namespace TradingBot.TheAlphaEngine.TradingAlgorithms.AlphaEngine
 {
     public class NetworkState : IEnumerable<bool>
     {

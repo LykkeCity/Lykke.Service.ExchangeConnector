@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using TradingBot.Common.Infrastructure;
 using TradingBot.Common.Trading;
 
-namespace TradingBot.TheAlphaEngine
+namespace TradingBot.TheAlphaEngine.TradingAlgorithms.AlphaEngineJavaPort
 {
 
     public class CoastlineTrader

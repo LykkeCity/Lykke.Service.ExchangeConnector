@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TradingBot.Common.Trading;
 
-namespace TradingBot.TheAlphaEngine
+namespace TradingBot.TheAlphaEngine.TradingAlgorithms.AlphaEngineJavaPort
 {
 
     public class Liquidity

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using TradingBot.TheAlphaEngine.TradingAlgorithms.AlphaEngineJavaPort;
 using Xunit;
 
 namespace TradingBot.TheAlphaEngine.Tests

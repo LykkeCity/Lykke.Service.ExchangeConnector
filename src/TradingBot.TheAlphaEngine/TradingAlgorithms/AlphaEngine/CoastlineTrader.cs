@@ -1,8 +1,7 @@
 ﻿using System.Collections.Generic;
 using TradingBot.Common.Trading;
-using TradingBot.Trading;
 
-namespace TradingBot.AlphaEngine
+namespace TradingBot.TheAlphaEngine.TradingAlgorithms.AlphaEngine
 {
     public class CoastlineTrader
     {

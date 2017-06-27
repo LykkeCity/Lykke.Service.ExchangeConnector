@@ -1,14 +1,21 @@
 ﻿using System;
 using TradingBot.Common.Trading;
-using TradingBot.Trading;
 
-namespace TradingBot.TradingAlgorithms
+namespace TradingBot.TheAlphaEngine.TradingAlgorithms
 {
     public class StubTradingAgent : ITradingAgent
     {
         public void OnPriceChange(TickPrice tickPrice)
         {
             TradingSignalGenerated?.Invoke(CreateSignal(tickPrice));
+        }
+
+        public void OnPriceChange(TickPrice[] prices)
+        {
+            foreach (var price in prices)
+            {
+                OnPriceChange(price);
+            }
         }
 
         public event Action<TradingSignal> TradingSignalGenerated;

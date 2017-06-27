@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace TradingBot.Trading
+﻿namespace TradingBot.Common.Trading
 {
     public class PositionSide
     {

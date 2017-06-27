@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace TradingBot.Trading
+namespace TradingBot.Common.Trading
 {
     public class Position
     {

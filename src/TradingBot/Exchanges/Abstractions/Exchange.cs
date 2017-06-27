@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TradingBot.Trading;
 using TradingBot.Common.Infrastructure;
+using TradingBot.Common.Trading;
 using TradingBot.Infrastructure.Configuration;
 
 namespace TradingBot.Exchanges.Abstractions

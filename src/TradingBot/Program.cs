@@ -29,7 +29,6 @@ namespace TradingBot
 	            var host = new WebHostBuilder()
 		            .UseKestrel()
 		            .UseContentRoot(Directory.GetCurrentDirectory())
-		            //.UseIISIntegration()
 		            .UseStartup<Startup>()
 		            .UseUrls(config.AspNet.Host)
 		            .Build();
@@ -38,7 +37,7 @@ namespace TradingBot
 
 	            cycle.Stop();
 	            task?.Wait();
-	            
+
 				Logger.LogInformation("The service is stopped.");
 				Environment.Exit(0);
             }
@@ -52,8 +51,7 @@ namespace TradingBot
 	    private static Configuration GetConfig(string[] args)
 	    {
 		    var configBuilder = new ConfigurationBuilder();
-	            
-	            
+
 		    string settingsUrl = Environment.GetEnvironmentVariable("SettingsUrl");
 
 		    if (string.IsNullOrEmpty(settingsUrl))
@@ -72,7 +70,7 @@ namespace TradingBot
 			    configBuilder
 				    .AddJsonFile(new LykkeSettingsFileProvider(), path: settingsUrl, optional: false, reloadOnChange: false);    
 		    }
-	            
+
 		    Configuration config = Configuration.FromConfigurationRoot(configBuilder.Build());
 
 		    return config;

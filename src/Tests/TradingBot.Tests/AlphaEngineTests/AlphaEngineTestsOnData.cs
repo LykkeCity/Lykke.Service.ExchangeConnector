@@ -7,10 +7,10 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using TradingBot.AlphaEngine;
+using TradingBot.Common.Trading;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Kraken.Endpoints;
-using TradingBot.Trading;
+using TradingBot.TheAlphaEngine.TradingAlgorithms.AlphaEngine;
 using Xunit;
 
 namespace TradingBot.Tests.AlphaEngineTests

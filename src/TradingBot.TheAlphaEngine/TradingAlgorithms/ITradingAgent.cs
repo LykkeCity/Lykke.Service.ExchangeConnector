@@ -1,12 +1,13 @@
 ﻿using System;
 using TradingBot.Common.Trading;
-using TradingBot.Trading;
 
-namespace TradingBot.TradingAlgorithms
+namespace TradingBot.TheAlphaEngine.TradingAlgorithms
 {
     public interface ITradingAgent
     {
         void OnPriceChange(TickPrice tickPrice);
+        
+        void OnPriceChange(TickPrice[] prices);
 
         event Action<TradingSignal> TradingSignalGenerated;
     }

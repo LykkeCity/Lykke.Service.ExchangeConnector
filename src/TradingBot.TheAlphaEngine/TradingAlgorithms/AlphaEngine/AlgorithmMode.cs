@@ -1,4 +1,4 @@
-﻿namespace TradingBot.AlphaEngine
+﻿namespace TradingBot.TheAlphaEngine.TradingAlgorithms.AlphaEngine
 {
     public enum AlgorithmMode
     {
