@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using TradingBot.Common.Trading;
 using TradingBot.Trading;
+using TradingBot.TradingAlgorithms;
 
 namespace TradingBot.AlphaEngine
 {
-    public class AlphaEngineAgent
+    public class AlphaEngineAgent : ITradingAgent
     {
         public AlphaEngineAgent(Instrument instrument)
         {
@@ -27,7 +28,7 @@ namespace TradingBot.AlphaEngine
 
         public Instrument Instrument { get; set; }
 
-        private List<CoastlineTrader> coastlineTraders;
+        private readonly List<CoastlineTrader> coastlineTraders;
 
         private IntrinsicNetwork intrinsicNetwork;
 
@@ -37,9 +38,16 @@ namespace TradingBot.AlphaEngine
         {
             foreach (var ct in coastlineTraders)
             {
-                ct.OnPriceChange(priceTime);
+                var signal = ct.OnPriceChange(priceTime);
+                
+                if (signal != null)
+                {
+                    TradingSignalGenerated?.Invoke(signal);    
+                }
             }
         }
+
+        public event Action<TradingSignal> TradingSignalGenerated;
 
         public Position GetCumulativePosition()
         {
