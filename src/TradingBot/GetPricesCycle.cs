@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using AzureStorage;
 using AzureStorage.Tables;
 using Microsoft.WindowsAzure.Storage.Table;
+using Polly;
 using TradingBot.Communications;
 using TradingBot.Infrastructure.Logging;
 
@@ -58,9 +59,12 @@ namespace TradingBot
             
             logger.LogInformation($"Price cycle starting for exchange {exchange.Name}...");
 
-            bool connectionTestPassed = await new Reconnector(times: 5, pause: TimeSpan.FromSeconds(10)) // TODO: Use Polly
-                .ConnectAsync(exchange.TestConnection, token);
-
+            var retry = Policy
+                .HandleResult<bool>(x => !x)
+                .WaitAndRetryAsync(5, attempt => TimeSpan.FromSeconds(10));
+            
+            bool connectionTestPassed = await retry.ExecuteAsync(exchange.TestConnection, token); 
+                
             if (!connectionTestPassed)
             {
                 logger.LogError($"Price cycle not started: no connection to exchange {exchange.Name}");

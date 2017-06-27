@@ -10,7 +10,7 @@ namespace TradingBot
 {
     class Program
     {
-        private static ILogger Logger = Logging.CreateLogger<Program>();
+        private static readonly ILogger Logger = Logging.CreateLogger<Program>();
 
         static void Main(string[] args)
         {
