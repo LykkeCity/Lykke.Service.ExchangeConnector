@@ -4,11 +4,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
 using Lykke.RabbitMqBroker.Subscriber;
+using TradingBot.Common.Trading;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.ICMarkets.Converters;
 using TradingBot.Exchanges.Concrete.ICMarkets.Entities;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.ICMarkets
 {
@@ -36,7 +36,7 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
             var rabbitSettings = new RabbitMqSubscriberSettings()
             {
                 ConnectionString = config.RabbitMq.GetConnectionString(),
-                ExchangeName = config.RabbitMq.Exchange
+                ExchangeName = config.RabbitMq.RatesExchange
             };
 
             rabbit = new RabbitMqSubscriber<OrderBook>(rabbitSettings)

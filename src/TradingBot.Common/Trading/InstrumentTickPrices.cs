@@ -1,7 +1,4 @@
-﻿using TradingBot.Common.Trading;
-using TradingBot.Trading;
-
-namespace TradingBot.Exchanges.Abstractions
+﻿namespace TradingBot.Common.Trading
 {
     public class InstrumentTickPrices
     {

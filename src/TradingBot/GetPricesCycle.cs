@@ -3,7 +3,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TradingBot.Exchanges.Abstractions;
-using TradingBot.Trading;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Exchanges;
 using System.Linq;
@@ -14,6 +13,7 @@ using Lykke.RabbitMqBroker.Publisher;
 using System.Collections.Generic;
 using AzureStorage;
 using AzureStorage.Tables;
+using Lykke.RabbitMqBroker.Subscriber;
 using Microsoft.WindowsAzure.Storage.Table;
 using Polly;
 using TradingBot.Common.Trading;
@@ -43,6 +43,10 @@ namespace TradingBot
         private RabbitMqPublisher<InstrumentTickPrices> rabbitPublisher;
 
         private Dictionary<Instrument, AzureTablePricesPublisher> azurePublishers;
+
+
+        private RabbitMqSubscriber<TradingSignal> signalSubscriber;
+        
 
         public async Task Start()
         {
@@ -74,20 +78,36 @@ namespace TradingBot
             if (config.RabbitMq.Enabled)
             {
 
-                var rabbitSettings = new RabbitMqPublisherSettings()
+                var publisherSettings = new RabbitMqPublisherSettings()
                 {
-                    ConnectionString = config.RabbitMq.Host,
-                    ExchangeName = config.RabbitMq.ExchangeName
+                    ConnectionString = config.RabbitMq.GetConnectionString(),
+                    ExchangeName = config.RabbitMq.RatesExchange
                 };
                 
                 var rabbitConsole = new RabbitConsole();
                 
-                rabbitPublisher = new RabbitMqPublisher<InstrumentTickPrices>(rabbitSettings)
-                    .SetSerializer(new InstrumentTickPricesSerializer())
+                rabbitPublisher = new RabbitMqPublisher<InstrumentTickPrices>(publisherSettings)
+                    .SetSerializer(new InstrumentTickPricesConverter())
                     .SetLogger(new LogToConsole())
                     .SetPublishStrategy(new DefaultFnoutPublishStrategy())
                     .SetConsole(rabbitConsole)
                     .Start();
+                
+                var subscriberSettings = new RabbitMqSubscriberSettings()
+                {
+                    ConnectionString = config.RabbitMq.GetConnectionString(),
+                    ExchangeName = config.RabbitMq.SignalsExchange,
+                    QueueName = config.RabbitMq.QueueName
+                };
+                
+                signalSubscriber = new RabbitMqSubscriber<TradingSignal>(subscriberSettings)
+                    .SetMessageDeserializer(new TradingSignalConverter())
+                    .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
+                    .SetConsole(rabbitConsole)
+                    .SetLogger(new LogToConsole())
+                    .Subscribe(TradingSignalHandler)
+                    .Start();
+                
             }
 
             if (config.AzureTable.Enabled)
@@ -177,6 +197,15 @@ namespace TradingBot
             {
                 Console.WriteLine(line);
             }
+        }
+
+        private Task TradingSignalHandler(TradingSignal signal)
+        {
+            logger.LogDebug($"Trading signal has been received {signal}");
+            
+            // TODO: execute the signal
+
+            return Task.FromResult(0);
         }
     }
 }

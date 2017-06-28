@@ -17,7 +17,7 @@ services:
     hostname: tradingbot
     #ports:
     # - "5000:5000"
-    links:
+    depends_on:
       - rabbit
 
   # AlphaEngine
@@ -26,7 +26,7 @@ services:
       context: TradingBot.TheAlphaEngine/
       dockerfile: Dockerfile
     hostname: alphaengine
-    links:
+    depends_on:
       - rabbit
 
   # # Receiver

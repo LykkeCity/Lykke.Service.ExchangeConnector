@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using TradingBot.Infrastructure.Configuration;
 using Microsoft.AspNetCore.Hosting;
 using TradingBot.Infrastructure.Logging;
@@ -21,6 +22,11 @@ namespace TradingBot
                 if (config.Logger.Enabled)
                     Logging.LoggerFactory.AddLykkeLog(config.AzureTable.StorageConnectionString, config.Logger.TableName);
 
+	            
+	            Logger.LogDebug("Waiting a bit for services up...");
+	            Task.Delay(TimeSpan.FromSeconds(10)).Wait();
+	        
+	            
 				var cycle = new GetPricesCycle(config);
 				var task = cycle.Start();
 	            

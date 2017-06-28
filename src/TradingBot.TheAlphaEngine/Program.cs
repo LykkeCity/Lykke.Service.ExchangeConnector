@@ -5,11 +5,10 @@ using System.Threading.Tasks;
 using System.Threading;
 using Common;
 using Common.Log;
-using Lykke.RabbitMqBroker;
+using Lykke.RabbitMqBroker.Publisher;
 using Lykke.RabbitMqBroker.Subscriber;
 using Microsoft.Extensions.Configuration;
 using TradingBot.Common.Infrastructure;
-using Newtonsoft.Json;
 using TradingBot.Common.Trading;
 using TradingBot.TheAlphaEngine.Configuration;
 using TradingBot.TheAlphaEngine.TradingAlgorithms;
@@ -22,6 +21,10 @@ namespace TradingBot.TheAlphaEngine
     {
 		private static readonly ILogger Logger = Logging.CreateLogger<Program>();
 
+
+	    private static RabbitMqPublisher<TradingSignal> rabbitPublisher;
+	    private static RabbitMqSubscriber<InstrumentTickPrices> rabbitSubscriber;
+	    
         static void Main(string[] args)
         {
 	        Logger.LogInformation("The Alpha Engine, version 0.1.0");
@@ -31,41 +34,24 @@ namespace TradingBot.TheAlphaEngine
             var ctSource = new CancellationTokenSource();
             var token = ctSource.Token;
 
-
 	        var engine = CreateEngine(config.Algorithm);
-	        
-	        var rabbitSettings = new RabbitMqSubscriberSettings()
-	        {
-		        ConnectionString = config.RabbitMq.Host,
-		        ExchangeName = config.RabbitMq.ExchangeName,
-		        QueueName = config.RabbitMq.QueueName
-	        };
 
-	        var rabbit = new RabbitMqSubscriber<string>(rabbitSettings)
-		        .SetMessageDeserializer(new DefaultStringDeserializer())
-		        .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
-	        	//.SetConsole(new RabbitConsole())
-	        	.SetLogger(new LogToConsole())
-		        .Subscribe(serialized =>
-					{
-						Logger.LogDebug("Alpha Engine has received data!");
-						
-						var prices = JsonConvert.DeserializeObject<TickPrice[]>(serialized);
-	
-						Logger.LogDebug($"Received {prices.Length} prices");
-	
-						engine.OnPriceChange(prices);
-	
-						return Task.FromResult(0);
-					})
-		        .Start();
+	        Logger.LogDebug("Waiting a bit for services up...");
+	        Task.Delay(TimeSpan.FromSeconds(10)).Wait();
+	        
+	        SetupPublishSignals(config, engine);
+	        SubscribeToPrices(config, engine);
+
 	        
 			Logger.LogInformation("Press Ctrl+C for exit");
 
 			Console.CancelKeyPress += (sender, eventArgs) =>
 				{
                     eventArgs.Cancel = true;
-					((IStopable)rabbit).Stop();
+					
+					((IStopable)rabbitSubscriber)?.Stop();
+					((IStopable)rabbitPublisher)?.Stop();
+					
                     ctSource.Cancel();
 				};
 
@@ -78,6 +64,50 @@ namespace TradingBot.TheAlphaEngine
 			Console.WriteLine("Applicatoin stopped.");
 			Environment.Exit(0);
         }
+
+	    private static void SetupPublishSignals(Configuration.Configuration config, ITradingAgent agent)
+	    {
+		    var rabbitSettings = new RabbitMqPublisherSettings()
+		    {
+			    ConnectionString = config.RabbitMq.GetConnectionString(),
+			    ExchangeName = config.RabbitMq.SignalsExchange
+		    };
+		    
+		    rabbitPublisher = new RabbitMqPublisher<TradingSignal>(rabbitSettings)
+			    .SetSerializer(new TradingSignalConverter())
+			    .SetPublishStrategy(new DefaultFnoutPublishStrategy())
+			    .SetLogger(new LogToConsole())
+			    .Start();
+
+		    agent.TradingSignalGenerated += PublishTradingSignalToRabbit;
+	    }
+	    
+	    private static void SubscribeToPrices(Configuration.Configuration config, ITradingAgent agent)
+	    {
+		    var rabbitSettings = new RabbitMqSubscriberSettings()
+		    {
+			    ConnectionString = config.RabbitMq.GetConnectionString(),
+			    ExchangeName = config.RabbitMq.RatesExchange,
+			    QueueName = config.RabbitMq.QueueName
+		    };
+
+		    rabbitSubscriber = new RabbitMqSubscriber<InstrumentTickPrices>(rabbitSettings)
+			    .SetMessageDeserializer(new InstrumentTickPricesConverter())
+			    .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
+			    //.SetConsole(new RabbitConsole())
+			    .SetLogger(new LogToConsole())
+			    .Subscribe(prices =>
+			    {
+				    Logger.LogDebug("Alpha Engine has received data!");
+						
+				    Logger.LogDebug($"Received {prices.TickPrices.Length} prices");
+	
+				    agent.OnPriceChange(prices.TickPrices);
+	
+				    return Task.FromResult(0);
+			    })
+			    .Start();
+	    }
 	    
 	    private static Configuration.Configuration GetConfig(string[] args)
 	    {
@@ -105,6 +135,13 @@ namespace TradingBot.TheAlphaEngine
 		    Configuration.Configuration config = Configuration.Configuration.FromConfigurationRoot(configBuilder.Build());
 
 		    return config;
+	    }
+
+	    private static void PublishTradingSignalToRabbit(TradingSignal signal)
+	    {
+		    Logger.LogDebug($"New signal been generated: {signal}");
+		    rabbitPublisher.ProduceAsync(signal);
+		    Logger.LogDebug("Signal published to rabbit");
 	    }
 
 	    private static ITradingAgent CreateEngine(AlgorithmConfiguration config)
