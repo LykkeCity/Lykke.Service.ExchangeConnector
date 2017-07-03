@@ -21,11 +21,20 @@ services:
       - rabbit
 
   # AlphaEngine
-  alphaengine:
+#  alphaengine:
+#    build:
+#      context: TradingBot.TheAlphaEngine/
+#      dockerfile: Dockerfile
+#    hostname: alphaengine
+#    depends_on:
+#      - rabbit
+
+  # AlphaEngineJava
+  alphaenginejava:
     build:
-      context: TradingBot.TheAlphaEngine/
+      context: ../../RelatedProjects/alpha-engine/
       dockerfile: Dockerfile
-    hostname: alphaengine
+    hostname: alphaenginejava
     depends_on:
       - rabbit
 

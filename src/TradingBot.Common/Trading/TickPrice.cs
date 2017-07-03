@@ -13,6 +13,7 @@ namespace TradingBot.Common.Trading
 			Mid = mid;
 		}
 
+		[JsonConstructor]
 		public TickPrice(DateTime time, decimal ask, decimal bid)
 		{
 			Time = time;
@@ -21,7 +22,6 @@ namespace TradingBot.Common.Trading
 			Mid = (ask + bid) / 2m;
 		}
 
-        [JsonConstructor]
 		public TickPrice(DateTime time, decimal ask, decimal bid, decimal mid)
 		{
 			Time = time;
@@ -36,6 +36,7 @@ namespace TradingBot.Common.Trading
 
 		public decimal Bid { get; }
 
+		[JsonIgnore]
 		public decimal Mid { get; }
 
 		public override string ToString()

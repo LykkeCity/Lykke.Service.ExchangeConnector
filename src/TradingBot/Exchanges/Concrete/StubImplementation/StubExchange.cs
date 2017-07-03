@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using TradingBot.Common.Trading;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.StubImplementation
 {
@@ -25,31 +24,39 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 
 
         private bool closePricesStreamRequested;
-        private Random random;
 
 		public override async Task OpenPricesStream(Action<InstrumentTickPrices> callback)
 		{
             closePricesStreamRequested = false;
-            random = new Random();
-
-		    var prices = Instruments.ToDictionary(x => x, x => 100m);
-
+            //random = new Random();
+		    var nPoints = 10000000;
+            var gbms = 
+                Instruments.ToDictionary(x => x, 
+                x => new GeometricalBrownianMotion(1.0, 0.25, 1.0, nPoints, 0));
+		    
             while (!closePricesStreamRequested)
             {
                 foreach (var instrument in Instruments)
                 {                
-                    bool grow = random.NextDouble() >= 0.5;
-                    decimal percents = (decimal) random.NextDouble() / 100;
-                    decimal delta = prices[instrument] * percents;
+//                    bool grow = random.NextDouble() >= 0.5;
+//                    decimal percents = (decimal) random.NextDouble() / 100;
+//                    decimal delta = prices[instrument] * percents;
+//
+//                    if (grow)
+//                        prices[instrument] += delta;
+//                    else
+//                        prices[instrument] -= delta;
 
-                    if (grow)
-                        prices[instrument] += delta;
-                    else
-                        prices[instrument] -= delta;
-
-                    prices[instrument] = Math.Round(prices[instrument], 4);
-                
-                    callback(new InstrumentTickPrices(instrument, new[] { new TickPrice(DateTime.Now, prices[instrument]) }));
+                    var currentPrices =
+                        Enumerable.Range(0, config.PricesPerInterval)
+                            .Select(x => //Math.Round(
+                                (decimal) gbms[instrument].GenerateNextValue()
+                                //, 4)
+                                )
+                            .Select(x => new TickPrice(DateTime.Now, x))
+                            .ToArray();
+                    
+                    callback(new InstrumentTickPrices(instrument, currentPrices));
                 }
                 
                 await Task.Delay(config.PricesIntervalInMilliseconds);
