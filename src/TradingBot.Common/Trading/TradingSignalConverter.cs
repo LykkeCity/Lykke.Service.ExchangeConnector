@@ -5,16 +5,16 @@ using Newtonsoft.Json;
 
 namespace TradingBot.Common.Trading
 {
-    public class TradingSignalConverter: IRabbitMqSerializer<TradingSignal>, IMessageDeserializer<TradingSignal>
+    public class TradingSignalsConverter: IRabbitMqSerializer<TradingSignal[]>, IMessageDeserializer<TradingSignal[]>
     {
-        public byte[] Serialize(TradingSignal model)
+        public byte[] Serialize(TradingSignal[] model)
         {
             return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(model));
         }
 
-        public TradingSignal Deserialize(byte[] data)
+        public TradingSignal[] Deserialize(byte[] data)
         {
-            return JsonConvert.DeserializeObject<TradingSignal>(Encoding.UTF8.GetString(data));
+            return JsonConvert.DeserializeObject<TradingSignal[]>(Encoding.UTF8.GetString(data));
         }
     }
 }

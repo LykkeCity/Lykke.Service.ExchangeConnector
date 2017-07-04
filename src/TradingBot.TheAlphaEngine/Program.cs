@@ -22,7 +22,7 @@ namespace TradingBot.TheAlphaEngine
 		private static readonly ILogger Logger = Logging.CreateLogger<Program>();
 
 
-	    private static RabbitMqPublisher<TradingSignal> rabbitPublisher;
+	    private static RabbitMqPublisher<TradingSignal[]> rabbitPublisher;
 	    private static RabbitMqSubscriber<InstrumentTickPrices> rabbitSubscriber;
 	    
         static void Main(string[] args)
@@ -73,8 +73,8 @@ namespace TradingBot.TheAlphaEngine
 			    ExchangeName = config.RabbitMq.SignalsExchange
 		    };
 		    
-		    rabbitPublisher = new RabbitMqPublisher<TradingSignal>(rabbitSettings)
-			    .SetSerializer(new TradingSignalConverter())
+		    rabbitPublisher = new RabbitMqPublisher<TradingSignal[]>(rabbitSettings)
+			    .SetSerializer(new TradingSignalsConverter())
 			    .SetPublishStrategy(new DefaultFnoutPublishStrategy())
 			    .SetLogger(new LogToConsole())
 			    .Start();
@@ -140,7 +140,7 @@ namespace TradingBot.TheAlphaEngine
 	    private static void PublishTradingSignalToRabbit(TradingSignal signal)
 	    {
 		    Logger.LogDebug($"New signal been generated: {signal}");
-		    rabbitPublisher.ProduceAsync(signal);
+		    rabbitPublisher.ProduceAsync(new [] { signal });
 		    Logger.LogDebug("Signal published to rabbit");
 	    }
 

@@ -45,7 +45,7 @@ namespace TradingBot
         private Dictionary<Instrument, AzureTablePricesPublisher> azurePublishers;
 
 
-        private RabbitMqSubscriber<TradingSignal> signalSubscriber;
+        private RabbitMqSubscriber<TradingSignal[]> signalSubscriber;
         
 
         public async Task Start()
@@ -93,6 +93,7 @@ namespace TradingBot
                     .SetConsole(rabbitConsole)
                     .Start();
                 
+                
                 var subscriberSettings = new RabbitMqSubscriberSettings()
                 {
                     ConnectionString = config.RabbitMq.GetConnectionString(),
@@ -100,14 +101,13 @@ namespace TradingBot
                     QueueName = config.RabbitMq.QueueName
                 };
                 
-                signalSubscriber = new RabbitMqSubscriber<TradingSignal>(subscriberSettings)
-                    .SetMessageDeserializer(new TradingSignalConverter())
+                signalSubscriber = new RabbitMqSubscriber<TradingSignal[]>(subscriberSettings)
+                    .SetMessageDeserializer(new TradingSignalsConverter())
                     .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
                     .SetConsole(rabbitConsole)
                     .SetLogger(new LogToConsole())
                     .Subscribe(TradingSignalHandler)
-                    .Start();
-                
+                    .Start();                
             }
 
             if (config.AzureTable.Enabled)
@@ -159,7 +159,7 @@ namespace TradingBot
 
         private async void PublishTickPrices(InstrumentTickPrices prices)
         {
-            logger.LogDebug($"{DateTime.Now}. {prices.TickPrices.Length} prices received for: {prices.Instrument}");
+            //logger.LogDebug($"{DateTime.Now}. {prices.TickPrices.Length} prices received for: {prices.Instrument}");
 
 			if (config.RabbitMq.Enabled)
 			{
@@ -199,11 +199,9 @@ namespace TradingBot
             }
         }
 
-        private Task TradingSignalHandler(TradingSignal signal)
+        private Task TradingSignalHandler(TradingSignal[] signal)
         {
-            logger.LogDebug($"Trading signal has been received {signal}");
-            
-            // TODO: execute the signal
+            // TODO: execute the signals
 
             return Task.FromResult(0);
         }
