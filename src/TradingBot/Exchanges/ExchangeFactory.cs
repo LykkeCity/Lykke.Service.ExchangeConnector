@@ -1,4 +1,5 @@
 ﻿using TradingBot.Exchanges.Abstractions;
+using TradingBot.Exchanges.Concrete.HistoricalData;
 using TradingBot.Exchanges.Concrete.ICMarkets;
 using TradingBot.Exchanges.Concrete.Kraken;
 using TradingBot.Exchanges.Concrete.StubImplementation;
@@ -16,6 +17,8 @@ namespace TradingBot.Exchanges
 		        return new KrakenExchange(config.Kraken);
 	        else if (config.Stub.Enabled)
 		        return new StubExchange(config.Stub);
+	        else if (config.HistoricalData.Enabled)
+		        return new HistoricalDataExchange(config.HistoricalData);
 	        else
 		        return null;
         }

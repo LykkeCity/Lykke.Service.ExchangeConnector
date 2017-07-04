@@ -7,5 +7,7 @@
         public KrakenConfig Kraken { get; set; }
         
         public StubExchangeConfiguration Stub { get; set; }
+        
+        public HistoricalDataConfig HistoricalData { get; set; }
     }
 }

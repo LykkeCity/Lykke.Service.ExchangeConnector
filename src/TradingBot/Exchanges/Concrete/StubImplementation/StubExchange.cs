@@ -37,16 +37,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
             while (!closePricesStreamRequested)
             {
                 foreach (var instrument in Instruments)
-                {                
-//                    bool grow = random.NextDouble() >= 0.5;
-//                    decimal percents = (decimal) random.NextDouble() / 100;
-//                    decimal delta = prices[instrument] * percents;
-//
-//                    if (grow)
-//                        prices[instrument] += delta;
-//                    else
-//                        prices[instrument] -= delta;
-
+                {       
                     var currentPrices =
                         Enumerable.Range(0, config.PricesPerInterval)
                             .Select(x => //Math.Round(

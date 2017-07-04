@@ -19,6 +19,8 @@ services:
     # - "5000:5000"
     depends_on:
       - rabbit
+    volumes:
+      - ~/Projects/Lykke/FxData:/var/FxData
 
   # AlphaEngine
 #  alphaengine:
