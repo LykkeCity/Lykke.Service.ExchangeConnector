@@ -15,17 +15,25 @@ namespace TradingBot.Common.Trading
         Limit
     }
 
+    public enum TradeType
+    {
+        Buy,
+        Sell
+    }
+
     public class TradingSignal
     {
         [JsonConstructor]
-        public TradingSignal(SignalType type, decimal price, decimal count, DateTime time, 
+        public TradingSignal(TradeType tradeType, decimal price, decimal count, DateTime time, 
             OrderType orderType = OrderType.Market)
         {
-            Type = type;
+            TradeType = tradeType;
             Price = price;
             Count = count;
             Time = time;
             OrderType = orderType;
+
+            Type = tradeType == TradeType.Sell ? SignalType.Short : SignalType.Long;
         }
 
         public DateTime Time { get; }
@@ -33,6 +41,8 @@ namespace TradingBot.Common.Trading
         public SignalType Type { get; }
         
         public OrderType OrderType { get; }
+        
+        public TradeType TradeType { get; }
 
         public decimal Price { get; }
 

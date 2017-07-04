@@ -199,8 +199,10 @@ namespace TradingBot
             }
         }
 
-        private Task TradingSignalHandler(TradingSignal[] signal)
+        private Task TradingSignalHandler(TradingSignal[] signals)
         {
+            logger.LogDebug($"{signals.Length} trading signals: {string.Join(", ", signals.Select(x => x.ToString()))}");
+            
             // TODO: execute the signals
 
             return Task.FromResult(0);
