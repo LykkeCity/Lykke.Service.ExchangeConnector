@@ -35,7 +35,7 @@ namespace TradingBot.Common.Trading
 
             Type = tradeType == TradeType.Sell ? SignalType.Short : SignalType.Long;
         }
-
+        
         public DateTime Time { get; }
 
         public SignalType Type { get; }
@@ -46,7 +46,7 @@ namespace TradingBot.Common.Trading
 
         public decimal Price { get; }
 
-        public decimal Count { get; }
+        public decimal Count { get; } // volume
 
         public decimal Amount => Price * Count;
 

@@ -16,6 +16,8 @@
         
         public string SignalsExchange { get; set; }
         
+        public string TradesExchange { get; set; }
+        
         public string QueueName { get; set; }
         
         /// <summary>

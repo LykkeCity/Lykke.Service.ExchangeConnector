@@ -30,7 +30,7 @@ namespace TradingBot.Exchanges.Concrete.Oanda
             throw new NotImplementedException();
         }
 
-        public override Task OpenPricesStream(Action<InstrumentTickPrices> callback)
+        public override Task OpenPricesStream()
         {
             throw new NotImplementedException();
         }

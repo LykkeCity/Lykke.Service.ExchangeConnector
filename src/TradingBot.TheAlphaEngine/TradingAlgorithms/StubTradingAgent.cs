@@ -24,7 +24,7 @@ namespace TradingBot.TheAlphaEngine.TradingAlgorithms
         
         private TradingSignal CreateSignal(TickPrice price)
         {
-            var signalType = price.Ask > lastPrice ? SignalType.Long : SignalType.Short;
+            var signalType = price.Ask > lastPrice ? TradeType.Buy : TradeType.Sell;
             lastPrice = price.Ask;
             
             var signal = new TradingSignal(signalType, price.Ask, 1, price.Time);

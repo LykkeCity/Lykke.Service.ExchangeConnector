@@ -38,7 +38,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
 
         private readonly CancellationTokenSource ctSource = new CancellationTokenSource();
 
-        public override async Task OpenPricesStream(Action<InstrumentTickPrices> callback)
+        public override async Task OpenPricesStream()
         {
             var token = ctSource.Token;
 
@@ -73,7 +73,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
 						}
 						else
 						{
-                            callback(new InstrumentTickPrices(Instruments[i], prices));
+                            await CallHandlers(new InstrumentTickPrices(Instruments[i], prices));
 						}
 					}
 

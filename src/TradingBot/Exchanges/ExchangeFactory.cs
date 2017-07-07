@@ -9,7 +9,20 @@ namespace TradingBot.Exchanges
 {
     public static class ExchangeFactory
     {
-        public static Exchange CreateExchange(ExchangesConfiguration config)
+	    public static Exchange CreateExchange(Configuration config)
+	    {
+		    var exchange = CreateExchange(config.Exchanges);
+
+		    if (config.AzureTable.Enabled)
+			    exchange.AddHandler(new TickPricesAzurePublisher(exchange.Instruments, config.AzureTable));
+
+		    if (config.RabbitMq.Enabled)
+			    exchange.AddHandler(new TickPricesRabbitPublisher(config.RabbitMq));
+		    
+		    return exchange;
+	    }
+	    
+        private static Exchange CreateExchange(ExchangesConfiguration config)
         {
 	        if (config.Icm.Enabled)
 		        return new ICMarketsExchange(config.Icm);

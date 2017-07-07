@@ -6,54 +6,53 @@ namespace TradingBot.Common.Trading
     {
         public Instrument Instrument { get; }
 
-        public Position(Instrument instrument)
+        public Position(Instrument instrument, decimal initialValue)
         {
             Instrument = instrument;
+            this.initialValue = initialValue;
+            this.currentValue = initialValue;
+            this.assetsVolume = 0m;
         }
 
-        private decimal ProfitLoss;
+        /// <summary>
+        /// Initial amount of assets (base asset of the Instrument)
+        /// </summary>
+        private readonly decimal initialValue;
 
-        private decimal UnrealizedProfitLoss;
+        private decimal currentValue;
+
+        private decimal assetsVolume;
         
-        public PositionSide Long { get; }
+        public decimal AssetsVolume => assetsVolume;
+
+        public decimal AveragePrice => (initialValue - currentValue) / assetsVolume;
         
-        public PositionSide Short { get; }
-
-
-        public decimal Count => count;
-
-        private decimal count;
-
-        private decimal money;
-
-        public decimal Money => money;
-
-        public decimal Average => money / count;
+        public decimal RealizedPnL => (currentValue - initialValue) / initialValue;
         
-        private List<TradingSignal> signals = new List<TradingSignal>();
-
-        public void AddSignal(TradingSignal signal)
+        private readonly List<ExecutedTrade> trades = new List<ExecutedTrade>();
+        
+        public void AddTrade(ExecutedTrade trade)
         {
-            signals.Add(signal);
+            //trades.Add(trade);
 
-            if (signal.Type == SignalType.Long)
+            if (trade.Type == TradeType.Buy)
             {
-                count += signal.Count;
-                money -= signal.Amount;
+                currentValue -= trade.Price * trade.Volume;
+                assetsVolume += trade.Volume;
             }
-            else if (signal.Type == SignalType.Short)
+            else if (trade.Type == TradeType.Sell)
             {
-                count -= signal.Count;
-                money += signal.Amount;
+                currentValue += trade.Price * trade.Volume;
+                assetsVolume -= trade.Volume;
             }
         }
 
         public Position AddAnother(Position another)
         {
-            return new Position(Instrument)
+            return new Position(Instrument, initialValue + another.initialValue)
             {
-                count = count + another.count,
-                money = money + another.money
+                currentValue = currentValue + another.currentValue,
+                assetsVolume = assetsVolume + another.assetsVolume
             };
         }
     }

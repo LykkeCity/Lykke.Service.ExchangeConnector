@@ -2,9 +2,9 @@
 using System.Threading;
 using System.Threading.Tasks;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using TradingBot.Trading;
 using TradingBot.Common.Infrastructure;
 using TradingBot.Common.Trading;
 using TradingBot.Infrastructure.Configuration;
@@ -15,24 +15,42 @@ namespace TradingBot.Exchanges.Abstractions
     {
         protected ILogger Logger = Logging.CreateLogger<Exchange>();
 
-        private readonly string name;
+        private readonly List<TickPriceHandler> handlers = new List<TickPriceHandler>();
 
-        public string Name => name;
+        public string Name { get; }
 
-        protected Exchange(string name, IExchangeConfiguration config)
+        protected Exchange(string name, 
+            IExchangeConfiguration config)
         {
-            this.name = name;
+            decimal initialValue = 100m; // TODO: get initial value from config? or get if from real exchange.
+            this.Name = name;
 
             if (config.Instruments == null || config.Instruments.Length == 0)
             {
                 throw new ArgumentException($"There is no instruments in the settings for {name} exchange");
             }
             
-            this.Instruments = config.Instruments.Select(x => new Instrument(x)).ToList();
+            Instruments = config.Instruments.Select(x => new Instrument(x)).ToList();
+            Positions = Instruments.ToDictionary(x => x.Name, x => new Position(x, initialValue));
+
+            AllSignals = Instruments.ToDictionary(x => x.Name, x => new List<TradingSignal>());
+            ActualSignals = Instruments.ToDictionary(x => x.Name, x => new List<TradingSignal>());
+            ExecutedTrades = Instruments.ToDictionary(x => x.Name, x => new List<ExecutedTrade>());
         }
 
-        public IReadOnlyList<Instrument> Instruments { get; protected set; }
+        public void AddHandler(TickPriceHandler handler)
+        {
+            handlers.Add(handler);
+        }
 
+        public IReadOnlyList<Instrument> Instruments { get; }
+        
+        public IReadOnlyDictionary<string, Position> Positions { get; }
+
+        protected Dictionary<string, List<TradingSignal>> AllSignals;
+        protected Dictionary<string, List<TradingSignal>> ActualSignals;
+        protected Dictionary<string, List<ExecutedTrade>> ExecutedTrades;
+        
         public Task<bool> TestConnection()
         {
             return TestConnection(CancellationToken.None);
@@ -70,8 +88,28 @@ namespace TradingBot.Exchanges.Abstractions
         //public abstract Task<AccountInfo> GetAccountInfo(CancellationToken cancellationToken);
 
 
-        public abstract Task OpenPricesStream(Action<InstrumentTickPrices> callback);
+        public abstract Task OpenPricesStream();
+
+        protected Task CallHandlers(InstrumentTickPrices tickPrices)
+        {
+            return Task.WhenAll(handlers.Select(x => x.Handle(tickPrices)));
+        }
 
         public abstract void ClosePricesStream();
+
+        
+        protected readonly object ActualSignalsSyncRoot = new object();
+        public virtual Task PlaceTradingOrders(InstrumentTradingSignals signals)
+        {
+            //AllSignals[signals.Instrument.Name].AddRange(signals.TradingSignals);
+
+            lock (ActualSignalsSyncRoot)
+            {
+                ActualSignals[signals.Instrument.Name].Clear();
+                ActualSignals[signals.Instrument.Name].AddRange(signals.TradingSignals);
+            }
+            
+            return Task.FromResult(0);            
+        }
     }
 }

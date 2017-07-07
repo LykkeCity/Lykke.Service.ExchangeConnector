@@ -6,15 +6,15 @@ namespace TradingBot.TheAlphaEngine.TradingAlgorithms.AlphaEngine
 {
     public class AlphaEngineAgent : ITradingAgent
     {
-        public AlphaEngineAgent(Instrument instrument)
+        public AlphaEngineAgent(Instrument instrument, decimal initialValue)
         {
             Instrument = instrument;
             coastlineTraders = new List<CoastlineTrader>
             {
-                new CoastlineTrader(instrument, new IntrinsicTime(0.00025m)),
-                new CoastlineTrader(instrument, new IntrinsicTime(0.0005m)),
-                new CoastlineTrader(instrument, new IntrinsicTime(0.001m)),
-                new CoastlineTrader(instrument, new IntrinsicTime(0.0015m))
+                new CoastlineTrader(instrument, new IntrinsicTime(0.00025m), initialValue / 4m),
+                new CoastlineTrader(instrument, new IntrinsicTime(0.0005m), initialValue / 4m),
+                new CoastlineTrader(instrument, new IntrinsicTime(0.001m), initialValue / 4m),
+                new CoastlineTrader(instrument, new IntrinsicTime(0.0015m), initialValue / 4m)
             };
 
             intrinsicNetwork = new IntrinsicNetwork(IntrinsicNetworkDimensions, 
@@ -57,7 +57,7 @@ namespace TradingBot.TheAlphaEngine.TradingAlgorithms.AlphaEngine
 
         public Position GetCumulativePosition()
         {
-            var position = new Position(Instrument);
+            var position = new Position(Instrument, 0);
             coastlineTraders.ForEach(x => position = position.AddAnother(x.Position));
             return position;
         }

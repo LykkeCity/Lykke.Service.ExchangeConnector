@@ -31,7 +31,7 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
         /// <summary>
         /// For ICM we use internal RabbitMQ exchange with pricefeed
         /// </summary>
-        public override Task OpenPricesStream(Action<InstrumentTickPrices> callback)
+        public override Task OpenPricesStream()
         {
             var rabbitSettings = new RabbitMqSubscriberSettings()
             {
@@ -44,12 +44,10 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
                 .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
                 .SetConsole(new GetPricesCycle.RabbitConsole())
                 .SetLogger(new LogToConsole())
-                .Subscribe(orderBook =>
+                .Subscribe(async orderBook =>
                 {
                     if (Instruments.Any(x => x.Name == orderBook.Asset))
-                        callback(orderBook.ToInstrumentTickPrices());
-                    
-                    return Task.FromResult(0);
+                        await CallHandlers(orderBook.ToInstrumentTickPrices());
                 })
                 .Start();
 

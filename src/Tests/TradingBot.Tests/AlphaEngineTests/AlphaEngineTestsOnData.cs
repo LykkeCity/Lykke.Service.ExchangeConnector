@@ -59,7 +59,7 @@ namespace TradingBot.Tests.AlphaEngineTests
             var threshold = 0.002m;
 
             var intrinsicTime = new IntrinsicTime(threshold);
-            var coastlineTrader = new CoastlineTrader(instrument, intrinsicTime);
+            var coastlineTrader = new CoastlineTrader(instrument, intrinsicTime, 100m);
 
             using(var reader = new HistoricalDataReader())
             foreach(var priceTime in reader)
@@ -75,7 +75,7 @@ namespace TradingBot.Tests.AlphaEngineTests
 
             var tuple = intrinsicTime.GetAvaregesForDcAndFollowedOs();
 
-            Assert.True(coastlineTrader.Position.Money > 0);
+            Assert.True(coastlineTrader.Position.RealizedPnL > 0);
         }
 
         [Fact]
@@ -85,7 +85,7 @@ namespace TradingBot.Tests.AlphaEngineTests
             var threshold = 0.002m;
 
             var intrinsicTime = new IntrinsicTime(threshold);
-            var coastlineTrader = new CoastlineTrader(instrument, intrinsicTime);
+            var coastlineTrader = new CoastlineTrader(instrument, intrinsicTime, 100m);
 
             var valuesFromKraken = await new PublicData(new ApiClient(new HttpClient())).GetOHLC(CancellationToken.None, instrument.Name);
             
@@ -97,7 +97,7 @@ namespace TradingBot.Tests.AlphaEngineTests
 
             var tuple = intrinsicTime.GetAvaregesForDcAndFollowedOs();
             
-            Assert.True(coastlineTrader.Position.Money > 0);
+            Assert.True(coastlineTrader.Position.RealizedPnL > 0);
         }
 
         [Fact]
@@ -126,7 +126,7 @@ namespace TradingBot.Tests.AlphaEngineTests
         [Fact]
         public void TestAlphaEngineAgent()
         {
-            var agent = new AlphaEngineAgent(new Instrument("EUR_USD"));
+            var agent = new AlphaEngineAgent(new Instrument("EUR_USD"), 100m);
 
             using (var reader = new HistoricalDataReader())
                 foreach (var priceTime in reader)
@@ -134,7 +134,7 @@ namespace TradingBot.Tests.AlphaEngineTests
                     agent.OnPriceChange(priceTime);
                 }
 
-            Assert.True(agent.GetCumulativePosition().Money > 0);
+            Assert.True(agent.GetCumulativePosition().RealizedPnL > 0);
         }
     }
 }

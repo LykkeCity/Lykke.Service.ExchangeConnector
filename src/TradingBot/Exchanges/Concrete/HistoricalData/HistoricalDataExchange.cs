@@ -27,7 +27,7 @@ namespace TradingBot.Exchanges.Concrete.HistoricalData
             return Task.FromResult(File.Exists(config.BaseDirectory + string.Format(config.FileName, config.StartDate)));
         }
 
-        public override Task OpenPricesStream(Action<InstrumentTickPrices> callback)
+        public override async Task OpenPricesStream()
         {
             stopRequested = false;
             var paths = new List<string>();
@@ -43,10 +43,8 @@ namespace TradingBot.Exchanges.Concrete.HistoricalData
             using (var enumerator = reader.GetEnumerator())
                 while (!stopRequested && enumerator.MoveNext())
                 {
-                    callback(new InstrumentTickPrices(Instruments.First(), new TickPrice[] { enumerator.Current }));
+                    await CallHandlers(new InstrumentTickPrices(Instruments.First(), new TickPrice[] { enumerator.Current }));
                 }
-            
-            return Task.FromResult(0);
         }
 
         public override void ClosePricesStream()

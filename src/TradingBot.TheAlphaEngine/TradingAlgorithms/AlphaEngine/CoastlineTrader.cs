@@ -5,11 +5,11 @@ namespace TradingBot.TheAlphaEngine.TradingAlgorithms.AlphaEngine
 {
     public class CoastlineTrader
     {
-        public CoastlineTrader(Instrument instrument, IntrinsicTime intrinsicTime)
+        public CoastlineTrader(Instrument instrument, IntrinsicTime intrinsicTime, decimal initialValue)
         {
             Instrument = instrument;
 
-            Position = new Position(instrument);
+            Position = new Position(instrument, initialValue);
             IntrinsicTime = intrinsicTime;
         }
 
@@ -46,7 +46,7 @@ namespace TradingBot.TheAlphaEngine.TradingAlgorithms.AlphaEngine
 
             AddNewSignal(result);
 
-            IntrinsicTime.AdjustThresholds(Position.Count);
+            IntrinsicTime.AdjustThresholds(Position.AssetsVolume);
 
             return result;
         }
@@ -54,7 +54,7 @@ namespace TradingBot.TheAlphaEngine.TradingAlgorithms.AlphaEngine
         private void AddNewSignal(TradingSignal signal)
         {
             signals.Add(signal);
-            Position.AddSignal(signal);
+            //Position.AddSignal(signal);
         }
 
         private List<TradingSignal> signals = new List<TradingSignal>();
