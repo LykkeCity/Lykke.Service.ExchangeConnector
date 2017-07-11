@@ -12,6 +12,7 @@ namespace TradingBot.Common.Trading
             Price = price;
             Volume = volume;
             Type = type;
+            Fee = 0; // TODO
         }
         
         public TradeType Type { get; }
@@ -21,5 +22,14 @@ namespace TradingBot.Common.Trading
         public decimal Price { get; }
         
         public decimal Volume { get; }
+        
+        public decimal Fee { get; }
+        
+        // TODO: link to order (ID, probaly)
+
+        public override string ToString()
+        {
+            return $"{Type} at {Time} for {Price} times {Volume}";
+        }
     }
 }

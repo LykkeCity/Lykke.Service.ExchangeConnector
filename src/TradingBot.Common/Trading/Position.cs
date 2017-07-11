@@ -1,9 +1,16 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using Common.PasswordTools;
+using Microsoft.Extensions.Logging;
+using TradingBot.Common.Infrastructure;
 
 namespace TradingBot.Common.Trading
 {
     public class Position
     {
+        private readonly ILogger logger = Logging.CreateLogger<Position>();
+        
         public Instrument Instrument { get; }
 
         public Position(Instrument instrument, decimal initialValue)
@@ -27,25 +34,50 @@ namespace TradingBot.Common.Trading
 
         public decimal AveragePrice => (initialValue - currentValue) / assetsVolume;
         
-        public decimal RealizedPnL => (currentValue - initialValue) / initialValue;
-        
-        private readonly List<ExecutedTrade> trades = new List<ExecutedTrade>();
-        
-        public void AddTrade(ExecutedTrade trade)
-        {
-            //trades.Add(trade);
+        public decimal RealizedPnL => (currentValue - initialValue) / initialValue; // TODO~!!!!
 
+        private decimal realizedProfit;
+        
+        private readonly LinkedList<ExecutedTrade> longSide = new LinkedList<ExecutedTrade>();
+        private readonly LinkedList<ExecutedTrade> shortSide = new LinkedList<ExecutedTrade>();
+
+        public decimal GetPnL(decimal price) // TODO: price should be Ask or Bid in dependence of position
+        {
+            //return (assetsVolume * price + currentValue - initialValue) / initialValue;
+
+            decimal total = 0;
+            foreach (var trade in longSide)
+            {
+                total += (price - trade.Price) * trade.Volume;
+            }
+
+            foreach (var trade in shortSide)
+            {
+                total += (trade.Price - price) * trade.Volume;
+            }
+
+            return total;
+        }
+
+        private decimal BalancedVolume => Math.Min(longSide.Sum(x => x.Volume), shortSide.Sum(x => x.Volume));
+
+        
+        public void AddTrade(ExecutedTrade trade) // todo: make a thread-safe method
+        {
             if (trade.Type == TradeType.Buy)
             {
-                currentValue -= trade.Price * trade.Volume;
-                assetsVolume += trade.Volume;
+                longSide.AddLast(trade);
+                logger.LogDebug($"Long side of inventory increased: {trade}. Total Long: {longSide.Sum(x => x.Volume)}. Total PnL: {GetPnL(trade.Price)}");
             }
             else if (trade.Type == TradeType.Sell)
             {
-                currentValue += trade.Price * trade.Volume;
-                assetsVolume -= trade.Volume;
+                shortSide.AddLast(trade);
+                
+                logger.LogDebug($"Short side of inventory increased: {trade}. Total Short: {shortSide.Sum(x => x.Volume)}. Total PnL: {GetPnL(trade.Price)}");
             }
         }
+
+        
 
         public Position AddAnother(Position another)
         {

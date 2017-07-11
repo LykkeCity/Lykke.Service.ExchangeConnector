@@ -34,7 +34,7 @@ namespace TradingBot.Exchanges.Abstractions
             Positions = Instruments.ToDictionary(x => x.Name, x => new Position(x, initialValue));
 
             AllSignals = Instruments.ToDictionary(x => x.Name, x => new List<TradingSignal>());
-            ActualSignals = Instruments.ToDictionary(x => x.Name, x => new List<TradingSignal>());
+            ActualSignals = Instruments.ToDictionary(x => x.Name, x => new LinkedList<TradingSignal>());
             ExecutedTrades = Instruments.ToDictionary(x => x.Name, x => new List<ExecutedTrade>());
         }
 
@@ -48,7 +48,7 @@ namespace TradingBot.Exchanges.Abstractions
         public IReadOnlyDictionary<string, Position> Positions { get; }
 
         protected Dictionary<string, List<TradingSignal>> AllSignals;
-        protected Dictionary<string, List<TradingSignal>> ActualSignals;
+        protected Dictionary<string, LinkedList<TradingSignal>> ActualSignals;
         protected Dictionary<string, List<ExecutedTrade>> ExecutedTrades;
         
         public Task<bool> TestConnection()
@@ -99,14 +99,45 @@ namespace TradingBot.Exchanges.Abstractions
 
         
         protected readonly object ActualSignalsSyncRoot = new object();
+        
         public virtual Task PlaceTradingOrders(InstrumentTradingSignals signals)
         {
-            //AllSignals[signals.Instrument.Name].AddRange(signals.TradingSignals);
-
             lock (ActualSignalsSyncRoot)
             {
-                ActualSignals[signals.Instrument.Name].Clear();
-                ActualSignals[signals.Instrument.Name].AddRange(signals.TradingSignals);
+                bool added = false;
+                
+                foreach (var arrivedSignal in signals.TradingSignals)
+                {
+                    if (!ActualSignals[signals.Instrument.Name].Any(x => x.Equals(arrivedSignal)))
+                    {
+                        ActualSignals[signals.Instrument.Name].AddLast(arrivedSignal);
+                        added = true;
+                    }
+                }
+
+                var toRemove = new List<TradingSignal>();
+                
+                foreach (var existingSignal in ActualSignals[signals.Instrument.Name])
+                {
+                    if (!signals.TradingSignals.Any(x => existingSignal.Equals(x)))
+                    {
+                        toRemove.Add(existingSignal);
+                    }
+                }
+
+                if (toRemove.Any())
+                {
+                    foreach (var signal in toRemove)
+                    {
+                        ActualSignals[signals.Instrument.Name].Remove(signal);
+                        //Logger.LogDebug($"Removed non actual signal: {signal}");
+                    }
+                }
+
+                if (added)
+                {
+                    Logger.LogDebug($"Current orders:\n {string.Join("\n", ActualSignals[signals.Instrument.Name])}");
+                }
             }
             
             return Task.FromResult(0);            

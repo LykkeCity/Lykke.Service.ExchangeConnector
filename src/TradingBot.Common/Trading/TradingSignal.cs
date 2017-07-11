@@ -54,5 +54,14 @@ namespace TradingBot.Common.Trading
         {
             return $"Type: {Type}, Price: {Price}, Count: {Count}";
         }
+
+        public bool Equals(TradingSignal another)
+        {
+            return
+                TradeType == another.TradeType &&
+                Price == another.Price &&
+                Count == another.Count &&
+                OrderType == another.OrderType;
+        }
     }
 }

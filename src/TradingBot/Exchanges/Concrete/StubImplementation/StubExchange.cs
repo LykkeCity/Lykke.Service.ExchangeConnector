@@ -32,6 +32,8 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
         private bool closePricesStreamRequested;
         private Task streamJob;
 
+	    private long counter = 0;
+
 		public override Task OpenPricesStream()
 		{
             closePricesStreamRequested = false;
@@ -51,44 +53,70 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 				    {       
 					    var currentPrices =
 						    Enumerable.Range(0, config.PricesPerInterval)
-							    .Select(x => Math.Round((decimal) gbms[instrument].GenerateNextValue(), 4))
+							    .Select(x => Math.Round((decimal) gbms[instrument].GenerateNextValue(), 6))
 							    .Select(x => new TickPrice(DateTime.UtcNow, x))
 							    .ToArray();
 
 					    lock (ActualSignalsSyncRoot)
 					    {
+						    decimal lowestAsk = currentPrices.Min(x => x.Ask);
+						    decimal highestBid = currentPrices.Max(x => x.Bid);
+						    
 						    var trades = new List<ExecutedTrade>();
+						    var executedOrders = new List<TradingSignal>();
 					    
-						    foreach (var tradingSignal in ActualSignals[instrument.Name])
+						    foreach (var tradingSignal in ActualSignals[instrument.Name].Where(x => x.Count > 0))
 						    {
 							    if (tradingSignal.TradeType == TradeType.Buy
-							        && currentPrices.Any(x => x.Ask <= tradingSignal.Price))
+							        && lowestAsk <= tradingSignal.Price)
 							    {
 								    var trade = new ExecutedTrade(DateTime.UtcNow, 
-									    currentPrices.First(x => x.Ask <= tradingSignal.Price).Ask,
+									    lowestAsk,
 									    tradingSignal.Count,
 									    TradeType.Buy);
 							    
 								    trades.Add(trade);
+								    executedOrders.Add(tradingSignal);
+								    
+								    logger.LogDebug($"EXECUTION of order {tradingSignal} by price {trade.Price}");
 							    }
 							    else if (tradingSignal.TradeType == TradeType.Sell
-							             && currentPrices.Any(x => x.Bid >= tradingSignal.Price))
+							             && highestBid >= tradingSignal.Price)
 							    {
 								    var trade = new ExecutedTrade(DateTime.UtcNow,
-									    currentPrices.First(x => x.Bid >= tradingSignal.Price).Bid,
+									    highestBid,
 									    tradingSignal.Count,
 									    TradeType.Sell);
-
+    
 								    trades.Add(trade);
+								    executedOrders.Add(tradingSignal);
+								    
+								    logger.LogDebug($"EXECUTION of order {tradingSignal} by price {trade.Price}");
 							    }
 						    }
+
+						    foreach (var signal in executedOrders)
+						    {
+							    ActualSignals[instrument.Name].Remove(signal);
+							    logger.LogDebug($"Trading order {signal} was removed from actual signals as executed");
+						    }
 					    
-						    trades.ForEach(x => Positions[instrument.Name].AddTrade(x));    
+						    if (trades.Any())
+							    trades.ForEach(x => Positions[instrument.Name].AddTrade(x)); 
+						    
+						    foreach (var currentPrice in currentPrices)
+						    {
+							    if (++counter % 10 == 0)
+							    {
+								    logger.LogDebug($"Step {counter}, total PnL: {Positions[instrument.Name].GetPnL(currentPrice.Mid)}");
+							    }    
+						    }
 					    }
 					    
 					    // TODO: deal with awaitable. I don't want to wait here for Azure and Rabbit connections
 					    await CallHandlers(new InstrumentTickPrices(instrument, currentPrices));
-						
+
+					    
 //					    // TODO: translate executed trades back to Alpha Engine
 //					    //ExecutedTrades[instrument.Name].AddRange(trades);
 				    }

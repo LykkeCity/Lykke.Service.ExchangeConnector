@@ -13,7 +13,7 @@ namespace TradingBot
         
         private readonly Exchange exchange;
         
-        private long signalsCounter;
+        //private long signalsCounter;
         
         public TradingSignalHandler(Exchange exchange)
         {
@@ -22,11 +22,13 @@ namespace TradingBot
 
         public Task Handle(InstrumentTradingSignals tradingSignals)
         {
-            if (++signalsCounter % 1000 == 0)
-            {
-                logger.LogDebug($"{signalsCounter}'s signal was received. Current PnL: " +
-                                $"{string.Join(", ", exchange.Positions.Select(x => x.Key + ": " + x.Value.RealizedPnL))}");
-            }
+            
+            
+//            if (++signalsCounter % 1000 == 0)
+//            {
+//                logger.LogDebug($"{signalsCounter}'s signal was received. Current PnL: " +
+//                                $"{string.Join(", ", exchange.Positions.Select(x => x.Key + ": " + x.Value.RealizedPnL))}");
+//            }
             
             return exchange.PlaceTradingOrders(tradingSignals);
         }
