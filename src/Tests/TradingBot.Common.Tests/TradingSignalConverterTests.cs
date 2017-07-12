@@ -10,7 +10,7 @@ namespace TradingBot.Common.Tests
         [Fact]
         public void SerializeAndDeserializeTradingSignal()
         {
-            var converter = new InstrumentTradingSignalsConverter();
+            var converter = new GenericRabbitModelConverter<InstrumentTradingSignals>();
             var signal = new TradingSignal(TradeType.Buy, 100.2m, 10.1m, DateTime.Now, OrderType.Limit);
             var instrumentSignals = new InstrumentTradingSignals(new Instrument("EURUSD"), new [] { signal });
 

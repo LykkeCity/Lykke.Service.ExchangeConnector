@@ -77,7 +77,7 @@ namespace TradingBot
 			};
 
 			rabbitPublisher = new RabbitMqPublisher<InstrumentTickPrices>(publisherSettings)
-				.SetSerializer(new InstrumentTickPricesConverter())
+				.SetSerializer(new GenericRabbitModelConverter<InstrumentTickPrices>())
 				.SetLogger(new LogToConsole())
 				.SetPublishStrategy(new DefaultFnoutPublishStrategy())
 				.SetConsole(new GetPricesCycle.RabbitConsole())

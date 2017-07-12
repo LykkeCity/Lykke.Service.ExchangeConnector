@@ -74,7 +74,7 @@ namespace TradingBot.TheAlphaEngine
 		    };
 		    
 		    rabbitPublisher = new RabbitMqPublisher<InstrumentTradingSignals>(rabbitSettings)
-			    .SetSerializer(new InstrumentTradingSignalsConverter())
+			    .SetSerializer(new GenericRabbitModelConverter<InstrumentTradingSignals>())
 			    .SetPublishStrategy(new DefaultFnoutPublishStrategy())
 			    .SetLogger(new LogToConsole())
 			    .Start();
@@ -92,7 +92,7 @@ namespace TradingBot.TheAlphaEngine
 		    };
 
 		    rabbitSubscriber = new RabbitMqSubscriber<InstrumentTickPrices>(rabbitSettings)
-			    .SetMessageDeserializer(new InstrumentTickPricesConverter())
+			    .SetMessageDeserializer(new GenericRabbitModelConverter<InstrumentTickPrices>())
 			    .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
 			    //.SetConsole(new RabbitConsole())
 			    .SetLogger(new LogToConsole())

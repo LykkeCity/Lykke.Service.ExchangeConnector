@@ -87,7 +87,7 @@ namespace TradingBot
             };
             
             signalSubscriber = new RabbitMqSubscriber<InstrumentTradingSignals>(subscriberSettings)
-                .SetMessageDeserializer(new InstrumentTradingSignalsConverter())
+                .SetMessageDeserializer(new GenericRabbitModelConverter<InstrumentTradingSignals>())
                 .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
                 .SetConsole(new RabbitConsole())
                 .SetLogger(new LogToConsole())
