@@ -15,7 +15,9 @@ namespace TradingBot.Exchanges.Abstractions
     {
         protected ILogger Logger = Logging.CreateLogger<Exchange>();
 
-        private readonly List<TickPriceHandler> handlers = new List<TickPriceHandler>();
+        private readonly List<TickPriceHandler> tickPriceHandlers = new List<TickPriceHandler>();
+
+        private readonly List<ExecutedOrdersHandler> executedTradeHandlers = new List<ExecutedOrdersHandler>();
 
         public string Name { get; }
 
@@ -38,9 +40,14 @@ namespace TradingBot.Exchanges.Abstractions
             ExecutedTrades = Instruments.ToDictionary(x => x.Name, x => new List<ExecutedTrade>());
         }
 
-        public void AddHandler(TickPriceHandler handler)
+        public void AddTickPriceHandler(TickPriceHandler handler)
         {
-            handlers.Add(handler);
+            tickPriceHandlers.Add(handler);
+        }
+
+        public void AddExecutedTradeHandler(ExecutedOrdersHandler handler)
+        {
+            executedTradeHandlers.Add(handler);
         }
 
         public IReadOnlyList<Instrument> Instruments { get; }
@@ -92,7 +99,12 @@ namespace TradingBot.Exchanges.Abstractions
 
         protected Task CallHandlers(InstrumentTickPrices tickPrices)
         {
-            return Task.WhenAll(handlers.Select(x => x.Handle(tickPrices)));
+            return Task.WhenAll(tickPriceHandlers.Select(x => x.Handle(tickPrices)));
+        }
+
+        protected Task CallExecutedTradeHandlers(ExecutedTrade trade)
+        {
+            return Task.WhenAll(executedTradeHandlers.Select(x => x.Handle(trade)));
         }
 
         public abstract void ClosePricesStream();

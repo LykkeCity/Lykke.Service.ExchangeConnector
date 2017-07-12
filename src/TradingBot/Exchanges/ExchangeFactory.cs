@@ -14,11 +14,14 @@ namespace TradingBot.Exchanges
 		    var exchange = CreateExchange(config.Exchanges);
 
 		    if (config.AzureTable.Enabled)
-			    exchange.AddHandler(new TickPricesAzurePublisher(exchange.Instruments, config.AzureTable));
+			    exchange.AddTickPriceHandler(new TickPricesAzurePublisher(exchange.Instruments, config.AzureTable));
 
 		    if (config.RabbitMq.Enabled)
-			    exchange.AddHandler(new TickPricesRabbitPublisher(config.RabbitMq));
-		    
+		    {
+			    exchange.AddTickPriceHandler(new TickPricesRabbitPublisher(config.RabbitMq));
+			    exchange.AddExecutedTradeHandler(new ExecutedOrdersRabbitPublisher(config.RabbitMq));
+		    }
+
 		    return exchange;
 	    }
 	    

@@ -39,7 +39,7 @@ namespace TradingBot
 		            .UseUrls(config.AspNet.Host)
 		            .Build();
 
-	            host.Run();
+	            host.Run(); // returns on Ctrl+C
 
 	            cycle.Stop();
 	            task?.Wait();

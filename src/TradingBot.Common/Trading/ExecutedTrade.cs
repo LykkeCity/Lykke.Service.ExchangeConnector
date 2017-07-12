@@ -29,7 +29,7 @@ namespace TradingBot.Common.Trading
 
         public override string ToString()
         {
-            return $"{Type} at {Time} for {Price} times {Volume}";
+            return $"{Type} at {Time}. Price: {Price}. Volume: {Volume}";
         }
     }
 }

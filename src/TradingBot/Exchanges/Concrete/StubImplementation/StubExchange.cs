@@ -100,9 +100,13 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 							    ActualSignals[instrument.Name].Remove(signal);
 							    logger.LogDebug($"Trading order {signal} was removed from actual signals as executed");
 						    }
-					    
+
 						    if (trades.Any())
-							    trades.ForEach(x => Positions[instrument.Name].AddTrade(x)); 
+						    {
+							    trades.ForEach(x => Positions[instrument.Name].AddTrade(x));
+
+							    trades.ForEach(async x => await CallExecutedTradeHandlers(x));
+						    } 
 						    
 						    foreach (var currentPrice in currentPrices)
 						    {
@@ -119,6 +123,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 					    
 //					    // TODO: translate executed trades back to Alpha Engine
 //					    //ExecutedTrades[instrument.Name].AddRange(trades);
+					    
 				    }
                 
 				    await Task.Delay(config.PricesIntervalInMilliseconds);
