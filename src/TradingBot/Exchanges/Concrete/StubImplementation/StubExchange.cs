@@ -73,7 +73,8 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 								    var trade = new ExecutedTrade(DateTime.UtcNow, 
 									    lowestAsk,
 									    tradingSignal.Count,
-									    TradeType.Buy);
+									    TradeType.Buy,
+									    tradingSignal.OrderId);
 							    
 								    trades.Add(trade);
 								    executedOrders.Add(tradingSignal);
@@ -86,7 +87,8 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 								    var trade = new ExecutedTrade(DateTime.UtcNow,
 									    highestBid,
 									    tradingSignal.Count,
-									    TradeType.Sell);
+									    TradeType.Sell,
+									    tradingSignal.OrderId);
     
 								    trades.Add(trade);
 								    executedOrders.Add(tradingSignal);
@@ -110,7 +112,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 						    
 						    foreach (var currentPrice in currentPrices)
 						    {
-							    if (++counter % 10 == 0)
+							    if (++counter % 100 == 0)
 							    {
 								    logger.LogDebug($"Step {counter}, total PnL: {Positions[instrument.Name].GetPnL(currentPrice.Mid)}");
 							    }    

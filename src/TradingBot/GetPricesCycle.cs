@@ -21,18 +21,13 @@ namespace TradingBot
         public GetPricesCycle(Configuration config)
         {
             this.config = config;
-
 			exchange = ExchangeFactory.CreateExchange(config);
-            tradingSignalHandler = new TradingSignalHandler(exchange);
         }
 
-
         private readonly Exchange exchange;
-        private readonly TradingSignalHandler tradingSignalHandler;
 		private CancellationTokenSource ctSource;
         private readonly Configuration config;        
         private RabbitMqSubscriber<InstrumentTradingSignals> signalSubscriber;
-        
 
         public async Task Start()
         {
@@ -91,7 +86,7 @@ namespace TradingBot
                 .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
                 .SetConsole(new RabbitConsole())
                 .SetLogger(new LogToConsole())
-                .Subscribe(tradingSignalHandler.Handle)
+                .Subscribe(exchange.PlaceTradingOrders)
                 .Start();  
         }
 

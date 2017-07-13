@@ -36,12 +36,12 @@ namespace TradingBot.TheAlphaEngine.TradingAlgorithms.AlphaEngine
             
             if (intrinsicTimeEvent.Mode == AlgorithmMode.Down)
             {
-                result = new TradingSignal(TradeType.Buy, intrinsicTimeEvent.Price, intrinsicTimeEvent.CascadingUnits * unitSize, intrinsicTimeEvent.Time);
+                result = new TradingSignal(0, OrderCommand.Create, TradeType.Buy, intrinsicTimeEvent.Price, intrinsicTimeEvent.CascadingUnits * unitSize, intrinsicTimeEvent.Time);
                 // it's required to get units from engine agent
             }
             else
             {
-                result = new TradingSignal(TradeType.Sell, intrinsicTimeEvent.Price, intrinsicTimeEvent.CascadingUnits * unitSize, intrinsicTimeEvent.Time);
+                result = new TradingSignal(0, OrderCommand.Create, TradeType.Sell, intrinsicTimeEvent.Price, intrinsicTimeEvent.CascadingUnits * unitSize, intrinsicTimeEvent.Time);
             }
 
             AddNewSignal(result);

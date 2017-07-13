@@ -21,12 +21,22 @@ namespace TradingBot.Common.Trading
         Sell
     }
 
+    public enum OrderCommand
+    {
+        Create,
+        Edit,
+        Cancel
+    }
+
     public class TradingSignal
     {
         [JsonConstructor]
-        public TradingSignal(TradeType tradeType, decimal price, decimal count, DateTime time, 
+        public TradingSignal(long orderId, OrderCommand command, TradeType tradeType, decimal price, decimal count, DateTime time, 
             OrderType orderType = OrderType.Market)
         {
+            OrderId = orderId;
+            Command = command;
+            
             TradeType = tradeType;
             Price = price;
             Count = count;
@@ -49,10 +59,14 @@ namespace TradingBot.Common.Trading
         public decimal Count { get; } // volume
 
         public decimal Amount => Price * Count;
+        
+        public long OrderId { get; }
+        
+        public OrderCommand Command { get; }
 
         public override string ToString()
         {
-            return $"Type: {Type}, Price: {Price}, Count: {Count}";
+            return $"Id: {OrderId}, Command: {Command}, Type: {Type}, Price: {Price}, Count: {Count}";
         }
 
         public bool Equals(TradingSignal another)

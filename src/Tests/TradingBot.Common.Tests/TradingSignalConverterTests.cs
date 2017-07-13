@@ -11,7 +11,7 @@ namespace TradingBot.Common.Tests
         public void SerializeAndDeserializeTradingSignal()
         {
             var converter = new GenericRabbitModelConverter<InstrumentTradingSignals>();
-            var signal = new TradingSignal(TradeType.Buy, 100.2m, 10.1m, DateTime.Now, OrderType.Limit);
+            var signal = new TradingSignal(0, OrderCommand.Create, TradeType.Buy, 100.2m, 10.1m, DateTime.Now, OrderType.Limit);
             var instrumentSignals = new InstrumentTradingSignals(new Instrument("EURUSD"), new [] { signal });
 
             var serialized = converter.Serialize(instrumentSignals);
@@ -24,6 +24,8 @@ namespace TradingBot.Common.Tests
             Assert.Equal(signal.Count, deserialized.Count);
             Assert.Equal(signal.OrderType, deserialized.OrderType);
             Assert.Equal(signal.Time, deserialized.Time);
+            Assert.Equal(signal.OrderId, deserialized.OrderId);
+            Assert.Equal(signal.Command, deserialized.Command);
         }
     }
 }

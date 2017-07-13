@@ -24,7 +24,7 @@ namespace TradingBot.Common.Trading
         /// <summary>
         /// Initial amount of assets (base asset of the Instrument)
         /// </summary>
-        private readonly decimal initialValue;
+        private readonly decimal initialValue; // TODO: position may not have initialValue, and be a part of Portfolio with initial value
 
         private decimal currentValue;
 

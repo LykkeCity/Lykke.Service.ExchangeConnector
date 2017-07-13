@@ -9,12 +9,18 @@ namespace TradingBot.Common.Trading
     {
         public byte[] Serialize(T model)
         {
-            return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(model, new JsonSerializerSettings() { DateFormatString = "yyyy-MM-ddTHH:mm:ss.fff" }));
+            return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(model, new JsonSerializerSettings()
+            {
+                DateFormatString = "yyyy-MM-ddTHH:mm:ss.fff"
+            }));
         }
 
         public T Deserialize(byte[] data)
         {
-            return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(data), new JsonSerializerSettings() { DateFormatString = "yyyy-MM-ddTHH:mm:ss.fff" });
+            return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(data), new JsonSerializerSettings()
+            {
+                DateFormatString = "yyyy-MM-ddTHH:mm:ss.fff"
+            });
         }
     }
 }

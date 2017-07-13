@@ -1,8 +1,6 @@
 ﻿using System.Linq;
 using TradingBot.Common.Trading;
-using TradingBot.Exchanges.Abstractions;
-using TradingBot.Exchanges.Concrete.ICMarkets.Entities;
-using TradingBot.Trading;
+using OrderBook = TradingBot.Exchanges.Concrete.ICMarkets.Entities.OrderBook;
 
 namespace TradingBot.Exchanges.Concrete.ICMarkets.Converters
 {

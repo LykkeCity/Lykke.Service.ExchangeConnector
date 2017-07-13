@@ -116,37 +116,36 @@ namespace TradingBot.Exchanges.Abstractions
         {
             lock (ActualSignalsSyncRoot)
             {
-                bool added = false;
-                
                 foreach (var arrivedSignal in signals.TradingSignals)
                 {
-                    if (!ActualSignals[signals.Instrument.Name].Any(x => x.Equals(arrivedSignal)))
+                    switch (arrivedSignal.Command)
                     {
-                        ActualSignals[signals.Instrument.Name].AddLast(arrivedSignal);
-                        added = true;
+                        case OrderCommand.Create:
+                            ActualSignals[signals.Instrument.Name].AddLast(arrivedSignal);
+                            Logger.LogDebug($"Created new order {arrivedSignal}");
+                            break;
+                        case OrderCommand.Edit:
+                            throw new NotSupportedException("Do not support edit signal");
+                            break;
+                        case OrderCommand.Cancel:
+                            var existing = ActualSignals[signals.Instrument.Name]
+                                .SingleOrDefault(x => x.OrderId == arrivedSignal.OrderId);
+
+                            if (existing != null)
+                            {
+                                ActualSignals[signals.Instrument.Name].Remove(existing);
+                                Logger.LogDebug($"Canceled order {arrivedSignal}");
+                            }
+                            else
+                                Logger.LogError($"Command for cancel unexisted order {arrivedSignal}");
+                            
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
                     }
                 }
 
-                var toRemove = new List<TradingSignal>();
-                
-                foreach (var existingSignal in ActualSignals[signals.Instrument.Name])
-                {
-                    if (!signals.TradingSignals.Any(x => existingSignal.Equals(x)))
-                    {
-                        toRemove.Add(existingSignal);
-                    }
-                }
-
-                if (toRemove.Any())
-                {
-                    foreach (var signal in toRemove)
-                    {
-                        ActualSignals[signals.Instrument.Name].Remove(signal);
-                        //Logger.LogDebug($"Removed non actual signal: {signal}");
-                    }
-                }
-
-                if (added)
+                if (signals.TradingSignals.Any(x => x.Command == OrderCommand.Create))
                 {
                     Logger.LogDebug($"Current orders:\n {string.Join("\n", ActualSignals[signals.Instrument.Name])}");
                 }

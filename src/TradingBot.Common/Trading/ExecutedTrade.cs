@@ -6,13 +6,14 @@ namespace TradingBot.Common.Trading
     public class ExecutedTrade
     {
         [JsonConstructor]
-        public ExecutedTrade(DateTime time, decimal price, decimal volume, TradeType type)
+        public ExecutedTrade(DateTime time, decimal price, decimal volume, TradeType type, long orderId)
         {
             Time = time;
             Price = price;
             Volume = volume;
             Type = type;
             Fee = 0; // TODO
+            OrderId = orderId;
         }
         
         public TradeType Type { get; }
@@ -25,11 +26,11 @@ namespace TradingBot.Common.Trading
         
         public decimal Fee { get; }
         
-        // TODO: link to order (ID, probaly)
+        public long OrderId { get; }
 
         public override string ToString()
         {
-            return $"{Type} at {Time}. Price: {Price}. Volume: {Volume}";
+            return $"OrderId: {OrderId}. {Type} at {Time}. Price: {Price}. Volume: {Volume}";
         }
     }
 }
