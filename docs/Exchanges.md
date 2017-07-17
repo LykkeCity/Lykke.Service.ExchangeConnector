@@ -6,9 +6,10 @@ This is the list of exchanges (Trading Venues) and their possibilities. The Alph
 **Contents**:
 
  - [Kraken](#kraken)
- - [Bitmaps](#bitmaps)
+ - [Bitstamp](#bitstamp)
  - [ICMarkets](#icmarkets)
  - [OANDA](#oanda)
+ - [GDax](#gdax)
 
 
 ## Kraken
@@ -145,7 +146,7 @@ ml = margin level = (equity / initial margin) * 100
 
 
 
-## Bitmaps
+## Bitstamp
 
 Separate version of API implements FIX Protocol of version 4.4
 
@@ -478,3 +479,49 @@ takeProfit: Optional The take profit price.
 
 trailingStop: Optional The trailing stop distance in pips, up to one decimal place.
 ```
+
+
+## GDax
+
+http://gdax.com
+
+Socket api with prices stream
+FIX or REST API for orders
+0% fees for market makers
+
+### API Limits
+
+#### REST API
+
+##### PUBLIC ENDPOINTS
+
+We throttle public endpoints by IP: 3 requests per second, up to 6 requests per second in bursts.
+
+##### PRIVATE ENDPOINTS
+
+We throttle private endpoints by user ID: 5 requests per second, up to 10 requests per second in bursts.
+
+##### FINANCIAL INFORMATION EXCHANGE API
+
+The FIX API throttles each command type (eg.: NewOrderSingle, OrderCancelRequest) to 30 commands per second.
+
+
+### Trading pairs
+
+For Europe:
+
+ - BTC/EUR
+ - ETH/EUR
+ - ETH/BTC
+ - LTC/EUR
+ - LTC/BTC
+
+### Margin
+
+With some margin in the margin profile’s balance you can place orders that draw funding. You can draw upto 2x your margin. Your margin is your equity in the margin profile.
+
+### Order Types
+
+- Limit
+- Market
+- Stop
