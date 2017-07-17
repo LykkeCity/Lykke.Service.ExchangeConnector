@@ -30,6 +30,7 @@
     <Folder Include="Infrastructure\Logging\" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\QuickFix.DotNetCore\QuickFix.DotNetCore.csproj" />
     <ProjectReference Include="..\TradingBot.Common\TradingBot.Common.csproj" />
   </ItemGroup>
 </Project>

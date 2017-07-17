@@ -140,5 +140,15 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
             closePricesStreamRequested = true;
 	        streamJob?.Wait();
         }
+
+	    protected override Task<bool> AddOrder(string symbol, TradingSignal signal)
+	    {
+		    return Task.FromResult(true);
+	    }
+
+	    protected override Task<bool> CancelOrder(string symbol, TradingSignal signal)
+	    {
+		    return Task.FromResult(true);
+	    }
     }
 }

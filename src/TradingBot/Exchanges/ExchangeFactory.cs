@@ -1,8 +1,10 @@
-﻿using TradingBot.Exchanges.Abstractions;
+﻿using TradingBot.Common.Trading;
+using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.HistoricalData;
 using TradingBot.Exchanges.Concrete.ICMarkets;
 using TradingBot.Exchanges.Concrete.Kraken;
 using TradingBot.Exchanges.Concrete.StubImplementation;
+using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 
 namespace TradingBot.Exchanges
@@ -18,8 +20,8 @@ namespace TradingBot.Exchanges
 
 		    if (config.RabbitMq.Enabled)
 		    {
-			    exchange.AddTickPriceHandler(new TickPricesRabbitPublisher(config.RabbitMq));
-			    exchange.AddExecutedTradeHandler(new ExecutedOrdersRabbitPublisher(config.RabbitMq));
+			    exchange.AddTickPriceHandler(new RabbitMqHandler<InstrumentTickPrices>(config.RabbitMq.GetConnectionString(), config.RabbitMq.RatesExchange));
+			    exchange.AddExecutedTradeHandler(new RabbitMqHandler<ExecutedTrade>(config.RabbitMq.GetConnectionString(), config.RabbitMq.TradesExchange));
 		    }
 
 		    return exchange;

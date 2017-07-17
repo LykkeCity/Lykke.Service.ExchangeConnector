@@ -1,4 +1,5 @@
-﻿using TradingBot.Common.Configuration;
+﻿using System.IO;
+using TradingBot.Common.Configuration;
 
 namespace TradingBot.Infrastructure.Configuration
 {
@@ -17,5 +18,12 @@ namespace TradingBot.Infrastructure.Configuration
         public string[] Instruments { get; set; }
 
         public RabbitMqConfiguration RabbitMq { get; set; }
+        
+        public string[] FixConfiguration { get; set; }
+
+        public TextReader GetFixConfigAsReader()
+        {
+            return new StringReader(string.Join("\n", FixConfiguration));
+        }
     }
 }

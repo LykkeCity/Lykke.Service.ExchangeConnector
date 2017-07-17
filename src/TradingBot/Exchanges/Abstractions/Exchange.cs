@@ -2,11 +2,11 @@
 using System.Threading;
 using System.Threading.Tasks;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using TradingBot.Common.Infrastructure;
 using TradingBot.Common.Trading;
+using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 
 namespace TradingBot.Exchanges.Abstractions
@@ -15,14 +15,13 @@ namespace TradingBot.Exchanges.Abstractions
     {
         protected ILogger Logger = Logging.CreateLogger<Exchange>();
 
-        private readonly List<TickPriceHandler> tickPriceHandlers = new List<TickPriceHandler>();
+        private readonly List<Handler<InstrumentTickPrices>> tickPriceHandlers = new List<Handler<InstrumentTickPrices>>();
 
-        private readonly List<ExecutedOrdersHandler> executedTradeHandlers = new List<ExecutedOrdersHandler>();
-
+        private readonly List<Handler<ExecutedTrade>> executedTradeHandlers = new List<Handler<ExecutedTrade>>();
+        
         public string Name { get; }
 
-        protected Exchange(string name, 
-            IExchangeConfiguration config)
+        protected Exchange(string name, IExchangeConfiguration config)
         {
             decimal initialValue = 100m; // TODO: get initial value from config? or get if from real exchange.
             this.Name = name;
@@ -40,12 +39,12 @@ namespace TradingBot.Exchanges.Abstractions
             ExecutedTrades = Instruments.ToDictionary(x => x.Name, x => new List<ExecutedTrade>());
         }
 
-        public void AddTickPriceHandler(TickPriceHandler handler)
+        public void AddTickPriceHandler(Handler<InstrumentTickPrices> handler)
         {
             tickPriceHandlers.Add(handler);
         }
 
-        public void AddExecutedTradeHandler(ExecutedOrdersHandler handler)
+        public void AddExecutedTradeHandler(Handler<ExecutedTrade> handler)
         {
             executedTradeHandlers.Add(handler);
         }
@@ -116,24 +115,37 @@ namespace TradingBot.Exchanges.Abstractions
         {
             lock (ActualSignalsSyncRoot)
             {
+                if (!ActualSignals.ContainsKey(signals.Instrument.Name))
+                {
+                    Logger.LogError($"ActualSignals doesn't contains a key {signals.Instrument.Name}. It has keys: {string.Join(", ", ActualSignals.Keys)}");
+                    return Task.FromResult(0);
+                }
+                
                 foreach (var arrivedSignal in signals.TradingSignals)
                 {
                     switch (arrivedSignal.Command)
                     {
                         case OrderCommand.Create:
+                            
                             ActualSignals[signals.Instrument.Name].AddLast(arrivedSignal);
+                            AddOrder(signals.Instrument.Name, arrivedSignal).Wait();
                             Logger.LogDebug($"Created new order {arrivedSignal}");
+                            
                             break;
+                            
                         case OrderCommand.Edit:
                             throw new NotSupportedException("Do not support edit signal");
                             break;
+                            
                         case OrderCommand.Cancel:
+                            
                             var existing = ActualSignals[signals.Instrument.Name]
                                 .SingleOrDefault(x => x.OrderId == arrivedSignal.OrderId);
 
                             if (existing != null)
                             {
                                 ActualSignals[signals.Instrument.Name].Remove(existing);
+                                CancelOrder(signals.Instrument.Name, existing).Wait();
                                 Logger.LogDebug($"Canceled order {arrivedSignal}");
                             }
                             else
@@ -153,5 +165,9 @@ namespace TradingBot.Exchanges.Abstractions
             
             return Task.FromResult(0);            
         }
+
+        protected abstract Task<bool> AddOrder(string symbol, TradingSignal signal);
+
+        protected abstract Task<bool> CancelOrder(string symbol, TradingSignal signal);
     }
 }

@@ -86,5 +86,15 @@ namespace TradingBot.Exchanges.Concrete.Kraken
         {
             ctSource.Cancel();
         }
+
+        protected override Task<bool> AddOrder(string symbol, TradingSignal signal)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override Task<bool> CancelOrder(string symbol, TradingSignal signal)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

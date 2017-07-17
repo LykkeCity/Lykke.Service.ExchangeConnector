@@ -1,9 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
 using Lykke.RabbitMqBroker.Subscriber;
+using Microsoft.Extensions.Logging;
+using Polly;
+using QuickFix;
+using QuickFix.Transport;
 using TradingBot.Common.Trading;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.ICMarkets.Converters;
@@ -22,16 +27,29 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
         private readonly IcmConfig config;
 
         private RabbitMqSubscriber<OrderBook> rabbit;
-        
-        public override void ClosePricesStream()
-        {
-            rabbit?.Stop();
-        }
+        private SocketInitiator initiator;
+        private IcmConnector connector;
+
 
         /// <summary>
         /// For ICM we use internal RabbitMQ exchange with pricefeed
         /// </summary>
         public override Task OpenPricesStream()
+        {
+            //StartFixConnection(); // wait for Fix connection before translationg quotes and receiveng signals
+            StartRabbitConnection();
+
+            return Task.FromResult(0);
+        }
+        
+        public override void ClosePricesStream()
+        {
+            rabbit?.Stop();
+            initiator?.Stop();
+            initiator?.Dispose();
+        }
+
+        private void StartRabbitConnection()
         {
             var rabbitSettings = new RabbitMqSubscriberSettings()
             {
@@ -40,23 +58,69 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
             };
 
             rabbit = new RabbitMqSubscriber<OrderBook>(rabbitSettings)
-                .SetMessageDeserializer(new OrderBookDeserializer())
+                .SetMessageDeserializer(new GenericRabbitModelConverter<OrderBook>())
                 .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
                 .SetConsole(new GetPricesCycle.RabbitConsole())
                 .SetLogger(new LogToConsole())
                 .Subscribe(async orderBook =>
                 {
+                    //Logger.LogInformation($"Receive order book for asset: {orderBook.Asset}");
+                    
                     if (Instruments.Any(x => x.Name == orderBook.Asset))
                         await CallHandlers(orderBook.ToInstrumentTickPrices());
+                    else
+                    {
+                        //Logger.LogInformation("It's not in the list");
+                    }
                 })
                 .Start();
-
-            return Task.FromResult(0);
+        }
+        
+        private void StartFixConnection()
+        {
+            var settings = new SessionSettings(config.GetFixConfigAsReader());
+            
+            connector = new IcmConnector(config);
+            var storeFactory = new FileStoreFactory(settings);
+            var logFactory = new ScreenLogFactory(settings);
+            
+            initiator = new SocketInitiator(connector, storeFactory, settings, logFactory);
+            initiator.Start();
         }
 
         protected override Task<bool> TestConnectionImpl(CancellationToken cancellationToken)
         {
-            return Task.FromResult(true);
+            StartFixConnection();
+            
+            var retry = Policy
+                .HandleResult<bool>(x => !x)
+                .WaitAndRetry(5, attempt => TimeSpan.FromSeconds(10));
+
+            return Task.FromResult(
+                retry.Execute(connector.IsLoggedOn) &&    
+                connector.SendRequestForPositions() &&
+                connector.SendSecurityListRequest() &&
+                connector.SendOrderStatusRequest());
+        }
+
+        
+        private readonly Dictionary<string, string> symbolsMap = new Dictionary<string, string>()
+        {
+            { "EURUSD", "EUR/USDm" }
+        };
+        
+        protected override Task<bool> AddOrder(string symbol, TradingSignal signal)
+        {
+            Logger.LogInformation($"About to place new order for symbol {symbol}: {signal}");
+            return Task.FromResult(connector.AddOrder(symbolsMap[symbol], signal));
+        }
+
+        protected override Task<bool> CancelOrder(string symbol, TradingSignal signal)
+        {
+            Logger.LogInformation($"Cancelling order {signal}");
+
+            return Task.FromResult(connector.CancelOrder(symbolsMap[symbol], signal));
+
         }
     }
 }

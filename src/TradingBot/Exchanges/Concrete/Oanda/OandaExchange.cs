@@ -30,6 +30,16 @@ namespace TradingBot.Exchanges.Concrete.Oanda
             throw new NotImplementedException();
         }
 
+        protected override Task<bool> AddOrder(string symbol, TradingSignal signal)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override Task<bool> CancelOrder(string symbol, TradingSignal signal)
+        {
+            throw new NotImplementedException();
+        }
+
         public override Task OpenPricesStream()
         {
             throw new NotImplementedException();
