@@ -3,10 +3,17 @@ using Newtonsoft.Json;
 
 namespace TradingBot.Common.Trading
 {
+    public enum ExecutionStatus
+    {
+        Fill,
+        PartialFill,
+        Cancelled
+    }
+
     public class ExecutedTrade
     {
         [JsonConstructor]
-        public ExecutedTrade(DateTime time, decimal price, decimal volume, TradeType type, long orderId)
+        public ExecutedTrade(DateTime time, decimal price, decimal volume, TradeType type, long orderId, ExecutionStatus status)
         {
             Time = time;
             Price = price;
@@ -14,6 +21,7 @@ namespace TradingBot.Common.Trading
             Type = type;
             Fee = 0; // TODO
             OrderId = orderId;
+            Status = status;
         }
         
         public TradeType Type { get; }
@@ -27,6 +35,8 @@ namespace TradingBot.Common.Trading
         public decimal Fee { get; }
         
         public long OrderId { get; }
+        
+        public ExecutionStatus Status { get; }
 
         public override string ToString()
         {

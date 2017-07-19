@@ -73,7 +73,8 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
                         //Logger.LogInformation("It's not in the list");
                     }
                 })
-                .Start();
+                .Start()
+                ;
         }
         
         private void StartFixConnection()
@@ -83,6 +84,8 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
             connector = new IcmConnector(config);
             var storeFactory = new FileStoreFactory(settings);
             var logFactory = new ScreenLogFactory(settings);
+
+            connector.OnTradeExecuted += CallExecutedTradeHandlers;
             
             initiator = new SocketInitiator(connector, storeFactory, settings, logFactory);
             initiator.Start();

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using QuickFix;
 using QuickFix.Fields;
@@ -24,6 +25,8 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
         {
             this.config = config;
         }
+
+        public event Func<ExecutedTrade, Task> OnTradeExecuted;
         
         public void ToAdmin(Message message, SessionID sessionID)
         {            
@@ -65,6 +68,9 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
                         break;
                     case MarketDataIncrementalRefresh marketDataIncrementalRefresh:
                         logger.LogError("Market data incremental refresh is not supported. We read the data from RabbitMQ");
+                        break;
+                    case ListStatus listStatus:
+                        HandleListStatus(listStatus);
                         break;
                     default:
                         break;
@@ -170,20 +176,46 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
                 case ExecType.REJECTED:
                     logger.LogError($"ICM rejected the order {report.ClOrdID}. Rejection reason is {report.OrdRejReason}");
                     break;
+                    
                 case ExecType.FILL:
                     logger.LogInformation($"ICM filled the order {report.ClOrdID}!");
-                    // todo: call executed trade candlers
+                    
+                    OnTradeExecuted?.Invoke(new ExecutedTrade(
+                        report.TransactTime.Obj, 
+                        report.Price.Obj, 
+                        report.OrderQty.Obj, 
+                        report.Side.Obj == Side.BUY ? TradeType.Buy : TradeType.Sell,
+                        long.Parse(report.ClOrdID.Obj),
+                        ExecutionStatus.Fill));
+                    
                     break;
                     
                 case ExecType.PARTIAL_FILL:
                     logger.LogInformation($"ICM filled the order {report.ClOrdID} partially.");
-                    // todo: deal with partial fill
+                    
+                    OnTradeExecuted?.Invoke(new ExecutedTrade(
+                        report.TransactTime.Obj, 
+                        report.Price.Obj, 
+                        report.OrderQty.Obj, 
+                        report.Side.Obj == Side.BUY ? TradeType.Buy : TradeType.Sell,
+                        long.Parse(report.ClOrdID.Obj),
+                        ExecutionStatus.PartialFill));
+                    
                     break;
                 case ExecType.NEW:
                     logger.LogInformation($"Order {report.ClOrdID} placed as new!");
                     break;
                 case ExecType.CANCELLED:
                     logger.LogInformation($"Order {report.ClOrdID} was cancelled!");
+                    
+                    OnTradeExecuted?.Invoke(new ExecutedTrade(
+                        report.TransactTime.Obj, 
+                        report.Price.Obj, 
+                        report.OrderQty.Obj, 
+                        report.Side.Obj == Side.BUY ? TradeType.Buy : TradeType.Sell,
+                        long.Parse(report.ClOrdID.Obj),
+                        ExecutionStatus.Cancelled));
+                    
                     break;
                 case ExecType.ORDER_STATUS:
                     logger.LogInformation($"Order status for {report.ClOrdID}: symbol: {report.Symbol}, side: {report.Side}, orderQty: {report.OrderQty}");
@@ -291,6 +323,11 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
                 );
 
             return SendRequest(request);
+        }
+
+        public void HandleListStatus(ListStatus listStatus)
+        {
+            logger.LogDebug($"Handling list status: {listStatus}");
         }
 
         private Side ConvertSide(TradeType tradeType)

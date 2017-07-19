@@ -2240,7 +2240,7 @@
     <field name="ListStatusType" required="Y" />
     <field name="NoRpts" required="Y" />
     <field name="ListOrderStatus" required="Y" />
-    <field name="RptSeq" required="Y" />
+    <field name="RptSeq" required="N" /> <!-- ICM didn't include it into their response -->
     <field name="ListStatusText" required="N" />
     <field name="EncodedListStatusTextLen" required="N" />
     <field name="EncodedListStatusText" required="N" />

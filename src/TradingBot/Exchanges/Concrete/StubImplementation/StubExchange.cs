@@ -74,7 +74,8 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 									    lowestAsk,
 									    tradingSignal.Count,
 									    TradeType.Buy,
-									    tradingSignal.OrderId);
+									    tradingSignal.OrderId,
+									    ExecutionStatus.Fill);
 							    
 								    trades.Add(trade);
 								    executedOrders.Add(tradingSignal);
@@ -88,7 +89,8 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 									    highestBid,
 									    tradingSignal.Count,
 									    TradeType.Sell,
-									    tradingSignal.OrderId);
+									    tradingSignal.OrderId,
+									    ExecutionStatus.Fill);
     
 								    trades.Add(trade);
 								    executedOrders.Add(tradingSignal);
@@ -103,12 +105,11 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 							    logger.LogDebug($"Trading order {signal} was removed from actual signals as executed");
 						    }
 
-						    if (trades.Any())
-						    {
-							    trades.ForEach(x => Positions[instrument.Name].AddTrade(x));
-
-							    trades.ForEach(async x => await CallExecutedTradeHandlers(x));
-						    } 
+							trades.ForEach(async x =>
+							    {
+								    Positions[instrument.Name].AddTrade(x);
+								    await CallExecutedTradeHandlers(x);
+							    });
 						    
 						    foreach (var currentPrice in currentPrices)
 						    {
@@ -121,11 +122,6 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 					    
 					    // TODO: deal with awaitable. I don't want to wait here for Azure and Rabbit connections
 					    await CallHandlers(new InstrumentTickPrices(instrument, currentPrices));
-
-					    
-//					    // TODO: translate executed trades back to Alpha Engine
-//					    //ExecutedTrades[instrument.Name].AddRange(trades);
-					    
 				    }
                 
 				    await Task.Delay(config.PricesIntervalInMilliseconds);
@@ -146,9 +142,12 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 		    return Task.FromResult(true);
 	    }
 
-	    protected override Task<bool> CancelOrder(string symbol, TradingSignal signal)
+	    protected override async Task<bool> CancelOrder(string symbol, TradingSignal signal)
 	    {
-		    return Task.FromResult(true);
+		    await CallExecutedTradeHandlers(new ExecutedTrade(DateTime.UtcNow, signal.Price, signal.Count, signal.TradeType,
+			    signal.OrderId, ExecutionStatus.Cancelled));
+
+		    return true;
 	    }
     }
 }
