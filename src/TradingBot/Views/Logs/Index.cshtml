@@ -1,0 +1,17 @@
+@model IEnumerable<Lykke.Logs.LogEntity>
+
+@{
+    ViewData["Title"] = "Logs";
+}
+
+
+<table>
+    @foreach (var item in Model)
+    {
+        <tr @(item.Level == "error" ? "bgcolor=pink" : "")>
+            <td>@item.PartitionKey @item.RowKey</td>
+            <td>@item.Level</td> 
+            <td>@item.Msg</td>
+        </tr>
+    }
+</table>

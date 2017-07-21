@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace TradingBot
@@ -10,6 +11,10 @@ namespace TradingBot
     {
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
+            app.UseDeveloperExceptionPage();
+            app.UseStaticFiles();
+            app.UseMvcWithDefaultRoute();
+            
             app.Run(async (context) =>
             {
                 var report = await StatusReport.Create();
@@ -18,6 +23,13 @@ namespace TradingBot
                 
                 await context.Response.WriteAsync(response);
             });
+        }
+        
+        // This method gets called by the runtime. Use this method to add services to the container.
+        public void ConfigureServices(IServiceCollection services)
+        {
+            // Add framework services.
+            services.AddMvc();
         }
     }
 }
