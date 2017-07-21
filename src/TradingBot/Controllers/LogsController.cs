@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AzureStorage.Tables;
@@ -7,36 +6,57 @@ using Common.Log;
 using Lykke.Logs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.WindowsAzure.Storage.Table;
-using TradingBot.Communications;
 using TradingBot.Infrastructure.Configuration;
 
 namespace TradingBot.Controllers
 {
     public class LogsController : Controller
     {
+        private Configuration Config => Configuration.Instance;
+        
         public async Task<IActionResult> Index()
         {
-            var config = Configuration.Instance;
-            
-                
             var logsStorage = new AzureTableStorage<LogEntity>(
-                config.AzureTable.StorageConnectionString,
-                config.Logger.TableName,
+                Config.AzureTable.StorageConnectionString,
+                Config.Logger.TableName,
                 new LogToConsole());
             
-            var now = DateTime.UtcNow;
-            var timePoint = now.AddMinutes(-3);
-            var rowKey = timePoint.ToString("yyyy-MM-dd HH:mm:ss");
-
             var query = new TableQuery<LogEntity>();
-                //.Where(TableQuery.GenerateFilterCondition("RowKey", QueryComparisons.GreaterThan, rowKey));
 
             IEnumerable<LogEntity> logs = Enumerable.Empty<LogEntity>();
             await logsStorage.ExecuteAsync(query, result => logs = result);
 
-            var lastEntries = logs.OrderByDescending(x => x.Timestamp).Take(100);
+            var lastEntries = logs.OrderByDescending(x => x.Timestamp).Take(1000);
                 
             return View(lastEntries);
         }
+
+        public async Task<IActionResult> AlphaEngine()
+        {
+            var logsStorage = new AzureTableStorage<JavaLogEntity>(
+                Config.AzureTable.StorageConnectionString,
+                "logsjava",
+                new LogToConsole());
+            
+            var query = new TableQuery<JavaLogEntity>();
+
+            IEnumerable<JavaLogEntity> logs = Enumerable.Empty<JavaLogEntity>();
+            await logsStorage.ExecuteAsync(query, result => logs = result);
+
+            var lastEntries = logs.OrderByDescending(x => x.Timestamp).Take(1000);
+
+            return View(lastEntries);
+        }
+    }
+
+    public class JavaLogEntity : TableEntity
+    {
+        public JavaLogEntity()
+        {
+        }
+        
+        public string Message { get; set; }
+        
+        public string Level { get; set; }
     }
 }

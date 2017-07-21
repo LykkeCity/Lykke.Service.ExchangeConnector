@@ -5,7 +5,7 @@ using TradingBot.Common.Trading;
 
 namespace TradingBot.Communications
 {
-    public class PriceTableEntity : TableEntity // TODO: move to TradingBot.Common
+    public class PriceTableEntity : TableEntity
     {
         public PriceTableEntity()
         {

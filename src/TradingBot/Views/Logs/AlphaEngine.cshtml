@@ -1,0 +1,21 @@
+﻿@model IEnumerable<TradingBot.Controllers.JavaLogEntity>
+
+@{
+    ViewData["Title"] = "Alpha Engine logs";
+}
+
+<p>
+    <a asp-controller="Logs" asp-action="Index">Exchange connector logs</a> | Alpha Engine logs
+</p>
+
+
+<table>
+    @foreach (var item in Model)
+    {
+        <tr @(item.Level == "error" ? "bgcolor=pink" : "")>
+            <td>@item.PartitionKey @item.RowKey</td>
+            <td>@item.Level</td>
+            <td>@item.Message</td>
+        </tr>
+    }
+</table>

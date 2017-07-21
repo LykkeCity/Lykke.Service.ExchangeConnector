@@ -19,7 +19,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TradingBot.FixConnector", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuickFix.DotNetCore", "QuickFix.DotNetCore\QuickFix.DotNetCore.csproj", "{41CDE78A-3A88-45FF-AB67-C4EAF50C9856}"
 EndProject
-Project("{56687AC2-F2ED-4628-965A-65A60602EF18}") = "TradingBot.Common.Tests", "Tests\TradingBot.Common.Tests\TradingBot.Common.Tests.csproj", "{F448A4D4-6694-48DC-9B32-AE7FC704DBEB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TradingBot.Common.Tests", "Tests\TradingBot.Common.Tests\TradingBot.Common.Tests.csproj", "{F448A4D4-6694-48DC-9B32-AE7FC704DBEB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EmptyWebApp", "EmptyWebApp\EmptyWebApp.csproj", "{DB36230A-EDE9-4322-8AFC-DB74CB1A2A83}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -59,6 +61,10 @@ Global
 		{F448A4D4-6694-48DC-9B32-AE7FC704DBEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F448A4D4-6694-48DC-9B32-AE7FC704DBEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F448A4D4-6694-48DC-9B32-AE7FC704DBEB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DB36230A-EDE9-4322-8AFC-DB74CB1A2A83}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DB36230A-EDE9-4322-8AFC-DB74CB1A2A83}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DB36230A-EDE9-4322-8AFC-DB74CB1A2A83}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DB36230A-EDE9-4322-8AFC-DB74CB1A2A83}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
