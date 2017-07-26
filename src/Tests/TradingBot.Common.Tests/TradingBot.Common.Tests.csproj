@@ -9,8 +9,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\TradingBot.Common\TradingBot.Common.csproj">
-      <Project>{82BF2B41-B587-4EF0-B390-8669B8702B33}</Project>
-      <Name>TradingBot.Common</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>

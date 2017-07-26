@@ -11,10 +11,9 @@ namespace TradingBot.Infrastructure.Configuration
 
         public RabbitMqConfiguration RabbitMq { get; set; }
 
-        public AzureTableConfiguration AzureTable { get; set; }
+        public AzureTableConfiguration AzureStorage { get; set; }
 
-        public LoggerConfiguration Logger { get; set; }
-        
+        public readonly string LogsTableName = "logsExchangeConnector"; 
         
         public static Configuration FromConfigurationRoot(IConfigurationRoot config)
         {

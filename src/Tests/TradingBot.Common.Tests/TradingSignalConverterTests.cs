@@ -12,7 +12,7 @@ namespace TradingBot.Common.Tests
         {
             var converter = new GenericRabbitModelConverter<InstrumentTradingSignals>();
             var signal = new TradingSignal(0, OrderCommand.Create, TradeType.Buy, 100.2m, 10.1m, DateTime.Now, OrderType.Limit);
-            var instrumentSignals = new InstrumentTradingSignals(new Instrument("EURUSD"), new [] { signal });
+            var instrumentSignals = new InstrumentTradingSignals(new Instrument("Exchange", "EURUSD"), new [] { signal });
 
             var serialized = converter.Serialize(instrumentSignals);
             Assert.NotNull(serialized);

@@ -32,9 +32,10 @@ namespace TradingBot
 //
 //            var assets = await assetsStorage.GetDataAsync();
             
+            
             var pricesStorage = new AzureTableStorage<PriceTableEntity>(
-                config.AzureTable.StorageConnectionString,
-                config.AzureTable.TableName,
+                config.AzureStorage.StorageConnectionString,
+                "kraken", // TODO: get for all enabled exchanges
                 new LogToConsole());
             
             var now = DateTime.UtcNow;

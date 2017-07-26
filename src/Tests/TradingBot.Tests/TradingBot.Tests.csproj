@@ -10,8 +10,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\TradingBot.TheAlphaEngine\TradingBot.TheAlphaEngine.csproj">
-      <Project>{9CBAB58C-7ECF-4A4E-81C9-EB47D14DDC65}</Project>
-      <Name>TradingBot.TheAlphaEngine</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\TradingBot\TradingBot.csproj" />
     <ProjectReference Include="..\..\TradingBot.Common\TradingBot.Common.csproj" />

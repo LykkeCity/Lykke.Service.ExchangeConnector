@@ -15,9 +15,11 @@ namespace TradingBot.Exchanges.Concrete.Kraken
 {
     public class KrakenExchange : Exchange
     {
+        public new static readonly string Name = "kraken";
+        
         private readonly KrakenConfig config;
 
-        public KrakenExchange(KrakenConfig config) : base("Kraken", config)
+        public KrakenExchange(KrakenConfig config) : base(Name, config)
         {
             this.config = config;
         }
@@ -87,12 +89,12 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             ctSource.Cancel();
         }
 
-        protected override Task<bool> AddOrder(string symbol, TradingSignal signal)
+        protected override Task<bool> AddOrder(Instrument instrument, TradingSignal signal)
         {
             throw new NotImplementedException();
         }
 
-        protected override Task<bool> CancelOrder(string symbol, TradingSignal signal)
+        protected override Task<bool> CancelOrder(Instrument instrument, TradingSignal signal)
         {
             throw new NotImplementedException();
         }

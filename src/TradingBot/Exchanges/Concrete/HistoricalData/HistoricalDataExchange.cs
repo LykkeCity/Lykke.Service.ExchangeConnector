@@ -12,12 +12,14 @@ namespace TradingBot.Exchanges.Concrete.HistoricalData
 {
     public class HistoricalDataExchange : Exchange
     {
+        public new static readonly string Name = "historical";
+        
         private readonly HistoricalDataConfig config;
 
         private HistoricalDataReader reader;
         private bool stopRequested;
         
-        public HistoricalDataExchange(HistoricalDataConfig config) : base("HistoricalData", config)
+        public HistoricalDataExchange(HistoricalDataConfig config) : base(Name, config)
         {
             this.config = config;
         }
@@ -53,12 +55,12 @@ namespace TradingBot.Exchanges.Concrete.HistoricalData
             reader?.Dispose();
         }
 
-        protected override Task<bool> AddOrder(string symbol, TradingSignal signal)
+        protected override Task<bool> AddOrder(Instrument instrument, TradingSignal signal)
         {
             throw new NotImplementedException();
         }
 
-        protected override Task<bool> CancelOrder(string symbol, TradingSignal signal)
+        protected override Task<bool> CancelOrder(Instrument instrument, TradingSignal signal)
         {
             throw new NotImplementedException();
         }

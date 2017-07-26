@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -167,6 +168,17 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
             }
         }
 
+        
+        private readonly Dictionary<string, string> symbolsMap = new Dictionary<string, string>()
+        {
+            { "EURUSD", "EUR/USDm" }
+        };
+        
+        private readonly Dictionary<string, string> symbolsMapBack = new Dictionary<string, string>()
+        {
+            { "EUR/USDm", "EURUSD" }
+        };
+        
         private void HandleExecutionReport(ExecutionReport report)
         {
             logger.LogDebug("Execution report was received");
@@ -181,6 +193,7 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
                     logger.LogInformation($"ICM filled the order {report.ClOrdID}!");
                     
                     OnTradeExecuted?.Invoke(new ExecutedTrade(
+                        new Instrument("icm", symbolsMapBack[report.Currency.Obj]),
                         report.TransactTime.Obj, 
                         report.Price.Obj, 
                         report.OrderQty.Obj, 
@@ -194,6 +207,7 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
                     logger.LogInformation($"ICM filled the order {report.ClOrdID} partially.");
                     
                     OnTradeExecuted?.Invoke(new ExecutedTrade(
+                        new Instrument("icm", symbolsMapBack[report.Currency.Obj]), 
                         report.TransactTime.Obj, 
                         report.Price.Obj, 
                         report.OrderQty.Obj, 
@@ -209,6 +223,7 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
                     logger.LogInformation($"Order {report.ClOrdID} was cancelled!");
                     
                     OnTradeExecuted?.Invoke(new ExecutedTrade(
+                        new Instrument("icm", symbolsMapBack[report.Currency.Obj]),
                         report.TransactTime.Obj, 
                         report.Price.Obj, 
                         report.OrderQty.Obj, 
@@ -292,13 +307,13 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
             return Session.SendToTarget(request);
         }
 
-        public bool AddOrder(string symbol, TradingSignal signal)
+        public bool AddOrder(Instrument instrument, TradingSignal signal)
         {
-            logger.LogInformation($"Generarting request for sending order for symbol {symbol}");
+            logger.LogInformation($"Generarting request for sending order for instrument {instrument}");
             
             var request = new NewOrderSingle(
                 new ClOrdID(signal.OrderId.ToString()), 
-                new Symbol(symbol), 
+                new Symbol(symbolsMap[instrument.Name]), 
                 ConvertSide(signal.TradeType),
                 new TransactTime(signal.Time),
                 new OrdType(OrdType.FOREX_LIMIT));
@@ -310,14 +325,14 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
             return SendRequest(request);
         }
 
-        public bool CancelOrder(string symbol, TradingSignal signal)
+        public bool CancelOrder(Instrument instrument, TradingSignal signal)
         {
-            logger.LogDebug($"Generating request for cancelling order {signal.OrderId} for {symbol}");
+            logger.LogDebug($"Generating request for cancelling order {signal.OrderId} for {instrument}");
             
             var request = new OrderCancelRequest(
                 new OrigClOrdID(signal.OrderId.ToString()), 
                 new ClOrdID(signal.OrderId + "c"), 
-                new Symbol(symbol), 
+                new Symbol(symbolsMap[instrument.Name]), 
                 ConvertSide(signal.TradeType),
                 new TransactTime(signal.Time)
                 );

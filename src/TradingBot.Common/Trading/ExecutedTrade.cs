@@ -13,8 +13,9 @@ namespace TradingBot.Common.Trading
     public class ExecutedTrade
     {
         [JsonConstructor]
-        public ExecutedTrade(DateTime time, decimal price, decimal volume, TradeType type, long orderId, ExecutionStatus status)
+        public ExecutedTrade(Instrument instrument, DateTime time, decimal price, decimal volume, TradeType type, long orderId, ExecutionStatus status)
         {
+            Instrument = instrument;
             Time = time;
             Price = price;
             Volume = volume;
@@ -23,6 +24,8 @@ namespace TradingBot.Common.Trading
             OrderId = orderId;
             Status = status;
         }
+        
+        public Instrument Instrument { get; }
         
         public TradeType Type { get; }
         
@@ -40,7 +43,7 @@ namespace TradingBot.Common.Trading
 
         public override string ToString()
         {
-            return $"OrderId: {OrderId}. {Type} at {Time}. Price: {Price}. Volume: {Volume}";
+            return $"OrderId: {OrderId} for {Instrument}. {Type} at {Time}. Price: {Price}. Volume: {Volume}";
         }
     }
 }

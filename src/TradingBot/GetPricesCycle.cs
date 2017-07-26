@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -21,12 +23,13 @@ namespace TradingBot
         public GetPricesCycle(Configuration config)
         {
             this.config = config;
-			exchange = ExchangeFactory.CreateExchange(config);
+            exchanges = ExchangeFactory.CreateExchanges(config).ToDictionary(x => x.Name, x => x);
         }
 
-        private readonly Exchange exchange;
+        private readonly Dictionary<string, Exchange> exchanges;
+        
 		private CancellationTokenSource ctSource;
-        private readonly Configuration config;        
+        private readonly Configuration config;
         private RabbitMqSubscriber<InstrumentTradingSignals> signalSubscriber;
 
         public async Task Start()
@@ -34,36 +37,41 @@ namespace TradingBot
             ctSource = new CancellationTokenSource();
             var token = ctSource.Token;
 
-            if (exchange == null)
+            if (!exchanges.Any())
             {
                 logger.LogInformation("There is no enabled exchange.");
                 return;
             }
             
-            logger.LogInformation($"Price cycle starting for exchange {exchange.Name}...");
+            logger.LogInformation($"Price cycle starting for exchanges: {string.Join(", ", exchanges.Keys)}...");
 
             var retry = Policy
                 .HandleResult<bool>(x => !x)
                 .WaitAndRetryAsync(5, attempt => TimeSpan.FromSeconds(10));
-            
-            bool connectionTestPassed = await retry.ExecuteAsync(exchange.TestConnection, token);
-            if (!connectionTestPassed)
+
+            foreach (var exchange in exchanges.Values.ToList())
             {
-                logger.LogError($"Price cycle not started: no connection to exchange {exchange.Name}");
-                return;
+                bool connectionTestPassed = await retry.ExecuteAsync(exchange.TestConnection, token);
+                if (!connectionTestPassed)
+                {
+                    logger.LogError($"no connection to exchange {exchange.Name}");
+                    exchanges.Remove(exchange.Name);
+                }    
             }
+            
 
             if (config.RabbitMq.Enabled)
             {
                 SetupTradingSignalsSubscription(config.RabbitMq);
             }
 
-            var task = exchange.OpenPricesStream();
+            var task = Task.WhenAll(exchanges.Values.Select(x => x.OpenPricesStream()));
 
             while (!token.IsCancellationRequested)
 			{
                 await Task.Delay(TimeSpan.FromSeconds(15), token);
 				logger.LogDebug($"GetPricesCycle Heartbeat: {DateTime.Now}");
+			    // TODO: collect some stats to get health status
 			}
 
 			if (task.Status == TaskStatus.Running)
@@ -77,8 +85,7 @@ namespace TradingBot
             var subscriberSettings = new RabbitMqSubscriberSettings()
             {
                 ConnectionString = rabbitConfig.GetConnectionString(),
-                ExchangeName = rabbitConfig.SignalsExchange,
-                QueueName = rabbitConfig.QueueName
+                ExchangeName = rabbitConfig.SignalsExchange
             };
             
             signalSubscriber = new RabbitMqSubscriber<InstrumentTradingSignals>(subscriberSettings)
@@ -86,7 +93,7 @@ namespace TradingBot
                 .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
                 .SetConsole(new RabbitConsole())
                 .SetLogger(new LogToConsole())
-                .Subscribe(exchange.PlaceTradingOrders)
+                .Subscribe(x => exchanges[x.Instrument.Exchange].PlaceTradingOrders(x))
                 .Start();  
         }
 
@@ -95,7 +102,11 @@ namespace TradingBot
             logger.LogInformation("Stop requested");
             ctSource.Cancel();
 
-            exchange?.ClosePricesStream();
+            foreach (var exchange in exchanges.Values)
+            {
+                exchange?.ClosePricesStream();    
+            }
+            
 
             //((IStopable) rabbitPublisher)?.Stop();
         }

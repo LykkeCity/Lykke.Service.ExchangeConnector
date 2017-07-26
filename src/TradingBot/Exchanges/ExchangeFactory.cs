@@ -1,4 +1,6 @@
-﻿using TradingBot.Common.Trading;
+﻿using System.Collections.Generic;
+using TradingBot.Common.Trading;
+using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.HistoricalData;
 using TradingBot.Exchanges.Concrete.ICMarkets;
@@ -11,34 +13,48 @@ namespace TradingBot.Exchanges
 {
     public static class ExchangeFactory
     {
-	    public static Exchange CreateExchange(Configuration config)
+	    public static List<Exchange> CreateExchanges(Configuration config)
 	    {
-		    var exchange = CreateExchange(config.Exchanges);
+		    var exchanges = CreateExchanges(config.Exchanges);
 
-		    if (config.AzureTable.Enabled)
-			    exchange.AddTickPriceHandler(new TickPricesAzurePublisher(exchange.Instruments, config.AzureTable));
+		    if (config.AzureStorage.Enabled)
+			    exchanges.ForEach(x => x.AddTickPriceHandler(new AzureTablePricesPublisher(x.Name, config.AzureStorage.StorageConnectionString)));
 
 		    if (config.RabbitMq.Enabled)
 		    {
-			    exchange.AddTickPriceHandler(new RabbitMqHandler<InstrumentTickPrices>(config.RabbitMq.GetConnectionString(), config.RabbitMq.RatesExchange));
-			    exchange.AddExecutedTradeHandler(new RabbitMqHandler<ExecutedTrade>(config.RabbitMq.GetConnectionString(), config.RabbitMq.TradesExchange));
+			    var pricesHandler =
+				    new RabbitMqHandler<InstrumentTickPrices>(config.RabbitMq.GetConnectionString(), config.RabbitMq.RatesExchange);
+
+			    var tradesHandler =
+				    new RabbitMqHandler<ExecutedTrade>(config.RabbitMq.GetConnectionString(), config.RabbitMq.TradesExchange);
+			    
+			    exchanges.ForEach(x =>
+			    {
+				    x.AddTickPriceHandler(pricesHandler);
+				    x.AddExecutedTradeHandler(tradesHandler);
+			    });
 		    }
 
-		    return exchange;
+		    return exchanges;
 	    }
 	    
-        private static Exchange CreateExchange(ExchangesConfiguration config)
+        private static List<Exchange> CreateExchanges(ExchangesConfiguration config)
         {
+	        var result = new List<Exchange>();
+	        
 	        if (config.Icm.Enabled)
-		        return new ICMarketsExchange(config.Icm);
-	        else if (config.Kraken.Enabled)
-		        return new KrakenExchange(config.Kraken);
-	        else if (config.Stub.Enabled)
-		        return new StubExchange(config.Stub);
-	        else if (config.HistoricalData.Enabled)
-		        return new HistoricalDataExchange(config.HistoricalData);
-	        else
-		        return null;
+		        result.Add(new ICMarketsExchange(config.Icm));
+	        
+	        if (config.Kraken.Enabled)
+		        result.Add(new KrakenExchange(config.Kraken));
+	        
+	        if (config.Stub.Enabled)
+		        result.Add(new StubExchange(config.Stub));
+	        
+	        if (config.HistoricalData.Enabled)
+		        result.Add(new HistoricalDataExchange(config.HistoricalData));
+
+	        return result;
         }
     }
 }

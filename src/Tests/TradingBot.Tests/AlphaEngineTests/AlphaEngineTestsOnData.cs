@@ -55,7 +55,7 @@ namespace TradingBot.Tests.AlphaEngineTests
         [Fact]
         public void HistoricalDataTest()
         {
-            var instrument = new Instrument("EUR_USD");
+            var instrument = new Instrument("Exchage", "EUR_USD");
             var threshold = 0.002m;
 
             var intrinsicTime = new IntrinsicTime(threshold);
@@ -81,7 +81,7 @@ namespace TradingBot.Tests.AlphaEngineTests
         [Fact]
         public async Task TestOnKraken()
         {            
-            var instrument = new Instrument("XXBTZUSD");
+            var instrument = new Instrument("Exchange", "XXBTZUSD");
             var threshold = 0.002m;
 
             var intrinsicTime = new IntrinsicTime(threshold);
@@ -126,7 +126,7 @@ namespace TradingBot.Tests.AlphaEngineTests
         [Fact]
         public void TestAlphaEngineAgent()
         {
-            var agent = new AlphaEngineAgent(new Instrument("EUR_USD"), 100m);
+            var agent = new AlphaEngineAgent(new Instrument("Exchange", "EUR_USD"), 100m);
 
             using (var reader = new HistoricalDataReader())
                 foreach (var priceTime in reader)

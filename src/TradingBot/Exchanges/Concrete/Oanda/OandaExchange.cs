@@ -12,11 +12,13 @@ namespace TradingBot.Exchanges.Concrete.Oanda
 {
     public class OandaExchange : Exchange
     {
+        public new static readonly string Name = "oanda";
+        
         private Accounts accounts;
         private Prices prices;
         private Instruments instruments;
 
-        public OandaExchange(OandaConfiguration config) : base("OANDA", config)
+        public OandaExchange(OandaConfiguration config) : base(Name, config)
         {
             var client = new ApiClient(OandaHttpClient.CreateHttpClient(OandaAuth.Token));
 
@@ -30,12 +32,12 @@ namespace TradingBot.Exchanges.Concrete.Oanda
             throw new NotImplementedException();
         }
 
-        protected override Task<bool> AddOrder(string symbol, TradingSignal signal)
+        protected override Task<bool> AddOrder(Instrument instrument, TradingSignal signal)
         {
             throw new NotImplementedException();
         }
 
-        protected override Task<bool> CancelOrder(string symbol, TradingSignal signal)
+        protected override Task<bool> CancelOrder(Instrument instrument, TradingSignal signal)
         {
             throw new NotImplementedException();
         }

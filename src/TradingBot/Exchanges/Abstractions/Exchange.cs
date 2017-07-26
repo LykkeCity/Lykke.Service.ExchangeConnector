@@ -23,15 +23,15 @@ namespace TradingBot.Exchanges.Abstractions
 
         protected Exchange(string name, IExchangeConfiguration config)
         {
+            Name = name;
             decimal initialValue = 100m; // TODO: get initial value from config? or get if from real exchange.
-            this.Name = name;
 
             if (config.Instruments == null || config.Instruments.Length == 0)
             {
-                throw new ArgumentException($"There is no instruments in the settings for {name} exchange");
+                throw new ArgumentException($"There is no instruments in the settings for {Name} exchange");
             }
             
-            Instruments = config.Instruments.Select(x => new Instrument(x)).ToList();
+            Instruments = config.Instruments.Select(x => new Instrument(Name, x)).ToList();
             Positions = Instruments.ToDictionary(x => x.Name, x => new Position(x, initialValue));
 
             AllSignals = Instruments.ToDictionary(x => x.Name, x => new List<TradingSignal>());
@@ -128,7 +128,7 @@ namespace TradingBot.Exchanges.Abstractions
                         case OrderCommand.Create:
                             
                             ActualSignals[signals.Instrument.Name].AddLast(arrivedSignal);
-                            AddOrder(signals.Instrument.Name, arrivedSignal).Wait();
+                            AddOrder(signals.Instrument, arrivedSignal).Wait();
                             Logger.LogDebug($"Created new order {arrivedSignal}");
                             
                             break;
@@ -145,7 +145,7 @@ namespace TradingBot.Exchanges.Abstractions
                             if (existing != null)
                             {
                                 ActualSignals[signals.Instrument.Name].Remove(existing);
-                                CancelOrder(signals.Instrument.Name, existing).Wait();
+                                CancelOrder(signals.Instrument, existing).Wait();
                                 Logger.LogDebug($"Canceled order {arrivedSignal}");
                             }
                             else
@@ -166,8 +166,8 @@ namespace TradingBot.Exchanges.Abstractions
             return Task.FromResult(0);            
         }
 
-        protected abstract Task<bool> AddOrder(string symbol, TradingSignal signal);
+        protected abstract Task<bool> AddOrder(Instrument instrument, TradingSignal signal);
 
-        protected abstract Task<bool> CancelOrder(string symbol, TradingSignal signal);
+        protected abstract Task<bool> CancelOrder(Instrument instrument, TradingSignal signal);
     }
 }

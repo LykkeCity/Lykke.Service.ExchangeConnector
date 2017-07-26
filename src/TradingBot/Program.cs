@@ -19,13 +19,11 @@ namespace TradingBot
             {
 	            var config = GetConfig(args);
 
-                if (config.Logger.Enabled)
-                    Logging.LoggerFactory.AddLykkeLog(config.AzureTable.StorageConnectionString, config.Logger.TableName);
-
-	            
+                if (config.AzureStorage.Enabled)
+                    Logging.LoggerFactory.AddLykkeLog(config.AzureStorage.StorageConnectionString, config.LogsTableName);
+    
 	            Logger.LogDebug("Waiting a bit for services up...");
 	            Task.Delay(TimeSpan.FromSeconds(10)).Wait();
-	        
 	            
 				var cycle = new GetPricesCycle(config);
 				var task = cycle.Start();

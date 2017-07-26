@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,7 +18,9 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
 {
     public class ICMarketsExchange : Exchange
     {
-        public ICMarketsExchange(IcmConfig config) : base("ICMarkets", config)
+        public new static readonly string Name = "icm";
+        
+        public ICMarketsExchange(IcmConfig config) : base(Name, config)
         {
             this.config = config;
         }
@@ -105,24 +106,18 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
                 connector.SendSecurityListRequest() &&
                 connector.SendOrderStatusRequest());
         }
-
         
-        private readonly Dictionary<string, string> symbolsMap = new Dictionary<string, string>()
+        protected override Task<bool> AddOrder(Instrument instrument, TradingSignal signal)
         {
-            { "EURUSD", "EUR/USDm" }
-        };
-        
-        protected override Task<bool> AddOrder(string symbol, TradingSignal signal)
-        {
-            Logger.LogInformation($"About to place new order for symbol {symbol}: {signal}");
-            return Task.FromResult(connector.AddOrder(symbolsMap[symbol], signal));
+            Logger.LogInformation($"About to place new order for instrument {instrument}: {signal}");
+            return Task.FromResult(connector.AddOrder(instrument, signal));
         }
 
-        protected override Task<bool> CancelOrder(string symbol, TradingSignal signal)
+        protected override Task<bool> CancelOrder(Instrument instrument, TradingSignal signal)
         {
             Logger.LogInformation($"Cancelling order {signal}");
 
-            return Task.FromResult(connector.CancelOrder(symbolsMap[symbol], signal));
+            return Task.FromResult(connector.CancelOrder(instrument, signal));
 
         }
     }

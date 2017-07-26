@@ -87,8 +87,7 @@ namespace TradingBot.TheAlphaEngine
 		    var rabbitSettings = new RabbitMqSubscriberSettings()
 		    {
 			    ConnectionString = config.RabbitMq.GetConnectionString(),
-			    ExchangeName = config.RabbitMq.RatesExchange,
-			    QueueName = config.RabbitMq.QueueName
+			    ExchangeName = config.RabbitMq.RatesExchange
 		    };
 
 		    rabbitSubscriber = new RabbitMqSubscriber<InstrumentTickPrices>(rabbitSettings)
@@ -140,7 +139,7 @@ namespace TradingBot.TheAlphaEngine
 	    private static void PublishTradingSignalToRabbit(TradingSignal signal)
 	    {
 		    Logger.LogDebug($"New signal been generated: {signal}");
-		    rabbitPublisher.ProduceAsync(new InstrumentTradingSignals(new Instrument(""), new [] { signal }));
+		    rabbitPublisher.ProduceAsync(new InstrumentTradingSignals(new Instrument("", ""), new [] { signal }));
 		    Logger.LogDebug("Signal published to rabbit");
 	    }
 
@@ -152,7 +151,7 @@ namespace TradingBot.TheAlphaEngine
 				    return new StubTradingAgent();
 				    break;
 			    case AlgorithmImplementation.AlphaEngine:
-				    return new AlphaEngineAgent(new Instrument(""), config.InitialPosition);
+				    return new AlphaEngineAgent(new Instrument("", ""), config.InitialPosition);
 				    break;
 			    case AlgorithmImplementation.AlphaEngineJavaPort:
 				    return new AlphaEngine("");

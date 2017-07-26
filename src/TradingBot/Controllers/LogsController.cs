@@ -17,8 +17,8 @@ namespace TradingBot.Controllers
         public async Task<IActionResult> Index()
         {
             var logsStorage = new AzureTableStorage<LogEntity>(
-                Config.AzureTable.StorageConnectionString,
-                Config.Logger.TableName,
+                Config.AzureStorage.StorageConnectionString,
+                Config.LogsTableName,
                 new LogToConsole());
             
             var query = new TableQuery<LogEntity>();
@@ -34,7 +34,7 @@ namespace TradingBot.Controllers
         public async Task<IActionResult> AlphaEngine()
         {
             var logsStorage = new AzureTableStorage<JavaLogEntity>(
-                Config.AzureTable.StorageConnectionString,
+                Config.AzureStorage.StorageConnectionString,
                 "logsjava",
                 new LogToConsole());
             

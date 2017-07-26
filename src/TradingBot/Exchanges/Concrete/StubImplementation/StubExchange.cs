@@ -13,12 +13,14 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 {
     public class StubExchange : Exchange
     {
+	    public new static readonly string Name = "stub";
+	    
 	    private readonly ILogger logger = Logging.CreateLogger<StubExchange>();
 	    private readonly StubExchangeConfiguration config;
 	    
 
         public StubExchange(StubExchangeConfiguration config)
-	        : base("Stub Exchange Implementation", config)
+	        : base(Name, config)
         {
             this.config = config;
         }
@@ -70,7 +72,9 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 							    if (tradingSignal.TradeType == TradeType.Buy
 							        && lowestAsk <= tradingSignal.Price)
 							    {
-								    var trade = new ExecutedTrade(DateTime.UtcNow, 
+								    var trade = new ExecutedTrade(
+									    instrument,
+									    DateTime.UtcNow, 
 									    lowestAsk,
 									    tradingSignal.Count,
 									    TradeType.Buy,
@@ -85,7 +89,8 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 							    else if (tradingSignal.TradeType == TradeType.Sell
 							             && highestBid >= tradingSignal.Price)
 							    {
-								    var trade = new ExecutedTrade(DateTime.UtcNow,
+								    var trade = new ExecutedTrade(instrument,
+									    DateTime.UtcNow,
 									    highestBid,
 									    tradingSignal.Count,
 									    TradeType.Sell,
@@ -137,14 +142,16 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 	        streamJob?.Wait();
         }
 
-	    protected override Task<bool> AddOrder(string symbol, TradingSignal signal)
+	    protected override Task<bool> AddOrder(Instrument instrument, TradingSignal signal)
 	    {
 		    return Task.FromResult(true);
 	    }
 
-	    protected override async Task<bool> CancelOrder(string symbol, TradingSignal signal)
+	    protected override async Task<bool> CancelOrder(Instrument instrument, TradingSignal signal)
 	    {
-		    await CallExecutedTradeHandlers(new ExecutedTrade(DateTime.UtcNow, signal.Price, signal.Count, signal.TradeType,
+		    await CallExecutedTradeHandlers(new ExecutedTrade(
+			    instrument,
+			    DateTime.UtcNow, signal.Price, signal.Count, signal.TradeType,
 			    signal.OrderId, ExecutionStatus.Cancelled));
 
 		    return true;

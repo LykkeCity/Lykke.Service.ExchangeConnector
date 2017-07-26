@@ -6,8 +6,6 @@
 
         public string StorageConnectionString { get; set; }
 
-        public string TableName { get; set; }
-
         public string AssetsTableName { get; } = "Assets";
     }
 }

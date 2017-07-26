@@ -7,24 +7,23 @@ using Common;
 using Common.Log;
 using Microsoft.Extensions.Logging;
 using TradingBot.Common.Trading;
+using TradingBot.Handlers;
 using TradingBot.Helpers;
 using TradingBot.Infrastructure.Logging;
 
 namespace TradingBot.Communications
 {
-    public class AzureTablePricesPublisher
+    public class AzureTablePricesPublisher : Handler<InstrumentTickPrices>
     {
 		private readonly ILogger logger = Logging.CreateLogger<AzureTablePricesPublisher>();
 
         private readonly INoSQLTableStorage<PriceTableEntity> tableStorage;
 
-	    private readonly string partitionKey;
 	    private readonly string tableName;
 
-        public AzureTablePricesPublisher(Instrument instrument, string tableName, string connectionString)
+        public AzureTablePricesPublisher(string tableName, string connectionString)
         {
 	        this.tableName = tableName;
-	        this.partitionKey = instrument.Name.GetAzureFriendlyName();
 
 			tableStorage = new AzureTableStorage<PriceTableEntity>(connectionString,
 													   tableName,
@@ -35,7 +34,7 @@ namespace TradingBot.Communications
 		private readonly Queue<PriceTableEntity> tablePricesQueue = new Queue<PriceTableEntity>();
 		private DateTime currentPriceMinute;
 
-		public async Task Publish(InstrumentTickPrices prices)
+		public override async Task Handle(InstrumentTickPrices prices)
 		{
 			if (currentPriceMinute == default(DateTime))
                 currentPriceMinute = prices.TickPrices[0].Time.TruncSeconds();
@@ -49,7 +48,7 @@ namespace TradingBot.Communications
 
 				if (nextMinute || fieldOverflow)
 				{
-					var tablePrice = new PriceTableEntity(partitionKey,
+					var tablePrice = new PriceTableEntity(prices.Instrument.Name,
 															currentPriceMinute,
 															pricesQueue.ToArray());
 														
@@ -60,7 +59,7 @@ namespace TradingBot.Communications
 					try
 					{
 						await tableStorage.InsertAsync(tablePrice);
-						logger.LogDebug($"Prices for {partitionKey} published to Azure table {tableName}");
+						logger.LogDebug($"Prices for {prices.Instrument} published to Azure table {tableName}");
 					}
 					catch (Microsoft.WindowsAzure.Storage.StorageException ex)
 						when (ex.Message == "Conflict")
