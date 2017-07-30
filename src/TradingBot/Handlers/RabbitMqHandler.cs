@@ -21,7 +21,7 @@ namespace TradingBot.Handlers
                 .SetSerializer(new GenericRabbitModelConverter<T>())
                 .SetLogger(new LogToConsole())
                 .SetPublishStrategy(new DefaultFnoutPublishStrategy())
-                .SetConsole(new GetPricesCycle.RabbitConsole())
+                .SetConsole(new ExchangeConnectorApplication.RabbitConsole())
                 .Start();
         }
         

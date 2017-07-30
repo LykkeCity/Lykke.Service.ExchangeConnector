@@ -30,6 +30,9 @@ namespace TradingBot
         {
             // Add framework services.
             services.AddMvc();
+
+
+            services.AddSingleton(Program.Application);
         }
     }
 }

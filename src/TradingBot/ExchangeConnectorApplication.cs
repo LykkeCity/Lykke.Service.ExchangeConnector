@@ -16,11 +16,11 @@ using TradingBot.Infrastructure.Logging;
 
 namespace TradingBot
 {
-    public class GetPricesCycle
+    public class ExchangeConnectorApplication : IApplicationFacade
     {
-        private readonly ILogger logger = Logging.CreateLogger<GetPricesCycle>();
+        private readonly ILogger logger = Logging.CreateLogger<ExchangeConnectorApplication>();
 
-        public GetPricesCycle(Configuration config)
+        public ExchangeConnectorApplication(Configuration config)
         {
             this.config = config;
             exchanges = ExchangeFactory.CreateExchanges(config).ToDictionary(x => x.Name, x => x);
@@ -106,9 +106,6 @@ namespace TradingBot
             {
                 exchange?.ClosePricesStream();    
             }
-            
-
-            //((IStopable) rabbitPublisher)?.Stop();
         }
 
         public class RabbitConsole : IConsole
@@ -117,6 +114,16 @@ namespace TradingBot
             {
                 Console.WriteLine(line);
             }
+        }
+
+        public IReadOnlyCollection<string> GetConnectedExchanges()
+        {
+            return exchanges.Keys.ToList();
+        }
+
+        public Exchange GetExchange(string name)
+        {
+            return exchanges[name];
         }
     }
 }

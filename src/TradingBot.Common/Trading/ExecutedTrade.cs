@@ -7,7 +7,10 @@ namespace TradingBot.Common.Trading
     {
         Fill,
         PartialFill,
-        Cancelled
+        Cancelled,
+        Rejected,
+        New,
+        Pending
     }
 
     public class ExecutedTrade

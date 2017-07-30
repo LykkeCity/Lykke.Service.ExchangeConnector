@@ -61,7 +61,7 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
             rabbit = new RabbitMqSubscriber<OrderBook>(rabbitSettings)
                 .SetMessageDeserializer(new GenericRabbitModelConverter<OrderBook>())
                 .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
-                .SetConsole(new GetPricesCycle.RabbitConsole())
+                .SetConsole(new ExchangeConnectorApplication.RabbitConsole())
                 .SetLogger(new LogToConsole())
                 .Subscribe(async orderBook =>
                 {
@@ -100,11 +100,8 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
                 .HandleResult<bool>(x => !x)
                 .WaitAndRetry(5, attempt => TimeSpan.FromSeconds(10));
 
-            return Task.FromResult(
-                retry.Execute(connector.IsLoggedOn) &&    
-                connector.SendRequestForPositions() &&
-                connector.SendSecurityListRequest() &&
-                connector.SendOrderStatusRequest());
+            
+            return Task.FromResult(retry.Execute(() => initiator.IsLoggedOn));
         }
         
         protected override Task<bool> AddOrder(Instrument instrument, TradingSignal signal)
@@ -118,7 +115,18 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
             Logger.LogInformation($"Cancelling order {signal}");
 
             return Task.FromResult(connector.CancelOrder(instrument, signal));
+        }
 
+        public async Task<int> GetOrdersCountAsync()
+        {
+            connector.SendOrderStatusRequest();
+
+            return await connector.WaitOrderStatusRequest();
+        }
+
+        public async Task<ExecutedTrade> AddOrderAndWait(Instrument instrument, TradingSignal signal)
+        {
+            return await connector.AddOrderAndWait(instrument, signal);
         }
     }
 }

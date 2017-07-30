@@ -123,9 +123,18 @@ namespace TradingBot.Exchanges.Abstractions
                 
                 foreach (var arrivedSignal in signals.TradingSignals)
                 {
+                    TradingSignal existing;
+                    
                     switch (arrivedSignal.Command)
                     {
                         case OrderCommand.Create:
+
+                            existing = ActualSignals[signals.Instrument.Name]
+                                .SingleOrDefault(x => x.OrderId == arrivedSignal.OrderId);
+                            
+                            if (existing != null)
+                                Logger.LogDebug($"An order with id {arrivedSignal.OrderId} already in actual signals.");
+                                // TODO: return message from the method
                             
                             ActualSignals[signals.Instrument.Name].AddLast(arrivedSignal);
                             AddOrder(signals.Instrument, arrivedSignal).Wait();
@@ -139,7 +148,7 @@ namespace TradingBot.Exchanges.Abstractions
                             
                         case OrderCommand.Cancel:
                             
-                            var existing = ActualSignals[signals.Instrument.Name]
+                            existing = ActualSignals[signals.Instrument.Name]
                                 .SingleOrDefault(x => x.OrderId == arrivedSignal.OrderId);
 
                             if (existing != null)
@@ -169,5 +178,7 @@ namespace TradingBot.Exchanges.Abstractions
         protected abstract Task<bool> AddOrder(Instrument instrument, TradingSignal signal);
 
         protected abstract Task<bool> CancelOrder(Instrument instrument, TradingSignal signal);
+
+        public Dictionary<string, LinkedList<TradingSignal>> ActualOrders => ActualSignals; // TODO: to readonly dictionary and collection
     }
 }

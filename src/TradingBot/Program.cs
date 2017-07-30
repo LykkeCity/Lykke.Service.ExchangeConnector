@@ -13,6 +13,8 @@ namespace TradingBot
     {
         private static readonly ILogger Logger = Logging.CreateLogger<Program>();
 
+	    public static ExchangeConnectorApplication Application;
+
         static void Main(string[] args)
         {
             try
@@ -23,10 +25,10 @@ namespace TradingBot
                     Logging.LoggerFactory.AddLykkeLog(config.AzureStorage.StorageConnectionString, config.LogsTableName);
     
 	            Logger.LogDebug("Waiting a bit for services up...");
-	            Task.Delay(TimeSpan.FromSeconds(10)).Wait();
+	            //Task.Delay(TimeSpan.FromSeconds(10)).Wait();
 	            
-				var cycle = new GetPricesCycle(config);
-				var task = cycle.Start();
+	            Application = new ExchangeConnectorApplication(config);
+				var task = Application.Start();
 	            
 				Logger.LogInformation("Press Ctrl+C for exit");
 
@@ -39,8 +41,8 @@ namespace TradingBot
 
 	            host.Run(); // returns on Ctrl+C
 
-	            cycle.Stop();
-	            task?.Wait();
+	            Application.Stop();
+	            //task?.Wait();
 
 				Logger.LogInformation("The service is stopped.");
 				Environment.Exit(0);
