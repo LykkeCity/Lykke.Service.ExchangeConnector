@@ -39,7 +39,8 @@ namespace QuickFix.Util
             }
             catch (Exception)
             {
-                return DateTime.MinValue;
+                return new DateTime(0L, DateTimeKind.Utc); // MinValue in UTC
+                //return DateTime.MinValue;
             }
         }
     }

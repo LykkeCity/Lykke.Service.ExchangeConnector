@@ -151,19 +151,31 @@ namespace QuickFix.DataDictionary
 			foreach (int field in Header.ReqFields)
 			{
 				if (!message.Header.IsSetField(field))
-					throw new RequiredTagMissing(field);
+				{
+					// TODO: LOG WARNING, 
+					// Exception commented out because ICM often response without required tags
+					//throw new RequiredTagMissing(field);
+				}
 			}
 
 			foreach (int field in Trailer.ReqFields)
 			{
 				if (!message.Trailer.IsSetField(field))
-					throw new RequiredTagMissing(field);
+				{
+					// TODO: LOG WARNING, 
+					// Exception commented out because ICM often response without required tags
+					//throw new RequiredTagMissing(field);
+				}
 			}
 
 			foreach (int field in Messages[msgType].ReqFields)
 			{
 				if (!message.IsSetField(field))
-					throw new RequiredTagMissing(field);
+				{
+					// TODO: LOG WARNING, 
+					// Exception commented out because ICM often response without required tags
+					//throw new RequiredTagMissing(field);
+				}
 			}
 
 			/** FIXME TODO group stuff
@@ -360,7 +372,10 @@ namespace QuickFix.DataDictionary
 			if (Messages.TryGetValue(msgType, out dd))
 				if (dd.Fields.ContainsKey(field.Tag))
 					return;
-			throw new TagNotDefinedForMessage(field.Tag, msgType);
+			//throw new TagNotDefinedForMessage(field.Tag, msgType);
+			
+			// TODO: log error
+			return; // exception commented out for ICM non standart messages
 		}
 
 		/// <summary>
