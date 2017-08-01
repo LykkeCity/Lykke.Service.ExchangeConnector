@@ -117,16 +117,16 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
             return Task.FromResult(connector.CancelOrder(instrument, signal));
         }
 
-        public async Task<int> GetOrdersCountAsync()
+        public async Task<object> GetOrdersCountAsync()
         {
             connector.SendOrderStatusRequest();
 
             return await connector.WaitOrderStatusRequest();
         }
 
-        public async Task<ExecutedTrade> AddOrderAndWait(Instrument instrument, TradingSignal signal)
+        public async Task<ExecutedTrade> AddOrderAndWait(Instrument instrument, TradingSignal signal, TimeSpan timeout)
         {
-            return await connector.AddOrderAndWait(instrument, signal);
+            return await connector.AddOrderAndWait(instrument, signal, timeout);
         }
     }
 }

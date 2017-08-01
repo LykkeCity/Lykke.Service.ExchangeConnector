@@ -84,8 +84,7 @@ namespace TradingBot.Communications
 	    /// One AzureTable field must be 64k or less. 
 	    /// Strings are stored in UTF16 encoding, so maximum number of characters is 32K.
 	    /// One serialized entry has size no more then 100 characters.
-	    /// 32k / 100 = 400
 	    /// </summary>
-	    private const int MaxQueueCount = 320;
+	    private const int MaxQueueCount = 100;
     }
 }

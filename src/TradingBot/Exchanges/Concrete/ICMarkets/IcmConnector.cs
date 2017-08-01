@@ -28,6 +28,10 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
         }
 
         public event Func<ExecutedTrade, Task> OnTradeExecuted;
+
+
+        private Dictionary<long, object> orders;
+        
         
         public void ToAdmin(Message message, SessionID sessionID)
         {            
@@ -327,10 +331,6 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
                 long id = long.Parse(report.ClOrdID.Obj);
                 if (orderResponses.ContainsKey(id))
                 {
-                    // If order is Market Order then wait for Fill or PartialFill, don't send New
-                    if (orderResponses[id].Item1.OrderType == OrderType.Market &&
-                        (executionStatus == ExecutionStatus.Fill || executionStatus == ExecutionStatus.PartialFill))
-                    
                     orderResponses[id].Item2.SetResult(executedTrade);
                 }
             }
@@ -461,14 +461,11 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
         public async Task<ExecutedTrade> AddOrderAndWait(Instrument instrument, TradingSignal signal, TimeSpan timeout)
         {
             var id = signal.OrderId;
-
             var tcs = new TaskCompletionSource<ExecutedTrade>();
-
-            var tuple = Tuple.Create(signal, tcs);
             
             lock (orderResponses)
             {
-                orderResponses.Add(id, tuple);   
+                orderResponses.Add(id, Tuple.Create(signal, tcs));   
             }
 
             var signalSended = AddOrder(instrument, signal);
@@ -478,6 +475,21 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
 
             ExecutedTrade result = await tcs.Task.ConfigureAwait(false);
 
+            if (result.Status == ExecutionStatus.New)
+            {
+                lock (orderResponses)
+                {
+                    tcs = new TaskCompletionSource<ExecutedTrade>();
+                    orderResponses[id] = Tuple.Create(signal, tcs);
+                }
+
+                await Task.WhenAny(tcs.Task, Task.Delay(timeout));
+                if (tcs.Task.IsCompleted)
+                {
+                    result = tcs.Task.Result;
+                }
+            }
+            
             lock (orderResponses)
             {
                 orderResponses.Remove(id);
@@ -486,7 +498,7 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
             return result;
         }
 
-        public async Task<int> WaitOrderStatusRequest()
+        public async Task<object> WaitOrderStatusRequest()
         {
             var requestId = 11;
             

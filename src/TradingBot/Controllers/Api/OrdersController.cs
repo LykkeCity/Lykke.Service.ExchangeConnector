@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using TradingBot.Common.Trading;
 using TradingBot.Exchanges.Concrete.ICMarkets;
+using TradingBot.Infrastructure.Configuration;
 using TradingBot.Models;
 using TradingBot.Models.Api;
 
@@ -14,9 +15,9 @@ namespace TradingBot.Controllers.Api
 {
     public class OrdersController : BaseApiController
     {
-        public string Index()
+        public ResponseMessage Index()
         {
-            return "You have to specify exchange name to get the actual orders";
+            return new ResponseMessage("You have to specify exchange name to get the actual orders");
         }
         
         [HttpGet("{exchangeName}")]
@@ -59,7 +60,8 @@ namespace TradingBot.Controllers.Api
             
             if (exchangeName == ICMarketsExchange.Name)
             {
-                var result = await ((ICMarketsExchange) Application.GetExchange(exchangeName)).AddOrderAndWait(instrument, tradingSignal);
+                var result = await ((ICMarketsExchange) Application.GetExchange(exchangeName))
+                    .AddOrderAndWait(instrument, tradingSignal, Configuration.Instance.AspNet.ApiTimeout);
 
                 int statusCode = (int) HttpStatusCode.Created;
                 if (result.Status == ExecutionStatus.Rejected || result.Status == ExecutionStatus.Cancelled)
