@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using TradingBot.Common.Trading;
 using TradingBot.Exchanges.Concrete.ICMarkets;
+using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Models;
 using TradingBot.Models.Api;
@@ -41,6 +42,7 @@ namespace TradingBot.Controllers.Api
             return order;
         }
 
+        [ApiKeyAuth]
         [HttpPost("{exchangeName}")]
         public async Task<IActionResult> Post(string exchangeName, [FromBody] OrderModel orderModel)
         {

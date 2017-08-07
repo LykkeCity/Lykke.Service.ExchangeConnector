@@ -4,7 +4,7 @@ using TradingBot.Common.Trading;
 
 namespace TradingBot.Models.Api
 {
-    public class OrderModel
+    public class OrderModel : ISignedModel
     {
         public string ExchangeName { get; set; }
         
@@ -30,5 +30,10 @@ namespace TradingBot.Models.Api
         public long Id { get; set; }
         
         public DateTime DateTime { get; set; }
+        
+        public string GetStringToSign()
+        {
+            return $"{Id}{Instrument}{TradeType}{OrderType}{Price:0.0000}{Volume:0.0000}";
+        }
     }
 }
