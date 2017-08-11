@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Common.Log;
 using Lykke.RabbitMqBroker.Publisher;
-using TradingBot.Common.Trading;
+using TradingBot.Trading;
 
 namespace TradingBot.Handlers
 {

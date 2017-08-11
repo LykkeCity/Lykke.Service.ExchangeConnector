@@ -1,14 +1,14 @@
 ﻿using System.Linq;
-using TradingBot.Common.Trading;
-using OrderBook = TradingBot.Exchanges.Concrete.ICMarkets.Entities.OrderBook;
+using TradingBot.Trading;
+using OrderBook = TradingBot.Exchanges.Concrete.Icm.Entities.OrderBook;
 
-namespace TradingBot.Exchanges.Concrete.ICMarkets.Converters
+namespace TradingBot.Exchanges.Concrete.Icm.Converters
 {
     public static class OrderBookConverter
     {
         public static InstrumentTickPrices ToInstrumentTickPrices(this OrderBook orderBook)
         {
-            return new InstrumentTickPrices(new Instrument(ICMarketsExchange.Name, orderBook.Asset), 
+            return new InstrumentTickPrices(new Instrument(IcmExchange.Name, orderBook.Asset), 
                     orderBook.Asks.Zip(orderBook.Bids, (ask, bid) => new TickPrice(orderBook.Timestamp, ask.Price, bid.Price)).ToArray()
                 );
         }

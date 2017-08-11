@@ -4,10 +4,10 @@ using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using TradingBot.Common.Infrastructure;
-using TradingBot.Common.Trading;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Infrastructure.Logging;
+using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Abstractions
 {
@@ -86,7 +86,6 @@ namespace TradingBot.Exchanges.Abstractions
                 Logger.LogError(new EventId(), ex, "Connection test failed with error");
                 return false;
             }
-
         }
 
         protected abstract Task<bool> TestConnectionImpl(CancellationToken cancellationToken);
@@ -144,7 +143,7 @@ namespace TradingBot.Exchanges.Abstractions
                             
                         case OrderCommand.Edit:
                             throw new NotSupportedException("Do not support edit signal");
-                            break;
+                            //break;
                             
                         case OrderCommand.Cancel:
                             

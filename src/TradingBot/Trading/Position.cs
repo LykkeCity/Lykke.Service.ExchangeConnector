@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Common.PasswordTools;
 using Microsoft.Extensions.Logging;
-using TradingBot.Common.Infrastructure;
+using TradingBot.Infrastructure.Logging;
 
-namespace TradingBot.Common.Trading
+namespace TradingBot.Trading
 {
     public class Position
     {
@@ -36,7 +35,7 @@ namespace TradingBot.Common.Trading
         
         public decimal RealizedPnL => (currentValue - initialValue) / initialValue; // TODO~!!!!
 
-        private decimal realizedProfit;
+//        private decimal realizedProfit;
         
         private readonly LinkedList<ExecutedTrade> longSide = new LinkedList<ExecutedTrade>();
         private readonly LinkedList<ExecutedTrade> shortSide = new LinkedList<ExecutedTrade>();

@@ -7,13 +7,13 @@ using System.IO;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading;
-using TradingBot.Common.Infrastructure;
+using TradingBot.Infrastructure.Logging;
 
 namespace TradingBot.Exchanges.Abstractions
 {
     public class ApiClient
     {
-        private readonly ILogger Logger = Logging.CreateLogger<ApiClient>();
+        private readonly ILogger logger = Logging.CreateLogger<ApiClient>();
         
         private readonly HttpClient httpClient;
 
@@ -52,7 +52,7 @@ namespace TradingBot.Exchanges.Abstractions
 
         private void Log(string message)
         {
-            Logger.LogDebug(message);
+            logger.LogDebug(message);
         }
     }
 }

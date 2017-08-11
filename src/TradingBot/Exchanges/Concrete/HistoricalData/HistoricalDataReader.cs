@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using TradingBot.Common.Trading;
+using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.HistoricalData
 {
@@ -22,14 +22,14 @@ namespace TradingBot.Exchanges.Concrete.HistoricalData
         
         private string[] paths;
 
-        private StreamReader reader;
+        //private StreamReader reader;
 
         private Func<string, TickPrice> lineParser;
         
 
         public void Dispose()
         {
-            reader?.Dispose();
+            //reader?.Dispose();
         }
 
         public IEnumerator<TickPrice> GetEnumerator()

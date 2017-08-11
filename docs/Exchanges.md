@@ -7,7 +7,7 @@ This is the list of exchanges (Trading Venues) and their possibilities. The Alph
 
  - [Kraken](#kraken)
  - [Bitstamp](#bitstamp)
- - [ICMarkets](#icmarkets)
+ - [ICMCapital](#icmcapital)
  - [OANDA](#oanda)
  - [GDax](#gdax)
 
@@ -190,7 +190,7 @@ Do not make more than 600 requests per 10 minutes or we will ban your IP address
  - xrpbtc
 
 
-## ICMarkets
+## ICMCapital
 
 ### Info
 

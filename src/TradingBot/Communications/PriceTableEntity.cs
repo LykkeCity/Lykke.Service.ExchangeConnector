@@ -1,7 +1,7 @@
 ﻿﻿using System;
 using Microsoft.WindowsAzure.Storage.Table;
 using Newtonsoft.Json;
-using TradingBot.Common.Trading;
+ using TradingBot.Trading;
 
 namespace TradingBot.Communications
 {

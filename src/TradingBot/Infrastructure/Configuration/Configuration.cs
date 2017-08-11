@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Configuration;
-using TradingBot.Common.Configuration;
 
 namespace TradingBot.Infrastructure.Configuration
 {

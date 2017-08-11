@@ -6,10 +6,10 @@ using AzureStorage.Tables;
 using Common;
 using Common.Log;
 using Microsoft.Extensions.Logging;
-using TradingBot.Common.Trading;
 using TradingBot.Handlers;
 using TradingBot.Helpers;
 using TradingBot.Infrastructure.Logging;
+using TradingBot.Trading;
 
 namespace TradingBot.Communications
 {

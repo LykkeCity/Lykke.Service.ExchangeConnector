@@ -1,8 +1,7 @@
 ﻿using System;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 
-namespace TradingBot.Common.Trading
+namespace TradingBot.Trading
 {
     public enum SignalType
     {

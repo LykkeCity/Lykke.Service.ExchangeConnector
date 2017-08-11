@@ -4,10 +4,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using TradingBot.Common.Trading;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Logging;
+using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.StubImplementation
 {

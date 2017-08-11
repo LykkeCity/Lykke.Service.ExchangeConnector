@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace TradingBot.Exchanges.Concrete.ICMarkets.Entities
+namespace TradingBot.Exchanges.Concrete.Icm.Entities
 {
     public class OrderBook
     {

@@ -1,7 +1,7 @@
 ﻿using System;
 using Newtonsoft.Json;
 
-namespace TradingBot.Common.Trading
+namespace TradingBot.Trading
 {
 	public class TickPrice
 	{

@@ -10,9 +10,8 @@ using TradingBot.Exchanges;
 using Common.Log;
 using Lykke.RabbitMqBroker.Subscriber;
 using Polly;
-using TradingBot.Common.Configuration;
-using TradingBot.Common.Trading;
 using TradingBot.Infrastructure.Logging;
+using TradingBot.Trading;
 
 namespace TradingBot
 {

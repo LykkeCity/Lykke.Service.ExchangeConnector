@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,19 +9,19 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using QuickFix;
 using QuickFix.Transport;
-using TradingBot.Common.Trading;
 using TradingBot.Exchanges.Abstractions;
-using TradingBot.Exchanges.Concrete.ICMarkets.Converters;
-using TradingBot.Exchanges.Concrete.ICMarkets.Entities;
+using TradingBot.Exchanges.Concrete.Icm.Converters;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Trading;
+using OrderBook = TradingBot.Exchanges.Concrete.Icm.Entities.OrderBook;
 
-namespace TradingBot.Exchanges.Concrete.ICMarkets
+namespace TradingBot.Exchanges.Concrete.Icm
 {
-    public class ICMarketsExchange : Exchange
+    public class IcmExchange : Exchange
     {
         public new static readonly string Name = "icm";
         
-        public ICMarketsExchange(IcmConfig config) : base(Name, config)
+        public IcmExchange(IcmConfig config) : base(Name, config)
         {
             this.config = config;
         }
@@ -117,16 +118,26 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
             return Task.FromResult(connector.CancelOrder(instrument, signal));
         }
 
-        public async Task<object> GetOrdersCountAsync()
+        public Task<ExecutedTrade> GetOrderInfo(Instrument instrument, long orderId)
         {
-            connector.SendOrderStatusRequest();
-
-            return await connector.WaitOrderStatusRequest();
+            return connector.GetOrderInfoAndWaitResponse(instrument, orderId);
         }
 
-        public async Task<ExecutedTrade> AddOrderAndWait(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+//        public Task<object> GetOrdersCountAsync()
+//        {
+//            connector.SendOrderStatusRequest();
+//
+//            return connector.WaitOrderStatusRequest();
+//        }
+
+        public Task<IEnumerable<ExecutedTrade>> GetAllOrdersInfo()
         {
-            return await connector.AddOrderAndWait(instrument, signal, timeout);
+            return connector.GetAllOrdersInfo();
+        }
+
+        public Task<ExecutedTrade> AddOrderAndWait(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+        {
+            return connector.AddOrderAndWaitResponse(instrument, signal, timeout);
         }
     }
 }

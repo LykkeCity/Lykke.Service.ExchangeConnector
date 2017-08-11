@@ -1,4 +1,4 @@
-﻿namespace TradingBot.Common.Configuration
+﻿namespace TradingBot.Infrastructure.Configuration
 {
     public class AzureTableConfiguration
     {

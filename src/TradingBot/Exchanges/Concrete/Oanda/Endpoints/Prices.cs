@@ -6,13 +6,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Oanda.Entities.Prices;
-using TradingBot.Common.Infrastructure;
+using TradingBot.Infrastructure.Logging;
 
 namespace TradingBot.Exchanges.Concrete.Oanda.Endpoints
 {
     public class Prices : BaseApi
     {
-        private readonly ILogger Logger = Logging.CreateLogger<Prices>();
+        private readonly ILogger logger = Logging.CreateLogger<Prices>();
 
         public Prices(ApiClient apiClient) : base(apiClient)
         {
@@ -44,7 +44,7 @@ namespace TradingBot.Exchanges.Concrete.Oanda.Endpoints
                             priceCallback(price);
                         }
                     }
-                    Logger.LogInformation("Canellation requested.");
+                    logger.LogInformation("Canellation requested.");
                 }
             }
         }

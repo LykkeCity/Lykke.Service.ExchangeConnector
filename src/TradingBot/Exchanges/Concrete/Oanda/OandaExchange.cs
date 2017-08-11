@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Oanda.Endpoints;
 using System;
-using TradingBot.Common.Trading;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.Oanda
 {

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using TradingBot.Infrastructure.Exceptions;
 
 namespace TradingBot
 {
@@ -14,6 +15,8 @@ namespace TradingBot
             app.UseDeveloperExceptionPage();
             app.UseStaticFiles();
             app.UseMvcWithDefaultRoute();
+
+            app.UseMiddleware<StatusCodeExceptionHandler>();
             
             app.Run(async (context) =>
             {

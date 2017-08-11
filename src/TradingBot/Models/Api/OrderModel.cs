@@ -1,10 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using TradingBot.Common.Trading;
+using TradingBot.Trading;
 
 namespace TradingBot.Models.Api
 {
-    public class OrderModel : ISignedModel
+    public class OrderModel : ISignedModel//, IValidatableObject
     {
         public string ExchangeName { get; set; }
         
@@ -33,7 +34,12 @@ namespace TradingBot.Models.Api
         
         public string GetStringToSign()
         {
-            return $"{Id}{Instrument}{TradeType}{OrderType}{Price:0.0000}{Volume:0.0000}";
+            return $"{DateTime:s}{Id}{Instrument}{TradeType}{OrderType}{Price:0.0000}{Volume:0.0000}";
         }
+
+//        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+//        {
+//            throw new NotImplementedException();
+//        }
     }
 }

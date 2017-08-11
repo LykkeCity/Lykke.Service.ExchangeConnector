@@ -4,12 +4,15 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Logging;
 using TradingBot.Models.Api;
 
 namespace TradingBot.Infrastructure.Auth
 {
     public class ApiKeyAuthAttribute : ActionFilterAttribute
     {
+        private readonly ILogger logger = Logging.Logging.CreateLogger<ApiKeyAuthAttribute>();
+        
         public override void OnActionExecuting(ActionExecutingContext context)
         {
             var model = context.ActionArguments.Values.FirstOrDefault(x => x is ISignedModel);
@@ -55,6 +58,7 @@ namespace TradingBot.Infrastructure.Auth
                     }
                     catch (Exception e)
                     {
+                        logger.LogError(new EventId(), e, $"Error on parsing request sig {modelSig}");
                         signIsCorrect = false;
                     }
                 }

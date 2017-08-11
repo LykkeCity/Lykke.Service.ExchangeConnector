@@ -1,13 +1,5 @@
-﻿using TradingBot.Common.Trading;
-
-namespace TradingBot.Trading
+﻿namespace TradingBot.Trading
 {
-    public enum OrderType
-    {
-        Market,
-        Limit
-    }
-
     public class Order
     {
         public Order(string instrument, OrderType type, TradingSignal signal)
@@ -19,8 +11,8 @@ namespace TradingBot.Trading
 
         public string Instrument { get; }
         
-        private decimal stopLoss;
-        private decimal takeProfit;
+//        private decimal stopLoss;
+//        private decimal takeProfit;
         
         public OrderType Type { get; }
 

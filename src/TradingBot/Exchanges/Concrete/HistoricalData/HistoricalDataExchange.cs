@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using TradingBot.Common.Trading;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.HistoricalData
 {

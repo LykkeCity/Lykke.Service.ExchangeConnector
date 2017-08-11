@@ -3,7 +3,7 @@ using Lykke.RabbitMqBroker.Publisher;
 using Lykke.RabbitMqBroker.Subscriber;
 using Newtonsoft.Json;
 
-namespace TradingBot.Common.Trading
+namespace TradingBot.Trading
 {
     public class GenericRabbitModelConverter<T> : IRabbitMqSerializer<T>, IMessageDeserializer<T>
     {

@@ -4,12 +4,12 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using TradingBot.Common.Trading;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Kraken.Endpoints;
 using TradingBot.Exchanges.Concrete.Kraken.Entities;
 using TradingBot.Helpers;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.Kraken
 {

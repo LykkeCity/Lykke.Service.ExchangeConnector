@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using TradingBot.Common.Configuration;
 
 namespace TradingBot.Infrastructure.Configuration
 {

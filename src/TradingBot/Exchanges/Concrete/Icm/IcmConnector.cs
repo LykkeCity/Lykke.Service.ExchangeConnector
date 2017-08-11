@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -7,18 +9,19 @@ using QuickFix;
 using QuickFix.Fields;
 using QuickFix.Fields.Converters;
 using QuickFix.FIX44;
-using TradingBot.Common.Trading;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Logging;
+using TradingBot.Trading;
 using Message = QuickFix.Message;
-using TradeType = TradingBot.Common.Trading.TradeType;
+using TradeType = TradingBot.Trading.TradeType;
 
-namespace TradingBot.Exchanges.Concrete.ICMarkets
+namespace TradingBot.Exchanges.Concrete.Icm
 {
     public class IcmConnector : IApplication
     {
         private readonly ILogger logger = Logging.CreateLogger<IcmConnector>();
         private readonly IcmConfig config;
+        private readonly TimeSpan timeout = TimeSpan.FromSeconds(30);
 
         private SessionID session;
 
@@ -29,10 +32,6 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
 
         public event Func<ExecutedTrade, Task> OnTradeExecuted;
 
-
-        private Dictionary<long, object> orders;
-        
-        
         public void ToAdmin(Message message, SessionID sessionID)
         {            
             var header = message.Header;
@@ -52,11 +51,16 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
         public void ToApp(Message message, SessionID sessionId)
         {
             logger.LogInformation($"Outgoing (ToApp) message is sent: {message}");
+
+            if (message.IsSetField(Tags.MsgSeqNum))
+            {
+                var seqNum = message.GetField(new MsgSeqNum());
+            }
         }
 
         public void FromApp(Message message, SessionID sessionID)
         {
-            logger.LogInformation($"FromApp message: {message}");	  
+            logger.LogInformation($"FromApp message: {message}");
             
             try
             {
@@ -108,7 +112,7 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
 
             SendRequestForPositions();
             SendSecurityListRequest();
-            SendOrderStatusRequest();
+            //SendOrderStatusRequest();
         }
         
         private void HandleSecurityList(SecurityList securityList)
@@ -302,7 +306,7 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
                     break;
                     
                 case ExecType.ORDER_STATUS:
-                    logger.LogInformation($"Order status for {report.ClOrdID}: symbol: {report.Symbol}, side: {report.Side}, orderQty: {report.OrderQty}");
+                    logger.LogInformation($"Order status for {report.ClOrdID}, side: {report.Side}, orderQty: {report.OrderQty}");
                     break;
                     
                 case ExecType.PENDING_CANCEL:
@@ -310,13 +314,15 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
                     break;
             }
 
+            var id = long.Parse(report.ClOrdID.Obj);
+            
             var executedTrade = new ExecutedTrade(
-                new Instrument(ICMarketsExchange.Name, symbolsMapBack[report.Symbol.Obj]),
-                report.TransactTime.Obj,
+                new Instrument(IcmExchange.Name, report.IsSetField(new Symbol()) ? symbolsMapBack[report.Symbol.Obj] : ""),    
+                report.IsSetField(new TransactTime()) ? report.TransactTime.Obj : DateTime.UtcNow,
                 report.Price.Obj,
                 report.OrderQty.Obj,
                 report.Side.Obj == Side.BUY ? TradeType.Buy : TradeType.Sell,
-                long.Parse(report.ClOrdID.Obj),
+                id,
                 executionStatus);
 
             if (executionStatus == ExecutionStatus.Cancelled ||
@@ -326,35 +332,54 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
                 OnTradeExecuted?.Invoke(executedTrade); // TODO: await?
             }
 
-            lock (orderResponses)
+            var tcs = orderExecutions.GetOrAdd(id, new TaskCompletionSource<ExecutedTrade>());
+            tcs.SetResult(executedTrade);
+
+            orderIds.AddOrUpdate(id, report.OrderID.Obj, (i, prevValue) =>
             {
-                long id = long.Parse(report.ClOrdID.Obj);
-                if (orderResponses.ContainsKey(id))
-                {
-                    orderResponses[id].Item2.SetResult(executedTrade);
-                }
-            }
+                if (prevValue != null && prevValue != report.OrderID.Obj)
+                    logger.LogWarning($"Updating an external ID for order {i} from {prevValue} to {report.OrderID.Obj}");
+                
+                return report.OrderID.Obj;
+            });
         }
 
-        public bool SendOrderStatusRequest()
+        public bool SendAllOrdersStatusRequest()
         {
             logger.LogDebug($"Trying to send Order Status Request");
             
-            var request = new OrderStatusRequest(
-                new ClOrdID("OPEN_ORDER"),
-                new Symbol("EUR/USDm"),
-                new Side('7')// 7 for any type
-            );
+            var request = new OrderStatusRequest();
 
+            request.SetField(new ClOrdID("OPEN_ORDER"));
             request.SetField(new OrderID("OPEN_ORDER"));
             request.SetField(new TransactTime(DateTime.UtcNow));
+            request.SetField(new Side('7')); // 7 for any type
             request.SetField(new CharField(7559, 'Y')); // custom ICM tag for requesting all open orders
-            //request.SetField(new OrdStatusReqID((requestId = ++orderStatusRequestId).ToString()));
 
-            if (waitedMessages.ContainsKey(11))
-                waitedMessages.Remove(11);
+            return SendRequest(request);
+        }
+
+        public bool SendOrderStatusRequest(Instrument instrument, long orderId)
+        {
+            TradingSignal signal;
+            if (!orderSignals.TryGetValue(orderId, out signal))
+                throw new InvalidOperationException($"Can't find signal for order {orderId}");
             
-            waitedMessages.Add(11, null); // TODO: get rid of magic number
+            logger.LogDebug($"Sending order status request for order {orderId}");
+            
+            var request = new OrderStatusRequest(
+                new ClOrdID(orderId.ToString()), 
+                new Symbol(symbolsMap[instrument.Name]), 
+                ConvertSide(signal.TradeType));
+
+            request.SetField(new TransactTime(DateTime.UtcNow));
+            request.SetField(ConvertType(signal.OrderType));
+
+            string icmId;
+            if (orderIds.TryGetValue(orderId, out icmId))
+                request.SetField(new OrderID(icmId));
+            else 
+                logger.LogError($"Can't find icm id in orderIds for {orderId}");
             
             return SendRequest(request);
         }
@@ -404,12 +429,18 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
             var header = request.Header;
             header.SetField(new SenderCompID(session.SenderCompID));
             header.SetField(new TargetCompID(session.TargetCompID));
-    
+
             return Session.SendToTarget(request);
         }
 
         public bool AddOrder(Instrument instrument, TradingSignal signal)
         {
+            if (!orderSignals.TryAdd(signal.OrderId, signal))
+                throw new InvalidOperationException($"Order with ID {signal.OrderId} was sent already");
+            
+            if (!orderIds.TryAdd(signal.OrderId, null))
+                throw new InvalidOperationException($"Order with ID {signal.OrderId} was sent already");
+            
             logger.LogInformation($"Generarting request for sending order for instrument {instrument}");
 
             var request = new NewOrderSingle(
@@ -422,8 +453,37 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
             request.SetField(new TimeInForce(TimeInForce.GOOD_TILL_CANCEL));
             request.SetField(new OrderQty(signal.Count));
             request.SetField(new Price(signal.Price));
-            
+
             return SendRequest(request);
+        }
+        
+        public async Task<ExecutedTrade> AddOrderAndWaitResponse(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+        {
+            var id = signal.OrderId;
+            var tcs = new TaskCompletionSource<ExecutedTrade>();
+            
+            orderExecutions.AddOrUpdate(id, tcs, (a, b) => tcs); // TODO: what to do with previous one?
+            
+            var signalSended = AddOrder(instrument, signal);
+
+            if (!signalSended)
+                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Count, signal.TradeType, signal.OrderId, ExecutionStatus.Rejected);
+
+            ExecutedTrade result = await tcs.Task.ConfigureAwait(false);
+
+            if (result.Status == ExecutionStatus.New)
+            {
+                if (orderExecutions.TryUpdate(id, tcs = new TaskCompletionSource<ExecutedTrade>(), tcs))
+                {
+                    await Task.WhenAny(tcs.Task, Task.Delay(timeout));
+                    if (tcs.Task.IsCompleted)
+                    {
+                        result = tcs.Task.Result;
+                    }
+                }
+            }
+            
+            return result;
         }
 
         public bool CancelOrder(Instrument instrument, TradingSignal signal)
@@ -447,78 +507,72 @@ namespace TradingBot.Exchanges.Concrete.ICMarkets
             
             logger.LogDebug($"Number of orders: {listStatus.TotNoOrders.Obj}");
 
-            //string requestIdStr = listStatus.GetField(Tags.OrdStatusReqID);
-            
-            // todo: if this request is awaited should call awaiter. fill response (value) in the dictionary if the key is in it
-
-            if (waitedMessages.ContainsKey(11))
-                waitedMessages[11] = listStatus;
+            lock (listStatuses)
+            {
+                var firstTcs = listStatuses.FirstOrDefault(x => !x.Task.IsCompleted);
+                firstTcs.SetResult(listStatus);
+            }
         }
 
-        private readonly Dictionary<long, Tuple<TradingSignal, TaskCompletionSource<ExecutedTrade>>> orderResponses = 
-            new Dictionary<long, Tuple<TradingSignal, TaskCompletionSource<ExecutedTrade>>>();
+        private readonly ConcurrentDictionary<long, string> orderIds = new ConcurrentDictionary<long, string>();
         
-        public async Task<ExecutedTrade> AddOrderAndWait(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+        private readonly ConcurrentDictionary<long, TaskCompletionSource<ExecutedTrade>> orderExecutions = 
+            new ConcurrentDictionary<long, TaskCompletionSource<ExecutedTrade>>();
+        
+        private readonly ConcurrentDictionary<long, TradingSignal> orderSignals = new ConcurrentDictionary<long, TradingSignal>();
+        
+        
+        public Task<ExecutedTrade> GetOrderInfoAndWaitResponse(Instrument instrument, long orderId)
         {
-            var id = signal.OrderId;
             var tcs = new TaskCompletionSource<ExecutedTrade>();
-            
-            lock (orderResponses)
-            {
-                orderResponses.Add(id, Tuple.Create(signal, tcs));   
-            }
+            orderExecutions.AddOrUpdate(orderId, tcs, (a, b) => tcs);
+            SendOrderStatusRequest(instrument, orderId);
 
-            var signalSended = AddOrder(instrument, signal);
-
-            if (!signalSended)
-                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Count, signal.TradeType, signal.OrderId, ExecutionStatus.Rejected);
-
-            ExecutedTrade result = await tcs.Task.ConfigureAwait(false);
-
-            if (result.Status == ExecutionStatus.New)
-            {
-                lock (orderResponses)
-                {
-                    tcs = new TaskCompletionSource<ExecutedTrade>();
-                    orderResponses[id] = Tuple.Create(signal, tcs);
-                }
-
-                await Task.WhenAny(tcs.Task, Task.Delay(timeout));
-                if (tcs.Task.IsCompleted)
-                {
-                    result = tcs.Task.Result;
-                }
-            }
-            
-            lock (orderResponses)
-            {
-                orderResponses.Remove(id);
-            }
-            
-            return result;
+            return tcs.Task;
         }
 
-        public async Task<object> WaitOrderStatusRequest()
+        
+        private readonly LinkedList<TaskCompletionSource<ListStatus>> listStatuses = new LinkedList<TaskCompletionSource<ListStatus>>();
+        
+        public async Task<IEnumerable<ExecutedTrade>> GetAllOrdersInfo()
         {
-            var requestId = 11;
-            
-            if (!waitedMessages.ContainsKey(requestId)) return 0;
-            
-            while (waitedMessages[requestId] == null)
+            var tcs = new TaskCompletionSource<ListStatus>();
+
+            lock (listStatuses)
             {
-                await Task.Delay(100);   
+                listStatuses.AddLast(tcs);
+            }
+            
+            var sended = SendAllOrdersStatusRequest();
+
+            if (!sended)
+            {
+                lock (listStatuses)
+                {
+                    listStatuses.Remove(tcs);
+                }
+                return null;
             }
 
-            
-            int result = (waitedMessages[requestId] as ListStatus)?.TotNoOrders.Obj ?? 0;
+            await Task.WhenAny(tcs.Task, Task.Delay(timeout));
 
-            waitedMessages.Remove(requestId);
+            lock (listStatuses)
+            {
+                listStatuses.Remove(tcs);
+                
+                if (!tcs.Task.IsCompleted)
+                {
+                    return null; // timeout
+                }
+            }
+
+            var listStatus = tcs.Task.Result;
+
+            int ordersCount = listStatus.TotNoOrders.Obj;
             
-            return result;
+            return null; // Convert ListStatus to result
         }
-
-        private Dictionary<long, Message> waitedMessages = new Dictionary<long, Message>();
-
+        
         private Side ConvertSide(TradeType tradeType)
         {
             return new Side(tradeType == TradeType.Buy ? Side.BUY : Side.SELL);

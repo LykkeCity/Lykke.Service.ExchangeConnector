@@ -1,5 +1,4 @@
 ﻿using System;
-using TradingBot.Common.Trading;
 
 namespace TradingBot.Trading
 {

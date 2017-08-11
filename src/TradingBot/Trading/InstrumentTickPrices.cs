@@ -1,4 +1,4 @@
-﻿namespace TradingBot.Common.Trading
+﻿namespace TradingBot.Trading
 {
     public class InstrumentTickPrices
     {

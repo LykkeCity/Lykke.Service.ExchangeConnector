@@ -1,13 +1,13 @@
 ﻿using System.Collections.Generic;
-using TradingBot.Common.Trading;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.HistoricalData;
-using TradingBot.Exchanges.Concrete.ICMarkets;
+using TradingBot.Exchanges.Concrete.Icm;
 using TradingBot.Exchanges.Concrete.Kraken;
 using TradingBot.Exchanges.Concrete.StubImplementation;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Trading;
 
 namespace TradingBot.Exchanges
 {
@@ -43,7 +43,7 @@ namespace TradingBot.Exchanges
 	        var result = new List<Exchange>();
 	        
 	        if (config.Icm.Enabled)
-		        result.Add(new ICMarketsExchange(config.Icm));
+		        result.Add(new IcmExchange(config.Icm));
 	        
 	        if (config.Kraken.Enabled)
 		        result.Add(new KrakenExchange(config.Kraken));
