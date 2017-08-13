@@ -52,7 +52,7 @@ namespace TradingBot.Infrastructure.Logging
                     break;
 
                 case LogLevel.Error:
-                    lykkeLogger.WriteErrorAsync(component: "", process: "", context: "", exeption: exception);
+                    lykkeLogger.WriteErrorAsync(component: "", process: "", context: state.ToString(), exeption: exception);
                     break;
 
                 case LogLevel.None:

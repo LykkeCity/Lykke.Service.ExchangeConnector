@@ -14,10 +14,11 @@ namespace TradingBot
         {
             app.UseDeveloperExceptionPage();
             app.UseStaticFiles();
-            app.UseMvcWithDefaultRoute();
-
+            
             app.UseMiddleware<StatusCodeExceptionHandler>();
             
+            app.UseMvcWithDefaultRoute();
+
             app.Run(async (context) =>
             {
                 var report = await StatusReport.Create();

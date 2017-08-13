@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Common;
 using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using TradingBot.Models;
 
 namespace TradingBot.Infrastructure.Exceptions
 {
@@ -23,8 +26,14 @@ namespace TradingBot.Infrastructure.Exceptions
             }
             catch (StatusCodeException e)
             {
+                context.Response.Clear();
                 context.Response.StatusCode = (int) e.StatusCode;
                 context.Response.Headers.Clear();
+                
+                if (!context.Request.Headers.ContainsKey("Content-Type"))
+                    context.Request.Headers.Add("Content-Type", "application/json");
+                
+                await context.Response.WriteAsync(JsonConvert.SerializeObject(new ResponseMessage(e.Message, e.Model)));
             }
         }
     }

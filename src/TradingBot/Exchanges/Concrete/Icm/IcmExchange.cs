@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using QuickFix;
 using QuickFix.Transport;
+using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Icm.Converters;
 using TradingBot.Infrastructure.Configuration;
@@ -82,8 +83,10 @@ namespace TradingBot.Exchanges.Concrete.Icm
         private void StartFixConnection()
         {
             var settings = new SessionSettings(config.GetFixConfigAsReader());
+
+            var repository = new AzureFixMessagesRepository(Configuration.Instance.AzureStorage.StorageConnectionString, "fixMessages");
             
-            connector = new IcmConnector(config);
+            connector = new IcmConnector(config, repository);
             var storeFactory = new FileStoreFactory(settings);
             var logFactory = new ScreenLogFactory(settings);
 
@@ -91,6 +94,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             
             initiator = new SocketInitiator(connector, storeFactory, settings, logFactory);
             initiator.Start();
+            
         }
 
         protected override Task<bool> TestConnectionImpl(CancellationToken cancellationToken)

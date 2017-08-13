@@ -10,8 +10,10 @@ using QuickFix.Fields;
 using QuickFix.Fields.Converters;
 using QuickFix.FIX44;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
+using TradingBot.Communications;
 using Message = QuickFix.Message;
 using TradeType = TradingBot.Trading.TradeType;
 
@@ -22,12 +24,14 @@ namespace TradingBot.Exchanges.Concrete.Icm
         private readonly ILogger logger = Logging.CreateLogger<IcmConnector>();
         private readonly IcmConfig config;
         private readonly TimeSpan timeout = TimeSpan.FromSeconds(30);
+        private readonly AzureFixMessagesRepository repository;
 
         private SessionID session;
 
-        public IcmConnector(IcmConfig config)
+        public IcmConnector(IcmConfig config, AzureFixMessagesRepository repository)
         {
             this.config = config;
+            this.repository = repository;
         }
 
         public event Func<ExecutedTrade, Task> OnTradeExecuted;
@@ -41,26 +45,45 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 message.SetField(new Username(config.Username));
                 message.SetField(new Password(config.Password));
             }
+
+            repository.SaveMessage(message, FixMessageDirection.ToAdmin);
         }
 
         public void FromAdmin(Message message, SessionID sessionID)
         {
             logger.LogInformation($"FromAdmin message: {message}");
+            repository.SaveMessage(message, FixMessageDirection.FromAdmin);
+            
+            try
+            {
+                switch (message)
+                {
+                    case Reject reject:
+                        HandleRejected(reject);
+                        break;
+                    default:
+                        break;
+                    case null:
+                        logger.LogError("Received null message");
+                        break;
+                }
+            }
+            catch (Exception e) 
+            {
+                logger.LogError(new EventId(), e, "Error");
+            }
         }
 
         public void ToApp(Message message, SessionID sessionId)
         {
             logger.LogInformation($"Outgoing (ToApp) message is sent: {message}");
-
-            if (message.IsSetField(Tags.MsgSeqNum))
-            {
-                var seqNum = message.GetField(new MsgSeqNum());
-            }
+            repository.SaveMessage(message, FixMessageDirection.ToApp);
         }
 
         public void FromApp(Message message, SessionID sessionID)
         {
             logger.LogInformation($"FromApp message: {message}");
+            repository.SaveMessage(message, FixMessageDirection.FromApp);
             
             try
             {
@@ -344,6 +367,37 @@ namespace TradingBot.Exchanges.Concrete.Icm
             });
         }
 
+        private void HandleListStatus(ListStatus listStatus)
+        {
+            logger.LogDebug($"Handling list status: {listStatus}");
+            
+            logger.LogDebug($"Number of orders: {listStatus.TotNoOrders.Obj}");
+
+            lock (listStatuses)
+            {
+                var firstTcs = listStatuses.FirstOrDefault(x => !x.Task.IsCompleted);
+                firstTcs.SetResult(listStatus);
+            }
+        }
+
+        private void HandleRejected(Reject reject)
+        {
+            logger.LogDebug("Handle reject message");
+
+            switch (reject.RefMsgType.Obj)
+            {
+                case MsgType.ORDER_STATUS_REQUEST:
+                    lock (listStatuses)
+                    {
+                        var firstTcs = listStatuses.FirstOrDefault(x => !x.Task.IsCompleted);
+                        firstTcs.SetException(new OperationRejectedException(reject.Text.Obj));
+                    }         
+                    break;
+                case MsgType.LIST_STATUS:
+                    break;
+            }
+        }
+
         public bool SendAllOrdersStatusRequest()
         {
             logger.LogDebug($"Trying to send Order Status Request");
@@ -391,6 +445,11 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 new SecurityListRequestType(SecurityListRequestType.SYMBOL));
 		 
             return SendRequest(request);
+        }
+
+        public void SendLogout()
+        {
+            
         }
         
         public bool SendRequestForPositions()
@@ -501,19 +560,6 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return SendRequest(request);
         }
 
-        public void HandleListStatus(ListStatus listStatus)
-        {
-            logger.LogDebug($"Handling list status: {listStatus}");
-            
-            logger.LogDebug($"Number of orders: {listStatus.TotNoOrders.Obj}");
-
-            lock (listStatuses)
-            {
-                var firstTcs = listStatuses.FirstOrDefault(x => !x.Task.IsCompleted);
-                firstTcs.SetResult(listStatus);
-            }
-        }
-
         private readonly ConcurrentDictionary<long, string> orderIds = new ConcurrentDictionary<long, string>();
         
         private readonly ConcurrentDictionary<long, TaskCompletionSource<ExecutedTrade>> orderExecutions = 
@@ -562,15 +608,24 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 
                 if (!tcs.Task.IsCompleted)
                 {
-                    return null; // timeout
+                    throw new InvalidOperationException("Request timed out with no response from ICM");
                 }
             }
 
-            var listStatus = tcs.Task.Result;
-
-            int ordersCount = listStatus.TotNoOrders.Obj;
+            if (tcs.Task.IsFaulted)
+            {
+                throw new InvalidOperationException(tcs.Task.Exception.Message);
+            }
             
-            return null; // Convert ListStatus to result
+            var listStatus = tcs.Task.Result;
+            int ordersCount = listStatus.TotNoOrders.Obj;
+            var result = new List<ExecutedTrade>();
+            for (int i = 0; i < ordersCount; i++)
+            {
+                result.Add(null);
+            }
+            
+            return result;
         }
         
         private Side ConvertSide(TradeType tradeType)
