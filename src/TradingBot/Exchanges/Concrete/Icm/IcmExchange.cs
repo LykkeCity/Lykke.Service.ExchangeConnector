@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AzureStorage.Tables;
 using Common.Log;
+using Lykke.Logs;
 using Lykke.RabbitMqBroker.Subscriber;
 using Microsoft.Extensions.Logging;
 using Polly;
@@ -64,7 +66,10 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 .SetMessageDeserializer(new GenericRabbitModelConverter<OrderBook>())
                 .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
                 .SetConsole(new ExchangeConnectorApplication.RabbitConsole())
-                .SetLogger(new LogToConsole())
+                .SetLogger(new LykkeLogToAzureStorage("IcmPriceSubscriber", 
+                        new AzureTableStorage<LogEntity>(Configuration.Instance.AzureStorage.StorageConnectionString,
+                        Configuration.Instance.LogsTableName,
+                        new LogToConsole())))
                 .Subscribe(async orderBook =>
                 {
                     //Logger.LogInformation($"Receive order book for asset: {orderBook.Asset}");
@@ -127,13 +132,6 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return connector.GetOrderInfoAndWaitResponse(instrument, orderId);
         }
 
-//        public Task<object> GetOrdersCountAsync()
-//        {
-//            connector.SendOrderStatusRequest();
-//
-//            return connector.WaitOrderStatusRequest();
-//        }
-
         public Task<IEnumerable<ExecutedTrade>> GetAllOrdersInfo()
         {
             return connector.GetAllOrdersInfo();
@@ -142,6 +140,11 @@ namespace TradingBot.Exchanges.Concrete.Icm
         public Task<ExecutedTrade> AddOrderAndWait(Instrument instrument, TradingSignal signal, TimeSpan timeout)
         {
             return connector.AddOrderAndWaitResponse(instrument, signal, timeout);
+        }
+
+        public Task<ExecutedTrade> CancelOrderAndWait(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+        {
+            return connector.CancelOrderAndWaitResponse(instrument, signal, timeout);
         }
     }
 }

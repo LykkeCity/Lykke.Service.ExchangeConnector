@@ -6,6 +6,7 @@ using Common.Log;
 using Lykke.Logs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.WindowsAzure.Storage.Table;
+using TradingBot.Communications;
 using TradingBot.Infrastructure.Configuration;
 
 namespace TradingBot.Controllers
@@ -44,6 +45,24 @@ namespace TradingBot.Controllers
             await logsStorage.ExecuteAsync(query, result => logs = result);
 
             var lastEntries = logs.OrderByDescending(x => x.Timestamp).Take(1000);
+
+            return View(lastEntries);
+        }
+
+        public async Task<IActionResult> Fix()
+        {
+            var logsStorage = new AzureTableStorage<FixMessageTableEntity>(
+                Config.AzureStorage.StorageConnectionString,
+                "fixMessages",
+                new LogToConsole());
+            
+            var query = new TableQuery<FixMessageTableEntity>();
+            query.TakeCount = 1000;
+
+            var logs = Enumerable.Empty<FixMessageTableEntity>();
+            await logsStorage.ExecuteAsync(query, result => logs = result);
+
+            var lastEntries = logs.OrderBy(x => x.RowKey);
 
             return View(lastEntries);
         }

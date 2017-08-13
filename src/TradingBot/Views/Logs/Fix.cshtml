@@ -1,0 +1,24 @@
+﻿@model IEnumerable<TradingBot.Communications.FixMessageTableEntity>
+
+@{
+    ViewData["Title"] = "FIX messages";
+}
+
+<p>
+    <a asp-controller="Logs" asp-action="Index">Exchange Connector Logs</a> | 
+    <a asp-controller="Logs" asp-action="AlphaEngine">Alpha Engine Logs</a> |
+    FIX
+</p>
+
+
+<table>
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td>@item.Timestamp</td>
+            <td>@item.Direction</td>
+            <td>@item.Type</td>
+            <td>@item.Message</td>
+        </tr>
+    }
+</table>

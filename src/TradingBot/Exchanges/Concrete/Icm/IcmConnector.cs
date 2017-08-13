@@ -528,13 +528,15 @@ namespace TradingBot.Exchanges.Concrete.Icm
             if (!signalSended)
                 return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Count, signal.TradeType, signal.OrderId, ExecutionStatus.Rejected);
 
+            await Task.WhenAny(tcs.Task, Task.Delay(timeout)).ConfigureAwait(false);
+            
             ExecutedTrade result = await tcs.Task.ConfigureAwait(false);
 
             if (result.Status == ExecutionStatus.New)
             {
                 if (orderExecutions.TryUpdate(id, tcs = new TaskCompletionSource<ExecutedTrade>(), tcs))
                 {
-                    await Task.WhenAny(tcs.Task, Task.Delay(timeout));
+                    await Task.WhenAny(tcs.Task, Task.Delay(timeout)).ConfigureAwait(false);
                     if (tcs.Task.IsCompleted)
                     {
                         result = tcs.Task.Result;
@@ -556,8 +558,38 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 ConvertSide(signal.TradeType),
                 new TransactTime(signal.Time)
                 );
-
+            
+            
+            string icmId;
+            if (orderIds.TryGetValue(signal.OrderId, out icmId))
+                request.SetField(new OrderID(icmId));
+            else 
+                throw new InvalidOperationException($"Can't find icm id in orderIds for {signal.OrderId}");
+            
             return SendRequest(request);
+        }
+        
+        public async Task<ExecutedTrade> CancelOrderAndWaitResponse(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+        {
+            var id = signal.OrderId;
+            var tcs = new TaskCompletionSource<ExecutedTrade>();
+            
+            orderExecutions.AddOrUpdate(id, tcs, (a, b) => tcs);
+            
+            var signalSended = CancelOrder(instrument, signal);
+
+            if (!signalSended)
+                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Count, signal.TradeType, signal.OrderId, ExecutionStatus.Rejected);
+
+            await Task.WhenAny(tcs.Task, Task.Delay(timeout)).ConfigureAwait(false);
+
+            if (!tcs.Task.IsCompleted)
+                throw new InvalidOperationException("Request timed out with no response from ICM");
+            
+            if (tcs.Task.IsFaulted)
+                throw new InvalidOperationException(tcs.Task.Exception.Message);
+            
+            return tcs.Task.Result;
         }
 
         private readonly ConcurrentDictionary<long, string> orderIds = new ConcurrentDictionary<long, string>();

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -34,7 +33,7 @@ namespace TradingBot.Controllers.Api
 
                 return Application.GetExchange(exchangeName).ActualOrders;
             }
-            catch (InvalidOperationException e)
+            catch (Exception e)
             {
                 throw new StatusCodeException(HttpStatusCode.BadRequest, e.Message);
             }
@@ -90,12 +89,58 @@ namespace TradingBot.Controllers.Api
                 }
                 else
                 {
-                
                     await Application.GetExchange(exchangeName)
                         .PlaceTradingOrders(new InstrumentTradingSignals(instrument, new [] { tradingSignal }));
                 
-            
                     return StatusCode((int)HttpStatusCode.Created);
+                }
+            }
+            catch (Exception e)
+            {
+                throw new StatusCodeException(HttpStatusCode.InternalServerError, e.Message);
+            }
+        }
+
+
+        [ApiKeyAuth]
+        [HttpDelete("{exchangeName}")]
+        public async Task<IActionResult> CancelOrder(string exchangeName, [FromBody] OrderModel orderModel)
+        {
+            if (orderModel == null) 
+                throw new StatusCodeException(HttpStatusCode.BadRequest, "Order have to be specified");
+            
+            // TODO: move validation logic into the model
+            if (Math.Abs((orderModel.DateTime - DateTime.UtcNow).TotalMilliseconds) >= TimeSpan.FromMinutes(5).TotalMilliseconds)
+                ModelState.AddModelError(nameof(orderModel.DateTime), "Date and time must be in 5 minutes threshold from UTC now");
+
+            if (orderModel.Price == 0 && orderModel.OrderType != OrderType.Market)
+                ModelState.AddModelError(nameof(orderModel.Price), "Price have to be declared for non-market orders");
+            
+            if (!ModelState.IsValid)
+                throw new StatusCodeException(ModelState);
+            
+            try
+            {
+
+                var instrument = new Instrument(exchangeName, orderModel.Instrument);
+                var tradingSignal = new TradingSignal(orderModel.Id, OrderCommand.Cancel, orderModel.TradeType, orderModel.Price, orderModel.Volume, DateTime.UtcNow, orderModel.OrderType);
+            
+                if (exchangeName == IcmExchange.Name)
+                {
+                    var result = await ((IcmExchange) Application.GetExchange(exchangeName))
+                        .CancelOrderAndWait(instrument, tradingSignal, Configuration.Instance.AspNet.ApiTimeout);
+
+                    if (result.Status == ExecutionStatus.Rejected)
+                        return BadRequest(new ResponseMessage($"Exchange return status: {result.Status}"));
+                
+                    return Accepted(result);
+                }
+                else
+                {
+                    await Application.GetExchange(exchangeName)
+                        .PlaceTradingOrders(new InstrumentTradingSignals(instrument, new [] { tradingSignal }));
+                
+                    return Accepted();
                 }
             }
             catch (Exception e)
