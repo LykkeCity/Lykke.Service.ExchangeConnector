@@ -28,7 +28,6 @@
     <Folder Include="Exchanges\Concrete\Oanda\Entities\Orders\" />
     <Folder Include="Exchanges\Concrete\StubImplementation\" />
     <Folder Include="Infrastructure\Configuration\" />
-    <Folder Include="Exchanges\Concrete\ICMarkets\" />
     <Folder Include="Communications\" />
     <Folder Include="Infrastructure\Logging\" />
     <Folder Include="Views\Shared\" />
