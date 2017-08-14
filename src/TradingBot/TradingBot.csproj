@@ -1,11 +1,38 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp1.1</TargetFramework>
     <RootNamespace>TradingBot</RootNamespace>
     <AssemblyName>TradingBot</AssemblyName>
+    <PreserveCompilationContext>true</PreserveCompilationContext>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Lykke.AzureStorage" Version="1.2.22" />
+    <PackageReference Include="Lykke.RabbitMqBroker" Version="1.0.63" />
+    <PackageReference Include="Lykke.Logs" Version="1.0.14" />
+    <PackageReference Include="Microsoft.AspNetCore" Version="1.1.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="1.1.3" />
+    <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="1.1.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="1.1.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="1.1.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="1.1.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="1.1.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="1.1.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="1.1.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="1.1.2" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
+    <PackageReference Include="Polly" Version="5.1.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Exchanges\Concrete\Bitstamp\" />
+    <Folder Include="Exchanges\Concrete\Oanda\Entities\Orders\" />
+    <Folder Include="Exchanges\Concrete\StubImplementation\" />
+    <Folder Include="Infrastructure\Configuration\" />
+    <Folder Include="Communications\" />
+    <Folder Include="Infrastructure\Logging\" />
+    <Folder Include="Views\Shared\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\QuickFix.DotNetCore\QuickFix.DotNetCore.csproj" />
   </ItemGroup>
 </Project>

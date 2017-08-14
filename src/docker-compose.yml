@@ -1,0 +1,50 @@
+version: '2'
+
+services:
+  # RabbitMQ
+  rabbit:
+    hostname: rabbit
+    image: rabbitmq:latest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  # TradingBot
+  tradingbot:
+    build:
+      context: TradingBot/
+      dockerfile: Dockerfile
+    hostname: tradingbot
+    #ports:
+    # - "5000:5000"
+    depends_on:
+      - rabbit
+    volumes:
+      - ~/Projects/Lykke/FxData:/var/FxData
+
+  # AlphaEngine
+#  alphaengine:
+#    build:
+#      context: TradingBot.TheAlphaEngine/
+#      dockerfile: Dockerfile
+#    hostname: alphaengine
+#    depends_on:
+#      - rabbit
+
+  # AlphaEngineJava
+  alphaenginejava:
+    build:
+      context: ../../RelatedProjects/alpha-engine/
+      dockerfile: Dockerfile
+    hostname: alphaenginejava
+    depends_on:
+      - rabbit
+
+  # # Receiver
+  # receiver:
+  #   build:
+  #     context: Receiver/
+  #     dockerfile: Dockerfile
+  #   hostname: receiver
+  #   links:
+  #     - rabbit
