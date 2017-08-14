@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,6 +28,12 @@ namespace TradingBot.Exchanges.Concrete.Icm
         private readonly AzureFixMessagesRepository repository;
 
         private SessionID session;
+        
+        
+        private readonly object orderIdsSyncRoot = new Object();
+        private readonly Dictionary<long, string> orderIdsToIcmIds = new Dictionary<long, string>();
+        private readonly Dictionary<string, long> orderIcmIdsToIds = new Dictionary<string, long>();
+        
 
         public IcmConnector(IcmConfig config, AzureFixMessagesRepository repository)
         {
@@ -64,13 +71,13 @@ namespace TradingBot.Exchanges.Concrete.Icm
                     default:
                         break;
                     case null:
-                        logger.LogError("Received null message");
+                        logger.LogInformation("Received null message");
                         break;
                 }
             }
             catch (Exception e) 
             {
-                logger.LogError(new EventId(), e, "Error");
+                logger.LogError(0, e, "Error");
             }
         }
 
@@ -99,7 +106,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
                         HandlePositionReport(positionReport);
                         break;
                     case MarketDataIncrementalRefresh marketDataIncrementalRefresh:
-                        logger.LogError("Market data incremental refresh is not supported. We read the data from RabbitMQ");
+                        logger.LogInformation("Market data incremental refresh is not supported. We read the data from RabbitMQ");
                         break;
                     case ListStatus listStatus:
                         HandleListStatus(listStatus);
@@ -107,13 +114,13 @@ namespace TradingBot.Exchanges.Concrete.Icm
                     default:
                         break;
                     case null:
-                        logger.LogError("Received null message");
+                        logger.LogInformation("Received null message");
                         break;
                 }
             }
             catch (Exception e) 
             {
-                logger.LogError(new EventId(), e, "Error");
+                logger.LogError(0, e, "Error");
             }
         }
 
@@ -294,13 +301,16 @@ namespace TradingBot.Exchanges.Concrete.Icm
         {
             logger.LogDebug("Execution report was received");
 
+            long id;
+            string icmId;
+            GetIds(report, out id, out icmId);
+            
             ExecutionStatus executionStatus = ExecutionStatus.Pending;
 
-            
             switch (report.ExecType.Obj)
             {
                 case ExecType.REJECTED:
-                    logger.LogError($"ICM rejected the order {report.ClOrdID}. Rejection reason is {report.OrdRejReason}");
+                    logger.LogInformation($"ICM rejected the order {id}. Rejection reason is {report.OrdRejReason}");
                     executionStatus = ExecutionStatus.Rejected;
                     break;
                     
@@ -308,40 +318,40 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
                     if (report.OrdStatus.Obj == OrdStatus.FILLED)
                     {
-                        logger.LogInformation($"ICM filled the order {report.ClOrdID}! OrdType: {report.OrdStatus.Obj}");
+                        logger.LogInformation($"ICM filled the order {id}! OrdType: {report.OrdStatus.Obj}");
                         executionStatus = ExecutionStatus.Fill;    
                     }
                     else if (report.OrdStatus.Obj == OrdStatus.PARTIALLY_FILLED)
                     {
-                        logger.LogInformation($"ICM filled the order {report.ClOrdID} partially.");
+                        logger.LogInformation($"ICM filled the order {id} partially.");
                         executionStatus = ExecutionStatus.PartialFill;
                     }
                     break;
                     
                 case ExecType.NEW:
-                    logger.LogInformation($"Order {report.ClOrdID} placed as new!");
+                    logger.LogInformation($"Order {id} placed as new!");
                     executionStatus = ExecutionStatus.New;
                     break;
                     
                 case ExecType.CANCELLED:
-                    logger.LogInformation($"Order {report.ClOrdID} was cancelled!");
+                    logger.LogInformation($"Order {id} was cancelled!");
                     executionStatus = ExecutionStatus.Cancelled;
                     break;
                     
                 case ExecType.ORDER_STATUS:
-                    logger.LogInformation($"Order status for {report.ClOrdID}, side: {report.Side}, orderQty: {report.OrderQty}");
+                    logger.LogInformation($"Order status for {id}, side: {report.Side}, orderQty: {report.OrderQty}");
                     break;
                     
                 case ExecType.PENDING_CANCEL:
-                    logger.LogInformation($"Cancellation of the order {report.ClOrdID} is pending!");
+                    logger.LogInformation($"Cancellation of the order {id} is pending!");
                     break;
             }
 
-            var id = long.Parse(report.ClOrdID.Obj);
+            
             
             var executedTrade = new ExecutedTrade(
-                new Instrument(IcmExchange.Name, report.IsSetField(new Symbol()) ? symbolsMapBack[report.Symbol.Obj] : ""),    
-                report.IsSetField(new TransactTime()) ? report.TransactTime.Obj : DateTime.UtcNow,
+                new Instrument(IcmExchange.Name, report.IsSetField(Tags.Symbol) ? symbolsMapBack[report.Symbol.Obj] : ""),    
+                report.IsSetField(Tags.TransactTime) ? report.TransactTime.Obj : DateTime.UtcNow,
                 report.Price.Obj,
                 report.OrderQty.Obj,
                 report.Side.Obj == Side.BUY ? TradeType.Buy : TradeType.Sell,
@@ -357,14 +367,45 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
             var tcs = orderExecutions.GetOrAdd(id, new TaskCompletionSource<ExecutedTrade>());
             tcs.SetResult(executedTrade);
+        }
 
-            orderIds.AddOrUpdate(id, report.OrderID.Obj, (i, prevValue) =>
+        private void GetIds(ExecutionReport report, out long id, out string icmId)
+        {
+            icmId = null;
+            id = default(long);
+
+            if (report.IsSetField(Tags.ClOrdID))
             {
-                if (prevValue != null && prevValue != report.OrderID.Obj)
-                    logger.LogWarning($"Updating an external ID for order {i} from {prevValue} to {report.OrderID.Obj}");
-                
-                return report.OrderID.Obj;
-            });
+                long.TryParse(report.ClOrdID.Obj, out id);
+            }
+            
+            if (report.IsSetField(Tags.OrderID))
+            {
+                icmId = report.GetField(new OrderID()).Obj;
+            }
+
+            lock (orderIdsSyncRoot)
+            {
+                if (id != default(long) && !string.IsNullOrEmpty(icmId))
+                {
+                    if (!orderIdsToIcmIds.ContainsKey(id))
+                    {
+                        orderIdsToIcmIds.Add(id, icmId);
+                    }
+                    if (!orderIcmIdsToIds.ContainsKey(icmId))
+                    {
+                        orderIcmIdsToIds.Add(icmId, id);
+                    }
+                }
+                else if (id == default(long) && !string.IsNullOrEmpty(icmId))
+                {
+                    orderIcmIdsToIds.TryGetValue(icmId, out id);
+                }
+                else if (id != default(long) && string.IsNullOrEmpty(icmId))
+                {
+                    orderIdsToIcmIds.TryGetValue(id, out icmId);
+                }
+            }
         }
 
         private void HandleListStatus(ListStatus listStatus)
@@ -429,11 +470,15 @@ namespace TradingBot.Exchanges.Concrete.Icm
             request.SetField(new TransactTime(DateTime.UtcNow));
             request.SetField(ConvertType(signal.OrderType));
 
-            string icmId;
-            if (orderIds.TryGetValue(orderId, out icmId))
-                request.SetField(new OrderID(icmId));
-            else 
-                logger.LogError($"Can't find icm id in orderIds for {orderId}");
+            lock (orderIdsSyncRoot)
+            {
+                string icmId;
+                if (orderIdsToIcmIds.TryGetValue(orderId, out icmId))
+                    request.SetField(new OrderID(icmId));
+                else 
+                    throw new InvalidOperationException($"Can't find icm id in orderIds for {orderId}");
+                
+            }
             
             return SendRequest(request);
         }
@@ -497,9 +542,6 @@ namespace TradingBot.Exchanges.Concrete.Icm
             if (!orderSignals.TryAdd(signal.OrderId, signal))
                 throw new InvalidOperationException($"Order with ID {signal.OrderId} was sent already");
             
-            if (!orderIds.TryAdd(signal.OrderId, null))
-                throw new InvalidOperationException($"Order with ID {signal.OrderId} was sent already");
-            
             logger.LogInformation($"Generarting request for sending order for instrument {instrument}");
 
             var request = new NewOrderSingle(
@@ -528,6 +570,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             if (!signalSended)
                 return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Count, signal.TradeType, signal.OrderId, ExecutionStatus.Rejected);
 
+            var sw = Stopwatch.StartNew();
             await Task.WhenAny(tcs.Task, Task.Delay(timeout)).ConfigureAwait(false);
             
             ExecutedTrade result = await tcs.Task.ConfigureAwait(false);
@@ -536,7 +579,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             {
                 if (orderExecutions.TryUpdate(id, tcs = new TaskCompletionSource<ExecutedTrade>(), tcs))
                 {
-                    await Task.WhenAny(tcs.Task, Task.Delay(timeout)).ConfigureAwait(false);
+                    await Task.WhenAny(tcs.Task, Task.Delay(timeout - sw.Elapsed)).ConfigureAwait(false);
                     if (tcs.Task.IsCompleted)
                     {
                         result = tcs.Task.Result;
@@ -558,13 +601,15 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 ConvertSide(signal.TradeType),
                 new TransactTime(signal.Time)
                 );
-            
-            
-            string icmId;
-            if (orderIds.TryGetValue(signal.OrderId, out icmId))
-                request.SetField(new OrderID(icmId));
-            else 
-                throw new InvalidOperationException($"Can't find icm id in orderIds for {signal.OrderId}");
+
+            lock (orderIdsSyncRoot)
+            {
+                string icmId;
+                if (orderIdsToIcmIds.TryGetValue(signal.OrderId, out icmId))
+                    request.SetField(new OrderID(icmId));
+                else 
+                    throw new InvalidOperationException($"Can't find icm id in orderIds for {signal.OrderId}");
+            }
             
             return SendRequest(request);
         }
@@ -591,9 +636,6 @@ namespace TradingBot.Exchanges.Concrete.Icm
             
             return tcs.Task.Result;
         }
-
-        private readonly ConcurrentDictionary<long, string> orderIds = new ConcurrentDictionary<long, string>();
-        
         private readonly ConcurrentDictionary<long, TaskCompletionSource<ExecutedTrade>> orderExecutions = 
             new ConcurrentDictionary<long, TaskCompletionSource<ExecutedTrade>>();
         

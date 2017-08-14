@@ -42,14 +42,21 @@ namespace TradingBot.Controllers.Api
         [HttpGet("{exchangeName}/{instrument}/{id}")]
         public async Task<ExecutedTrade> GetOrder(string exchangeName, string instrument, long id)
         {
-            var exchange = Application.GetExchange(exchangeName);
+            try
+            {
+                var exchange = Application.GetExchange(exchangeName);
 
-            if (exchange is IcmExchange)
-                return await ((IcmExchange) exchange).GetOrderInfo(new Instrument(exchangeName, instrument), id);
+                if (exchange is IcmExchange)
+                    return await ((IcmExchange) exchange).GetOrderInfo(new Instrument(exchangeName, instrument), id);
             
-            //var order = Application.GetExchange(exchangeName).ActualOrders[instrument].SingleOrDefault(x => x.OrderId == id);
+                //var order = Application.GetExchange(exchangeName).ActualOrders[instrument].SingleOrDefault(x => x.OrderId == id);
 
-            return null;
+                return null;
+            }
+            catch (Exception e)
+            {
+                throw new StatusCodeException(HttpStatusCode.InternalServerError, e.Message);
+            }
         }
 
         [ApiKeyAuth]

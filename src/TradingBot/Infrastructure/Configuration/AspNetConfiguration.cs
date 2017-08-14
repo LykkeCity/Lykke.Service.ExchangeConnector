@@ -8,6 +8,6 @@ namespace TradingBot.Infrastructure.Configuration
         
         public string ApiKey { get; set; }
         
-        public TimeSpan ApiTimeout { get; set; }
+        public TimeSpan ApiTimeout { get; set; } = TimeSpan.FromSeconds(30);
     }
 }
