@@ -28,10 +28,16 @@ namespace TradingBot.Trading
         Cancel
     }
 
+    public enum TimeInForce
+    {
+        GoodTillCancel,
+        FillOrKill
+    }
+
     public class TradingSignal
     {
         [JsonConstructor]
-        public TradingSignal(long orderId, OrderCommand command, TradeType tradeType, decimal price, decimal count, DateTime time, 
+        public TradingSignal(string orderId, OrderCommand command, TradeType tradeType, decimal price, decimal count, DateTime time, 
             OrderType orderType = OrderType.Market)
         {
             OrderId = orderId;
@@ -44,6 +50,8 @@ namespace TradingBot.Trading
             OrderType = orderType;
 
             Type = tradeType == TradeType.Sell ? SignalType.Short : SignalType.Long;
+            
+            TimeInForce = TimeInForce.FillOrKill;
         }
         
         public DateTime Time { get; }
@@ -53,14 +61,16 @@ namespace TradingBot.Trading
         public OrderType OrderType { get; }
         
         public TradeType TradeType { get; }
-
+        
+        public TimeInForce TimeInForce { get; }
+        
         public decimal Price { get; }
 
         public decimal Count { get; } // volume
 
         public decimal Amount => Price * Count;
         
-        public long OrderId { get; }
+        public string OrderId { get; }
         
         public OrderCommand Command { get; }
 

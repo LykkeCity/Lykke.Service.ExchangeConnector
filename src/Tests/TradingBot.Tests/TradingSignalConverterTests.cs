@@ -11,7 +11,7 @@ namespace TradingBot.Tests
         public void SerializeAndDeserializeTradingSignal()
         {
             var converter = new GenericRabbitModelConverter<InstrumentTradingSignals>();
-            var signal = new TradingSignal(0, OrderCommand.Create, TradeType.Buy, 100.2m, 10.1m, DateTime.Now, OrderType.Limit);
+            var signal = new TradingSignal("", OrderCommand.Create, TradeType.Buy, 100.2m, 10.1m, DateTime.Now, OrderType.Limit);
             var instrumentSignals = new InstrumentTradingSignals(new Instrument("Exchange", "EURUSD"), new [] { signal });
 
             var serialized = converter.Serialize(instrumentSignals);

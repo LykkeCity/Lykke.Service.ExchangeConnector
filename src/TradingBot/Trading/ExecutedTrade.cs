@@ -16,7 +16,7 @@ namespace TradingBot.Trading
     public class ExecutedTrade
     {
         [JsonConstructor]
-        public ExecutedTrade(Instrument instrument, DateTime time, decimal price, decimal volume, TradeType type, long orderId, ExecutionStatus status)
+        public ExecutedTrade(Instrument instrument, DateTime time, decimal price, decimal volume, TradeType type, string orderId, ExecutionStatus status)
         {
             Instrument = instrument;
             Time = time;
@@ -40,7 +40,7 @@ namespace TradingBot.Trading
         
         public decimal Fee { get; }
         
-        public long OrderId { get; }
+        public string OrderId { get; }
         
         public ExecutionStatus Status { get; }
 

@@ -22,15 +22,6 @@ services:
     volumes:
       - ~/Projects/Lykke/FxData:/var/FxData
 
-  # AlphaEngine
-#  alphaengine:
-#    build:
-#      context: TradingBot.TheAlphaEngine/
-#      dockerfile: Dockerfile
-#    hostname: alphaengine
-#    depends_on:
-#      - rabbit
-
   # AlphaEngineJava
   alphaenginejava:
     build:
@@ -39,12 +30,3 @@ services:
     hostname: alphaenginejava
     depends_on:
       - rabbit
-
-  # # Receiver
-  # receiver:
-  #   build:
-  #     context: Receiver/
-  #     dockerfile: Dockerfile
-  #   hostname: receiver
-  #   links:
-  #     - rabbit

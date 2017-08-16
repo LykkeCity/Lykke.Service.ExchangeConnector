@@ -1,4 +1,4 @@
-FROM microsoft/dotnet:latest
+FROM microsoft/dotnet:1.1.2-runtime
 COPY published/ app/
 COPY appsettings.json app/appsettings.json
 COPY FIX44.xml app/FIX44.xml

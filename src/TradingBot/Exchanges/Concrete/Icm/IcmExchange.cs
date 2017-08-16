@@ -127,7 +127,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return Task.FromResult(connector.CancelOrder(instrument, signal));
         }
 
-        public Task<ExecutedTrade> GetOrderInfo(Instrument instrument, long orderId)
+        public Task<ExecutedTrade> GetOrderInfo(Instrument instrument, string orderId)
         {
             return connector.GetOrderInfoAndWaitResponse(instrument, orderId);
         }

@@ -17,6 +17,7 @@ using TradingBot.Trading;
 using TradingBot.Communications;
 using Message = QuickFix.Message;
 using TradeType = TradingBot.Trading.TradeType;
+using TimeInForce = TradingBot.Trading.TimeInForce;
 
 namespace TradingBot.Exchanges.Concrete.Icm
 {
@@ -31,8 +32,8 @@ namespace TradingBot.Exchanges.Concrete.Icm
         
         
         private readonly object orderIdsSyncRoot = new Object();
-        private readonly Dictionary<long, string> orderIdsToIcmIds = new Dictionary<long, string>();
-        private readonly Dictionary<string, long> orderIcmIdsToIds = new Dictionary<string, long>();
+        private readonly Dictionary<string, string> orderIdsToIcmIds = new Dictionary<string, string>();
+        private readonly Dictionary<string, string> orderIcmIdsToIds = new Dictionary<string, string>();
         
 
         public IcmConnector(IcmConfig config, AzureFixMessagesRepository repository)
@@ -301,7 +302,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
         {
             logger.LogDebug("Execution report was received");
 
-            long id;
+            string id;
             string icmId;
             GetIds(report, out id, out icmId);
             
@@ -369,14 +370,14 @@ namespace TradingBot.Exchanges.Concrete.Icm
             tcs.SetResult(executedTrade);
         }
 
-        private void GetIds(ExecutionReport report, out long id, out string icmId)
+        private void GetIds(ExecutionReport report, out string id, out string icmId)
         {
             icmId = null;
-            id = default(long);
+            id = null;
 
-            if (report.IsSetField(Tags.ClOrdID))
+            if (report.IsSetField(Tags.ClOrdID) && !report.ClOrdID.Obj.EndsWith("cancel"))
             {
-                long.TryParse(report.ClOrdID.Obj, out id);
+                id = report.ClOrdID.Obj;
             }
             
             if (report.IsSetField(Tags.OrderID))
@@ -386,7 +387,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
             lock (orderIdsSyncRoot)
             {
-                if (id != default(long) && !string.IsNullOrEmpty(icmId))
+                if (!string.IsNullOrEmpty(id) && !string.IsNullOrEmpty(icmId))
                 {
                     if (!orderIdsToIcmIds.ContainsKey(id))
                     {
@@ -397,11 +398,11 @@ namespace TradingBot.Exchanges.Concrete.Icm
                         orderIcmIdsToIds.Add(icmId, id);
                     }
                 }
-                else if (id == default(long) && !string.IsNullOrEmpty(icmId))
+                else if (string.IsNullOrEmpty(id) && !string.IsNullOrEmpty(icmId))
                 {
                     orderIcmIdsToIds.TryGetValue(icmId, out id);
                 }
-                else if (id != default(long) && string.IsNullOrEmpty(icmId))
+                else if (!string.IsNullOrEmpty(id) && string.IsNullOrEmpty(icmId))
                 {
                     orderIdsToIcmIds.TryGetValue(id, out icmId);
                 }
@@ -454,7 +455,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return SendRequest(request);
         }
 
-        public bool SendOrderStatusRequest(Instrument instrument, long orderId)
+        public bool SendOrderStatusRequest(Instrument instrument, string orderId)
         {
             TradingSignal signal;
             if (!orderSignals.TryGetValue(orderId, out signal))
@@ -463,7 +464,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             logger.LogDebug($"Sending order status request for order {orderId}");
             
             var request = new OrderStatusRequest(
-                new ClOrdID(orderId.ToString()), 
+                new ClOrdID(orderId), 
                 new Symbol(symbolsMap[instrument.Name]), 
                 ConvertSide(signal.TradeType));
 
@@ -545,19 +546,34 @@ namespace TradingBot.Exchanges.Concrete.Icm
             logger.LogInformation($"Generarting request for sending order for instrument {instrument}");
 
             var request = new NewOrderSingle(
-                new ClOrdID(signal.OrderId.ToString()),
+                new ClOrdID(signal.OrderId),
                 new Symbol(symbolsMap[instrument.Name]),
                 ConvertSide(signal.TradeType),
                 new TransactTime(signal.Time),
                 ConvertType(signal.OrderType));
             
-            request.SetField(new TimeInForce(TimeInForce.GOOD_TILL_CANCEL));
+            request.SetField(ConvertTimeInForce(signal.TimeInForce));
             request.SetField(new OrderQty(signal.Count));
             request.SetField(new Price(signal.Price));
 
             return SendRequest(request);
         }
-        
+
+        private QuickFix.Fields.TimeInForce ConvertTimeInForce(TimeInForce timeInForce)
+        {
+            switch (timeInForce)
+            {
+                case TimeInForce.GoodTillCancel:
+                    return new QuickFix.Fields.TimeInForce(QuickFix.Fields.TimeInForce.GOOD_TILL_CANCEL);
+                    break;
+                case TimeInForce.FillOrKill:
+                    return new QuickFix.Fields.TimeInForce(QuickFix.Fields.TimeInForce.FILL_OR_KILL);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(timeInForce), timeInForce, null);
+            }
+        }
+
         public async Task<ExecutedTrade> AddOrderAndWaitResponse(Instrument instrument, TradingSignal signal, TimeSpan timeout)
         {
             var id = signal.OrderId;
@@ -596,7 +612,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             
             var request = new OrderCancelRequest(
                 new OrigClOrdID(signal.OrderId.ToString()), 
-                new ClOrdID(signal.OrderId + "c"), 
+                new ClOrdID(signal.OrderId + "cancel"), 
                 new Symbol(symbolsMap[instrument.Name]), 
                 ConvertSide(signal.TradeType),
                 new TransactTime(signal.Time)
@@ -636,13 +652,13 @@ namespace TradingBot.Exchanges.Concrete.Icm
             
             return tcs.Task.Result;
         }
-        private readonly ConcurrentDictionary<long, TaskCompletionSource<ExecutedTrade>> orderExecutions = 
-            new ConcurrentDictionary<long, TaskCompletionSource<ExecutedTrade>>();
+        private readonly ConcurrentDictionary<string, TaskCompletionSource<ExecutedTrade>> orderExecutions = 
+            new ConcurrentDictionary<string, TaskCompletionSource<ExecutedTrade>>();
         
-        private readonly ConcurrentDictionary<long, TradingSignal> orderSignals = new ConcurrentDictionary<long, TradingSignal>();
+        private readonly ConcurrentDictionary<string, TradingSignal> orderSignals = new ConcurrentDictionary<string, TradingSignal>();
         
         
-        public Task<ExecutedTrade> GetOrderInfoAndWaitResponse(Instrument instrument, long orderId)
+        public Task<ExecutedTrade> GetOrderInfoAndWaitResponse(Instrument instrument, string orderId)
         {
             var tcs = new TaskCompletionSource<ExecutedTrade>();
             orderExecutions.AddOrUpdate(orderId, tcs, (a, b) => tcs);
