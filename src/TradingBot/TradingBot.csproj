@@ -5,9 +5,12 @@
     <RootNamespace>TradingBot</RootNamespace>
     <AssemblyName>TradingBot</AssemblyName>
     <PreserveCompilationContext>true</PreserveCompilationContext>
+    <DocumentationFile>$(MSBuildProjectName).xml</DocumentationFile>
+    <NoWarn>1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Lykke.AzureStorage" Version="1.2.22" />
+    <PackageReference Include="Lykke.Common.ApiLibrary" Version="1.0.11" />
     <PackageReference Include="Lykke.RabbitMqBroker" Version="1.0.63" />
     <PackageReference Include="Lykke.Logs" Version="1.0.14" />
     <PackageReference Include="Microsoft.AspNetCore" Version="1.1.2" />

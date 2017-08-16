@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using Lykke.Common.ApiLibrary.Swagger;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -19,6 +20,9 @@ namespace TradingBot
             
             app.UseMvcWithDefaultRoute();
 
+            app.UseSwagger();
+            app.UseSwaggerUi();
+
             app.Run(async (context) =>
             {
                 var report = await StatusReport.Create();
@@ -35,8 +39,14 @@ namespace TradingBot
             // Add framework services.
             services.AddMvc();
 
+            services.AddSwaggerGen(options =>
+            {
+                options.DefaultLykkeConfiguration("v1", "ExchangeConnectorAPI");
+                options.EnableXmlDocumentation();
+            });
 
             services.AddSingleton(Program.Application);
+            var provider = services.BuildServiceProvider();
         }
     }
 }

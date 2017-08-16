@@ -13,12 +13,7 @@ using TradingBot.Trading;
 namespace TradingBot.Controllers.Api
 {
     public class OrdersController : BaseApiController
-    {
-        public ResponseMessage Index()
-        {
-            return new ResponseMessage("You have to specify exchange name to get the actual orders");
-        }
-        
+    {        
         [HttpGet("{exchangeName}")]
         public async Task<object> Index(string exchangeName)
         {
@@ -40,7 +35,7 @@ namespace TradingBot.Controllers.Api
         }
 
         [HttpGet("{exchangeName}/{instrument}/{id}")]
-        public async Task<ExecutedTrade> GetOrder(string exchangeName, string instrument, long id)
+        public async Task<ExecutedTrade> GetOrder(string exchangeName, string instrument, string id)
         {
             try
             {
@@ -109,8 +104,19 @@ namespace TradingBot.Controllers.Api
         }
 
 
+        /// <summary>
+        /// Cancel existing order
+        /// </summary>
+        /// <remarks></remarks>
+        /// <param name="exchangeName"></param>
+        /// <param name="orderModel"></param>
+        /// <response code="200">The order is successfully canceled</response>
+        /// <response code="400">Can't cancel the order. The reason in the response</response>
+        /// <exception cref="StatusCodeException"></exception>
         [ApiKeyAuth]
         [HttpDelete("{exchangeName}")]
+        [ProducesResponseType(typeof(ExecutedTrade), 200)]
+        [ProducesResponseType(typeof(ResponseMessage), 400)]
         public async Task<IActionResult> CancelOrder(string exchangeName, [FromBody] OrderModel orderModel)
         {
             if (orderModel == null) 
@@ -140,14 +146,14 @@ namespace TradingBot.Controllers.Api
                     if (result.Status == ExecutionStatus.Rejected)
                         return BadRequest(new ResponseMessage($"Exchange return status: {result.Status}"));
                 
-                    return Accepted(result);
+                    return Ok(result);
                 }
                 else
                 {
                     await Application.GetExchange(exchangeName)
                         .PlaceTradingOrders(new InstrumentTradingSignals(instrument, new [] { tradingSignal }));
                 
-                    return Accepted();
+                    return Ok();
                 }
             }
             catch (Exception e)
