@@ -565,10 +565,8 @@ namespace TradingBot.Exchanges.Concrete.Icm
             {
                 case TimeInForce.GoodTillCancel:
                     return new QuickFix.Fields.TimeInForce(QuickFix.Fields.TimeInForce.GOOD_TILL_CANCEL);
-                    break;
                 case TimeInForce.FillOrKill:
                     return new QuickFix.Fields.TimeInForce(QuickFix.Fields.TimeInForce.FILL_OR_KILL);
-                    break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(timeInForce), timeInForce, null);
             }

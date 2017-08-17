@@ -6,7 +6,7 @@
     <AssemblyName>TradingBot</AssemblyName>
     <PreserveCompilationContext>true</PreserveCompilationContext>
     <DocumentationFile>$(MSBuildProjectName).xml</DocumentationFile>
-    <NoWarn>1591</NoWarn>
+    <NoWarn>1591;1701;1702;1705</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Lykke.AzureStorage" Version="1.2.22" />
