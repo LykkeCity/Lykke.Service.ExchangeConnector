@@ -41,7 +41,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
         /// </summary>
         public override Task OpenPricesStream()
         {
-            StartRabbitConnection();
+            //StartRabbitConnection();
 
             return Task.FromResult(0);
         }
