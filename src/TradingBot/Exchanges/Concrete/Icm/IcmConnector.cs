@@ -25,7 +25,6 @@ namespace TradingBot.Exchanges.Concrete.Icm
     {
         private readonly ILogger logger = Logging.CreateLogger<IcmConnector>();
         private readonly IcmConfig config;
-        private readonly TimeSpan timeout = TimeSpan.FromSeconds(30);
         private readonly AzureFixMessagesRepository repository;
 
         private SessionID session;
@@ -598,6 +597,13 @@ namespace TradingBot.Exchanges.Concrete.Icm
                     {
                         result = tcs.Task.Result;
                     }
+                    else // In case of FillOrKill orders we don't want to wait if ICM is not on working hours. We will send cancel request.
+                    {
+                        if (signal.TimeInForce == TimeInForce.FillOrKill)
+                        {
+                            result = await CancelOrderAndWaitResponse(instrument, signal, timeout);
+                        }
+                    }
                 }
             }
             
@@ -650,6 +656,8 @@ namespace TradingBot.Exchanges.Concrete.Icm
             
             return tcs.Task.Result;
         }
+        
+        
         private readonly ConcurrentDictionary<string, TaskCompletionSource<ExecutedTrade>> orderExecutions = 
             new ConcurrentDictionary<string, TaskCompletionSource<ExecutedTrade>>();
         
@@ -668,7 +676,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
         
         private readonly LinkedList<TaskCompletionSource<ListStatus>> listStatuses = new LinkedList<TaskCompletionSource<ListStatus>>();
         
-        public async Task<IEnumerable<ExecutedTrade>> GetAllOrdersInfo()
+        public async Task<IEnumerable<ExecutedTrade>> GetAllOrdersInfo(TimeSpan timeout)
         {
             var tcs = new TaskCompletionSource<ListStatus>();
 

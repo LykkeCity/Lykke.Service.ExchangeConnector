@@ -41,7 +41,6 @@ namespace TradingBot.Exchanges.Concrete.Icm
         /// </summary>
         public override Task OpenPricesStream()
         {
-            //StartFixConnection(); // wait for Fix connection before translationg quotes and receiveng signals
             StartRabbitConnection();
 
             return Task.FromResult(0);
@@ -71,18 +70,11 @@ namespace TradingBot.Exchanges.Concrete.Icm
                         Configuration.Instance.LogsTableName,
                         new LogToConsole())))
                 .Subscribe(async orderBook =>
-                {
-                    //Logger.LogInformation($"Receive order book for asset: {orderBook.Asset}");
-                    
-                    if (Instruments.Any(x => x.Name == orderBook.Asset))
-                        await CallHandlers(orderBook.ToInstrumentTickPrices());
-                    else
                     {
-                        //Logger.LogInformation("It's not in the list");
-                    }
-                })
-                .Start()
-                ;
+                        if (Instruments.Any(x => x.Name == orderBook.Asset))
+                            await CallHandlers(orderBook.ToInstrumentTickPrices());
+                    })
+                .Start();
         }
         
         private void StartFixConnection()
@@ -109,7 +101,6 @@ namespace TradingBot.Exchanges.Concrete.Icm
             var retry = Policy
                 .HandleResult<bool>(x => !x)
                 .WaitAndRetry(5, attempt => TimeSpan.FromSeconds(10));
-
             
             return Task.FromResult(retry.Execute(() => initiator.IsLoggedOn));
         }
@@ -132,17 +123,17 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return connector.GetOrderInfoAndWaitResponse(instrument, orderId);
         }
 
-        public Task<IEnumerable<ExecutedTrade>> GetAllOrdersInfo()
+        public Task<IEnumerable<ExecutedTrade>> GetAllOrdersInfo(TimeSpan timeout)
         {
-            return connector.GetAllOrdersInfo();
+            return connector.GetAllOrdersInfo(timeout);
         }
 
-        public Task<ExecutedTrade> AddOrderAndWait(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+        public override Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TimeSpan timeout)
         {
             return connector.AddOrderAndWaitResponse(instrument, signal, timeout);
         }
 
-        public Task<ExecutedTrade> CancelOrderAndWait(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TimeSpan timeout)
         {
             return connector.CancelOrderAndWaitResponse(instrument, signal, timeout);
         }

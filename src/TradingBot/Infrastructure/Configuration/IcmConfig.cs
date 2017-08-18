@@ -15,6 +15,10 @@ namespace TradingBot.Infrastructure.Configuration
         public int Port { get; set; }
 
         public string[] Instruments { get; set; }
+        
+        public bool SaveQuotesToAzure { get; set; }
+        
+        public bool PubQuotesToRabbit { get; set; }
 
         public RabbitMqConfiguration RabbitMq { get; set; }
         

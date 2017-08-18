@@ -21,9 +21,13 @@ namespace TradingBot.Exchanges.Abstractions
         
         public string Name { get; }
 
+        public IExchangeConfiguration Config { get; }
+
         protected Exchange(string name, IExchangeConfiguration config)
         {
             Name = name;
+            Config = config;
+            
             decimal initialValue = 100m; // TODO: get initial value from config? or get if from real exchange.
 
             if (config.Instruments == null || config.Instruments.Length == 0)
@@ -179,5 +183,11 @@ namespace TradingBot.Exchanges.Abstractions
         protected abstract Task<bool> CancelOrder(Instrument instrument, TradingSignal signal);
 
         public Dictionary<string, LinkedList<TradingSignal>> ActualOrders => ActualSignals; // TODO: to readonly dictionary and collection
+
+        public abstract Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal,
+            TimeSpan timeout);
+
+        public abstract Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal,
+            TimeSpan timeout);
     }
 }

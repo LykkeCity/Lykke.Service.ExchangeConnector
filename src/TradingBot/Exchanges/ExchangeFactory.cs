@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.HistoricalData;
@@ -18,8 +19,10 @@ namespace TradingBot.Exchanges
 		    var exchanges = CreateExchanges(config.Exchanges);
 
 		    if (config.AzureStorage.Enabled)
-			    exchanges.ForEach(x => x.AddTickPriceHandler(new AzureTablePricesPublisher(x.Name, config.AzureStorage.StorageConnectionString)));
-
+			    foreach (var exchange in exchanges.Where(x => x.Config.SaveQuotesToAzure))
+				    exchange.AddTickPriceHandler(new AzureTablePricesPublisher(exchange.Name, config.AzureStorage.StorageConnectionString));
+			    
+		    
 		    if (config.RabbitMq.Enabled)
 		    {
 			    var pricesHandler =
@@ -27,12 +30,13 @@ namespace TradingBot.Exchanges
 
 			    var tradesHandler =
 				    new RabbitMqHandler<ExecutedTrade>(config.RabbitMq.GetConnectionString(), config.RabbitMq.TradesExchange);
-			    
-			    exchanges.ForEach(x =>
+
+
+			    foreach (var exchange in exchanges.Where(x => x.Config.PubQuotesToRabbit))
 			    {
-				    x.AddTickPriceHandler(pricesHandler);
-				    x.AddExecutedTradeHandler(tradesHandler);
-			    });
+				    exchange.AddTickPriceHandler(pricesHandler);
+				    exchange.AddExecutedTradeHandler(tradesHandler);
+			    }
 		    }
 
 		    return exchanges;
@@ -41,7 +45,7 @@ namespace TradingBot.Exchanges
         private static List<Exchange> CreateExchanges(ExchangesConfiguration config)
         {
 	        var result = new List<Exchange>();
-	        
+
 	        if (config.Icm.Enabled)
 		        result.Add(new IcmExchange(config.Icm));
 	        

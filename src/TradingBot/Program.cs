@@ -24,7 +24,7 @@ namespace TradingBot
                 if (config.AzureStorage.Enabled)
                     Logging.LoggerFactory.AddLykkeLog(config.AzureStorage.StorageConnectionString, config.LogsTableName);
     
-	            Logger.LogDebug("Waiting a bit for services up...");
+	            //Logger.LogDebug("Waiting a bit for services up...");
 	            //Task.Delay(TimeSpan.FromSeconds(10)).Wait();
 	            
 	            Application = new ExchangeConnectorApplication(config);

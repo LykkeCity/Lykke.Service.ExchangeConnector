@@ -22,12 +22,15 @@ namespace TradingBot.Controllers
                 Config.LogsTableName,
                 new LogToConsole());
             
-            var query = new TableQuery<LogEntity>();
-
+            var query = new TableQuery<LogEntity>()
+            {
+                TakeCount = 1000
+            };
+            
             IEnumerable<LogEntity> logs = Enumerable.Empty<LogEntity>();
             await logsStorage.ExecuteAsync(query, result => logs = result);
 
-            var lastEntries = logs.OrderByDescending(x => x.Timestamp).Take(1000);
+            var lastEntries = logs.OrderByDescending(x => x.Timestamp);
                 
             return View(lastEntries);
         }
@@ -36,15 +39,18 @@ namespace TradingBot.Controllers
         {
             var logsStorage = new AzureTableStorage<JavaLogEntity>(
                 Config.AzureStorage.StorageConnectionString,
-                "logsjava",
+                "logsAlphaEngine",
                 new LogToConsole());
             
-            var query = new TableQuery<JavaLogEntity>();
+            var query = new TableQuery<JavaLogEntity>()
+            {
+                TakeCount = 1000
+            };
 
             IEnumerable<JavaLogEntity> logs = Enumerable.Empty<JavaLogEntity>();
             await logsStorage.ExecuteAsync(query, result => logs = result);
 
-            var lastEntries = logs.OrderByDescending(x => x.Timestamp).Take(1000);
+            var lastEntries = logs.OrderByDescending(x => x.Timestamp);
 
             return View(lastEntries);
         }
@@ -55,9 +61,11 @@ namespace TradingBot.Controllers
                 Config.AzureStorage.StorageConnectionString,
                 "fixMessages",
                 new LogToConsole());
-            
-            var query = new TableQuery<FixMessageTableEntity>();
-            query.TakeCount = 1000;
+
+            var query = new TableQuery<FixMessageTableEntity>
+            {
+                TakeCount = 1000
+            };
 
             var logs = Enumerable.Empty<FixMessageTableEntity>();
             await logsStorage.ExecuteAsync(query, result => logs = result);

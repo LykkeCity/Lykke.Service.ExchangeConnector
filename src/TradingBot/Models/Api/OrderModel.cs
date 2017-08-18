@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using TradingBot.Trading;
 
@@ -17,6 +18,7 @@ namespace TradingBot.Models.Api
         [Required]
         public OrderType OrderType { get; set; }
         
+        [DefaultValue(TimeInForce.FillOrKill)]
         public TimeInForce TimeInForce { get; set; }
         
         [Required]
@@ -30,6 +32,9 @@ namespace TradingBot.Models.Api
         [Required]
         public string Id { get; set; }
         
+        /// <summary>
+        /// Date and time must be in 5 minutes threshold from UTC now
+        /// </summary>
         public DateTime DateTime { get; set; }
         
         public string GetStringToSign()

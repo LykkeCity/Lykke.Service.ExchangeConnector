@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Swashbuckle.Swagger.Model;
+using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Exceptions;
 
 namespace TradingBot
@@ -42,7 +44,14 @@ namespace TradingBot
             services.AddSwaggerGen(options =>
             {
                 options.DefaultLykkeConfiguration("v1", "ExchangeConnectorAPI");
-                options.EnableXmlDocumentation();
+                options.OperationFilter<AddSwaggerAuthorizationHeaderParameter>();
+//                options.AddSecurityDefinition("apiKeyAuth",  
+//                    new ApiKeyScheme()
+//                    {
+//                        Type = "apiKey",
+//                        Name = "X-ApiKey",
+//                        In = "header"
+//                    });
             });
 
             services.AddSingleton(Program.Application);

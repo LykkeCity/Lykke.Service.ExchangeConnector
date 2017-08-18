@@ -64,5 +64,15 @@ namespace TradingBot.Exchanges.Concrete.HistoricalData
         {
             throw new NotImplementedException();
         }
+
+        public override Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

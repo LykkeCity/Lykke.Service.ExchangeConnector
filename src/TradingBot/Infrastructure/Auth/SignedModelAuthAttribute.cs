@@ -9,9 +9,9 @@ using TradingBot.Models.Api;
 
 namespace TradingBot.Infrastructure.Auth
 {
-    public class ApiKeyAuthAttribute : ActionFilterAttribute
+    public class SignedModelAuthAttribute : ActionFilterAttribute
     {
-        private readonly ILogger logger = Logging.Logging.CreateLogger<ApiKeyAuthAttribute>();
+        private readonly ILogger logger = Logging.Logging.CreateLogger<SignedModelAuthAttribute>();
         
         public override void OnActionExecuting(ActionExecutingContext context)
         {
