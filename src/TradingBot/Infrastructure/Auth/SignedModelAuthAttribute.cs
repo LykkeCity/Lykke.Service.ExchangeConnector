@@ -58,7 +58,7 @@ namespace TradingBot.Infrastructure.Auth
                     }
                     catch (Exception e)
                     {
-                        logger.LogError(new EventId(), e, $"Error on parsing request sig {modelSig}");
+                        logger.LogError(0, e, $"Error on parsing request sig {modelSig}");
                         signIsCorrect = false;
                     }
                 }

@@ -49,7 +49,7 @@ namespace TradingBot
             }
             catch(Exception e)
             {
-                Logger.LogError(new EventId(), e, "Application error");
+                Logger.LogError(0, e, "Application error");
                 Environment.Exit(-1);
             }
         }

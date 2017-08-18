@@ -53,7 +53,7 @@ namespace TradingBot
                 bool connectionTestPassed = await retry.ExecuteAsync(exchange.TestConnection, token);
                 if (!connectionTestPassed)
                 {
-                    logger.LogError($"no connection to exchange {exchange.Name}");
+                    logger.LogWarning($"no connection to exchange {exchange.Name}");
                     exchanges.Remove(exchange.Name);
                 }    
             }

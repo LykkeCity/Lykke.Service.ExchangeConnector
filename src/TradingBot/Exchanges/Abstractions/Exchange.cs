@@ -80,14 +80,14 @@ namespace TradingBot.Exchanges.Abstractions
 				}
 				else
 				{
-					Logger.LogError("Connection test failed.");
+					Logger.LogWarning("Connection test failed.");
 				}
 
 				return result;
             }
             catch (Exception ex)
             {
-                Logger.LogError(new EventId(), ex, "Connection test failed with error");
+                Logger.LogError(0, ex, "Connection test failed with error");
                 return false;
             }
         }
@@ -120,7 +120,7 @@ namespace TradingBot.Exchanges.Abstractions
             {
                 if (!ActualSignals.ContainsKey(signals.Instrument.Name))
                 {
-                    Logger.LogError($"ActualSignals doesn't contains a key {signals.Instrument.Name}. It has keys: {string.Join(", ", ActualSignals.Keys)}");
+                    Logger.LogWarning($"ActualSignals doesn't contains a key {signals.Instrument.Name}. It has keys: {string.Join(", ", ActualSignals.Keys)}");
                     return Task.FromResult(0);
                 }
                 
@@ -161,7 +161,7 @@ namespace TradingBot.Exchanges.Abstractions
                                 Logger.LogDebug($"Canceled order {arrivedSignal}");
                             }
                             else
-                                Logger.LogError($"Command for cancel unexisted order {arrivedSignal}");
+                                Logger.LogWarning($"Command for cancel unexisted order {arrivedSignal}");
                             
                             break;
                         default:

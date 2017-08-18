@@ -59,7 +59,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
 					}
                     catch (Exception e)
                     {
-                        Logger.LogError(new EventId(), e, "Can't get prices from kraken.");
+                        Logger.LogError(0, e, "Can't get prices from kraken.");
                         continue;
                     }
 
