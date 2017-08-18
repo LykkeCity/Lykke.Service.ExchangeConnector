@@ -69,7 +69,7 @@ namespace TradingBot.Communications
 					catch (Exception ex)
 					{
 						tablePricesQueue.Enqueue(tablePrice);
-						logger.LogError(new EventId(), ex,
+						logger.LogError(0, ex,
 							$"Can't write to Azure Table Storage, will try later. Now in queue: {tablePricesQueue.Count}");
 					}
 				}
