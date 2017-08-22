@@ -43,6 +43,8 @@ namespace TradingBot.Trading
         public string OrderId { get; }
         
         public ExecutionStatus Status { get; }
+        
+        public string Message { get; set; }
 
         public override string ToString()
         {

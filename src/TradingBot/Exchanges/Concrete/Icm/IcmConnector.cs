@@ -352,12 +352,17 @@ namespace TradingBot.Exchanges.Concrete.Icm
             var executedTrade = new ExecutedTrade(
                 new Instrument(IcmExchange.Name, report.IsSetField(Tags.Symbol) ? symbolsMapBack[report.Symbol.Obj] : ""),    
                 report.IsSetField(Tags.TransactTime) ? report.TransactTime.Obj : DateTime.UtcNow,
-                report.Price.Obj,
+                executionStatus == ExecutionStatus.Fill || executionStatus == ExecutionStatus.PartialFill ? report.AvgPx.Obj : report.Price.Obj,
                 report.OrderQty.Obj,
                 report.Side.Obj == Side.BUY ? TradeType.Buy : TradeType.Sell,
                 id,
                 executionStatus);
 
+            if (report.IsSetField(Tags.Text))
+            {
+                executedTrade.Message = report.Text.Obj;
+            }
+            
             if (executionStatus == ExecutionStatus.Cancelled ||
                 executionStatus == ExecutionStatus.Fill ||
                 executionStatus == ExecutionStatus.PartialFill)
