@@ -365,8 +365,22 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 OnTradeExecuted?.Invoke(executedTrade); // TODO: await?
             }
 
-            var tcs = orderExecutions.GetOrAdd(id, new TaskCompletionSource<ExecutedTrade>());
-            tcs.SetResult(executedTrade);
+
+            lock (orderExecutions)
+            {
+                if (orderExecutions.ContainsKey(id))
+                {
+                    if (orderExecutions[id].Task.Status < TaskStatus.RanToCompletion)
+                    {
+                        orderExecutions[id].SetResult(executedTrade);
+                    }
+                    else
+                    {
+                        orderExecutions[id] = new TaskCompletionSource<ExecutedTrade>();
+                        orderExecutions[id].SetResult(executedTrade);
+                    }
+                }
+            }
         }
 
         private void GetIds(ExecutionReport report, out string id, out string icmId)
@@ -575,8 +589,18 @@ namespace TradingBot.Exchanges.Concrete.Icm
         {
             var id = signal.OrderId;
             var tcs = new TaskCompletionSource<ExecutedTrade>();
-            
-            orderExecutions.AddOrUpdate(id, tcs, (a, b) => tcs); // TODO: what to do with previous one?
+
+            lock (orderExecutions)
+            {
+                if (!orderExecutions.ContainsKey(id))
+                {
+                    orderExecutions.Add(id, tcs);
+                }
+                else
+                {
+                    orderExecutions[id] = tcs;
+                }
+            }
             
             var signalSended = AddOrder(instrument, signal);
 
@@ -584,18 +608,41 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Count, signal.TradeType, signal.OrderId, ExecutionStatus.Rejected);
 
             var sw = Stopwatch.StartNew();
-            await Task.WhenAny(tcs.Task, Task.Delay(timeout)).ConfigureAwait(false);
-            
-            ExecutedTrade result = await tcs.Task.ConfigureAwait(false);
+            var task = tcs.Task;
+            await Task.WhenAny(task, Task.Delay(timeout)).ConfigureAwait(false);
 
-            if (result.Status == ExecutionStatus.New)
+            ExecutedTrade result = null;
+            
+            if (task.IsCompleted)
             {
-                if (orderExecutions.TryUpdate(id, tcs = new TaskCompletionSource<ExecutedTrade>(), tcs))
+                result = task.Result;
+                
+                if (result.Status == ExecutionStatus.New)
                 {
-                    await Task.WhenAny(tcs.Task, Task.Delay(timeout - sw.Elapsed)).ConfigureAwait(false);
-                    if (tcs.Task.IsCompleted)
+                    lock (orderExecutions)
                     {
-                        result = tcs.Task.Result;
+                        // probably the new result is here already
+
+                        if (orderExecutions[id].Task.IsCompleted &&
+                            orderExecutions[id].Task.Result.Status == ExecutionStatus.New) // thats the old one, let's change
+                        {
+                            tcs = new TaskCompletionSource<ExecutedTrade>();
+                            orderExecutions[id] = tcs;
+                            task = tcs.Task;
+                        }
+                        else if (orderExecutions[id].Task.IsCompleted &&
+                                 orderExecutions[id].Task.Result.Status != ExecutionStatus.New) // that's the new one, let's return
+                        {
+                            //result = orderExecutions[id].Task.Result;
+                            task = orderExecutions[id].Task;
+                        }
+                    }
+                    
+                    await Task.WhenAny(task, Task.Delay(timeout - sw.Elapsed)).ConfigureAwait(false);
+                    
+                    if (task.IsCompleted)
+                    {
+                        result = task.Result;
                     }
                     else // In case of FillOrKill orders we don't want to wait if ICM is not on working hours. We will send cancel request.
                     {
@@ -605,8 +652,17 @@ namespace TradingBot.Exchanges.Concrete.Icm
                         }
                     }
                 }
-            }
             
+                return result;
+            }
+            else // In case of FillOrKill orders we don't want to wait if ICM is not on working hours. We will send cancel request.
+            {
+                if (signal.TimeInForce == TimeInForce.FillOrKill)
+                {
+                    result = await CancelOrderAndWaitResponse(instrument, signal, timeout);
+                }
+            }
+
             return result;
         }
 
@@ -638,8 +694,18 @@ namespace TradingBot.Exchanges.Concrete.Icm
         {
             var id = signal.OrderId;
             var tcs = new TaskCompletionSource<ExecutedTrade>();
-            
-            orderExecutions.AddOrUpdate(id, tcs, (a, b) => tcs);
+
+            lock (orderExecutions)
+            {
+                if (orderExecutions.ContainsKey(id))
+                {
+                    orderExecutions[id] = tcs;
+                }
+                else
+                {
+                    orderExecutions.Add(id, tcs);
+                }
+            }
             
             var signalSended = CancelOrder(instrument, signal);
 
@@ -657,20 +723,31 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return tcs.Task.Result;
         }
         
-        
-        private readonly ConcurrentDictionary<string, TaskCompletionSource<ExecutedTrade>> orderExecutions = 
-            new ConcurrentDictionary<string, TaskCompletionSource<ExecutedTrade>>();
+        private readonly Dictionary<string, TaskCompletionSource<ExecutedTrade>> orderExecutions = new Dictionary<string, TaskCompletionSource<ExecutedTrade>>();
         
         private readonly ConcurrentDictionary<string, TradingSignal> orderSignals = new ConcurrentDictionary<string, TradingSignal>();
         
         
         public Task<ExecutedTrade> GetOrderInfoAndWaitResponse(Instrument instrument, string orderId)
         {
-            var tcs = new TaskCompletionSource<ExecutedTrade>();
-            orderExecutions.AddOrUpdate(orderId, tcs, (a, b) => tcs);
+            lock (orderExecutions)
+            {
+                if (orderExecutions.ContainsKey(orderId))
+                {
+                    if (!orderExecutions[orderId].Task.IsCompleted)
+                    {
+                        throw new Exception($"Request for {orderId} is in progress");
+                    }
+                    else
+                    {
+                        orderExecutions[orderId] = new TaskCompletionSource<ExecutedTrade>();
+                    }
+                }
+            }
+            
             SendOrderStatusRequest(instrument, orderId);
 
-            return tcs.Task;
+            return orderExecutions[orderId].Task;
         }
 
         

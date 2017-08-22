@@ -44,7 +44,7 @@ namespace TradingBot.Communications
             }
             catch (Exception ex)
             {
-                logger.LogError(new EventId(), ex, "Can't save FIX message into azure storage");
+                logger.LogError(0, ex, "Can't save FIX message into azure storage");
             }
         }
     }
