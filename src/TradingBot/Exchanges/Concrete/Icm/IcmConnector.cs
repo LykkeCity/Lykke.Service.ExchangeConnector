@@ -468,6 +468,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             request.SetField(new OrderID("OPEN_ORDER"));
             request.SetField(new TransactTime(DateTime.UtcNow));
             request.SetField(new Side('7')); // 7 for any type
+            request.SetField(new Symbol("EUR/USDm")); // Tag is required but will be ignored
             request.SetField(new CharField(7559, 'Y')); // custom ICM tag for requesting all open orders
 
             return SendRequest(request);

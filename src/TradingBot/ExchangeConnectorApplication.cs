@@ -54,7 +54,7 @@ namespace TradingBot
                 if (!connectionTestPassed)
                 {
                     logger.LogWarning($"no connection to exchange {exchange.Name}");
-                    exchanges.Remove(exchange.Name);
+                    exchanges.Remove(exchange.Name); // TODO: do not remove, just try to connect further
                 }    
             }
             

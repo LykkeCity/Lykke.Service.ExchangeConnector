@@ -15,6 +15,8 @@ namespace TradingBot.Controllers
     {
         private Configuration Config => Configuration.Instance;
         
+        private readonly int entriesCount = 1000;
+        
         public async Task<IActionResult> Index()
         {
             var logsStorage = new AzureTableStorage<LogEntity>(
@@ -24,11 +26,11 @@ namespace TradingBot.Controllers
             
             var query = new TableQuery<LogEntity>()
             {
-                TakeCount = 1000
+                TakeCount = entriesCount
             };
             
-            IEnumerable<LogEntity> logs = Enumerable.Empty<LogEntity>();
-            await logsStorage.ExecuteAsync(query, result => logs = result);
+            var logs = new List<LogEntity>(entriesCount);
+            await logsStorage.ExecuteAsync(query, result => logs.AddRange(result));
 
             var lastEntries = logs.OrderByDescending(x => x.Timestamp);
                 
@@ -44,11 +46,11 @@ namespace TradingBot.Controllers
             
             var query = new TableQuery<JavaLogEntity>()
             {
-                TakeCount = 1000
+                TakeCount = entriesCount
             };
 
-            IEnumerable<JavaLogEntity> logs = Enumerable.Empty<JavaLogEntity>();
-            await logsStorage.ExecuteAsync(query, result => logs = result);
+            var logs = new List<JavaLogEntity>(entriesCount);
+            await logsStorage.ExecuteAsync(query, result => logs.AddRange(result));
 
             var lastEntries = logs.OrderByDescending(x => x.Timestamp);
 
@@ -64,11 +66,11 @@ namespace TradingBot.Controllers
 
             var query = new TableQuery<FixMessageTableEntity>
             {
-                TakeCount = 1000
+                TakeCount = entriesCount
             };
 
-            var logs = Enumerable.Empty<FixMessageTableEntity>();
-            await logsStorage.ExecuteAsync(query, result => logs = result);
+            var logs = new List<FixMessageTableEntity>(entriesCount);
+            await logsStorage.ExecuteAsync(query, result => logs.AddRange(result));
 
             var lastEntries = logs.OrderBy(x => x.RowKey);
 
