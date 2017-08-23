@@ -681,8 +681,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 new ClOrdID(signal.OrderId + "cancel"), 
                 new Symbol(symbolsMap[instrument.Name]), 
                 ConvertSide(signal.TradeType),
-                new TransactTime(signal.Time)
-                );
+                new TransactTime(signal.Time));
 
             lock (orderIdsSyncRoot)
             {
@@ -798,10 +797,24 @@ namespace TradingBot.Exchanges.Concrete.Icm
             
             var listStatus = tcs.Task.Result;
             int ordersCount = listStatus.TotNoOrders.Obj;
+            
             var result = new List<ExecutedTrade>();
-            for (int i = 0; i < ordersCount; i++)
+            
+            for (int i = 1; i <= ordersCount; i++)
             {
-                result.Add(null);
+                var orderGroup = listStatus.GetGroup(i, Tags.NoOrders);
+                
+                var executedTrade = new ExecutedTrade(
+                    new Instrument("icm", orderGroup.GetField(Tags.Symbol)),
+                    orderGroup.GetField(new TransactTime()).Obj,
+                    orderGroup.GetField(new AvgPx()).Obj,
+                    orderGroup.GetField(new LeavesQty()).Obj,
+                    //ConvertType((OrdType)orderGroup.GetField(new OrdType())),
+                    ConvertSide(orderGroup.GetField(new Side()).Obj),
+                    orderGroup.GetField(new ClOrdID()).Obj,
+                    ConvertStatus(orderGroup.GetField(new OrdStatus()).Obj));
+                
+                result.Add(executedTrade);
             }
             
             return result;
@@ -810,6 +823,39 @@ namespace TradingBot.Exchanges.Concrete.Icm
         private Side ConvertSide(TradeType tradeType)
         {
             return new Side(tradeType == TradeType.Buy ? Side.BUY : Side.SELL);
+        }
+
+        private TradeType ConvertSide(char side)
+        {
+            return side == Side.BUY ? TradeType.Buy : TradeType.Sell;
+        }
+
+        private OrderType ConvertType(OrdType ordType)
+        {
+            switch (ordType.Obj)
+            {
+                case OrdType.FOREX_MARKET:
+                    return OrderType.Market;
+                case OrdType.FOREX_LIMIT:
+                    return OrderType.Limit;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(ordType), ordType.Obj, null);
+            }
+        }
+
+        private ExecutionStatus ConvertStatus(char status)
+        {
+            switch (status)
+            {
+                case OrdStatus.NEW:
+                    return ExecutionStatus.New;
+                case OrdStatus.CANCELED:
+                    return ExecutionStatus.Cancelled;
+                case OrdStatus.PENDING_NEW:
+                    return ExecutionStatus.Pending;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(status), status, null);
+            }
         }
 
         private OrdType ConvertType(OrderType orderType)

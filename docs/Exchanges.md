@@ -222,8 +222,12 @@ API implemented FIX protocol (http://fixprotocol.org) of version 4.4
 5:00 EST Sunday - 17:00 EST Friday, No operation on Saturday
 
 **Quantity**
+
 ICM rejects orders which quantity is not divisible by Step. For FOREX currency pairs, Step is 1000 units of base currency. For Gold step is 1 ounce, for Silver step is 50 ounces.
 
+**Additional notes**
+
+ICM automatically cancels all client orders on disconnect. So that the client needs to place all actual orders after every reconnection.
 
 ### Order Types
 

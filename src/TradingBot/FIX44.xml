@@ -2255,6 +2255,7 @@
       <field name="WorkingIndicator" required="N" />
       <field name="LeavesQty" required="Y" />
       <field name="CxlQty" required="Y" />
+      <field name="TimeInForce" required="N" /> <!-- ICM sends this field despite it is not standard -->
       <field name="AvgPx" required="Y" />
       <field name="OrdRejReason" required="N" />
       <field name="Text" required="N" />
