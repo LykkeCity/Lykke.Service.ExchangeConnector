@@ -90,7 +90,8 @@ namespace TradingBot.Controllers.Api
                 
                 
                 var instrument = new Instrument(exchangeName, orderModel.Instrument);
-                var tradingSignal = new TradingSignal(orderModel.Id, OrderCommand.Create, orderModel.TradeType, orderModel.Price, orderModel.Volume, DateTime.UtcNow, orderModel.OrderType);
+                var tradingSignal = new TradingSignal(orderModel.Id, OrderCommand.Create, orderModel.TradeType, orderModel.Price, orderModel.Volume, DateTime.UtcNow, 
+                    orderModel.OrderType, orderModel.TimeInForce);
             
                 var result = await Application.GetExchange(exchangeName)
                     .AddOrderAndWaitExecution(instrument, tradingSignal, timeout);
