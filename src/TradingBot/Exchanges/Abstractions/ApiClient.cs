@@ -26,21 +26,36 @@ namespace TradingBot.Exchanges.Abstractions
         {
             Log($"Making request to url: {url}");
 
-            using (var response = await httpClient.GetAsync(url, cancellationToken)) // todo: ConfigureAwait(false) ??
+            using (var response = await httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false))
             {
-                if (response.StatusCode != HttpStatusCode.OK)
+                string content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                
+                if (!response.IsSuccessStatusCode)
                 {
-                    string errorContent = await response.Content.ReadAsStringAsync();
-
-                    throw new ApiException($"Unexpected status code: {response.StatusCode}. {errorContent}");
+                    throw new ApiException($"Unexpected status code: {response.StatusCode}. {content}");
                 }
-
-                string content = await response.Content.ReadAsStringAsync();
 
                 Log($"Received content: {content}");
 
                 var result = JsonConvert.DeserializeObject<TResponse>(content);
+                return result;
+            }
+        }
 
+        public async Task<TResponse> MakePostRequestAsync<TResponse>(string url, HttpContent content, CancellationToken cancellationToken)
+        {
+            using (var response = await httpClient.PostAsync(url, content, cancellationToken).ConfigureAwait(false))
+            {
+                string responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                if (!response.IsSuccessStatusCode)
+                {                    
+                    throw new ApiException($"Unexpected status code: {response.StatusCode}. {responseContent}");
+                }
+
+                Log($"Received content: {responseContent}");
+
+                var result = JsonConvert.DeserializeObject<TResponse>(responseContent);                
                 return result;
             }
         }

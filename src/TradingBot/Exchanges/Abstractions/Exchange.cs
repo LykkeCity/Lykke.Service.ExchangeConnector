@@ -189,5 +189,10 @@ namespace TradingBot.Exchanges.Abstractions
 
         public abstract Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal,
             TimeSpan timeout);
+
+        public virtual Task<Dictionary<string, decimal>> GetAccountBalance(CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new Dictionary<string, decimal>());
+        }
     }
 }

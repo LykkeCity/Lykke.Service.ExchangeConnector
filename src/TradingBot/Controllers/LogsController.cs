@@ -15,7 +15,7 @@ namespace TradingBot.Controllers
     {
         private Configuration Config => Configuration.Instance;
         
-        private readonly int entriesCount = 1000;
+        private readonly int entriesCount = 100;
         
         public async Task<IActionResult> Index()
         {

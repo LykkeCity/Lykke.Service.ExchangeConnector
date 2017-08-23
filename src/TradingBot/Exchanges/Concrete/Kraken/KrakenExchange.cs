@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -22,10 +23,15 @@ namespace TradingBot.Exchanges.Concrete.Kraken
         public KrakenExchange(KrakenConfig config) : base(Name, config)
         {
             this.config = config;
+            
+            var httpClient = new HttpClient() {Timeout = TimeSpan.FromSeconds(3)}; // TODO: HttpClient have to be Singleton
+            publicData = new PublicData(new ApiClient(httpClient));
+            privateData = new PrivateData(new ApiClient(new HttpClient() {Timeout = TimeSpan.FromSeconds(30)}), config.ApiKey, config.PrivateKey, 2);
         }
 
-        private readonly PublicData publicData = new PublicData(new ApiClient(new HttpClient() { Timeout = TimeSpan.FromSeconds(3)}));
-
+        private readonly PublicData publicData;
+        private readonly PrivateData privateData;
+        
         protected override async Task<bool> TestConnectionImpl(CancellationToken cancellationToken)
         {
             var serverTime = await publicData.GetServerTime(cancellationToken);
@@ -82,6 +88,11 @@ namespace TradingBot.Exchanges.Concrete.Kraken
 					await Task.Delay(TimeSpan.FromSeconds(4), token);
                 }
             }
+        }
+
+        public override Task<Dictionary<string, decimal>> GetAccountBalance(CancellationToken cancellationToken)
+        {
+            return privateData.GetAccountBalance(cancellationToken);
         }
 
         public override void ClosePricesStream()
