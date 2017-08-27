@@ -4,7 +4,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
 {
     public class NonceProvider
     {
-        private readonly DateTime initialDateTime = new DateTime(2017, 08, 22, 0, 0, 0);
+        private readonly DateTime initialDateTime = new DateTime(2017, 08, 27, 0, 0, 0);
 
         private long lastNonce;
         
@@ -12,7 +12,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
         {
             var now = DateTime.UtcNow;
 
-            var nonce = (now - initialDateTime).Ticks;
+            var nonce = (long)(now - initialDateTime).TotalSeconds;
 
             if (lastNonce >= nonce)
             {

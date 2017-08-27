@@ -60,9 +60,9 @@ namespace TradingBot.Exchanges.Abstractions
             }
         }
 
-        public async Task<Stream> MakeStreamRequestAsync(string url)
+        public Task<Stream> MakeStreamRequestAsync(string url)
         {
-            return await httpClient.GetStreamAsync(url);
+            return httpClient.GetStreamAsync(url);
         }
 
         private void Log(string message)

@@ -26,7 +26,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             
             var httpClient = new HttpClient() {Timeout = TimeSpan.FromSeconds(3)}; // TODO: HttpClient have to be Singleton
             publicData = new PublicData(new ApiClient(httpClient));
-            privateData = new PrivateData(new ApiClient(new HttpClient() {Timeout = TimeSpan.FromSeconds(30)}), config.ApiKey, config.PrivateKey, 2);
+            privateData = new PrivateData(new ApiClient(new HttpClient() {Timeout = TimeSpan.FromSeconds(30)}), config.ApiKey, config.PrivateKey, new NonceProvider());
         }
 
         private readonly PublicData publicData;
@@ -95,6 +95,11 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             return privateData.GetAccountBalance(cancellationToken);
         }
 
+        public Task<TradeBalanceInfo> GetTradeBalance(CancellationToken cancellationToken)
+        {
+            return privateData.GetTradeBalance(cancellationToken);
+        }
+
         public override void ClosePricesStream()
         {
             ctSource.Cancel();
@@ -118,6 +123,11 @@ namespace TradingBot.Exchanges.Concrete.Kraken
         public override Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TimeSpan timeout)
         {
             throw new NotImplementedException();
+        }
+
+        public Task<string> GetOpenOrders(CancellationToken cancellationToken)
+        {
+            return privateData.GetOpenOrders(cancellationToken);
         }
     }
 }

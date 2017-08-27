@@ -23,26 +23,42 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
         private readonly ApiClient apiClient;
         private readonly string apiKey;
         private readonly string apiPrivateKey;
-        private long nonce;
+        private readonly NonceProvider nonceProvider;
 
-        public PrivateData(ApiClient apiClient, string apiKey, string apiPrivateKey, long startingNonce = 0)
+        public PrivateData(ApiClient apiClient, string apiKey, string apiPrivateKey, NonceProvider nonceProvider)
         {
             this.apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
 
             this.apiKey = apiKey;
             this.apiPrivateKey = apiPrivateKey;
-            this.nonce = startingNonce;
+            this.nonceProvider = nonceProvider;
         }
 
         public Task<Dictionary<string, decimal>> GetAccountBalance(CancellationToken cancellationToken)
         {
-            var content = CreateStringContent(new AccountBalanceRequest(), ++nonce, $"/0/private/Balance");
+            return MakePostRequestAsync<Dictionary<string, decimal>>("Balance", new AccountBalanceRequest(), cancellationToken);
+        }
+
+        public Task<TradeBalanceInfo> GetTradeBalance(CancellationToken cancellationToken)
+        {
+            var request = new TradeBalanceRequest()
+            {
+                AssetClass = "currency",
+                BaseAsset = "ZUSD"
+            };
             
-            return MakePostRequestAsync<Dictionary<string, decimal>>("Balance", content, cancellationToken);
+            return MakePostRequestAsync<TradeBalanceInfo>("TradeBalance", request, cancellationToken);
+        }
+
+        public Task<string> GetOpenOrders(CancellationToken cancellationToken)
+        {
+            return MakePostRequestAsync<string>("OpenOrders", new OpenOrdersRequest(), cancellationToken);
         }
         
-        private async Task<T> MakePostRequestAsync<T>(string url, HttpContent content, CancellationToken cancellationToken)
+        private async Task<T> MakePostRequestAsync<T>(string url, IKrakenRequest request, CancellationToken cancellationToken)
         {
+            var content = CreateHttpContent(request, nonceProvider.GetNonce(), url);
+            
             var response = await apiClient.MakePostRequestAsync<ResponseBase<T>>($"{endpointUrl}/{url}", content, cancellationToken);
 
             if (response.Error.Any())
@@ -53,9 +69,9 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
             return response.Result;
         }
 
-        private HttpContent CreateStringContent(IKrakenRequest requestData, long nonce, string uriPath)
+        private FormUrlEncodedContent CreateHttpContent(IKrakenRequest requestData, long nonce, string uriPath)
         {
-            var pathBytes = Encoding.UTF8.GetBytes(uriPath);
+            var pathBytes = Encoding.UTF8.GetBytes($"/0/private/{uriPath}");
             var props = "nonce=" + nonce + string.Join("", requestData.FormData.Select(x => $"&{x.Key}={x.Value}"));
             var np = nonce + Convert.ToChar(0) + props;
             var hash = Sha256(np);

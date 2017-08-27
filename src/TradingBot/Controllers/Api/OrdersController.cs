@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using TradingBot.Exchanges.Concrete.Icm;
+using TradingBot.Exchanges.Concrete.Kraken;
 using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
@@ -29,6 +31,10 @@ namespace TradingBot.Controllers.Api
                 if (exchange is IcmExchange)
                 {
                     return await ((IcmExchange) exchange).GetAllOrdersInfo(timeout);
+                }
+                else if (exchange is KrakenExchange)
+                {
+                    return await ((KrakenExchange) exchange).GetOpenOrders(CancellationToken.None);
                 }
 
                 return Application.GetExchange(exchangeName).ActualOrders;
