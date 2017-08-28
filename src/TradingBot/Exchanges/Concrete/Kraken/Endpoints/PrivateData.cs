@@ -6,16 +6,21 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Kraken.Entities;
 using TradingBot.Exchanges.Concrete.Kraken.Requests;
 using TradingBot.Exchanges.Concrete.Kraken.Responses;
 using TradingBot.Infrastructure.Exceptions;
+using TradingBot.Infrastructure.Logging;
+using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
 {
     public class PrivateData
     {
+        private readonly ILogger logger = Logging.CreateLogger<PrivateData>();
+        
         private readonly string endpointUrl = $"{Urls.ApiBase}/0/private";
         private const string ApiKeyHeader = "API-Key";
         private const string ApiSignHeader = "API-Sign";
@@ -54,6 +59,20 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
         {
             return MakePostRequestAsync<string>("OpenOrders", new OpenOrdersRequest(), cancellationToken);
         }
+
+        public Task<AddStandardOrderResponse> AddOrder(Instrument instrument, TradingSignal tradingSignal, CancellationToken cancellationToken)
+        {
+            var request = new AddStandardOrderRequest(instrument, tradingSignal);
+
+            return MakePostRequestAsync<AddStandardOrderResponse>("AddOrder", request, cancellationToken);
+        }
+
+        public Task<CancelOrderResult> CancelOrder(string txId)
+        {
+            var request = new CancelOrderRequest(txId);
+
+            return MakePostRequestAsync<CancelOrderResult>("CancelOrder", request, CancellationToken.None);
+        }
         
         private async Task<T> MakePostRequestAsync<T>(string url, IKrakenRequest request, CancellationToken cancellationToken)
         {
@@ -75,6 +94,8 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
             var props = "nonce=" + nonce + string.Join("", requestData.FormData.Select(x => $"&{x.Key}={x.Value}"));
             var np = nonce + Convert.ToChar(0) + props;
             var hash = Sha256(np);
+            
+            logger.LogDebug($"Making a request with props {props}");
 
             var z = new byte[pathBytes.Length + hash.Length];
             pathBytes.CopyTo(z, 0);

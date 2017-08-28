@@ -67,7 +67,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 						    var trades = new List<ExecutedTrade>();
 						    var executedOrders = new List<TradingSignal>();
 					    
-						    foreach (var tradingSignal in ActualSignals[instrument.Name].Where(x => x.Count > 0))
+						    foreach (var tradingSignal in ActualSignals[instrument.Name].Where(x => x.Volume > 0))
 						    {
 							    if (tradingSignal.TradeType == TradeType.Buy
 							        && lowestAsk <= tradingSignal.Price)
@@ -76,7 +76,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 									    instrument,
 									    DateTime.UtcNow, 
 									    lowestAsk,
-									    tradingSignal.Count,
+									    tradingSignal.Volume,
 									    TradeType.Buy,
 									    tradingSignal.OrderId,
 									    ExecutionStatus.Fill);
@@ -92,7 +92,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 								    var trade = new ExecutedTrade(instrument,
 									    DateTime.UtcNow,
 									    highestBid,
-									    tradingSignal.Count,
+									    tradingSignal.Volume,
 									    TradeType.Sell,
 									    tradingSignal.OrderId,
 									    ExecutionStatus.Fill);
@@ -151,7 +151,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 	    {
 		    await CallExecutedTradeHandlers(new ExecutedTrade(
 			    instrument,
-			    DateTime.UtcNow, signal.Price, signal.Count, signal.TradeType,
+			    DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType,
 			    signal.OrderId, ExecutionStatus.Cancelled));
 
 		    return true;

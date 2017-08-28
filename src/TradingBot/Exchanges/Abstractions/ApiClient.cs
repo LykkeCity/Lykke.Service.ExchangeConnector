@@ -44,6 +44,8 @@ namespace TradingBot.Exchanges.Abstractions
 
         public async Task<TResponse> MakePostRequestAsync<TResponse>(string url, HttpContent content, CancellationToken cancellationToken)
         {
+            Log($"Making request to url: {url}.");
+            
             using (var response = await httpClient.PostAsync(url, content, cancellationToken).ConfigureAwait(false))
             {
                 string responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);

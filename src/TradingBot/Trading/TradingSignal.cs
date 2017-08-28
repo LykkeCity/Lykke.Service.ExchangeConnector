@@ -37,7 +37,7 @@ namespace TradingBot.Trading
     public class TradingSignal
     {
         [JsonConstructor]
-        public TradingSignal(string orderId, OrderCommand command, TradeType tradeType, decimal price, decimal count, DateTime time, 
+        public TradingSignal(string orderId, OrderCommand command, TradeType tradeType, decimal price, decimal volume, DateTime time, 
             OrderType orderType = OrderType.Market,
             TimeInForce timeInForce = TimeInForce.FillOrKill)
         {
@@ -46,7 +46,7 @@ namespace TradingBot.Trading
             
             TradeType = tradeType;
             Price = price;
-            Count = count;
+            Volume = volume;
             Time = time;
             OrderType = orderType;
             TimeInForce = timeInForce;
@@ -66,9 +66,7 @@ namespace TradingBot.Trading
         
         public decimal Price { get; }
 
-        public decimal Count { get; } // volume
-
-        public decimal Amount => Price * Count;
+        public decimal Volume { get; }
         
         public string OrderId { get; }
         
@@ -76,7 +74,7 @@ namespace TradingBot.Trading
 
         public override string ToString()
         {
-            return $"Id: {OrderId}, Command: {Command}, Type: {Type}, Price: {Price}, Count: {Count}";
+            return $"Id: {OrderId}, Command: {Command}, Type: {Type}, Price: {Price}, Count: {Volume}";
         }
 
         public bool Equals(TradingSignal another)
@@ -84,7 +82,7 @@ namespace TradingBot.Trading
             return
                 TradeType == another.TradeType &&
                 Price == another.Price &&
-                Count == another.Count &&
+                Volume == another.Volume &&
                 OrderType == another.OrderType;
         }
     }

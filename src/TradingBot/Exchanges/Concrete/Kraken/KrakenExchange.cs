@@ -105,24 +105,34 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             ctSource.Cancel();
         }
 
-        protected override Task<bool> AddOrder(Instrument instrument, TradingSignal signal)
+        protected override async Task<bool> AddOrder(Instrument instrument, TradingSignal signal)
         {
-            throw new NotImplementedException();
+            var executedTrade = await AddOrderAndWaitExecution(instrument, signal, TimeSpan.FromSeconds(30));
+
+            return executedTrade != null;
         }
 
-        protected override Task<bool> CancelOrder(Instrument instrument, TradingSignal signal)
+        protected override async Task<bool> CancelOrder(Instrument instrument, TradingSignal signal)
         {
-            throw new NotImplementedException();
+            var executedTrade = await CancelOrderAndWaitExecution(instrument, signal, TimeSpan.FromSeconds(30));
+
+            return executedTrade.Status == ExecutionStatus.Cancelled;
         }
 
-        public override Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TimeSpan timeout)
         {
-            throw new NotImplementedException();
+            var cts = new CancellationTokenSource(timeout);
+            
+            var orderInfo = await privateData.AddOrder(instrument, signal, cts.Token);
+            
+            return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType, orderInfo.TxId.FirstOrDefault(), ExecutionStatus.New);
         }
 
-        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TimeSpan timeout)
         {
-            throw new NotImplementedException();
+            var result = await privateData.CancelOrder(signal.OrderId);
+            
+            return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType, signal.OrderId, result.Pending ? ExecutionStatus.Pending : ExecutionStatus.Cancelled);
         }
 
         public Task<string> GetOpenOrders(CancellationToken cancellationToken)

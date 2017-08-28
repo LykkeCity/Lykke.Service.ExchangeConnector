@@ -572,7 +572,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 ConvertType(signal.OrderType));
             
             request.SetField(ConvertTimeInForce(signal.TimeInForce));
-            request.SetField(new OrderQty(signal.Count));
+            request.SetField(new OrderQty(signal.Volume));
             request.SetField(new Price(signal.Price));
 
             return SendRequest(request);
@@ -611,7 +611,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             var signalSended = AddOrder(instrument, signal);
 
             if (!signalSended)
-                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Count, signal.TradeType, signal.OrderId, ExecutionStatus.Rejected);
+                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType, signal.OrderId, ExecutionStatus.Rejected);
 
             var sw = Stopwatch.StartNew();
             var task = tcs.Task;
@@ -715,7 +715,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             var signalSended = CancelOrder(instrument, signal);
 
             if (!signalSended)
-                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Count, signal.TradeType, signal.OrderId, ExecutionStatus.Rejected);
+                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType, signal.OrderId, ExecutionStatus.Rejected);
 
             await Task.WhenAny(tcs.Task, Task.Delay(timeout)).ConfigureAwait(false);
 
