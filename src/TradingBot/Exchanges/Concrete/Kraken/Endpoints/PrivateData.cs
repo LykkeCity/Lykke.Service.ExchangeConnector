@@ -73,9 +73,20 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
 
             return MakePostRequestAsync<CancelOrderResult>("CancelOrder", request, CancellationToken.None);
         }
+
+
+        private DateTime lastRequestTime = DateTime.UtcNow;
         
         private async Task<T> MakePostRequestAsync<T>(string url, IKrakenRequest request, CancellationToken cancellationToken)
         {
+            var now = DateTime.UtcNow;
+
+            if ((now - lastRequestTime).TotalSeconds <= 5)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+            }
+            lastRequestTime = DateTime.UtcNow;
+            
             var content = CreateHttpContent(request, nonceProvider.GetNonce(), url);
             
             var response = await apiClient.MakePostRequestAsync<ResponseBase<T>>($"{endpointUrl}/{url}", content, cancellationToken);

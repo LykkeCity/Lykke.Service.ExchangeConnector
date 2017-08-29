@@ -32,6 +32,10 @@ namespace TradingBot.Exchanges.Concrete.Kraken
         private readonly PublicData publicData;
         private readonly PrivateData privateData;
         
+        
+        private readonly Dictionary<string, string> orderIdsToKrakenIds = new Dictionary<string, string>();
+        
+        
         protected override async Task<bool> TestConnectionImpl(CancellationToken cancellationToken)
         {
             var serverTime = await publicData.GetServerTime(cancellationToken);
@@ -85,7 +89,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
 						}
 					}
 
-					await Task.Delay(TimeSpan.FromSeconds(4), token);
+					await Task.Delay(TimeSpan.FromSeconds(6), token);
                 }
             }
         }
@@ -124,13 +128,29 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             var cts = new CancellationTokenSource(timeout);
             
             var orderInfo = await privateData.AddOrder(instrument, signal, cts.Token);
+            string txId = orderInfo.TxId.FirstOrDefault();
+
+            lock (orderIdsToKrakenIds)
+            {
+                orderIdsToKrakenIds.Add(signal.OrderId, txId);
+            }
             
-            return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType, orderInfo.TxId.FirstOrDefault(), ExecutionStatus.New);
+            return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType, txId, ExecutionStatus.New);
         }
 
         public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TimeSpan timeout)
         {
-            var result = await privateData.CancelOrder(signal.OrderId);
+            string krakenId = String.Empty;
+            lock (orderIdsToKrakenIds)
+            {
+                if (orderIdsToKrakenIds.ContainsKey(signal.OrderId))
+                    krakenId = orderIdsToKrakenIds[signal.OrderId];
+                else 
+                    throw new ArgumentException($"Unknown order id of {signal.OrderId}");
+            }
+            
+            
+            var result = await privateData.CancelOrder(krakenId);
             
             return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType, signal.OrderId, result.Pending ? ExecutionStatus.Pending : ExecutionStatus.Cancelled);
         }

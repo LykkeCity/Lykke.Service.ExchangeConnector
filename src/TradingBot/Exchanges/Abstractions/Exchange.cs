@@ -137,11 +137,19 @@ namespace TradingBot.Exchanges.Abstractions
                             
                             if (existing != null)
                                 Logger.LogDebug($"An order with id {arrivedSignal.OrderId} already in actual signals.");
-                                // TODO: return message from the method
                             
                             ActualSignals[signals.Instrument.Name].AddLast(arrivedSignal);
-                            AddOrder(signals.Instrument, arrivedSignal).Wait();
-                            Logger.LogDebug($"Created new order {arrivedSignal}");
+
+                            try
+                            {
+                                AddOrder(signals.Instrument, arrivedSignal).Wait();
+                                Logger.LogDebug($"Created new order {arrivedSignal}");
+                            }
+                            catch (Exception e)
+                            {
+                                Logger.LogError(0, e, $"Can't create new order {arrivedSignal}: {e.Message}");
+                            }
+                            
                             
                             break;
                             
@@ -157,8 +165,16 @@ namespace TradingBot.Exchanges.Abstractions
                             if (existing != null)
                             {
                                 ActualSignals[signals.Instrument.Name].Remove(existing);
-                                CancelOrder(signals.Instrument, existing).Wait();
-                                Logger.LogDebug($"Canceled order {arrivedSignal}");
+
+                                try
+                                {
+                                    CancelOrder(signals.Instrument, existing).Wait();
+                                    Logger.LogDebug($"Canceled order {arrivedSignal}");
+                                }
+                                catch (Exception e)
+                                {
+                                    Logger.LogError(0, e, $"Can't cancel order {existing.OrderId}: {e.Message}");
+                                }
                             }
                             else
                                 Logger.LogWarning($"Command for cancel unexisted order {arrivedSignal}");

@@ -55,7 +55,7 @@ namespace TradingBot
                 {
                     logger.LogWarning($"no connection to exchange {exchange.Name}");
                     exchanges.Remove(exchange.Name); // TODO: do not remove, just try to connect further
-                }    
+                }
             }
             
 
@@ -92,7 +92,18 @@ namespace TradingBot
                 .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
                 .SetConsole(new RabbitConsole())
                 .SetLogger(new LogToConsole())
-                .Subscribe(x => exchanges[x.Instrument.Exchange].PlaceTradingOrders(x))
+                .Subscribe(x =>
+                {
+                    if (!exchanges.ContainsKey(x.Instrument.Exchange))
+                    {
+                        logger.LogWarning($"Received a trading signal for unconnected exchange {x.Instrument.Exchange}");
+                        return Task.FromResult(0);
+                    }
+                    else
+                    {
+                        return exchanges[x.Instrument.Exchange].PlaceTradingOrders(x);    
+                    }
+                })
                 .Start();  
         }
 
