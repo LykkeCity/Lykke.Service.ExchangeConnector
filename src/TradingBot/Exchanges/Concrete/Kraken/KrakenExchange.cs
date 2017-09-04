@@ -5,11 +5,13 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Kraken.Endpoints;
 using TradingBot.Exchanges.Concrete.Kraken.Entities;
 using TradingBot.Helpers;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.Kraken
@@ -20,7 +22,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
         
         private readonly KrakenConfig config;
 
-        public KrakenExchange(KrakenConfig config) : base(Name, config)
+        public KrakenExchange(KrakenConfig config, TranslatedSignalsRepository translatedSignalsRepository) : base(Name, config, translatedSignalsRepository)
         {
             this.config = config;
             
@@ -96,12 +98,12 @@ namespace TradingBot.Exchanges.Concrete.Kraken
 
         public override Task<Dictionary<string, decimal>> GetAccountBalance(CancellationToken cancellationToken)
         {
-            return privateData.GetAccountBalance(cancellationToken);
+            return privateData.GetAccountBalance(null, cancellationToken);
         }
 
         public Task<TradeBalanceInfo> GetTradeBalance(CancellationToken cancellationToken)
         {
-            return privateData.GetTradeBalance(cancellationToken);
+            return privateData.GetTradeBalance(null, cancellationToken);
         }
 
         public override void ClosePricesStream()
@@ -109,25 +111,30 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             ctSource.Cancel();
         }
 
-        protected override async Task<bool> AddOrder(Instrument instrument, TradingSignal signal)
+        protected override async Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
-            var executedTrade = await AddOrderAndWaitExecution(instrument, signal, TimeSpan.FromSeconds(30));
+            var executedTrade = await AddOrderAndWaitExecution(instrument, signal, translatedSignal, TimeSpan.FromSeconds(30));
 
-            return executedTrade != null;
+            if (executedTrade == null) return false;
+            
+            translatedSignal.SetExecutionResult(executedTrade);
+            
+            return true;
         }
 
-        protected override async Task<bool> CancelOrder(Instrument instrument, TradingSignal signal)
+        protected override async Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
-            var executedTrade = await CancelOrderAndWaitExecution(instrument, signal, TimeSpan.FromSeconds(30));
+            var executedTrade = await CancelOrderAndWaitExecution(instrument, signal, translatedSignal, TimeSpan.FromSeconds(30));
 
             return executedTrade.Status == ExecutionStatus.Cancelled;
         }
 
-        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, 
+            TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var cts = new CancellationTokenSource(timeout);
             
-            var orderInfo = await privateData.AddOrder(instrument, signal, cts.Token);
+            var orderInfo = await privateData.AddOrder(instrument, signal, translatedSignal, cts.Token);
             string txId = orderInfo.TxId.FirstOrDefault();
 
             lock (orderIdsToKrakenIds)
@@ -138,9 +145,9 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType, txId, ExecutionStatus.New);
         }
 
-        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            string krakenId = String.Empty;
+            string krakenId;
             lock (orderIdsToKrakenIds)
             {
                 if (orderIdsToKrakenIds.ContainsKey(signal.OrderId))
@@ -149,10 +156,19 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                     throw new ArgumentException($"Unknown order id of {signal.OrderId}");
             }
             
+            var result = await privateData.CancelOrder(krakenId, translatedSignal);
             
-            var result = await privateData.CancelOrder(krakenId);
+            var executedTrade = new ExecutedTrade(instrument, 
+                DateTime.UtcNow, 
+                signal.Price, 
+                signal.Volume, 
+                signal.TradeType, 
+                signal.OrderId, 
+                result.Pending ? ExecutionStatus.Pending : ExecutionStatus.Cancelled);
             
-            return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType, signal.OrderId, result.Pending ? ExecutionStatus.Pending : ExecutionStatus.Cancelled);
+            translatedSignal.SetExecutionResult(executedTrade);
+
+            return executedTrade;
         }
 
         public Task<string> GetOpenOrders(CancellationToken cancellationToken)

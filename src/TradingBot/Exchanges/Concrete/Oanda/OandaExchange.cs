@@ -5,7 +5,9 @@ using System.Threading.Tasks;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Oanda.Endpoints;
 using System;
+using TradingBot.Communications;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.Oanda
@@ -18,7 +20,7 @@ namespace TradingBot.Exchanges.Concrete.Oanda
         private Prices prices;
         private Instruments instruments;
 
-        public OandaExchange(OandaConfiguration config) : base(Name, config)
+        public OandaExchange(OandaConfiguration config, TranslatedSignalsRepository translatedSignalsRepository) : base(Name, config, translatedSignalsRepository)
         {
             var client = new ApiClient(OandaHttpClient.CreateHttpClient(OandaAuth.Token));
 
@@ -32,22 +34,22 @@ namespace TradingBot.Exchanges.Concrete.Oanda
             throw new NotImplementedException();
         }
 
-        protected override Task<bool> AddOrder(Instrument instrument, TradingSignal signal)
+        protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             throw new NotImplementedException();
         }
 
-        protected override Task<bool> CancelOrder(Instrument instrument, TradingSignal signal)
+        protected override Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             throw new NotImplementedException();
         }
 
-        public override Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+        public override Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             throw new NotImplementedException();
         }
 
-        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             throw new NotImplementedException();
         }

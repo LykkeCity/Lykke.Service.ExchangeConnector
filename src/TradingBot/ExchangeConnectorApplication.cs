@@ -10,6 +10,7 @@ using TradingBot.Exchanges;
 using Common.Log;
 using Lykke.RabbitMqBroker.Subscriber;
 using Polly;
+using TradingBot.Communications;
 using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
 
@@ -18,11 +19,15 @@ namespace TradingBot
     public class ExchangeConnectorApplication : IApplicationFacade
     {
         private readonly ILogger logger = Logging.CreateLogger<ExchangeConnectorApplication>();
+        
+        public TranslatedSignalsRepository TranslatedSignalsRepository { get; }
 
         public ExchangeConnectorApplication(Configuration config)
         {
             this.config = config;
-            exchanges = ExchangeFactory.CreateExchanges(config).ToDictionary(x => x.Name, x => x);
+            TranslatedSignalsRepository = new TranslatedSignalsRepository(config.AzureStorage.StorageConnectionString, "translatedSignals", new InverseDateTimeRowKeyProvider());
+            
+            exchanges = ExchangeFactory.CreateExchanges(config, TranslatedSignalsRepository).ToDictionary(x => x.Name, x => x);
         }
 
         private readonly Dictionary<string, Exchange> exchanges;
@@ -58,7 +63,6 @@ namespace TradingBot
                 }
             }
             
-
             if (config.RabbitMq.Enabled)
             {
                 SetupTradingSignalsSubscription(config.RabbitMq);
@@ -135,5 +139,7 @@ namespace TradingBot
         {
             return exchanges[name];
         }
+
+        
     }
 }

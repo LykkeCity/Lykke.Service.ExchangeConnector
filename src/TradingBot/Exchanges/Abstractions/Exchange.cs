@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Polly;
+using TradingBot.Communications;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Logging;
@@ -18,15 +20,19 @@ namespace TradingBot.Exchanges.Abstractions
         private readonly List<Handler<InstrumentTickPrices>> tickPriceHandlers = new List<Handler<InstrumentTickPrices>>();
 
         private readonly List<Handler<ExecutedTrade>> executedTradeHandlers = new List<Handler<ExecutedTrade>>();
+
+        private readonly TranslatedSignalsRepository translatedSignalsRepository;
         
         public string Name { get; }
 
         public IExchangeConfiguration Config { get; }
 
-        protected Exchange(string name, IExchangeConfiguration config)
+        protected Exchange(string name, IExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository)
         {
             Name = name;
             Config = config;
+
+            this.translatedSignalsRepository = translatedSignalsRepository;
             
             decimal initialValue = 100m; // TODO: get initial value from config? or get if from real exchange.
 
@@ -94,8 +100,6 @@ namespace TradingBot.Exchanges.Abstractions
 
         protected abstract Task<bool> TestConnectionImpl(CancellationToken cancellationToken);
 
-        //public abstract Task<AccountInfo> GetAccountInfo(CancellationToken cancellationToken);
-
 
         public abstract Task OpenPricesStream();
 
@@ -113,9 +117,13 @@ namespace TradingBot.Exchanges.Abstractions
 
         
         protected readonly object ActualSignalsSyncRoot = new object();
+
+        private readonly Policy retryThreeTimesPolicy = Policy
+            .Handle<Exception>()
+            .WaitAndRetryAsync(3, attempt => TimeSpan.FromSeconds(3));
         
-        public virtual Task PlaceTradingOrders(InstrumentTradingSignals signals)
-        {
+        public virtual Task PlaceTradingOrders(InstrumentTradingSignals signals) // TODO: get rid of whole body lock and make calls async
+        {   
             lock (ActualSignalsSyncRoot)
             {
                 if (!ActualSignals.ContainsKey(signals.Instrument.Name))
@@ -126,63 +134,98 @@ namespace TradingBot.Exchanges.Abstractions
                 
                 foreach (var arrivedSignal in signals.TradingSignals)
                 {
-                    TradingSignal existing;
-                    
-                    switch (arrivedSignal.Command)
+                    var translatedSignal = new TranslatedSignalTableEntity(SignalSource.RabbitQueue, signals.Instrument.Exchange, signals.Instrument.Name, arrivedSignal);
+
+                    try
                     {
-                        case OrderCommand.Create:
+                        TradingSignal existing;
 
-                            existing = ActualSignals[signals.Instrument.Name]
-                                .SingleOrDefault(x => x.OrderId == arrivedSignal.OrderId);
-                            
-                            if (existing != null)
-                                Logger.LogDebug($"An order with id {arrivedSignal.OrderId} already in actual signals.");
-                            
-                            ActualSignals[signals.Instrument.Name].AddLast(arrivedSignal);
-
-                            try
-                            {
-                                AddOrder(signals.Instrument, arrivedSignal).Wait();
-                                Logger.LogDebug($"Created new order {arrivedSignal}");
-                            }
-                            catch (Exception e)
-                            {
-                                Logger.LogError(0, e, $"Can't create new order {arrivedSignal}: {e.Message}");
-                            }
-                            
-                            
-                            break;
-                            
-                        case OrderCommand.Edit:
-                            throw new NotSupportedException("Do not support edit signal");
-                            //break;
-                            
-                        case OrderCommand.Cancel:
-                            
-                            existing = ActualSignals[signals.Instrument.Name]
-                                .SingleOrDefault(x => x.OrderId == arrivedSignal.OrderId);
-
-                            if (existing != null)
-                            {
-                                ActualSignals[signals.Instrument.Name].Remove(existing);
-
+                        switch (arrivedSignal.Command)
+                        {
+                            case OrderCommand.Create:
                                 try
                                 {
-                                    CancelOrder(signals.Instrument, existing).Wait();
-                                    Logger.LogDebug($"Canceled order {arrivedSignal}");
+                                    existing = ActualSignals[signals.Instrument.Name]
+                                        .SingleOrDefault(x => x.OrderId == arrivedSignal.OrderId);
+
+                                    if (existing != null)
+                                        Logger.LogDebug(
+                                            $"An order with id {arrivedSignal.OrderId} already in actual signals.");
+
+                                    ActualSignals[signals.Instrument.Name].AddLast(arrivedSignal);
+
+                                    var result = retryThreeTimesPolicy.ExecuteAndCaptureAsync(() =>
+                                        AddOrder(signals.Instrument, arrivedSignal, translatedSignal)).Result;
+
+                                    if (result.Outcome == OutcomeType.Successful)
+                                    {
+                                        Logger.LogDebug($"Created new order {arrivedSignal}");
+                                    }
+                                    else
+                                    {
+                                        Logger.LogError(0, result.FinalException,
+                                            $"Can't create order for {arrivedSignal}");
+                                    }
                                 }
                                 catch (Exception e)
                                 {
-                                    Logger.LogError(0, e, $"Can't cancel order {existing.OrderId}: {e.Message}");
+                                    Logger.LogError(0, e, $"Can't create new order {arrivedSignal}: {e.Message}");
+                                    translatedSignal.Failure(e);
                                 }
-                            }
-                            else
-                                Logger.LogWarning($"Command for cancel unexisted order {arrivedSignal}");
-                            
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException();
+
+
+                                break;
+
+                            case OrderCommand.Edit:
+                                throw new NotSupportedException("Do not support edit signal");
+                            //break;
+
+                            case OrderCommand.Cancel:
+
+                                existing = ActualSignals[signals.Instrument.Name]
+                                    .SingleOrDefault(x => x.OrderId == arrivedSignal.OrderId);
+
+                                if (existing != null)
+                                {
+                                    try
+                                    {
+                                        ActualSignals[signals.Instrument.Name].Remove(existing);
+
+                                        var result = retryThreeTimesPolicy.ExecuteAndCaptureAsync(() =>
+                                            CancelOrder(signals.Instrument, existing, translatedSignal)).Result;
+
+                                        if (result.Outcome == OutcomeType.Successful)
+                                        {
+                                            Logger.LogDebug($"Canceled order {arrivedSignal}");
+                                        }
+                                        else
+                                        {
+                                            Logger.LogError(0, result.FinalException, $"Can't cancel order {existing}");
+                                        }
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        Logger.LogError(0, e, $"Can't cancel order {existing.OrderId}: {e.Message}");
+                                        translatedSignal.Failure(e);
+                                    }
+                                }
+                                else
+                                    Logger.LogWarning($"Command for cancel unexisted order {arrivedSignal}");
+
+                                break;
+                            default:
+                                throw new ArgumentOutOfRangeException();
+                        }
                     }
+                    catch (Exception e)
+                    {
+                        translatedSignal.Failure(e);   
+                    }
+                    finally
+                    {
+                        translatedSignalsRepository.Save(translatedSignal);
+                    }
+                    
                 }
 
                 if (signals.TradingSignals.Any(x => x.Command == OrderCommand.Create))
@@ -191,19 +234,37 @@ namespace TradingBot.Exchanges.Abstractions
                 }
             }
             
-            return Task.FromResult(0);            
+            return Task.FromResult(0);
         }
 
-        protected abstract Task<bool> AddOrder(Instrument instrument, TradingSignal signal);
+        protected Task<bool> AddOrder(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        {
+            // TODO: save or update TranslatedSignalEntity
+            
+            return AddOrderImpl(instrument, signal, translatedSignal);
+        }
+        
+        protected abstract Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal);
+        
+        protected Task<bool> CancelOrder(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        {
+            // TODO: save or update TranslatedSignalEntity
+            
+            return CancelOrderImpl(instrument, signal, translatedSignal);
+        }
+        
+        protected abstract Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal);
 
-        protected abstract Task<bool> CancelOrder(Instrument instrument, TradingSignal signal);
-
+        
+        
         public Dictionary<string, LinkedList<TradingSignal>> ActualOrders => ActualSignals; // TODO: to readonly dictionary and collection
 
         public abstract Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal,
+            TranslatedSignalTableEntity translatedSignal,
             TimeSpan timeout);
 
         public abstract Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal,
+            TranslatedSignalTableEntity translatedSignal,
             TimeSpan timeout);
 
         public virtual Task<Dictionary<string, decimal>> GetAccountBalance(CancellationToken cancellationToken)

@@ -3,11 +3,13 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.Icm;
 using TradingBot.Exchanges.Concrete.Kraken;
 using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
+using TradingBot.Infrastructure.Logging;
 using TradingBot.Models;
 using TradingBot.Models.Api;
 using TradingBot.Trading;
@@ -17,6 +19,13 @@ namespace TradingBot.Controllers.Api
     public class OrdersController : BaseApiController
     {
         private TimeSpan timeout => Configuration.Instance.AspNet.ApiTimeout;
+
+        private readonly TranslatedSignalsRepository translatedSignalsRepository;
+
+        public OrdersController()
+        {
+            translatedSignalsRepository = Application.TranslatedSignalsRepository;
+        }
         
         /// <summary>
         /// Get information about all current orders on exchange
@@ -79,35 +88,60 @@ namespace TradingBot.Controllers.Api
         [ProducesResponseType(typeof(ResponseMessage), 400)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
         public async Task<IActionResult> Post(string exchangeName, [FromBody] OrderModel orderModel)
-        {   
+        {
             try
             {
-                if (orderModel == null) 
+                if (orderModel == null)
                     throw new StatusCodeException(HttpStatusCode.BadRequest, "Order have to be specified");
-                
-                if (Math.Abs((orderModel.DateTime - DateTime.UtcNow).TotalMilliseconds) >= TimeSpan.FromMinutes(5).TotalMilliseconds)
-                    ModelState.AddModelError(nameof(orderModel.DateTime), "Date and time must be in 5 minutes threshold from UTC now");
-    
+
+                if (Math.Abs((orderModel.DateTime - DateTime.UtcNow).TotalMilliseconds) >=
+                    TimeSpan.FromMinutes(5).TotalMilliseconds)
+                    ModelState.AddModelError(nameof(orderModel.DateTime),
+                        "Date and time must be in 5 minutes threshold from UTC now");
+
                 if (orderModel.Price == 0 && orderModel.OrderType != OrderType.Market)
-                    ModelState.AddModelError(nameof(orderModel.Price), "Price have to be declared for non-market orders");
-                
+                    ModelState.AddModelError(nameof(orderModel.Price),
+                        "Price have to be declared for non-market orders");
+
                 if (!ModelState.IsValid)
                     throw new StatusCodeException(ModelState);
-                
-                
-                var instrument = new Instrument(exchangeName, orderModel.Instrument);
-                var tradingSignal = new TradingSignal(orderModel.Id, OrderCommand.Create, orderModel.TradeType, orderModel.Price, orderModel.Volume, DateTime.UtcNow, 
-                    orderModel.OrderType, orderModel.TimeInForce);
-            
-                var result = await Application.GetExchange(exchangeName)
-                    .AddOrderAndWaitExecution(instrument, tradingSignal, timeout);
 
-                if (result.Status == ExecutionStatus.Rejected || result.Status == ExecutionStatus.Cancelled)
-                    throw new StatusCodeException(HttpStatusCode.BadRequest, $"Exchange return status: {result.Status}");
-            
-                return CreatedAtAction("GetOrder", 
-                    new { exchangeName = exchangeName, instrument = orderModel.Instrument, id = orderModel.Id}, 
-                    result);
+
+                var instrument = new Instrument(exchangeName, orderModel.Instrument);
+                var tradingSignal = new TradingSignal(orderModel.Id, OrderCommand.Create, orderModel.TradeType,
+                    orderModel.Price, orderModel.Volume, DateTime.UtcNow,
+                    orderModel.OrderType, orderModel.TimeInForce);
+
+                var translatedSignal = new TranslatedSignalTableEntity(SignalSource.RestApi, instrument.Exchange,
+                    instrument.Name, tradingSignal)
+                {
+                    ClientIP = HttpContext.Connection.RemoteIpAddress.ToString()
+                };
+
+                try
+                {
+                    var result = await Application.GetExchange(exchangeName)
+                        .AddOrderAndWaitExecution(instrument, tradingSignal, translatedSignal, timeout);
+
+                    translatedSignal.SetExecutionResult(result);
+
+                    if (result.Status == ExecutionStatus.Rejected || result.Status == ExecutionStatus.Cancelled)
+                        throw new StatusCodeException(HttpStatusCode.BadRequest,
+                            $"Exchange return status: {result.Status}");
+
+                    return CreatedAtAction("GetOrder",
+                        new {exchangeName = exchangeName, instrument = orderModel.Instrument, id = orderModel.Id},
+                        result);
+                }
+                catch (Exception e)
+                {
+                    translatedSignal.Failure(e);
+                    throw;
+                }
+                finally
+                {
+                    await translatedSignalsRepository.SaveAsync(translatedSignal);
+                }
             }
             catch (StatusCodeException)
             {
@@ -150,18 +184,34 @@ namespace TradingBot.Controllers.Api
                 if (!ModelState.IsValid)
                     throw new StatusCodeException(ModelState);
 
-
                 var instrument = new Instrument(exchangeName, orderModel.Instrument);
                 var tradingSignal = new TradingSignal(orderModel.Id, OrderCommand.Cancel, orderModel.TradeType,
                     orderModel.Price, orderModel.Volume, DateTime.UtcNow, orderModel.OrderType);
 
-                var result = await Application.GetExchange(exchangeName)
-                    .CancelOrderAndWaitExecution(instrument, tradingSignal, timeout);
+                var translatedSignal = new TranslatedSignalTableEntity(SignalSource.RestApi, exchangeName, orderModel.Instrument, tradingSignal)
+                {
+                    ClientIP = HttpContext.Connection.RemoteIpAddress.ToString()
+                };
 
-                if (result.Status == ExecutionStatus.Rejected)
-                    throw new StatusCodeException(HttpStatusCode.BadRequest, $"Exchange return status: {result.Status}");
+                try
+                {
+                    var result = await Application.GetExchange(exchangeName)
+                        .CancelOrderAndWaitExecution(instrument, tradingSignal, translatedSignal, timeout);
 
-                return Ok(result);
+                    if (result.Status == ExecutionStatus.Rejected)
+                        throw new StatusCodeException(HttpStatusCode.BadRequest, $"Exchange return status: {result.Status}");
+
+                    return Ok(result);
+                }
+                catch (Exception e)
+                {
+                    translatedSignal.Failure(e);
+                    throw;
+                }
+                finally
+                {
+                    await translatedSignalsRepository.SaveAsync(translatedSignal);
+                }
             }
             catch (StatusCodeException)
             {

@@ -14,9 +14,9 @@ namespace TradingBot.Exchanges
 {
     public static class ExchangeFactory
     {
-	    public static List<Exchange> CreateExchanges(Configuration config)
+	    public static List<Exchange> CreateExchanges(Configuration config, TranslatedSignalsRepository translatedSignalsRepository)
 	    {
-		    var exchanges = CreateExchanges(config.Exchanges);
+		    var exchanges = CreateExchanges(config.Exchanges, translatedSignalsRepository);
 
 		    if (config.AzureStorage.Enabled)
 			    foreach (var exchange in exchanges.Where(x => x.Config.SaveQuotesToAzure))
@@ -42,21 +42,21 @@ namespace TradingBot.Exchanges
 		    return exchanges;
 	    }
 	    
-        private static List<Exchange> CreateExchanges(ExchangesConfiguration config)
+        private static List<Exchange> CreateExchanges(ExchangesConfiguration config, TranslatedSignalsRepository translatedSignalsRepository)
         {
 	        var result = new List<Exchange>();
 
 	        if (config.Icm.Enabled)
-		        result.Add(new IcmExchange(config.Icm));
+		        result.Add(new IcmExchange(config.Icm, translatedSignalsRepository));
 	        
 	        if (config.Kraken.Enabled)
-		        result.Add(new KrakenExchange(config.Kraken));
+		        result.Add(new KrakenExchange(config.Kraken, translatedSignalsRepository));
 	        
 	        if (config.Stub.Enabled)
-		        result.Add(new StubExchange(config.Stub));
+		        result.Add(new StubExchange(config.Stub, translatedSignalsRepository));
 	        
 	        if (config.HistoricalData.Enabled)
-		        result.Add(new HistoricalDataExchange(config.HistoricalData));
+		        result.Add(new HistoricalDataExchange(config.HistoricalData, translatedSignalsRepository));
 
 	        return result;
         }

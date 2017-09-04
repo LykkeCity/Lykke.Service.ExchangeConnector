@@ -19,7 +19,7 @@ namespace TradingBot.Tests
 
             var deserialized = converter.Deserialize(serialized).TradingSignals[0];
 
-            Assert.Equal(signal.Type, deserialized.Type);
+            Assert.Equal(signal.TradeType, deserialized.TradeType);
             Assert.Equal(signal.Volume, deserialized.Volume);
             Assert.Equal(signal.OrderType, deserialized.OrderType);
             Assert.Equal(signal.Time, deserialized.Time);

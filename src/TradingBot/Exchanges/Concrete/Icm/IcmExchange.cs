@@ -15,6 +15,7 @@ using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Icm.Converters;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
 using OrderBook = TradingBot.Exchanges.Concrete.Icm.Entities.OrderBook;
 
@@ -24,7 +25,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
     {
         public new static readonly string Name = "icm";
         
-        public IcmExchange(IcmConfig config) : base(Name, config)
+        public IcmExchange(IcmConfig config, TranslatedSignalsRepository translatedSignalsRepository) : base(Name, config, translatedSignalsRepository)
         {
             this.config = config;
         }
@@ -105,17 +106,17 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return Task.FromResult(retry.Execute(() => initiator.IsLoggedOn));
         }
         
-        protected override Task<bool> AddOrder(Instrument instrument, TradingSignal signal)
+        protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             Logger.LogInformation($"About to place new order for instrument {instrument}: {signal}");
-            return Task.FromResult(connector.AddOrder(instrument, signal));
+            return Task.FromResult(connector.AddOrder(instrument, signal, translatedSignal));
         }
 
-        protected override Task<bool> CancelOrder(Instrument instrument, TradingSignal signal)
+        protected override Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             Logger.LogInformation($"Cancelling order {signal}");
 
-            return Task.FromResult(connector.CancelOrder(instrument, signal));
+            return Task.FromResult(connector.CancelOrder(instrument, signal, translatedSignal));
         }
 
         public Task<ExecutedTrade> GetOrderInfo(Instrument instrument, string orderId)
@@ -128,14 +129,14 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return connector.GetAllOrdersInfo(timeout);
         }
 
-        public override Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+        public override Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            return connector.AddOrderAndWaitResponse(instrument, signal, timeout);
+            return connector.AddOrderAndWaitResponse(instrument, signal, translatedSignal, timeout);
         }
 
-        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            return connector.CancelOrderAndWaitResponse(instrument, signal, timeout);
+            return connector.CancelOrderAndWaitResponse(instrument, signal, translatedSignal, timeout);
         }
     }
 }

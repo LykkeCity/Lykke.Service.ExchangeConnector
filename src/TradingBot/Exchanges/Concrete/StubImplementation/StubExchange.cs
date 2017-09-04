@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Logging;
@@ -19,8 +20,8 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 	    private readonly StubExchangeConfiguration config;
 	    
 
-        public StubExchange(StubExchangeConfiguration config)
-	        : base(Name, config)
+        public StubExchange(StubExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository)
+	        : base(Name, config, translatedSignalsRepository)
         {
             this.config = config;
         }
@@ -142,13 +143,30 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 	        streamJob?.Wait();
         }
 
-	    protected override Task<bool> AddOrder(Instrument instrument, TradingSignal signal)
+	    protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
 	    {
+		    translatedSignal.RequestSent("stub exchange don't send actual request");
+		    SimulateException();
+		    translatedSignal.ResponseReceived("stub exchange don't recevie actual response");
+
 		    return Task.FromResult(true);
 	    }
 
-	    protected override async Task<bool> CancelOrder(Instrument instrument, TradingSignal signal)
+	    private static readonly Random Random = new Random();
+	    private void SimulateException()
 	    {
+		    if (Random.NextDouble() <= 0.2)
+		    {
+			    throw new Exception("Whoops! This exception is simulated!");
+		    }
+	    }
+
+	    protected override async Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+	    {
+		    translatedSignal.RequestSent("stub exchange don't send actual request");
+		    SimulateException();
+		    translatedSignal.ResponseReceived("stub exchange don't recevie actual response");
+		    
 		    await CallExecutedTradeHandlers(new ExecutedTrade(
 			    instrument,
 			    DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType,
@@ -157,12 +175,12 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 		    return true;
 	    }
 
-	    public override Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+	    public override Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
 	    {
 		    throw new NotImplementedException();
 	    }
 
-	    public override Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+	    public override Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
 	    {
 		    throw new NotImplementedException();
 	    }

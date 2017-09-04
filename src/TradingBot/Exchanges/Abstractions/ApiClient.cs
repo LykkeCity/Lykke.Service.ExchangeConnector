@@ -1,4 +1,3 @@
-using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -42,23 +41,32 @@ namespace TradingBot.Exchanges.Abstractions
             }
         }
 
-        public async Task<TResponse> MakePostRequestAsync<TResponse>(string url, HttpContent content, CancellationToken cancellationToken)
+        public async Task<TResponse> MakePostRequestAsync<TResponse>(string url, HttpContent content, 
+            TranslatedSignalTableEntity translatedSignal, 
+            CancellationToken cancellationToken)
         {
             Log($"Making request to url: {url}.");
             
+            translatedSignal?.RequestSent(HttpMethod.Post, url, content);
             using (var response = await httpClient.PostAsync(url, content, cancellationToken).ConfigureAwait(false))
             {
                 string responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
+                translatedSignal?.ResponseReceived(responseContent);
+                Log($"Received content: {responseContent}");
+                
                 if (!response.IsSuccessStatusCode)
-                {                    
-                    throw new ApiException($"Unexpected status code: {response.StatusCode}. {responseContent}");
+                {
+                    throw new ApiException($"Unsuccess status code: {response.StatusCode}. {responseContent}");
                 }
 
-                Log($"Received content: {responseContent}");
-
-                var result = JsonConvert.DeserializeObject<TResponse>(responseContent);                
-                return result;
+                try
+                {
+                    return JsonConvert.DeserializeObject<TResponse>(responseContent);
+                }
+                catch (Exception e)
+                {
+                    throw new ApiException($"Can't deserialize response to type {typeof(TResponse)}", e);
+                }
             }
         }
 

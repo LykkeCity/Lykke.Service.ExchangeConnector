@@ -39,12 +39,12 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
             this.nonceProvider = nonceProvider;
         }
 
-        public Task<Dictionary<string, decimal>> GetAccountBalance(CancellationToken cancellationToken)
+        public Task<Dictionary<string, decimal>> GetAccountBalance(TranslatedSignalTableEntity translatedSignal, CancellationToken cancellationToken)
         {
-            return MakePostRequestAsync<Dictionary<string, decimal>>("Balance", new AccountBalanceRequest(), cancellationToken);
+            return MakePostRequestAsync<Dictionary<string, decimal>>("Balance", new AccountBalanceRequest(), translatedSignal, cancellationToken);
         }
 
-        public Task<TradeBalanceInfo> GetTradeBalance(CancellationToken cancellationToken)
+        public Task<TradeBalanceInfo> GetTradeBalance(TranslatedSignalTableEntity translatedSignal, CancellationToken cancellationToken)
         {
             var request = new TradeBalanceRequest()
             {
@@ -52,51 +52,60 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
                 BaseAsset = "ZUSD"
             };
             
-            return MakePostRequestAsync<TradeBalanceInfo>("TradeBalance", request, cancellationToken);
+            return MakePostRequestAsync<TradeBalanceInfo>("TradeBalance", request, translatedSignal, cancellationToken);
         }
 
         public Task<string> GetOpenOrders(CancellationToken cancellationToken)
         {
-            return MakePostRequestAsync<string>("OpenOrders", new OpenOrdersRequest(), cancellationToken);
+            return MakePostRequestAsync<string>("OpenOrders", new OpenOrdersRequest(), null, cancellationToken);
         }
 
-        public Task<AddStandardOrderResponse> AddOrder(Instrument instrument, TradingSignal tradingSignal, CancellationToken cancellationToken)
+        public Task<AddStandardOrderResponse> AddOrder(Instrument instrument, TradingSignal tradingSignal, TranslatedSignalTableEntity translatedSignal, CancellationToken cancellationToken)
         {
             var request = new AddStandardOrderRequest(instrument, tradingSignal);
 
-            return MakePostRequestAsync<AddStandardOrderResponse>("AddOrder", request, cancellationToken);
+            return MakePostRequestAsync<AddStandardOrderResponse>("AddOrder", request, translatedSignal, cancellationToken);
         }
 
-        public Task<CancelOrderResult> CancelOrder(string txId)
+        public Task<CancelOrderResult> CancelOrder(string txId, TranslatedSignalTableEntity translatedSignal)
         {
             var request = new CancelOrderRequest(txId);
 
-            return MakePostRequestAsync<CancelOrderResult>("CancelOrder", request, CancellationToken.None);
+            return MakePostRequestAsync<CancelOrderResult>("CancelOrder", request, translatedSignal, CancellationToken.None);
         }
 
 
         private DateTime lastRequestTime = DateTime.UtcNow;
         
-        private async Task<T> MakePostRequestAsync<T>(string url, IKrakenRequest request, CancellationToken cancellationToken)
+        private async Task<T> MakePostRequestAsync<T>(string url, IKrakenRequest request, TranslatedSignalTableEntity translatedSignal, CancellationToken cancellationToken)
         {
-            var now = DateTime.UtcNow;
-
-            if ((now - lastRequestTime).TotalSeconds <= 5)
+            try
             {
-                await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
-            }
-            lastRequestTime = DateTime.UtcNow;
-            
-            var content = CreateHttpContent(request, nonceProvider.GetNonce(), url);
-            
-            var response = await apiClient.MakePostRequestAsync<ResponseBase<T>>($"{endpointUrl}/{url}", content, cancellationToken);
+                var now = DateTime.UtcNow;
 
-            if (response.Error.Any())
+                if ((now - lastRequestTime).TotalSeconds <= 5)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+                }
+                lastRequestTime = DateTime.UtcNow;
+
+                var content = CreateHttpContent(request, nonceProvider.GetNonce(), url);
+
+                var response = await apiClient.MakePostRequestAsync<ResponseBase<T>>($"{endpointUrl}/{url}", content,
+                    translatedSignal, cancellationToken);
+
+                if (response.Error.Any())
+                {
+                    throw new ApiException(string.Join("; ", response.Error));
+                }
+
+                return response.Result;
+            }
+            catch (Exception e)
             {
-                throw new ApiException(string.Join("; ", response.Error));
+                translatedSignal?.Failure(e);
+                throw;
             }
-
-            return response.Result;
         }
 
         private FormUrlEncodedContent CreateHttpContent(IKrakenRequest requestData, long nonce, string uriPath)

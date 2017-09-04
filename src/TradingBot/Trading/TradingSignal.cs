@@ -3,12 +3,6 @@ using Newtonsoft.Json;
 
 namespace TradingBot.Trading
 {
-    public enum SignalType
-    {
-        Long,
-        Short
-    }
-
     public enum OrderType
     {
         Market,
@@ -50,13 +44,9 @@ namespace TradingBot.Trading
             Time = time;
             OrderType = orderType;
             TimeInForce = timeInForce;
-
-            Type = tradeType == TradeType.Sell ? SignalType.Short : SignalType.Long;
         }
         
         public DateTime Time { get; }
-
-        public SignalType Type { get; }
         
         public OrderType OrderType { get; }
         
@@ -74,16 +64,7 @@ namespace TradingBot.Trading
 
         public override string ToString()
         {
-            return $"Id: {OrderId}, Command: {Command}, Type: {Type}, Price: {Price}, Count: {Volume}";
-        }
-
-        public bool Equals(TradingSignal another)
-        {
-            return
-                TradeType == another.TradeType &&
-                Price == another.Price &&
-                Volume == another.Volume &&
-                OrderType == another.OrderType;
+            return $"Id: {OrderId}, Command: {Command}, TradeType: {TradeType}, Price: {Price}, Count: {Volume}";
         }
     }
 }
