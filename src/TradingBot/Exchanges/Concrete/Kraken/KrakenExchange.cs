@@ -91,7 +91,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
 						}
 					}
 
-					await Task.Delay(TimeSpan.FromSeconds(6), token);
+					await Task.Delay(TimeSpan.FromSeconds(10), token);
                 }
             }
         }
