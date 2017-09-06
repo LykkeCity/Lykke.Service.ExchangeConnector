@@ -9,22 +9,22 @@ namespace TradingBot.Tests.KrakenApiTests
     public class AddStandardOrderRequestTests
     {
         [Fact]
-        public void AddTwoZeroesToIntPrice()
+        public void AddOneZeroesToIntPrice()
         {
             var request = new AddStandardOrderRequest(new Instrument("", ""),
                 new TradingSignal("", OrderCommand.Create, TradeType.Buy, 4000, 1, DateTime.UtcNow, OrderType.Limit));
             
-            Assert.Equal("4000.00", request.FormData.First(x => x.Key == "price").Value);
+            Assert.Equal("4000.0", request.FormData.First(x => x.Key == "price").Value);
         }
         
         
         [Fact]
-        public void PriceHasTwoDecimals()
+        public void PriceHasOneDecimals()
         {
             var request = new AddStandardOrderRequest(new Instrument("", ""),
                 new TradingSignal("", OrderCommand.Create, TradeType.Buy, 4000.111m, 1, DateTime.UtcNow, OrderType.Limit));
             
-            Assert.Equal("4000.11", request.FormData.First(x => x.Key == "price").Value);
+            Assert.Equal("4000.1", request.FormData.First(x => x.Key == "price").Value);
         }
     }
 }
