@@ -22,6 +22,8 @@ namespace TradingBot.Infrastructure.Logging
             set => OrderCommandInt = (int) value;
         }
         
+        public DateTime SignalDateTime { get; set; }
+        
         public string OrderId { get; set; }
         
         public string ExternalId { get; set; }
@@ -104,6 +106,7 @@ namespace TradingBot.Infrastructure.Logging
             Exchange = exchange;
             Instrument = instrument;
 
+            SignalDateTime = signal.Time;
             OrderCommand = signal.Command;
             OrderId = signal.OrderId;
             Price = (double)signal.Price;

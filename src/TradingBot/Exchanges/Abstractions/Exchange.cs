@@ -27,6 +27,8 @@ namespace TradingBot.Exchanges.Abstractions
 
         public IExchangeConfiguration Config { get; }
 
+        private readonly TimeSpan tradingSignalsThreshold = TimeSpan.FromMinutes(3);
+
         protected Exchange(string name, IExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository)
         {
             Name = name;
@@ -145,6 +147,13 @@ namespace TradingBot.Exchanges.Abstractions
                             case OrderCommand.Create:
                                 try
                                 {
+                                    if (!arrivedSignal.IsTimeInThreshold(tradingSignalsThreshold))
+                                    {
+                                        Logger.LogDebug($"Skipping old signal {arrivedSignal}");
+                                        translatedSignal.Failure("The signal is too old");
+                                        break;
+                                    }
+                                    
                                     existing = ActualSignals[signals.Instrument.Name]
                                         .SingleOrDefault(x => x.OrderId == arrivedSignal.OrderId);
 

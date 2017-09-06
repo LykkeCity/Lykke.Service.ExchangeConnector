@@ -45,7 +45,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Requests
                 yield return new KeyValuePair<string, string>("ordertype", OrderType.ToString().ToLowerInvariant()); // market/limit
                 
                 if (OrderType == OrderType.Limit)
-                    yield return new KeyValuePair<string, string>("price", Price.ToString(CultureInfo.InvariantCulture));
+                    yield return new KeyValuePair<string, string>("price", Price.ToString("#.00", CultureInfo.InvariantCulture));
                 
                 yield return new KeyValuePair<string, string>("volume", Volume.ToString(CultureInfo.InvariantCulture));
             }

@@ -64,7 +64,14 @@ namespace TradingBot.Trading
 
         public override string ToString()
         {
-            return $"Id: {OrderId}, Command: {Command}, TradeType: {TradeType}, Price: {Price}, Count: {Volume}";
+            return $"Id: {OrderId}, Time: {Time}, Command: {Command}, TradeType: {TradeType}, Price: {Price}, Count: {Volume}";
+        }
+
+        public bool IsTimeInThreshold(TimeSpan threshold)
+        {
+            var now = DateTime.UtcNow;
+
+            return Math.Abs(now.Ticks - Time.Ticks) <= threshold.Ticks;
         }
     }
 }

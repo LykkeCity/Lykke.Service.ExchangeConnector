@@ -26,5 +26,19 @@ namespace TradingBot.Tests
             Assert.Equal(signal.OrderId, deserialized.OrderId);
             Assert.Equal(signal.Command, deserialized.Command);
         }
+
+        [Fact]
+        public void TradingSignal_IsTimeInThreshold()
+        {
+            var signal = new TradingSignal("", OrderCommand.Create, TradeType.Buy, 100m, 100m, DateTime.UtcNow.AddMinutes(-5));
+            
+            Assert.True(signal.IsTimeInThreshold(TimeSpan.FromMinutes(6)));
+            Assert.False(signal.IsTimeInThreshold(TimeSpan.FromMinutes(4)));
+            
+            var signalInFuture = new TradingSignal("", OrderCommand.Create, TradeType.Buy, 100m, 100m, DateTime.UtcNow.AddMinutes(5));
+            
+            Assert.True(signalInFuture.IsTimeInThreshold(TimeSpan.FromMinutes(6)));
+            Assert.False(signalInFuture.IsTimeInThreshold(TimeSpan.FromMinutes(4)));
+        }
     }
 }
