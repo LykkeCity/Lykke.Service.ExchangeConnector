@@ -31,30 +31,40 @@ namespace TradingBot.Exchanges.Concrete.HistoricalData
             return Task.FromResult(File.Exists(config.BaseDirectory + string.Format(config.FileName, config.StartDate)));
         }
 
-        public override async Task OpenPricesStream()
+        private Task pricesCycle;
+
+        public override Task OpenPricesStream()
         {
             stopRequested = false;
-            var paths = new List<string>();
 
-            for (DateTime day = config.StartDate; day <= config.EndDate; day = day.AddDays(1))
+            pricesCycle = Task.Run(async () =>
             {
-                var fileName = string.Format(config.FileName, day);
-                paths.Add(config.BaseDirectory + fileName);
-            }
-            
-            reader = new HistoricalDataReader(paths.ToArray(), LineParsers.ParseTickLine);
-            
-            using (var enumerator = reader.GetEnumerator())
-                while (!stopRequested && enumerator.MoveNext())
+                var paths = new List<string>();
+
+                for (DateTime day = config.StartDate; day <= config.EndDate; day = day.AddDays(1))
                 {
-                    await CallHandlers(new InstrumentTickPrices(Instruments.First(), new TickPrice[] { enumerator.Current }));
+                    var fileName = string.Format(config.FileName, day);
+                    paths.Add(config.BaseDirectory + fileName);
                 }
+            
+                reader = new HistoricalDataReader(paths.ToArray(), LineParsers.ParseTickLine);
+            
+                using (var enumerator = reader.GetEnumerator())
+                    while (!stopRequested && enumerator.MoveNext())
+                    {
+                        await CallHandlers(new InstrumentTickPrices(Instruments.First(), new TickPrice[] { enumerator.Current }));
+                    }
+            });
+
+            return Task.FromResult(0);
         }
 
-        public override void ClosePricesStream()
+        public override async Task ClosePricesStream()
         {
             stopRequested = true;
             reader?.Dispose();
+
+            await pricesCycle;
         }
 
         protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)

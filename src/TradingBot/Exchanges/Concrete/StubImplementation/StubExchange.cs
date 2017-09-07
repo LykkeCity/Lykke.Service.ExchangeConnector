@@ -32,14 +32,14 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 		}
 
 
-        private bool closePricesStreamRequested;
+        private CancellationTokenSource ctSource;
         private Task streamJob;
 
 	    private long counter = 0;
 
 		public override Task OpenPricesStream()
 		{
-            closePricesStreamRequested = false;
+            ctSource = new CancellationTokenSource();
             var random = new Random();
 		    
 		    var nPoints = 10000000;
@@ -50,7 +50,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 
 		    streamJob = Task.Run(async () =>
 		    {
-			    while (!closePricesStreamRequested)
+			    while (!ctSource.IsCancellationRequested)
 			    {
 				    foreach (var instrument in Instruments)
 				    {       
@@ -130,17 +130,20 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 					    await CallHandlers(new InstrumentTickPrices(instrument, currentPrices));
 				    }
                 
-				    await Task.Delay(config.PricesIntervalInMilliseconds);
+				    await Task.Delay(config.PricesIntervalInMilliseconds, ctSource.Token);
 			    } 
 		    });
 
 			return streamJob;
 		}
 	    
-        public override void ClosePricesStream()
+        public override async Task ClosePricesStream()
         {
-            closePricesStreamRequested = true;
-	        streamJob?.Wait();
+	        if (ctSource != null && streamJob != null)
+	        {
+		        ctSource.Cancel();
+		        await streamJob;    
+	        }
         }
 
 	    protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)

@@ -45,9 +45,9 @@ namespace TradingBot.Exchanges.Abstractions
             TranslatedSignalTableEntity translatedSignal, 
             CancellationToken cancellationToken)
         {
-            Log($"Making request to url: {url}.");
-            
             translatedSignal?.RequestSent(HttpMethod.Post, url, content);
+            Log($"Making request to url: {url}. {translatedSignal?.RequestSentToExchange}");
+            
             using (var response = await httpClient.PostAsync(url, content, cancellationToken).ConfigureAwait(false))
             {
                 string responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);

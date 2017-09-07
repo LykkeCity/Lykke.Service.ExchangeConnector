@@ -13,6 +13,8 @@ namespace TradingBot.Infrastructure.Configuration
         
         public HistoricalDataConfig HistoricalData { get; set; }
         
+        public LykkeExchangeConfiguration Lykke { get; set; }
+        
         
         public IEnumerator<IExchangeConfiguration> GetEnumerator()
         {
@@ -20,6 +22,7 @@ namespace TradingBot.Infrastructure.Configuration
             yield return Kraken;
             yield return Stub;
             yield return HistoricalData;
+            yield return Lykke;
         }
 
         IEnumerator IEnumerable.GetEnumerator()

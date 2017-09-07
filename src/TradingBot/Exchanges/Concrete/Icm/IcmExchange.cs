@@ -42,16 +42,18 @@ namespace TradingBot.Exchanges.Concrete.Icm
         /// </summary>
         public override Task OpenPricesStream()
         {
-            //StartRabbitConnection();
+            StartRabbitConnection();
 
             return Task.FromResult(0);
         }
         
-        public override void ClosePricesStream()
+        public override Task ClosePricesStream()
         {
             rabbit?.Stop();
             initiator?.Stop();
             initiator?.Dispose();
+
+            return Task.FromResult(0);
         }
 
         private void StartRabbitConnection()

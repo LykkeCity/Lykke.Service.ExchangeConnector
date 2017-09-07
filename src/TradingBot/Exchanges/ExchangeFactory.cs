@@ -5,6 +5,7 @@ using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.HistoricalData;
 using TradingBot.Exchanges.Concrete.Icm;
 using TradingBot.Exchanges.Concrete.Kraken;
+using TradingBot.Exchanges.Concrete.LykkeExchange;
 using TradingBot.Exchanges.Concrete.StubImplementation;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
@@ -57,6 +58,9 @@ namespace TradingBot.Exchanges
 	        
 	        if (config.HistoricalData.Enabled)
 		        result.Add(new HistoricalDataExchange(config.HistoricalData, translatedSignalsRepository));
+	        
+	        if (config.Lykke.Enabled)
+		        result.Add(new LykkeExchange(config.Lykke, translatedSignalsRepository));
 
 	        return result;
         }

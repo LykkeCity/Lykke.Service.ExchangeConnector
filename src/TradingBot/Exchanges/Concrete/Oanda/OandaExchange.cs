@@ -29,7 +29,7 @@ namespace TradingBot.Exchanges.Concrete.Oanda
             instruments = new Instruments(client);
         }
 
-        public override void ClosePricesStream()
+        public override Task ClosePricesStream()
         {
             throw new NotImplementedException();
         }

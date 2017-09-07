@@ -115,7 +115,7 @@ namespace TradingBot.Exchanges.Abstractions
             return Task.WhenAll(executedTradeHandlers.Select(x => x.Handle(trade)));
         }
 
-        public abstract void ClosePricesStream();
+        public abstract Task ClosePricesStream();
 
         
         protected readonly object ActualSignalsSyncRoot = new object();
@@ -126,6 +126,10 @@ namespace TradingBot.Exchanges.Abstractions
         
         public virtual Task PlaceTradingOrders(InstrumentTradingSignals signals) // TODO: get rid of whole body lock and make calls async
         {   
+            // TODO: this method should place signals into inner queue only
+            // the queue have to be processed via separate worker
+            
+            
             lock (ActualSignalsSyncRoot)
             {
                 if (!ActualSignals.ContainsKey(signals.Instrument.Name))
