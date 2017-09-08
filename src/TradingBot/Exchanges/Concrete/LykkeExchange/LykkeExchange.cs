@@ -82,7 +82,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     }    
                 }
                 
-                await Task.Delay(TimeSpan.FromSeconds(10));
+                await Task.Delay(TimeSpan.FromSeconds(1));
             }
         }
 
@@ -94,6 +94,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
 
         protected override async Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal)
         {
+            // TODO: if it is Market order, use another method.
             var orderId = await apiClient.MakePostRequestAsync<string>(
                 $"{Config.EndpointUrl}/api/Orders/PlaceLimitOrder", 
                 CreateHttpContent(new LimitOrder()
@@ -107,7 +108,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                 CancellationToken.None);
 
             Guid id;
-            var orderPlaced = Guid.TryParse(orderId, out id);
+            var orderPlaced = Guid.TryParse(orderId, out id) && id != default(Guid);
 
             if (orderPlaced)
             {

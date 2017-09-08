@@ -27,7 +27,7 @@ namespace TradingBot.Exchanges.Abstractions
 
         public IExchangeConfiguration Config { get; }
 
-        private readonly TimeSpan tradingSignalsThreshold = TimeSpan.FromMinutes(3);
+        private readonly TimeSpan tradingSignalsThreshold = TimeSpan.FromMinutes(7);
 
         protected Exchange(string name, IExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository)
         {
