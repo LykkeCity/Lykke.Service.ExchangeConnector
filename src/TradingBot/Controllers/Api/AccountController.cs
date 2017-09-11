@@ -7,13 +7,14 @@ using Microsoft.AspNetCore.Mvc;
 using TradingBot.Exchanges.Concrete.Kraken;
 using TradingBot.Exchanges.Concrete.Kraken.Entities;
 using TradingBot.Infrastructure.Exceptions;
+using TradingBot.Trading;
 
 namespace TradingBot.Controllers.Api
 {
     public class AccountController : BaseApiController
     {
         [HttpGet("{exchangeName}/balance")]
-        public Task<Dictionary<string, decimal>> GetBalance(string exchangeName)
+        public Task<IEnumerable<AccountBalance>> GetBalance(string exchangeName)
         {
             try
             {

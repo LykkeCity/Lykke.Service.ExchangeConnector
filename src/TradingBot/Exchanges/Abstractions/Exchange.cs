@@ -167,8 +167,11 @@ namespace TradingBot.Exchanges.Abstractions
 
                                     ActualSignals[signals.Instrument.Name].AddLast(arrivedSignal);
 
+                                    
+                                    // TODO: don't retry on several types of errors, such as Insufficien funds
                                     var result = retryThreeTimesPolicy.ExecuteAndCaptureAsync(() =>
                                         AddOrder(signals.Instrument, arrivedSignal, translatedSignal)).Result;
+                                    
 
                                     if (result.Outcome == OutcomeType.Successful)
                                     {
@@ -204,6 +207,8 @@ namespace TradingBot.Exchanges.Abstractions
                                     {
                                         ActualSignals[signals.Instrument.Name].Remove(existing);
 
+                                        
+                                        // TODO: don't retry on several types of errors, such as Insufficien funds
                                         var result = retryThreeTimesPolicy.ExecuteAndCaptureAsync(() =>
                                             CancelOrder(signals.Instrument, existing, translatedSignal)).Result;
 
@@ -280,9 +285,9 @@ namespace TradingBot.Exchanges.Abstractions
             TranslatedSignalTableEntity translatedSignal,
             TimeSpan timeout);
 
-        public virtual Task<Dictionary<string, decimal>> GetAccountBalance(CancellationToken cancellationToken)
+        public virtual Task<IEnumerable<AccountBalance>> GetAccountBalance(CancellationToken cancellationToken)
         {
-            return Task.FromResult(new Dictionary<string, decimal>());
+            return Task.FromResult(Enumerable.Empty<AccountBalance>());
         }
     }
 }

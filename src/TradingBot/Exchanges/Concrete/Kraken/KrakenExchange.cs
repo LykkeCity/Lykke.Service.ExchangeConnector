@@ -101,9 +101,14 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             return Task.FromResult(0);
         }
 
-        public override Task<Dictionary<string, decimal>> GetAccountBalance(CancellationToken cancellationToken)
+        public override async Task<IEnumerable<AccountBalance>> GetAccountBalance(CancellationToken cancellationToken)
         {
-            return privateData.GetAccountBalance(null, cancellationToken);
+            return (await privateData.GetAccountBalance(null, cancellationToken))
+                .Select(x => new AccountBalance()
+                    {
+                        Asset = x.Key,
+                        Balance = x.Value
+                    });
         }
 
         public Task<TradeBalanceInfo> GetTradeBalance(CancellationToken cancellationToken)
