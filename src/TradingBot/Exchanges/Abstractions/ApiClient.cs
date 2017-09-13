@@ -25,6 +25,7 @@ namespace TradingBot.Exchanges.Abstractions
         {
             Log($"Making request to url: {url}");
 
+            cancellationToken.ThrowIfCancellationRequested();
             using (var response = await httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false))
             {
                 string content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -48,6 +49,7 @@ namespace TradingBot.Exchanges.Abstractions
             translatedSignal?.RequestSent(HttpMethod.Post, url, content);
             Log($"Making request to url: {url}. {translatedSignal?.RequestSentToExchange}");
             
+            cancellationToken.ThrowIfCancellationRequested();
             using (var response = await httpClient.PostAsync(url, content, cancellationToken).ConfigureAwait(false))
             {
                 string responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);

@@ -69,7 +69,7 @@ namespace TradingBot.Exchanges.Abstractions
         protected Dictionary<string, LinkedList<TradingSignal>> ActualSignals;
         protected Dictionary<string, List<ExecutedTrade>> ExecutedTrades;
         
-        public Task<bool> TestConnection()
+        public Task<bool> TestConnection() // TODO: rename to EstablishConnection
         {
             return TestConnection(CancellationToken.None);
         }

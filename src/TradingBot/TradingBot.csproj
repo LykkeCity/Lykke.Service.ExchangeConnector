@@ -23,7 +23,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="1.1.2" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="1.1.2" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="1.1.2" />
-    <PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="Polly" Version="5.1.0" />
   </ItemGroup>
   <ItemGroup>
@@ -36,6 +36,7 @@
     <Folder Include="Views\Shared\" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\PusherClient.DotNetCore\PusherClient.DotNetCore.csproj" />
     <ProjectReference Include="..\QuickFix.DotNetCore\QuickFix.DotNetCore.csproj" />
   </ItemGroup>
 </Project>
