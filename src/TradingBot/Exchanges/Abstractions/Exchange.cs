@@ -29,7 +29,7 @@ namespace TradingBot.Exchanges.Abstractions
 
         public ExchangeState State { get; private set; }
 
-        private readonly TimeSpan tradingSignalsThreshold = TimeSpan.FromMinutes(7);
+        private readonly TimeSpan tradingSignalsThreshold = TimeSpan.FromMinutes(10);
 
         protected Exchange(string name, IExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository)
         {
@@ -99,48 +99,6 @@ namespace TradingBot.Exchanges.Abstractions
         protected IReadOnlyDictionary<string, Position> Positions { get; }
 
         protected readonly Dictionary<string, LinkedList<TradingSignal>> ActualSignals;
-        
-//        public async Task<bool> EstablishConnection(CancellationToken cancellationToken)
-//        {
-//            Logger.LogDebug($"Trying to establish connection to {Name}...");
-//            State = ExchangeState.Connecting;
-//
-//            var retryForeverPolicy = Policy
-//                .Handle<Exception>()
-//                .OrResult<bool>(x => x == false)
-//                .WaitAndRetryForeverAsync(attempt => TimeSpan.FromSeconds(attempt * 2), (result, span) =>
-//                {
-//                    State = ExchangeState.ReconnectingAfterError;
-//                    if (result.Exception != null)
-//                    {
-//                        Logger.LogError(0, result.Exception, $"Exception on retrying to connect to {Name}. Timespan: {span}");
-//                    }
-//                    else if (result.Result == false)
-//                    {
-//                        Logger.LogWarning($"Retrying connection to {Name}, timespan: {span}");
-//                    }
-//                });
-//            
-//            try
-//            {
-//				bool result = await retryForeverPolicy.ExecuteAsync(EstablishConnectionImpl, cancellationToken);
-//
-//				if (result)
-//				{
-//					Logger.LogInformation("Connection established successfully.");
-//				}
-//				else
-//				{
-//					Logger.LogWarning("Connection establishment failed.");
-//				}
-//                return result;
-//            }
-//            catch (Exception ex)
-//            {
-//                Logger.LogError(0, ex, "Connection establishment failed with error");
-//                return false;
-//            }
-//        }
 
         protected Task CallHandlers(InstrumentTickPrices tickPrices)
         {
@@ -161,7 +119,6 @@ namespace TradingBot.Exchanges.Abstractions
         public Task HandleTradingSignals(InstrumentTradingSignals signals) // TODO: get rid of whole body lock and make calls async
         {   
             // TODO: check if the Exchange is ready for processing signals, maybe put them into inner queue if readyness is not the case
-            
             
             // TODO: this method should place signals into inner queue only
             // the queue have to be processed via separate worker
