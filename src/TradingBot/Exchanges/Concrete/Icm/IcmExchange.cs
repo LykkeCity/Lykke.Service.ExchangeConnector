@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using AzureStorage.Tables;
 using Common.Log;
 using Lykke.Logs;
 using Lykke.RabbitMqBroker.Subscriber;
 using Microsoft.Extensions.Logging;
-using Polly;
 using QuickFix;
 using QuickFix.Transport;
 using TradingBot.Communications;
@@ -37,25 +35,42 @@ namespace TradingBot.Exchanges.Concrete.Icm
         private IcmConnector connector;
 
 
-        /// <summary>
-        /// For ICM we use internal RabbitMQ exchange with pricefeed
-        /// </summary>
-        public override Task OpenPricesStream()
+        protected override void StartImpl()
         {
-            StartRabbitConnection();
-
-            return Task.FromResult(0);
+            StartFixConnection();
+            
+            if (config.RabbitMq.Enabled && (config.PubQuotesToRabbit || config.SaveQuotesToAzure))
+                StartRabbitConnection();
         }
         
-        public override Task ClosePricesStream()
+        protected override void StopImpl()
         {
             rabbit?.Stop();
             initiator?.Stop();
             initiator?.Dispose();
+        }
+        
+        private void StartFixConnection()
+        {
+            var settings = new SessionSettings(config.GetFixConfigAsReader());
 
-            return Task.FromResult(0);
+            var repository = new AzureFixMessagesRepository(Configuration.Instance.AzureStorage.StorageConnectionString, "fixMessages");
+            
+            connector = new IcmConnector(config, repository);
+            var storeFactory = new FileStoreFactory(settings);
+            var logFactory = new ScreenLogFactory(settings);
+
+            connector.OnTradeExecuted += CallExecutedTradeHandlers;
+            connector.Connected += OnConnected;
+            connector.Disconnected += OnStopped;
+            
+            initiator = new SocketInitiator(connector, storeFactory, settings, logFactory);
+            initiator.Start();
         }
 
+        /// <summary>
+        /// For ICM we use internal RabbitMQ exchange with pricefeed
+        /// </summary>
         private void StartRabbitConnection()
         {
             var rabbitSettings = new RabbitMqSubscriberSettings()
@@ -78,34 +93,6 @@ namespace TradingBot.Exchanges.Concrete.Icm
                             await CallHandlers(orderBook.ToInstrumentTickPrices());
                     })
                 .Start();
-        }
-        
-        private void StartFixConnection()
-        {
-            var settings = new SessionSettings(config.GetFixConfigAsReader());
-
-            var repository = new AzureFixMessagesRepository(Configuration.Instance.AzureStorage.StorageConnectionString, "fixMessages");
-            
-            connector = new IcmConnector(config, repository);
-            var storeFactory = new FileStoreFactory(settings);
-            var logFactory = new ScreenLogFactory(settings);
-
-            connector.OnTradeExecuted += CallExecutedTradeHandlers;
-            
-            initiator = new SocketInitiator(connector, storeFactory, settings, logFactory);
-            initiator.Start();
-            
-        }
-
-        protected override Task<bool> TestConnectionImpl(CancellationToken cancellationToken)
-        {
-            StartFixConnection();
-            
-            var retry = Policy
-                .HandleResult<bool>(x => !x)
-                .WaitAndRetry(5, attempt => TimeSpan.FromSeconds(10));
-            
-            return Task.FromResult(retry.Execute(() => initiator.IsLoggedOn));
         }
         
         protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)

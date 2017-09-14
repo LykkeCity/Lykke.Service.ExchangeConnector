@@ -18,13 +18,12 @@ namespace TradingBot.Tests.BitstampApiTests
                 Instruments = new [] { "BTCUSD" }
             }, null);
 
-            bool result = await exchange.TestConnection();
+            var tcs = new TaskCompletionSource<bool>();
+
+            exchange.Connected += () => tcs.SetResult(true);
+            exchange.Start();
             
-            Assert.True(result);
-
-            await exchange.OpenPricesStream();
-
-            await Task.Delay(TimeSpan.FromMinutes(1));
+            Assert.True(await tcs.Task);
         }
-    }
+    } 
 }

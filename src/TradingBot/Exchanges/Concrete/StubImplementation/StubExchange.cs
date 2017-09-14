@@ -26,18 +26,12 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
             this.config = config;
         }
 
-        protected override Task<bool> TestConnectionImpl(CancellationToken cancellationToken)
-        {
-            return Task.FromResult(true);
-		}
-
-
         private CancellationTokenSource ctSource;
         private Task streamJob;
 
 	    private long counter = 0;
 
-		public override Task OpenPricesStream()
+		protected override void StartImpl()
 		{
             ctSource = new CancellationTokenSource();
             var random = new Random();
@@ -50,6 +44,8 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 
 		    streamJob = Task.Run(async () =>
 		    {
+			    OnConnected();
+			    
 			    while (!ctSource.IsCancellationRequested)
 			    {
 				    foreach (var instrument in Instruments)
@@ -132,17 +128,16 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
                 
 				    await Task.Delay(config.PricesIntervalInMilliseconds, ctSource.Token);
 			    } 
+			    
+			    OnStopped();
 		    });
-
-			return streamJob;
 		}
 	    
-        public override async Task ClosePricesStream()
+        protected override void StopImpl()
         {
 	        if (ctSource != null && streamJob != null)
 	        {
 		        ctSource.Cancel();
-		        await streamJob;    
 	        }
         }
 

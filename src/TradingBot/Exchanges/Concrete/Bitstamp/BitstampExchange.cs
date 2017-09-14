@@ -21,35 +21,30 @@ namespace TradingBot.Exchanges.Concrete.Bitstamp
             : base(Name, config, translatedSignalsRepository)
         {
             this.config = config;
-            
-            pusher = new Pusher(config.ApplicationKey);
         }
 
-        protected override Task<bool> TestConnectionImpl(CancellationToken cancellationToken)
+        protected override void StartImpl()
         {
-            var tcs = new TaskCompletionSource<bool>();
+            pusher = new Pusher(config.ApplicationKey);
             
-            pusher.Connected += o => tcs.SetResult(true);
-            pusher.Error += (o, e) => tcs.SetResult(false);
+            pusher.Connected += x =>
+            {
+                OnConnected();
+                var channel = pusher.Subscribe("live_trades"); // for BTC/USD
+            
+                channel.Bind("trade", o => System.Console.WriteLine(o));    
+            };
+            
+            pusher.Error += (o, e) => OnStopped();
             
             pusher.Connect();
-
-            return tcs.Task;
-        }
-
-        public override Task OpenPricesStream()
-        {
-            var channel = pusher.Subscribe("live_trades"); // for BTC/USD
             
-            channel.Bind("trade", o => System.Console.WriteLine(o));
+            
             // TODO
 
-            return Task.FromResult(0);
-
-            //throw new NotImplementedException();
         }
 
-        public override Task ClosePricesStream()
+        protected override void StopImpl()
         {
             throw new NotImplementedException();
         }

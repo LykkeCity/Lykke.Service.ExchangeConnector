@@ -20,12 +20,6 @@ namespace TradingBot.Tests.LykkeApiTests
             };
 
         private LykkeExchange Exchange => new LykkeExchange(config, null);
-        
-        [Fact]
-        public async Task IsAliveTest()
-        {
-            Assert.True(await Exchange.TestConnection());
-        }
 
         [Fact]
         public async Task GetPairsTest()
@@ -40,9 +34,9 @@ namespace TradingBot.Tests.LykkeApiTests
             var listForPrices = new List<InstrumentTickPrices>();
             exchange.AddTickPriceHandler(new TickPriceHandler(listForPrices));
             
-            await exchange.OpenPricesStream();
+            exchange.Start();
             await Task.Delay(TimeSpan.FromSeconds(10));
-            await exchange.ClosePricesStream();
+            exchange.Stop();
 
             Assert.True(listForPrices.Any());
         }

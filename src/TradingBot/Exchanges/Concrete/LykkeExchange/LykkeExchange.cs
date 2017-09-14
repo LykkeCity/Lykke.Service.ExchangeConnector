@@ -28,9 +28,9 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             apiClient = new ApiClient(new HttpClient()); // TODO: HttpClient have to be Singleton
         }
 
-        protected override async Task<bool> TestConnectionImpl(CancellationToken cancellationToken)
+        protected async Task<bool> EstablishConnectionImpl(CancellationToken cancellationToken) // TODO
         {
-            return (await apiClient.MakeGetRequestAsync<object>($"{Config.EndpointUrl}/api/IsAlive",cancellationToken)) != null;
+            return (await apiClient.MakeGetRequestAsync<object>($"{Config.EndpointUrl}/api/IsAlive", cancellationToken)) != null;
         }
 
         public async Task<IEnumerable<Instrument>> GetAvailableInstruments(CancellationToken cancellationToken)
@@ -44,7 +44,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         private CancellationTokenSource ctSource;
         private Task getPricesTask;
         
-        public override Task OpenPricesStream()
+        protected override void StartImpl()
         {
             if (getPricesTask != null && getPricesTask.Status == TaskStatus.Running)
             {
@@ -54,8 +54,6 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             ctSource = new CancellationTokenSource();
 
             getPricesTask = GetPricesCycle();
-
-            return Task.FromResult(0);
         }
 
         private async Task GetPricesCycle()
@@ -65,7 +63,6 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                 foreach (var instrument in Instruments)
                 {
                     var orderBook = await apiClient.MakeGetRequestAsync<List<OrderBook>>($"{Config.EndpointUrl}/api/OrderBooks/{instrument.Name}", ctSource.Token);
-
                     var tickPrices = orderBook.GroupBy(x => x.AssetPair)
                         .Select(g => new InstrumentTickPrices(
                             new Instrument(Name, g.Key),
@@ -84,12 +81,12 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                 
                 await Task.Delay(TimeSpan.FromSeconds(1));
             }
+            OnStopped();
         }
 
-        public override async Task ClosePricesStream()
+        protected override void StopImpl()
         {
             ctSource?.Cancel();
-            await getPricesTask;
         }
 
         protected override async Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal)

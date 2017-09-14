@@ -15,7 +15,7 @@ namespace TradingBot.Exchanges.Abstractions
 {
     public abstract class Exchange
     {
-        protected ILogger Logger = Logging.CreateLogger<Exchange>();
+        protected readonly ILogger Logger = Logging.CreateLogger<Exchange>();
 
         private readonly List<Handler<InstrumentTickPrices>> tickPriceHandlers = new List<Handler<InstrumentTickPrices>>();
 
@@ -27,28 +27,27 @@ namespace TradingBot.Exchanges.Abstractions
 
         public IExchangeConfiguration Config { get; }
 
+        public ExchangeState State { get; private set; }
+
         private readonly TimeSpan tradingSignalsThreshold = TimeSpan.FromMinutes(7);
 
         protected Exchange(string name, IExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository)
         {
             Name = name;
             Config = config;
+            State = ExchangeState.Initializing;
 
             this.translatedSignalsRepository = translatedSignalsRepository;
-            
-            decimal initialValue = 100m; // TODO: get initial value from config? or get if from real exchange.
 
             if (config.Instruments == null || config.Instruments.Length == 0)
             {
                 throw new ArgumentException($"There is no instruments in the settings for {Name} exchange");
             }
-            
+
+            decimal initialValue = 100m; // TODO: get initial value from config? or get it from real exchange.
             Instruments = config.Instruments.Select(x => new Instrument(Name, x)).ToList();
             Positions = Instruments.ToDictionary(x => x.Name, x => new Position(x, initialValue));
-
-            AllSignals = Instruments.ToDictionary(x => x.Name, x => new List<TradingSignal>());
             ActualSignals = Instruments.ToDictionary(x => x.Name, x => new LinkedList<TradingSignal>());
-            ExecutedTrades = Instruments.ToDictionary(x => x.Name, x => new List<ExecutedTrade>());
         }
 
         public void AddTickPriceHandler(Handler<InstrumentTickPrices> handler)
@@ -61,49 +60,87 @@ namespace TradingBot.Exchanges.Abstractions
             executedTradeHandlers.Add(handler);
         }
 
+        public void Start()
+        {
+            if (State != ExchangeState.ErrorState && State != ExchangeState.Stopped && State != ExchangeState.Initializing)
+                return;
+
+            State = ExchangeState.Connecting;
+            StartImpl();
+        }
+
+        protected abstract void StartImpl();
+        public event Action Connected;
+        protected void OnConnected()
+        {
+            State = ExchangeState.Connected;
+            Connected?.Invoke();
+        }
+
+        public void Stop()
+        {
+            if (State == ExchangeState.Stopped)
+                return;
+
+            State = ExchangeState.Stopping;
+            StopImpl();
+        }
+
+        protected abstract void StopImpl();
+        public event Action Stopped;
+        protected void OnStopped()
+        {
+            State = ExchangeState.Stopped;
+            Stopped?.Invoke();
+        }
+
         public IReadOnlyList<Instrument> Instruments { get; }
+
+        protected IReadOnlyDictionary<string, Position> Positions { get; }
+
+        protected readonly Dictionary<string, LinkedList<TradingSignal>> ActualSignals;
         
-        public IReadOnlyDictionary<string, Position> Positions { get; }
-
-        protected Dictionary<string, List<TradingSignal>> AllSignals;
-        protected Dictionary<string, LinkedList<TradingSignal>> ActualSignals;
-        protected Dictionary<string, List<ExecutedTrade>> ExecutedTrades;
-        
-        public Task<bool> TestConnection() // TODO: rename to EstablishConnection
-        {
-            return TestConnection(CancellationToken.None);
-        }
-
-        public async Task<bool> TestConnection(CancellationToken cancellationToken)
-        {
-            Logger.LogDebug("Trying to test connection...");
-
-            try
-            {
-				bool result = await TestConnectionImpl(cancellationToken);
-
-				if (result)
-				{
-					Logger.LogInformation("Connection tested successfully.");
-				}
-				else
-				{
-					Logger.LogWarning("Connection test failed.");
-				}
-
-				return result;
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(0, ex, "Connection test failed with error");
-                return false;
-            }
-        }
-
-        protected abstract Task<bool> TestConnectionImpl(CancellationToken cancellationToken);
-
-
-        public abstract Task OpenPricesStream();
+//        public async Task<bool> EstablishConnection(CancellationToken cancellationToken)
+//        {
+//            Logger.LogDebug($"Trying to establish connection to {Name}...");
+//            State = ExchangeState.Connecting;
+//
+//            var retryForeverPolicy = Policy
+//                .Handle<Exception>()
+//                .OrResult<bool>(x => x == false)
+//                .WaitAndRetryForeverAsync(attempt => TimeSpan.FromSeconds(attempt * 2), (result, span) =>
+//                {
+//                    State = ExchangeState.ReconnectingAfterError;
+//                    if (result.Exception != null)
+//                    {
+//                        Logger.LogError(0, result.Exception, $"Exception on retrying to connect to {Name}. Timespan: {span}");
+//                    }
+//                    else if (result.Result == false)
+//                    {
+//                        Logger.LogWarning($"Retrying connection to {Name}, timespan: {span}");
+//                    }
+//                });
+//            
+//            try
+//            {
+//				bool result = await retryForeverPolicy.ExecuteAsync(EstablishConnectionImpl, cancellationToken);
+//
+//				if (result)
+//				{
+//					Logger.LogInformation("Connection established successfully.");
+//				}
+//				else
+//				{
+//					Logger.LogWarning("Connection establishment failed.");
+//				}
+//                return result;
+//            }
+//            catch (Exception ex)
+//            {
+//                Logger.LogError(0, ex, "Connection establishment failed with error");
+//                return false;
+//            }
+//        }
 
         protected Task CallHandlers(InstrumentTickPrices tickPrices)
         {
@@ -115,17 +152,17 @@ namespace TradingBot.Exchanges.Abstractions
             return Task.WhenAll(executedTradeHandlers.Select(x => x.Handle(trade)));
         }
 
-        public abstract Task ClosePricesStream();
-
-        
         protected readonly object ActualSignalsSyncRoot = new object();
 
         private readonly Policy retryThreeTimesPolicy = Policy
             .Handle<Exception>()
             .WaitAndRetryAsync(3, attempt => TimeSpan.FromSeconds(3));
         
-        public virtual Task PlaceTradingOrders(InstrumentTradingSignals signals) // TODO: get rid of whole body lock and make calls async
+        public Task HandleTradingSignals(InstrumentTradingSignals signals) // TODO: get rid of whole body lock and make calls async
         {   
+            // TODO: check if the Exchange is ready for processing signals, maybe put them into inner queue if readyness is not the case
+            
+            
             // TODO: this method should place signals into inner queue only
             // the queue have to be processed via separate worker
             

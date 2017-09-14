@@ -9,7 +9,6 @@ using TradingBot.Infrastructure.Configuration;
 using TradingBot.Exchanges;
 using Common.Log;
 using Lykke.RabbitMqBroker.Subscriber;
-using Polly;
 using TradingBot.Communications;
 using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
@@ -36,6 +35,7 @@ namespace TradingBot
         private readonly Configuration config;
         private RabbitMqSubscriber<InstrumentTradingSignals> signalSubscriber;
 
+        
         public async Task Start()
         {
             ctSource = new CancellationTokenSource();
@@ -48,38 +48,18 @@ namespace TradingBot
             }
             
             logger.LogInformation($"Price cycle starting for exchanges: {string.Join(", ", exchanges.Keys)}...");
-
-            var retry = Policy
-                .HandleResult<bool>(x => !x)
-                .WaitAndRetryAsync(5, attempt => TimeSpan.FromSeconds(10));
-
-            foreach (var exchange in exchanges.Values.ToList())
-            {
-                bool connectionTestPassed = await retry.ExecuteAsync(exchange.TestConnection, token);
-                if (!connectionTestPassed)
-                {
-                    logger.LogWarning($"no connection to exchange {exchange.Name}");
-                    exchanges.Remove(exchange.Name); // TODO: do not remove, just try to connect further
-                }
-            }
             
             if (config.RabbitMq.Enabled)
             {
-                SetupTradingSignalsSubscription(config.RabbitMq);
+                SetupTradingSignalsSubscription(config.RabbitMq); // can take too long
             }
 
-            var task = Task.WhenAll(exchanges.Values.Select(x => x.OpenPricesStream()));
-
+            exchanges.Values.ToList().ForEach(x => x.Start());
+            
             while (!token.IsCancellationRequested)
 			{
                 await Task.Delay(TimeSpan.FromSeconds(15), token);
-				logger.LogDebug($"GetPricesCycle Heartbeat: {DateTime.Now}");
-			    // TODO: collect some stats to get health status
-			}
-
-			if (task.Status == TaskStatus.Running)
-			{
-				task.Wait();
+				logger.LogDebug($"Exchange connector heartbeat: {DateTime.Now}. Exchanges statuses: {string.Join(", ", GetExchanges().Select(x => $"{x.Name}: {x.State}"))}");
 			}
         }
 
@@ -106,7 +86,7 @@ namespace TradingBot
                     }
                     else
                     {
-                        return exchanges[x.Instrument.Exchange].PlaceTradingOrders(x);    
+                        return exchanges[x.Instrument.Exchange].HandleTradingSignals(x);    
                     }
                 })
                 .Start();  
@@ -119,7 +99,7 @@ namespace TradingBot
 
             foreach (var exchange in exchanges.Values)
             {
-                exchange?.ClosePricesStream();    
+                exchange?.Stop();    
             }
         }
 
@@ -131,16 +111,14 @@ namespace TradingBot
             }
         }
 
-        public IReadOnlyCollection<string> GetConnectedExchanges()
+        public IReadOnlyCollection<Exchange> GetExchanges()
         {
-            return exchanges.Keys.ToList();
+            return exchanges.Values;
         }
 
         public Exchange GetExchange(string name)
         {
-            return exchanges[name];
+            return exchanges.ContainsKey(name) ? exchanges[name] : null;
         }
-
-        
     }
 }

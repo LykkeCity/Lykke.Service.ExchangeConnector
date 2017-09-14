@@ -33,15 +33,16 @@ namespace TradingBot.Exchanges.Concrete.Icm
         private readonly object orderIdsSyncRoot = new Object();
         private readonly Dictionary<string, string> orderIdsToIcmIds = new Dictionary<string, string>();
         private readonly Dictionary<string, string> orderIcmIdsToIds = new Dictionary<string, string>();
-        
+
+        public event Action Connected;
+        public event Action Disconnected;
+        public event Func<ExecutedTrade, Task> OnTradeExecuted;
 
         public IcmConnector(IcmConfig config, AzureFixMessagesRepository repository)
         {
             this.config = config;
             this.repository = repository;
         }
-
-        public event Func<ExecutedTrade, Task> OnTradeExecuted;
 
         public void ToAdmin(Message message, SessionID sessionID)
         {            
@@ -133,6 +134,8 @@ namespace TradingBot.Exchanges.Concrete.Icm
         {
             session = null;
             logger.LogInformation($"Logout session {sessionID}");
+            
+            Disconnected?.Invoke();
         }
 
         public void OnLogon(SessionID sessionID)
@@ -143,6 +146,8 @@ namespace TradingBot.Exchanges.Concrete.Icm
             SendRequestForPositions();
             SendSecurityListRequest();
             //SendOrderStatusRequest();
+            
+            Connected?.Invoke();
         }
         
         private void HandleSecurityList(SecurityList securityList)

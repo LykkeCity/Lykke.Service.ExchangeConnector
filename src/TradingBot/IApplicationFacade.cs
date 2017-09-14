@@ -6,7 +6,7 @@ namespace TradingBot
 {
     public interface IApplicationFacade
     {
-        IReadOnlyCollection<string> GetConnectedExchanges();
+        IReadOnlyCollection<Exchange> GetExchanges();
 
         Exchange GetExchange(string name);
         

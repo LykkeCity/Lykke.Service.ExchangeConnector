@@ -22,6 +22,14 @@ namespace TradingBot.Exchanges.Concrete.Kraken
         
         private readonly KrakenConfig config;
 
+        private readonly PublicData publicData;
+        private readonly PrivateData privateData;
+        
+        private readonly Dictionary<string, string> orderIdsToKrakenIds = new Dictionary<string, string>();
+        
+        private Task pricesJob;
+        private CancellationTokenSource ctSource;
+        
         public KrakenExchange(KrakenConfig config, TranslatedSignalsRepository translatedSignalsRepository) : base(Name, config, translatedSignalsRepository)
         {
             this.config = config;
@@ -31,14 +39,69 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             privateData = new PrivateData(new ApiClient(new HttpClient() {Timeout = TimeSpan.FromSeconds(30)}), config.ApiKey, config.PrivateKey, new NonceProvider());
         }
 
-        private readonly PublicData publicData;
-        private readonly PrivateData privateData;
+        protected override void StartImpl()
+        {
+            ctSource = new CancellationTokenSource();
+
+            CheckServerTime(ctSource.Token)
+                .ContinueWith(task =>
+                {
+                    if (!task.IsFaulted && task.Result)
+                        OnConnected();
+                });
+           
+            if (config.PubQuotesToRabbit || config.SaveQuotesToAzure)
+            {
+                pricesJob = Task.Run(async () =>
+                {
+                    var lasts = Instruments.Select(x => (long)0).ToList();
+
+                    while(!ctSource.IsCancellationRequested)
+                    {
+                        for (int i = 0; i < Instruments.Count && !ctSource.IsCancellationRequested; i++)
+                        {
+                            SpreadDataResult result;
+
+                            try
+                            {
+                                result = await publicData.GetSpread(ctSource.Token, Instruments[i].Name, lasts[i]);
+                            }
+                            catch (Exception e)
+                            {
+                                Logger.LogError(0, e, "Can't get prices from kraken.");
+                                continue;
+                            }
+
+                            lasts[i] = result.Last;
+                            var prices = result.Data.Single().Value.Select(x => new TickPrice(x.Time, x.Ask, x.Bid)).ToArray();
+
+                            if (prices.Any())
+                            {
+                                if (prices.Length == 1 && prices[0].Time == DateTimeUtils.FromUnix(lasts[i]))
+                                {
+                                    // If there is only one price and it has timestamp of last one, ignore it.
+                                }
+                                else
+                                {
+                                    await CallHandlers(new InstrumentTickPrices(Instruments[i], prices));
+                                }
+                            }
+
+                            await Task.Delay(TimeSpan.FromSeconds(10), ctSource.Token);
+                        }
+                    }
+                    
+                    OnStopped();
+                });
+            }
+        }
+
+        protected override void StopImpl()
+        {
+            ctSource.Cancel();
+        }
         
-        
-        private readonly Dictionary<string, string> orderIdsToKrakenIds = new Dictionary<string, string>();
-        
-        
-        protected override async Task<bool> TestConnectionImpl(CancellationToken cancellationToken)
+        private async Task<bool> CheckServerTime(CancellationToken cancellationToken)
         {
             var serverTime = await publicData.GetServerTime(cancellationToken);
             var now = DateTime.UtcNow;
@@ -48,57 +111,6 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             Logger.LogDebug($"Server time: {serverTime.FromUnixTime}; now: {now}; difference ticks: {differenceTicks}. In threshold: {differenceInThreshold}");
 
             return differenceInThreshold;
-        }
-
-        private readonly CancellationTokenSource ctSource = new CancellationTokenSource();
-
-        private Task pricesJob;
-
-        public override Task OpenPricesStream()
-        {
-            pricesJob = Task.Run(async () =>
-            {
-                var lasts = Instruments.Select(x => (long)0).ToList();
-
-                while(!ctSource.IsCancellationRequested)
-                {
-                    for (int i = 0; i < Instruments.Count && !ctSource.IsCancellationRequested; i++)
-                    {
-
-                        SpreadDataResult result;
-
-                        try
-                        {
-                            result = await publicData.GetSpread(ctSource.Token, Instruments[i].Name, lasts[i]);
-                        }
-                        catch (Exception e)
-                        {
-                            Logger.LogError(0, e, "Can't get prices from kraken.");
-                            continue;
-                        }
-
-
-                        lasts[i] = result.Last;
-                        var prices = result.Data.Single().Value.Select(x => new TickPrice(x.Time, x.Ask, x.Bid)).ToArray();
-
-                        if (prices.Any())
-                        {
-                            if (prices.Length == 1 && prices[0].Time == DateTimeUtils.FromUnix(lasts[i]))
-                            {
-                                // If there is only one price and it has timestamp of last one, ignore it.
-                            }
-                            else
-                            {
-                                await CallHandlers(new InstrumentTickPrices(Instruments[i], prices));
-                            }
-                        }
-
-                        await Task.Delay(TimeSpan.FromSeconds(10), ctSource.Token);
-                    }
-                }
-            });
-
-            return Task.FromResult(0);
         }
 
         public override async Task<IEnumerable<AccountBalance>> GetAccountBalance(CancellationToken cancellationToken)
@@ -114,13 +126,6 @@ namespace TradingBot.Exchanges.Concrete.Kraken
         public Task<TradeBalanceInfo> GetTradeBalance(CancellationToken cancellationToken)
         {
             return privateData.GetTradeBalance(null, cancellationToken);
-        }
-
-        public override async Task ClosePricesStream()
-        {
-            ctSource.Cancel();
-
-            await pricesJob;
         }
 
         protected override async Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)

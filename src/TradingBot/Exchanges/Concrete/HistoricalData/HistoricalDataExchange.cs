@@ -26,14 +26,9 @@ namespace TradingBot.Exchanges.Concrete.HistoricalData
             this.config = config;
         }
 
-        protected override Task<bool> TestConnectionImpl(CancellationToken cancellationToken)
-        {
-            return Task.FromResult(File.Exists(config.BaseDirectory + string.Format(config.FileName, config.StartDate)));
-        }
-
         private Task pricesCycle;
 
-        public override Task OpenPricesStream()
+        protected override void StartImpl()
         {
             stopRequested = false;
 
@@ -48,6 +43,7 @@ namespace TradingBot.Exchanges.Concrete.HistoricalData
                 }
             
                 reader = new HistoricalDataReader(paths.ToArray(), LineParsers.ParseTickLine);
+                OnConnected();
             
                 using (var enumerator = reader.GetEnumerator())
                     while (!stopRequested && enumerator.MoveNext())
@@ -55,16 +51,12 @@ namespace TradingBot.Exchanges.Concrete.HistoricalData
                         await CallHandlers(new InstrumentTickPrices(Instruments.First(), new TickPrice[] { enumerator.Current }));
                     }
             });
-
-            return Task.FromResult(0);
         }
 
-        public override async Task ClosePricesStream()
+        protected override void StopImpl()
         {
             stopRequested = true;
             reader?.Dispose();
-
-            await pricesCycle;
         }
 
         protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)

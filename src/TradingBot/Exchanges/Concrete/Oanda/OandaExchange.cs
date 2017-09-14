@@ -29,7 +29,12 @@ namespace TradingBot.Exchanges.Concrete.Oanda
             instruments = new Instruments(client);
         }
 
-        public override Task ClosePricesStream()
+        protected override void StartImpl()
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void StopImpl()
         {
             throw new NotImplementedException();
         }
@@ -54,12 +59,7 @@ namespace TradingBot.Exchanges.Concrete.Oanda
             throw new NotImplementedException();
         }
 
-        public override Task OpenPricesStream()
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override async Task<bool> TestConnectionImpl(CancellationToken cancellationToken)
+        protected async Task<bool> EstablishConnectionImpl(CancellationToken cancellationToken)
         {
             var accountsList = await accounts.GetAccounts(cancellationToken);
             Logger.LogDebug($"Received {accountsList.Accounts.Count} accounts");
