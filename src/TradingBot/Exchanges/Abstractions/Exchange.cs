@@ -172,6 +172,7 @@ namespace TradingBot.Exchanges.Abstractions
                                     }
                                     else
                                     {
+                                        ActualSignals[signals.Instrument.Name].Remove(arrivedSignal);
                                         Logger.LogError(0, result.FinalException,
                                             $"Can't create order for {arrivedSignal}");
                                     }
