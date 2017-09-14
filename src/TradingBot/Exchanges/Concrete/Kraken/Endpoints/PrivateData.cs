@@ -96,7 +96,14 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
 
                 if (response.Error.Any())
                 {
-                    throw new ApiException(string.Join("; ", response.Error));
+                    if (response.Error.Any(x => x == "EOrder:Insufficient funds"))
+                    {
+                        throw new InsufficientFundsException();
+                    }
+                    else
+                    {
+                        throw new ApiException(string.Join("; ", response.Error));    
+                    }
                 }
 
                 return response.Result;

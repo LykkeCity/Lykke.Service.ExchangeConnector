@@ -8,6 +8,7 @@ using Polly;
 using TradingBot.Communications;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
 
@@ -113,7 +114,7 @@ namespace TradingBot.Exchanges.Abstractions
         protected readonly object ActualSignalsSyncRoot = new object();
 
         private readonly Policy retryThreeTimesPolicy = Policy
-            .Handle<Exception>()
+            .Handle<Exception>(x => !(x is InsufficientFundsException))
             .WaitAndRetryAsync(3, attempt => TimeSpan.FromSeconds(3));
         
         public Task HandleTradingSignals(InstrumentTradingSignals signals) // TODO: get rid of whole body lock and make calls async
@@ -161,8 +162,6 @@ namespace TradingBot.Exchanges.Abstractions
 
                                     ActualSignals[signals.Instrument.Name].AddLast(arrivedSignal);
 
-                                    
-                                    // TODO: don't retry on several types of errors, such as Insufficien funds
                                     var result = retryThreeTimesPolicy.ExecuteAndCaptureAsync(() =>
                                         AddOrder(signals.Instrument, arrivedSignal, translatedSignal)).Result;
                                     
@@ -201,8 +200,6 @@ namespace TradingBot.Exchanges.Abstractions
                                     {
                                         ActualSignals[signals.Instrument.Name].Remove(existing);
 
-                                        
-                                        // TODO: don't retry on several types of errors, such as Insufficien funds
                                         var result = retryThreeTimesPolicy.ExecuteAndCaptureAsync(() =>
                                             CancelOrder(signals.Instrument, existing, translatedSignal)).Result;
 
