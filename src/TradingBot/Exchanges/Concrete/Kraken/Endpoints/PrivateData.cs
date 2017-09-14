@@ -83,9 +83,9 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
             {
                 var now = DateTime.UtcNow;
 
-                if ((now - lastRequestTime).TotalSeconds <= 5)
+                if ((now - lastRequestTime).TotalSeconds <= 2)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+                    await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
                 }
                 lastRequestTime = DateTime.UtcNow;
 

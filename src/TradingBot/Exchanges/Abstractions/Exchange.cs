@@ -32,6 +32,8 @@ namespace TradingBot.Exchanges.Abstractions
 
         private readonly TimeSpan tradingSignalsThreshold = TimeSpan.FromMinutes(10);
 
+        private readonly Dictionary<string, object> lockRoots;
+
         protected Exchange(string name, IExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository)
         {
             Name = name;
@@ -49,6 +51,8 @@ namespace TradingBot.Exchanges.Abstractions
             Instruments = config.Instruments.Select(x => new Instrument(Name, x)).ToList();
             Positions = Instruments.ToDictionary(x => x.Name, x => new Position(x, initialValue));
             ActualSignals = Instruments.ToDictionary(x => x.Name, x => new LinkedList<TradingSignal>());
+
+            lockRoots = Instruments.ToDictionary(x => x.Name, x => new object());
         }
 
         public void AddTickPriceHandler(Handler<InstrumentTickPrices> handler)
@@ -112,6 +116,7 @@ namespace TradingBot.Exchanges.Abstractions
         }
 
         protected readonly object ActualSignalsSyncRoot = new object();
+        
 
         private readonly Policy retryTwoTimesPolicy = Policy
             .Handle<Exception>(x => !(x is InsufficientFundsException))
@@ -123,19 +128,20 @@ namespace TradingBot.Exchanges.Abstractions
             
             // TODO: this method should place signals into inner queue only
             // the queue have to be processed via separate worker
+
+            var instrumentName = signals.Instrument.Name;
             
-            
-            lock (ActualSignalsSyncRoot)
+            lock (lockRoots[instrumentName])
             {
-                if (!ActualSignals.ContainsKey(signals.Instrument.Name))
+                if (!ActualSignals.ContainsKey(instrumentName))
                 {
-                    Logger.LogWarning($"ActualSignals doesn't contains a key {signals.Instrument.Name}. It has keys: {string.Join(", ", ActualSignals.Keys)}");
+                    Logger.LogWarning($"ActualSignals doesn't contains a key {instrumentName}. It has keys: {string.Join(", ", ActualSignals.Keys)}");
                     return Task.FromResult(0);
                 }
                 
                 foreach (var arrivedSignal in signals.TradingSignals)
                 {
-                    var translatedSignal = new TranslatedSignalTableEntity(SignalSource.RabbitQueue, signals.Instrument.Exchange, signals.Instrument.Name, arrivedSignal);
+                    var translatedSignal = new TranslatedSignalTableEntity(SignalSource.RabbitQueue, signals.Instrument.Exchange, instrumentName, arrivedSignal);
 
                     try
                     {
@@ -153,14 +159,14 @@ namespace TradingBot.Exchanges.Abstractions
                                         break;
                                     }
                                     
-                                    existing = ActualSignals[signals.Instrument.Name]
+                                    existing = ActualSignals[instrumentName]
                                         .SingleOrDefault(x => x.OrderId == arrivedSignal.OrderId);
 
                                     if (existing != null)
                                         Logger.LogDebug(
                                             $"An order with id {arrivedSignal.OrderId} already in actual signals.");
 
-                                    ActualSignals[signals.Instrument.Name].AddLast(arrivedSignal);
+                                    ActualSignals[instrumentName].AddLast(arrivedSignal);
 
                                     var result = retryTwoTimesPolicy.ExecuteAndCaptureAsync(() =>
                                         AddOrder(signals.Instrument, arrivedSignal, translatedSignal)).Result;
@@ -172,9 +178,9 @@ namespace TradingBot.Exchanges.Abstractions
                                     }
                                     else
                                     {
-                                        ActualSignals[signals.Instrument.Name].Remove(arrivedSignal);
-                                        Logger.LogError(0, result.FinalException,
-                                            $"Can't create order for {arrivedSignal}");
+                                        ActualSignals[instrumentName].Remove(arrivedSignal);
+                                        Logger.LogError(0, result.FinalException, $"Can't create order for {arrivedSignal}");
+                                        translatedSignal.Failure(result.FinalException);   
                                     }
                                 }
                                 catch (Exception e)
@@ -192,14 +198,14 @@ namespace TradingBot.Exchanges.Abstractions
 
                             case OrderCommand.Cancel:
 
-                                existing = ActualSignals[signals.Instrument.Name]
+                                existing = ActualSignals[instrumentName]
                                     .SingleOrDefault(x => x.OrderId == arrivedSignal.OrderId);
 
                                 if (existing != null)
                                 {
                                     try
                                     {
-                                        ActualSignals[signals.Instrument.Name].Remove(existing);
+                                        ActualSignals[instrumentName].Remove(existing);
 
                                         var result = retryTwoTimesPolicy.ExecuteAndCaptureAsync(() =>
                                             CancelOrder(signals.Instrument, existing, translatedSignal)).Result;
@@ -211,6 +217,7 @@ namespace TradingBot.Exchanges.Abstractions
                                         else
                                         {
                                             Logger.LogError(0, result.FinalException, $"Can't cancel order {existing}");
+                                            translatedSignal.Failure(result.FinalException);
                                         }
                                     }
                                     catch (Exception e)
@@ -220,7 +227,10 @@ namespace TradingBot.Exchanges.Abstractions
                                     }
                                 }
                                 else
+                                {
                                     Logger.LogWarning($"Command for cancel unexisted order {arrivedSignal}");
+                                    translatedSignal.Failure("Unexisted order");
+                                }
 
                                 break;
                             default:
@@ -240,7 +250,7 @@ namespace TradingBot.Exchanges.Abstractions
 
                 if (signals.TradingSignals.Any(x => x.Command == OrderCommand.Create))
                 {
-                    Logger.LogDebug($"Current orders:\n {string.Join("\n", ActualSignals[signals.Instrument.Name])}");
+                    Logger.LogDebug($"Current orders:\n {string.Join("\n", ActualSignals[instrumentName])}");
                 }
             }
             
