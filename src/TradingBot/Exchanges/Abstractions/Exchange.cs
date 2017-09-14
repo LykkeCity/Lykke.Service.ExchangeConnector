@@ -113,9 +113,9 @@ namespace TradingBot.Exchanges.Abstractions
 
         protected readonly object ActualSignalsSyncRoot = new object();
 
-        private readonly Policy retryThreeTimesPolicy = Policy
+        private readonly Policy retryTwoTimesPolicy = Policy
             .Handle<Exception>(x => !(x is InsufficientFundsException))
-            .WaitAndRetryAsync(3, attempt => TimeSpan.FromSeconds(3));
+            .WaitAndRetryAsync(1, attempt => TimeSpan.FromSeconds(3));
         
         public Task HandleTradingSignals(InstrumentTradingSignals signals) // TODO: get rid of whole body lock and make calls async
         {   
@@ -162,7 +162,7 @@ namespace TradingBot.Exchanges.Abstractions
 
                                     ActualSignals[signals.Instrument.Name].AddLast(arrivedSignal);
 
-                                    var result = retryThreeTimesPolicy.ExecuteAndCaptureAsync(() =>
+                                    var result = retryTwoTimesPolicy.ExecuteAndCaptureAsync(() =>
                                         AddOrder(signals.Instrument, arrivedSignal, translatedSignal)).Result;
                                     
 
@@ -201,7 +201,7 @@ namespace TradingBot.Exchanges.Abstractions
                                     {
                                         ActualSignals[signals.Instrument.Name].Remove(existing);
 
-                                        var result = retryThreeTimesPolicy.ExecuteAndCaptureAsync(() =>
+                                        var result = retryTwoTimesPolicy.ExecuteAndCaptureAsync(() =>
                                             CancelOrder(signals.Instrument, existing, translatedSignal)).Result;
 
                                         if (result.Outcome == OutcomeType.Successful)
