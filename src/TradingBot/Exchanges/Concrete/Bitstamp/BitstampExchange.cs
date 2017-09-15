@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Common.Log;
 using PusherClient.DotNetCore;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Infrastructure.Logging;
+using TradingBot.Repositories;
 using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.Bitstamp
@@ -14,18 +15,22 @@ namespace TradingBot.Exchanges.Concrete.Bitstamp
     {
         public new static string Name = "bitstamp";
         private readonly BitstampConfiguration config;
-
+        private readonly ILog _log;
         private Pusher pusher;
         
-        public BitstampExchange(BitstampConfiguration config, TranslatedSignalsRepository translatedSignalsRepository) 
+        public BitstampExchange(
+            BitstampConfiguration config,
+            TranslatedSignalsRepository translatedSignalsRepository,
+            ILog log) 
             : base(Name, config, translatedSignalsRepository)
         {
             this.config = config;
+            _log = log;
         }
 
         protected override void StartImpl()
         {
-            pusher = new Pusher(config.ApplicationKey);
+            pusher = new Pusher(config.ApplicationKey, _log);
             
             pusher.Connected += x =>
             {

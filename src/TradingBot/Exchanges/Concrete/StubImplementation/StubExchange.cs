@@ -9,6 +9,7 @@ using TradingBot.Exchanges.Abstractions;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
+using TradingBot.Repositories;
 
 namespace TradingBot.Exchanges.Concrete.StubImplementation
 {

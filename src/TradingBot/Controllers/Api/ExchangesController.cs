@@ -9,6 +9,11 @@ namespace TradingBot.Controllers.Api
 {
     public class ExchangesController : BaseApiController
     {
+        public ExchangesController(ExchangeConnectorApplication app)
+            : base(app)
+        {
+        }
+
         /// <summary>
         /// Get a list of all connected exchanges
         /// </summary>

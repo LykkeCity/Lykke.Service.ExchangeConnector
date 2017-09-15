@@ -1,0 +1,436 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>TradingBot</name>
+    </assembly>
+    <members>
+        <member name="F:TradingBot.Communications.AzureTablePricesPublisher.MaxQueueCount">
+            <summary>
+            One AzureTable field must be 64k or less. 
+            Strings are stored in UTF16 encoding, so maximum number of characters is 32K.
+            One serialized entry has size no more then 100 characters.
+            </summary>
+        </member>
+        <member name="M:TradingBot.Communications.StringExtension.RemoveUnsupportedCharacters(System.String)">
+            <summary>
+            List of unsupported characters is from 
+            https://docs.microsoft.com/en-us/rest/api/storageservices/Understanding-the-Table-Service-Data-Model
+            </summary>
+        </member>
+        <member name="M:TradingBot.Controllers.Api.ExchangesController.List">
+            <summary>
+            Get a list of all connected exchanges
+            </summary>
+            <remarks>The names of available exchanges participates in API calls for exchange-specific methods</remarks>
+            <response code="200">An array of strings which are the names of exchanges</response>
+        </member>
+        <member name="M:TradingBot.Controllers.Api.ExchangesController.Index(System.String)">
+            <summary>
+            Get information about a specific exchange
+            </summary>
+            <param name="exchangeName">Name of the specific exchange</param>
+            <response code="200">An information about the exchange, such as available trading instruments</response>
+            <response code="400">Bad request response is returned in case of specifying name of unavailable exchange</response>
+        </member>
+        <member name="T:TradingBot.Controllers.Api.IsAliveController">
+            <summary>
+            Controller to test service is alive.
+            </summary>
+        </member>
+        <member name="M:TradingBot.Controllers.Api.IsAliveController.Get">
+            <summary>
+            Checks service is alive
+            </summary>
+        </member>
+        <member name="M:TradingBot.Controllers.Api.OrdersController.Index(System.String)">
+            <summary>
+            Get information about all current orders on exchange
+            </summary>
+        </member>
+        <member name="M:TradingBot.Controllers.Api.OrdersController.GetOrder(System.String,System.String,System.String)">
+            <summary>
+            Get information about earlier placed order
+            </summary>
+        </member>
+        <member name="M:TradingBot.Controllers.Api.OrdersController.Post(System.String,TradingBot.Models.Api.OrderModel)">
+            <summary>
+            Place a new order to the exchange
+            </summary>
+            <remarks>In the location header of succesful response placed an URL for getting info about the order</remarks>
+            <response code="200">The order is successfully placed and order status is returned</response>
+            <response code="400">Can't place the order. The reason is in the response</response>
+        </member>
+        <member name="M:TradingBot.Controllers.Api.OrdersController.CancelOrder(System.String,TradingBot.Models.Api.OrderModel)">
+            <summary>
+            Cancel existing order
+            </summary>
+            <remarks></remarks>
+            <response code="200">The order is successfully canceled</response>
+            <response code="400">Can't cancel the order. The reason is in the response</response>
+        </member>
+        <member name="M:TradingBot.Exchanges.Concrete.HistoricalData.LineParsers.ParseMTLine(System.String)">
+            <summary>
+            Parse string: 2011.01.02,17:00,1.247600,1.247600,1.247600,1.247600,0
+            </summary>
+        </member>
+        <member name="M:TradingBot.Exchanges.Concrete.HistoricalData.LineParsers.ParseNTLine(System.String)">
+            <summary>
+            Parse string: 20110731 235958;1.138900;0
+            </summary>
+        </member>
+        <member name="M:TradingBot.Exchanges.Concrete.HistoricalData.LineParsers.ParseTickLine(System.String)">
+            <summary>
+            Prase file such as:
+            Gmt time,Ask,Bid,AskVolume,BidVolume
+            31.07.2011 23:00:00.652,1.13729,1.13699,2.25,1.13
+            31.07.2011 23:00:00.885,1.13733,1.1370200000000001,2.25,1.13
+            </summary>
+        </member>
+        <member name="M:TradingBot.Exchanges.Concrete.Icm.IcmExchange.StartRabbitConnection">
+            <summary>
+            For ICM we use internal RabbitMQ exchange with pricefeed
+            </summary>
+        </member>
+        <member name="T:TradingBot.Exchanges.Concrete.Kraken.Endpoints.PublicData">
+            <summary>
+            Endpoint to Public data from API
+            see https://www.kraken.com/help/api#public-market-data
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Kraken.Entities.Ticker.Open">
+            <summary>
+            Today's opening price
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Kraken.Entities.TradeBalanceInfo.Equity">
+            <summary>
+            Trade balance + unrealized net profit/loss
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Kraken.Responses.CancelOrderResult.Count">
+            <summary>
+            Number of orders canceled
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Kraken.Responses.CancelOrderResult.Pending">
+            <summary>
+            If set, order(s) is/are pending cancellation
+            </summary>
+        </member>
+        <member name="T:TradingBot.Exchanges.Concrete.Oanda.Entities.Accounts.AccountInstrumentsResponse">
+            <summary>
+            The list of tradeable instruments for the Account has been provided.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Accounts.AccountInstrumentsResponse.Instruments">
+            <summary>
+            The requested list of instruments.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Accounts.AccountInstrumentsResponse.LastTransactionID">
+            <summary>
+            The ID of the most recent Transaction created for the Account.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlesResponse.Instrument">
+            <summary>
+            The instrument whose Prices are represented by the candlesticks.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlesResponse.Granularity">
+            <summary>
+            The granularity of the candlesticks provided.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlesResponse.Candles">
+            <summary>
+            The list of candlesticks that satisfy the request.
+            </summary>
+        </member>
+        <member name="T:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.Candlestick">
+            <summary>
+            http://developer.oanda.com/rest-live-v20/instrument-df/#Candlestick
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.Candlestick.Time">
+            <summary>
+            The start time of the candlestick
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.Candlestick.Bid">
+            <summary>
+            The candlestick data based on bids. Only provided if bid-based candles
+            were requested.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.Candlestick.Ask">
+            <summary>
+            The candlestick data based on asks. Only provided if ask-based candles
+            were requested.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.Candlestick.Mid">
+            <summary>
+            The candlestick data based on midpoints. Only provided if midpoint-based
+            candles were requested.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.Candlestick.Volume">
+            <summary>
+            The number of prices created during the time-range represented by the
+            candlestick.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.Candlestick.Complete">
+            <summary>
+            A flag indicating if the candlestick is complete. A complete candlestick
+            is one whose ending time is not in the future.
+            </summary>
+        </member>
+        <member name="T:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickData">
+            <summary>
+            http://developer.oanda.com/rest-live-v20/instrument-df/#CandlestickData
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickData.Open">
+            <summary>
+            The first (open) price in the time-range represented by the candlestick.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickData.Highest">
+            <summary>
+            The highest price in the time-range represented by the candlestick.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickData.Lowest">
+            <summary>
+            The lowest price in the time-range represented by the candlestick.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickData.Closing">
+            <summary>
+            The last (closing) price in the time-range represented by the
+            candlestick.
+            </summary>
+        </member>
+        <member name="T:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity">
+            <summary>
+            http://developer.oanda.com/rest-live-v20/instrument-df/#CandlestickGranularity
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.S5">
+            <summary>
+            5 second candlesticks, minute alignment
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.S10">
+            <summary>
+            10 second candlesticks, minute alignment
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.S15">
+            <summary>
+            15 second candlesticks, minute alignment
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.S30">
+            <summary>
+            30 second candlesticks, minute alignment
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.M1">
+            <summary>
+            1 minute candlesticks, minute alignment
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.M2">
+            <summary>
+            2 minute candlesticks, hour alignment
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.M4">
+            <summary>
+            4 minute candlesticks, hour alignment
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.M5">
+            <summary>
+            5 minute candlesticks, hour alignment
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.M10">
+            <summary>
+            10 minute candlesticks, hour alignment
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.M15">
+            <summary>
+            15 minute candlesticks, hour alignment
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.M30">
+            <summary>
+            30 minute candlesticks, hour alignment
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.H1">
+            <summary>
+            1 hour candlesticks, hour alignment
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.H2">
+            <summary>
+            2 hour candlesticks, day alignment
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.H3">
+            <summary>
+            3 hour candlesticks, day alignment
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.H4">
+            <summary>
+            4 hour candlesticks, day alignment
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.H6">
+            <summary>
+            6 hour candlesticks, day alignment
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.H8">
+            <summary>
+            8 hour candlesticks, day alignment
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.H12">
+            <summary>
+            12 hour candlesticks, day alignment
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.D">
+            <summary>
+            1 day candlesticks, day alignment
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.W">
+            <summary>
+            1 week candlesticks, aligned to start of week
+            </summary>
+        </member>
+        <member name="F:TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments.CandlestickGranularity.M">
+            <summary>
+            1 month candlesticks, aligned to first day of the month
+            </summary>
+        </member>
+        <member name="T:TradingBot.Exchanges.Concrete.Oanda.Entities.Prices.Price">
+            <summary>
+            The specification of an Account-specific Price.
+            http://developer.oanda.com/rest-live-v20/pricing-df/#Price
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Prices.Price.Instrument">
+            <summary>
+            The Price’s Instrument.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Prices.Price.Time">
+            <summary>
+            The date/time when the Price was created
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Prices.Price.Tradeable">
+            <summary>
+            Flag indicating if the Price is tradeable or not
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Prices.Price.Bids">
+            <summary>
+            The list of prices and liquidity available on the Instrument’s bid side.
+            It is possible for this list to be empty if there is no bid liquidity
+            currently available for the Instrument in the Account.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Prices.Price.Asks">
+            <summary>
+            The list of prices and liquidity available on the Instrument’s ask side.
+            It is possible for this list to be empty if there is no ask liquidity
+            currently available for the Instrument in the Account.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Prices.Price.CloseoutBid">
+            <summary>
+            The closeout bid Price. This Price is used when a bid is required to
+            closeout a Position (margin closeout or manual) yet there is no bid
+            liquidity. The closeout bid is never used to open a new position.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Prices.Price.CloseoutAsk">
+            <summary>
+            The closeout ask Price. This Price is used when a ask is required to
+            closeout a Position (margin closeout or manual) yet there is no ask
+            liquidity. The closeout ask is never used to open a new position.
+            </summary>
+        </member>
+        <member name="T:TradingBot.Exchanges.Concrete.Oanda.Entities.Prices.PriceBucket">
+            <summary>
+            A Price Bucket represents a price available for an amount of liquidity.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Prices.PriceBucket.Price">
+            <summary>
+            The Price offered by the PriceBucket.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Prices.PriceBucket.Liquidity">
+            <summary>
+            The amount of liquidity offered by the PriceBucket.
+            </summary>
+        </member>
+        <member name="T:TradingBot.Exchanges.Concrete.Oanda.Entities.Prices.PriceHeartbeat">
+            <summary>
+            A PricingHeartbeat object is injected into the Pricing stream to ensure that the HTTP connection remains active.
+            http://developer.oanda.com/rest-live-v20/pricing-df/#PricingHeartbeat
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Oanda.Entities.Prices.PriceHeartbeat.Time">
+            <summary>
+            The date/time when the Heartbeat was created.
+            </summary>
+        </member>
+        <member name="M:TradingBot.Exchanges.Concrete.StubImplementation.GeometricalBrownianMotion.#ctor(System.Double,System.Double,System.Double,System.Int64,System.Double,System.Random)">
+            <param name="initialValue">initial value</param>
+            <param name="sigma">expected annual volatility</param>
+            <param name="nYears">number of years</param>
+            <param name="nGenerations">total number of generations</param>
+            <param name="mu">yearly trend</param>
+            <param name="random">the source of randomness</param>
+        </member>
+        <member name="M:TradingBot.Infrastructure.Configuration.RabbitMqConfiguration.GetConnectionString">
+            <summary>
+            see https://www.rabbitmq.com/uri-spec.html
+            </summary>
+        </member>
+        <member name="P:TradingBot.Models.Api.OrderModel.DateTime">
+            <summary>
+            Date and time must be in 5 minutes threshold from UTC now
+            </summary>
+        </member>
+        <member name="T:TradingBot.Models.IsAliveResponseModel">
+            <summary>
+            Checks service is alive response
+            </summary>
+        </member>
+        <member name="P:TradingBot.Models.IsAliveResponseModel.Version">
+            <summary>API version</summary>
+        </member>
+        <member name="P:TradingBot.Models.IsAliveResponseModel.Env">
+            <summary>Environment variables</summary>
+        </member>
+        <member name="F:TradingBot.Trading.Position.initialValue">
+            <summary>
+            Initial amount of assets (base asset of the Instrument)
+            </summary>
+        </member>
+    </members>
+</doc>

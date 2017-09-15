@@ -15,6 +15,7 @@ using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
 using TradingBot.Communications;
+using TradingBot.Repositories;
 using Message = QuickFix.Message;
 using TradeType = TradingBot.Trading.TradeType;
 using TimeInForce = TradingBot.Trading.TimeInForce;

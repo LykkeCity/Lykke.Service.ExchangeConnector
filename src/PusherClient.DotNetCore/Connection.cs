@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using WebSocket4Net;
+using Common.Log;
 
 namespace PusherClient.DotNetCore
 {
@@ -16,6 +17,7 @@ namespace PusherClient.DotNetCore
         
         private readonly Pusher pusher;
         private readonly string url;
+        private readonly ILog _log;
 
         private WebSocket websocket;
         public ConnectionState State { get; private set; } = ConnectionState.Initialized;
@@ -26,10 +28,11 @@ namespace PusherClient.DotNetCore
         public event ConnectedEventHandler Connected;
         public event ConnectionStateChangedEventHandler ConnectionStateChanged;
 
-        public Connection(Pusher pusher, string url)
+        public Connection(Pusher pusher, string url, ILog log)
         {
             this.pusher = pusher;
             this.url = url;
+            _log = log;
         }
 
         internal void Connect()
@@ -55,12 +58,22 @@ namespace PusherClient.DotNetCore
         
         private void websocket_Opened(object sender, EventArgs e)
         {
-            Pusher.Trace.TraceEvent(TraceEventType.Information, 0, "Websocket opened OK.");
+            _log.WriteInfoAsync(
+                nameof(PusherClient),
+                nameof(Connection),
+                nameof(ChangeState),
+                "Websocket opened OK.")
+                .Wait();
         }
 
         private void websocket_Closed(object sender, EventArgs e)
         {
-            Pusher.Trace.TraceEvent(TraceEventType.Warning, 0, "Websocket connection has been closed");
+            _log.WriteWarningAsync(
+                nameof(PusherClient),
+                nameof(Connection),
+                nameof(ChangeState),
+                "Websocket connection has been closed")
+                .Wait();
 
             ChangeState(ConnectionState.Disconnected);
             websocket = null;
@@ -76,14 +89,24 @@ namespace PusherClient.DotNetCore
 
         private void websocket_Error(object sender, SuperSocket.ClientEngine.ErrorEventArgs e)
         {
-            Pusher.Trace.TraceEvent(TraceEventType.Error, 0, "Error: " + e.Exception);
+            _log.WriteErrorAsync(
+                nameof(PusherClient),
+                nameof(Connection),
+                nameof(ChangeState),
+                e.Exception)
+                .Wait();
 
             // TODO: What happens here? Do I need to re-connect, or do I just log the issue?
         }
         
         private void websocket_MessageReceived(object sender, MessageReceivedEventArgs e)
         {
-            Pusher.Trace.TraceEvent(TraceEventType.Information, 0, "Websocket message received: " + e.Message);
+            _log.WriteInfoAsync(
+                nameof(PusherClient),
+                nameof(Connection),
+                nameof(ChangeState),
+                "Websocket message received: " + e.Message)
+                .Wait();
 
             Debug.WriteLine(e.Message);
 
@@ -219,7 +242,12 @@ namespace PusherClient.DotNetCore
         {
             if (State == ConnectionState.Connected)
             {
-                Pusher.Trace.TraceEvent(TraceEventType.Information, 0, "Sending: " + message);
+                _log.WriteInfoAsync(
+                    nameof(PusherClient),
+                    nameof(Connection),
+                    nameof(ChangeState),
+                    "Sending: " + message)
+                    .Wait();
                 Debug.WriteLine("Sending: " + message);
                 websocket.Send(message);
             }

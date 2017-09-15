@@ -14,6 +14,7 @@ using TradingBot.Exchanges.Concrete.Kraken.Responses;
 using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
+using TradingBot.Repositories;
 
 namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
 {

@@ -18,11 +18,7 @@
         
         public string TradesExchange { get; set; }
         
-        public string RatesQueue { get; set; }
-        
         public string SignalsQueue { get; set; }
-        
-        public string TradesQueue { get; set; }
         
         /// <summary>
         /// see https://www.rabbitmq.com/uri-spec.html

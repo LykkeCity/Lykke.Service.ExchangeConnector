@@ -9,6 +9,8 @@ namespace TradingBot.Infrastructure.Auth
         private readonly ILogger logger = Logging.Logging.CreateLogger<ApiKeyAuthAttribute>();
 
         private readonly string HeaderName = "X-ApiKey";
+
+        internal static string ApiKey { get; set; }
         
         public override void OnActionExecuting(ActionExecutingContext context)
         {
@@ -19,10 +21,9 @@ namespace TradingBot.Infrastructure.Auth
             }
             else
             {
-                var apiKey = Configuration.Configuration.Instance.AspNet.ApiKey;
                 var apiKeyFromRequest = context.HttpContext.Request.Headers[HeaderName];
 
-                if (!apiKey.Equals(apiKeyFromRequest))
+                if (!ApiKey.Equals(apiKeyFromRequest))
                 {
                     context.Result = new UnauthorizedResult();
                     logger.LogDebug($"Unauthorized request for {context.HttpContext.Request.Method} {context.HttpContext.Request.Path}{context.HttpContext.Request.QueryString} with wrong api key: {apiKeyFromRequest}");

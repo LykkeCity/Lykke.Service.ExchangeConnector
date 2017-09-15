@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AzureStorage.Tables;
+using AzureStorage;
 using Common.Log;
 using Microsoft.WindowsAzure.Storage.Table;
 using TradingBot.Communications;
@@ -18,12 +18,7 @@ namespace TradingBot
         
         public List<PriceTableEntity> LastPrices { get; set; }
         
-        public static Task<StatusReport> Create()
-        {
-            return Create(Configuration.Instance);
-        }
-
-        public static async Task<StatusReport> Create(Configuration config)
+        public static async Task<StatusReport> Create(INoSQLTableStorage<PriceTableEntity> pricesStorage)
         {
 //            var assetsStorage = new AzureTableStorage<TableEntity>(
 //                config.AzureTable.StorageConnectionString,
@@ -31,12 +26,6 @@ namespace TradingBot
 //                new LogToConsole());
 //
 //            var assets = await assetsStorage.GetDataAsync();
-            
-            
-            var pricesStorage = new AzureTableStorage<PriceTableEntity>(
-                config.AzureStorage.StorageConnectionString,
-                "kraken", // TODO: get for all enabled exchanges
-                new LogToConsole());
             
             var now = DateTime.UtcNow;
             var timePoint = now.AddMinutes(-3);

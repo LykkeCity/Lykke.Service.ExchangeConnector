@@ -10,7 +10,7 @@ using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.LykkeExchange.Entities;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Infrastructure.Logging;
+using TradingBot.Repositories;
 using TradingBot.Trading;
 using OrderBook = TradingBot.Exchanges.Concrete.LykkeExchange.Entities.OrderBook;
 

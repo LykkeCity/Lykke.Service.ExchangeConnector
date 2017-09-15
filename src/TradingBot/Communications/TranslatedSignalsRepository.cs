@@ -6,6 +6,7 @@ using AzureStorage.Tables;
 using Common.Log;
 using Microsoft.Extensions.Logging;
 using TradingBot.Infrastructure.Logging;
+using TradingBot.Repositories;
 
 namespace TradingBot.Communications
 {
@@ -13,18 +14,14 @@ namespace TradingBot.Communications
     {     
         private readonly ILogger logger = Logging.CreateLogger<TranslatedSignalsRepository>();
 
-        private readonly INoSQLTableStorage<TranslatedSignalTableEntity> tableStorage;
+        private readonly INoSQLTableStorage<TranslatedSignalTableEntity> _tableStorage;
 
         private readonly InverseDateTimeRowKeyProvider keyProvider;
         
-        public TranslatedSignalsRepository(string connectionString, string tableName, InverseDateTimeRowKeyProvider keyProvider)
+        public TranslatedSignalsRepository(INoSQLTableStorage<TranslatedSignalTableEntity> tableStorage, InverseDateTimeRowKeyProvider keyProvider)
         {
+            _tableStorage = tableStorage;
             this.keyProvider = keyProvider;
-            
-            tableStorage = new AzureTableStorage<TranslatedSignalTableEntity>(
-                connectionString,
-                tableName,
-                new LogToConsole());
         }
         
         public void Save(TranslatedSignalTableEntity translatedSignal)
@@ -39,7 +36,7 @@ namespace TradingBot.Communications
                 translatedSignal.PartitionKey = "nopartition";
                 translatedSignal.RowKey = keyProvider.GetNextRowKey().ToString();
                 
-                await tableStorage.InsertAsync(translatedSignal); // TODO: save by batchs
+                await _tableStorage.InsertAsync(translatedSignal); // TODO: save by batchs
             }
             catch (Exception ex)
             {
@@ -49,7 +46,7 @@ namespace TradingBot.Communications
 
         public Task<IEnumerable<TranslatedSignalTableEntity>> GetTop(int count)
         {
-            return tableStorage.GetTopRecordsAsync("nopartition", count);
+            return _tableStorage.GetTopRecordsAsync("nopartition", count);
         }
     }
 }

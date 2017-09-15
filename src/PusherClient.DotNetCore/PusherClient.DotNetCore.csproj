@@ -1,15 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard1.4</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <Version>1.0.1</Version>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Lykke.Common" Version="1.1.97" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="WebSocket4Net" Version="0.15.0" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="System.Diagnostics.TraceSource, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <HintPath>..\..\..\..\..\.nuget\packages\system.diagnostics.tracesource\4.0.0\ref\netstandard1.3\System.Diagnostics.TraceSource.dll</HintPath>
-    </Reference>
   </ItemGroup>
 </Project>

@@ -12,7 +12,9 @@ namespace TradingBot.Infrastructure.Auth
     public class SignedModelAuthAttribute : ActionFilterAttribute
     {
         private readonly ILogger logger = Logging.Logging.CreateLogger<SignedModelAuthAttribute>();
-        
+
+        internal static string ApiKey { get; set; }
+
         public override void OnActionExecuting(ActionExecutingContext context)
         {
             var model = context.ActionArguments.Values.FirstOrDefault(x => x is ISignedModel);
@@ -32,9 +34,7 @@ namespace TradingBot.Infrastructure.Auth
                 {
                     try
                     {
-                        var apiKey = Configuration.Configuration.Instance.AspNet.ApiKey;
-
-                        using (var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(apiKey)))
+                        using (var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(ApiKey)))
                         {
                             var correctSig = hmac.ComputeHash(Encoding.UTF8.GetBytes(stringToSign));
                             var sign = Convert.ToBase64String(correctSig); // for debug

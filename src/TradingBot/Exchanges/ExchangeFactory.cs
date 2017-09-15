@@ -1,5 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Common.Log;
+using AzureStorage;
+using AzureStorage.Tables;
+using Lykke.SettingsReader;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.HistoricalData;
@@ -15,16 +19,24 @@ namespace TradingBot.Exchanges
 {
     public static class ExchangeFactory
     {
-	    public static List<Exchange> CreateExchanges(Configuration config, TranslatedSignalsRepository translatedSignalsRepository)
+	    public static List<Exchange> CreateExchanges(
+            AppSettings config,
+            TranslatedSignalsRepository translatedSignalsRepository,
+            IReloadingManager<TradingBotSettings> settingsManager,
+            INoSQLTableStorage<FixMessageTableEntity> fixMessagesStorage,
+            ILog log)
 	    {
-		    var exchanges = CreateExchanges(config.Exchanges, translatedSignalsRepository);
+            var exchanges = CreateExchanges(config.Exchanges, translatedSignalsRepository, fixMessagesStorage, log);
 
 		    if (config.AzureStorage.Enabled)
 			    foreach (var exchange in exchanges.Where(x => x.Config.SaveQuotesToAzure))
-				    exchange.AddTickPriceHandler(new AzureTablePricesPublisher(exchange.Name, config.AzureStorage.StorageConnectionString));
-			    
-		    
-		    if (config.RabbitMq.Enabled)
+                {
+                    var exchangeStorage = AzureTableStorage<PriceTableEntity>.Create(
+                        settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), exchange.Name, new LogToConsole());
+                    exchange.AddTickPriceHandler(new AzureTablePricesPublisher(exchangeStorage, exchange.Name));
+                }
+
+            if (config.RabbitMq.Enabled)
 		    {
 			    var pricesHandler =
 				    new RabbitMqHandler<InstrumentTickPrices>(config.RabbitMq.GetConnectionString(), config.RabbitMq.RatesExchange);
@@ -42,13 +54,17 @@ namespace TradingBot.Exchanges
 
 		    return exchanges;
 	    }
-	    
-        private static List<Exchange> CreateExchanges(ExchangesConfiguration config, TranslatedSignalsRepository translatedSignalsRepository)
+
+        private static List<Exchange> CreateExchanges(
+            ExchangesConfiguration config,
+            TranslatedSignalsRepository translatedSignalsRepository,
+            INoSQLTableStorage<FixMessageTableEntity> tableStorage,
+            ILog log)
         {
 	        var result = new List<Exchange>();
 
 	        if (config.Icm.Enabled)
-		        result.Add(new IcmExchange(config.Icm, translatedSignalsRepository));
+		        result.Add(new IcmExchange(config.Icm, translatedSignalsRepository, tableStorage, log));
 	        
 	        if (config.Kraken.Enabled)
 		        result.Add(new KrakenExchange(config.Kraken, translatedSignalsRepository));

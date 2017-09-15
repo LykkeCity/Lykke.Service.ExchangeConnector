@@ -7,8 +7,8 @@ using TradingBot.Exchanges.Concrete.Oanda.Endpoints;
 using System;
 using TradingBot.Communications;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
+using TradingBot.Repositories;
 
 namespace TradingBot.Exchanges.Concrete.Oanda
 {

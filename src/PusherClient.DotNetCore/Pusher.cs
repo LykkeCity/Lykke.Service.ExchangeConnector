@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using Common.Log;
 using Newtonsoft.Json;
 
 namespace PusherClient.DotNetCore
@@ -9,14 +9,11 @@ namespace PusherClient.DotNetCore
     public delegate void ConnectedEventHandler(object sender);
     public delegate void ConnectionStateChangedEventHandler(object sender, ConnectionState state);
     
-    
     public class Pusher : EventEmitter
     {
         private readonly string applicationKey;
         private readonly PusherOptions options;
-        
-        public static TraceSource Trace = new TraceSource("Pusher");
-
+        private readonly ILog _log;
         private Connection connection;
         public event ConnectedEventHandler Connected;
         public event ConnectionStateChangedEventHandler ConnectionStateChanged;
@@ -27,9 +24,10 @@ namespace PusherClient.DotNetCore
         
         public ConnectionState State => connection?.State ?? ConnectionState.Disconnected;
 
-        public Pusher(string applicationKey, PusherOptions options = null)
+        public Pusher(string applicationKey, ILog log, PusherOptions options = null)
         {
             this.applicationKey = applicationKey;
+            _log = log;
             this.options = options ?? new PusherOptions();
         }
 
@@ -40,8 +38,12 @@ namespace PusherClient.DotNetCore
                 // Ensure we only ever attempt to connect once
                 if (connection != null)
                 {
-                    Trace.TraceEvent(TraceEventType.Warning, 0,
-                        "Attempt to connect when another connection has already started. New attempt has been ignored.");
+                    _log.WriteWarningAsync(
+                        nameof(PusherClient),
+                        nameof(Pusher),
+                        nameof(Connect),
+                        "Attempt to connect when another connection has already started. New attempt has been ignored.")
+                        .Wait();
                     return;
                 }
                 var scheme = "ws://";
@@ -53,7 +55,7 @@ namespace PusherClient.DotNetCore
                     scheme, options.Host, applicationKey, Settings.Default.ProtocolVersion, Settings.Default.ClientName,
                     Settings.Default.VersionNumber);
 
-                connection = new Connection(this, url);
+                connection = new Connection(this, url, _log);
                 RegisterEventsOnConnection();
                 connection.Connect();
             }
@@ -116,7 +118,12 @@ namespace PusherClient.DotNetCore
         {
             if (AlreadySubscribed(channelName))
             {
-                Trace.TraceEvent(TraceEventType.Warning, 0, "Channel '" + channelName + "' is already subscribed to. Subscription event has been ignored.");
+                _log.WriteWarningAsync(
+                    nameof(PusherClient),
+                    nameof(Pusher),
+                    nameof(Connect),
+                    "Channel '" + channelName + "' is already subscribed to. Subscription event has been ignored.")
+                    .Wait();
                 return Channels[channelName];
             }
 

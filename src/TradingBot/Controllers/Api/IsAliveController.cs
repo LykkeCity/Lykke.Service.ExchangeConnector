@@ -1,14 +1,28 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.PlatformAbstractions;
+using TradingBot.Models;
 
 namespace TradingBot.Controllers.Api
 {
-    [Route("api/isAlive")]
+    /// <summary>
+    /// Controller to test service is alive.
+    /// </summary>
+    [Route("api/[controller]")]
     public class IsAliveController : Controller
     {
+        /// <summary>
+        /// Checks service is alive
+        /// </summary>
         [HttpGet]
-        public bool Get()
+        [Produces("application/json", Type = typeof(IsAliveResponseModel))]
+        public IsAliveResponseModel Get()
         {
-            return true;
+            return new IsAliveResponseModel
+            {
+                Version = PlatformServices.Default.Application.ApplicationVersion,
+                Env = Environment.GetEnvironmentVariable("ENV_INFO") ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+            };
         }
     }
 }

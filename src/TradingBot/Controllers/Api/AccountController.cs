@@ -13,6 +13,11 @@ namespace TradingBot.Controllers.Api
 {
     public class AccountController : BaseApiController
     {
+        public AccountController(ExchangeConnectorApplication app)
+            : base(app)
+        {
+        }
+
         [HttpGet("{exchangeName}/balance")]
         public Task<IEnumerable<AccountBalance>> GetBalance(string exchangeName)
         {

@@ -9,22 +9,24 @@ using TradingBot.Exchanges.Concrete.Kraken;
 using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
-using TradingBot.Infrastructure.Logging;
 using TradingBot.Models;
 using TradingBot.Models.Api;
 using TradingBot.Trading;
+using TradingBot.Repositories;
 
 namespace TradingBot.Controllers.Api
 {
     public class OrdersController : BaseApiController
     {
-        private TimeSpan timeout => Configuration.Instance.AspNet.ApiTimeout;
+        private readonly TimeSpan _timeout;
 
         private readonly TranslatedSignalsRepository translatedSignalsRepository;
 
-        public OrdersController()
+        public OrdersController(ExchangeConnectorApplication app, AppSettings appSettings)
+            : base(app)
         {
             translatedSignalsRepository = Application.TranslatedSignalsRepository;
+            _timeout = appSettings.AspNet.ApiTimeout;
         }
         
         /// <summary>
@@ -39,7 +41,7 @@ namespace TradingBot.Controllers.Api
 
                 if (exchange is IcmExchange)
                 {
-                    return await ((IcmExchange) exchange).GetAllOrdersInfo(timeout);
+                    return await ((IcmExchange) exchange).GetAllOrdersInfo(_timeout);
                 }
                 else if (exchange is KrakenExchange)
                 {
@@ -121,7 +123,7 @@ namespace TradingBot.Controllers.Api
                 try
                 {
                     var result = await Application.GetExchange(exchangeName)
-                        .AddOrderAndWaitExecution(instrument, tradingSignal, translatedSignal, timeout);
+                        .AddOrderAndWaitExecution(instrument, tradingSignal, translatedSignal, _timeout);
 
                     translatedSignal.SetExecutionResult(result);
 
@@ -196,7 +198,7 @@ namespace TradingBot.Controllers.Api
                 try
                 {
                     var result = await Application.GetExchange(exchangeName)
-                        .CancelOrderAndWaitExecution(instrument, tradingSignal, translatedSignal, timeout);
+                        .CancelOrderAndWaitExecution(instrument, tradingSignal, translatedSignal, _timeout);
 
                     if (result.Status == ExecutionStatus.Rejected)
                         throw new StatusCodeException(HttpStatusCode.BadRequest, $"Exchange return status: {result.Status}");

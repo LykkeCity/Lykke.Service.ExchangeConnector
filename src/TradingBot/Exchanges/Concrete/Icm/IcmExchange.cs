@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AzureStorage.Tables;
+using AzureStorage;
 using Common.Log;
 using Lykke.Logs;
+using Lykke.RabbitMqBroker;
 using Lykke.RabbitMqBroker.Subscriber;
 using Microsoft.Extensions.Logging;
 using QuickFix;
@@ -13,27 +14,34 @@ using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Icm.Converters;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
+using TradingBot.Repositories;
 using OrderBook = TradingBot.Exchanges.Concrete.Icm.Entities.OrderBook;
 
 namespace TradingBot.Exchanges.Concrete.Icm
 {
     public class IcmExchange : Exchange
     {
-        public new static readonly string Name = "icm";
-        
-        public IcmExchange(IcmConfig config, TranslatedSignalsRepository translatedSignalsRepository) : base(Name, config, translatedSignalsRepository)
-        {
-            this.config = config;
-        }
-
+        private readonly Common.Log.ILog _log;
         private readonly IcmConfig config;
 
         private RabbitMqSubscriber<OrderBook> rabbit;
         private SocketInitiator initiator;
         private IcmConnector connector;
+        private readonly INoSQLTableStorage<FixMessageTableEntity> _tableStorage;
+        public new static readonly string Name = "icm";
 
+        public IcmExchange(
+            IcmConfig config,
+            TranslatedSignalsRepository translatedSignalsRepository,
+            INoSQLTableStorage<FixMessageTableEntity> tableStorage,
+            Common.Log.ILog log)
+            : base(Name, config, translatedSignalsRepository)
+        {
+            this.config = config;
+            _tableStorage = tableStorage;
+            _log = log;
+        }
 
         protected override void StartImpl()
         {
@@ -54,7 +62,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
         {
             var settings = new SessionSettings(config.GetFixConfigAsReader());
 
-            var repository = new AzureFixMessagesRepository(Configuration.Instance.AzureStorage.StorageConnectionString, "fixMessages");
+            var repository = new AzureFixMessagesRepository(_tableStorage);
             
             connector = new IcmConnector(config, repository);
             var storeFactory = new FileStoreFactory(settings);
@@ -73,20 +81,17 @@ namespace TradingBot.Exchanges.Concrete.Icm
         /// </summary>
         private void StartRabbitConnection()
         {
-            var rabbitSettings = new RabbitMqSubscriberSettings()
+            var rabbitSettings = new RabbitMqSubscriptionSettings()
             {
                 ConnectionString = config.RabbitMq.GetConnectionString(),
                 ExchangeName = config.RabbitMq.RatesExchange
             };
-
-            rabbit = new RabbitMqSubscriber<OrderBook>(rabbitSettings)
+            var errorStrategy = new DefaultErrorHandlingStrategy(_log, rabbitSettings);
+            rabbit = new RabbitMqSubscriber<OrderBook>(rabbitSettings, errorStrategy)
                 .SetMessageDeserializer(new GenericRabbitModelConverter<OrderBook>())
                 .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
                 .SetConsole(new ExchangeConnectorApplication.RabbitConsole())
-                .SetLogger(new LykkeLogToAzureStorage("IcmPriceSubscriber", 
-                        new AzureTableStorage<LogEntity>(Configuration.Instance.AzureStorage.StorageConnectionString,
-                        Configuration.Instance.LogsTableName,
-                        new LogToConsole())))
+                .SetLogger(_log)
                 .Subscribe(async orderBook =>
                     {
                         if (Instruments.Any(x => x.Name == orderBook.Asset))

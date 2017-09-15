@@ -4,7 +4,7 @@ using System.Net.Http;
 using Microsoft.WindowsAzure.Storage.Table;
 using TradingBot.Trading;
 
-namespace TradingBot.Infrastructure.Logging
+namespace TradingBot.Repositories
 {
     public class TranslatedSignalTableEntity : TableEntity
     {

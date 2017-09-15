@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Threading;
 using TradingBot.Infrastructure.Logging;
+using TradingBot.Repositories;
 
 namespace TradingBot.Exchanges.Abstractions
 {

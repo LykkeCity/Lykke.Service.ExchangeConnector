@@ -1,4 +1,4 @@
-FROM microsoft/dotnet:1.1.2-runtime
+FROM microsoft/dotnet:2.0-runtime
 WORKDIR app/
 COPY . .
 EXPOSE 5040
