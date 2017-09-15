@@ -1,17 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.4
+VisualStudioVersion = 15.0.26730.3
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TradingBot", "TradingBot\TradingBot.csproj", "{88397BE8-8599-415B-ADDA-AB8957F21E23}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TradingBot", "src\TradingBot\TradingBot.csproj", "{88397BE8-8599-415B-ADDA-AB8957F21E23}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TradingBot.Tests", "Tests\TradingBot.Tests\TradingBot.Tests.csproj", "{AFEA1A4B-9A43-4A08-AB42-82F76C949E4A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TradingBot.Tests", "tests\TradingBot.Tests\TradingBot.Tests.csproj", "{AFEA1A4B-9A43-4A08-AB42-82F76C949E4A}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{1E1FE78F-46F1-4E57-A4AF-69E72DC0EE4A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QuickFix.DotNetCore", "src\QuickFix.DotNetCore\QuickFix.DotNetCore.csproj", "{41CDE78A-3A88-45FF-AB67-C4EAF50C9856}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuickFix.DotNetCore", "QuickFix.DotNetCore\QuickFix.DotNetCore.csproj", "{41CDE78A-3A88-45FF-AB67-C4EAF50C9856}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PusherClient.DotNetCore", "src\PusherClient.DotNetCore\PusherClient.DotNetCore.csproj", "{357ACEC2-4E8E-4AC5-9E74-B9A989EBD3B5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PusherClient.DotNetCore", "PusherClient.DotNetCore\PusherClient.DotNetCore.csproj", "{357ACEC2-4E8E-4AC5-9E74-B9A989EBD3B5}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{4BB87FE5-BB88-4763-8368-2064A3D7E059}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -40,6 +40,9 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{AFEA1A4B-9A43-4A08-AB42-82F76C949E4A} = {1E1FE78F-46F1-4E57-A4AF-69E72DC0EE4A}
+		{AFEA1A4B-9A43-4A08-AB42-82F76C949E4A} = {4BB87FE5-BB88-4763-8368-2064A3D7E059}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {49A9C75C-770F-4032-8403-7569CEB2921B}
 	EndGlobalSection
 EndGlobal
