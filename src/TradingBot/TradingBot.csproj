@@ -40,4 +40,9 @@
     <ProjectReference Include="..\PusherClient.DotNetCore\PusherClient.DotNetCore.csproj" />
     <ProjectReference Include="..\QuickFix.DotNetCore\QuickFix.DotNetCore.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="Dockerfile">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>
