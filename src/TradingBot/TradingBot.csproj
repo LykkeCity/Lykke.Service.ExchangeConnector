@@ -4,6 +4,7 @@
     <TargetFramework>netcoreapp1.1</TargetFramework>
     <RootNamespace>TradingBot</RootNamespace>
     <AssemblyName>TradingBot</AssemblyName>
+    <Version>1.0.1</Version>
     <PreserveCompilationContext>true</PreserveCompilationContext>
     <DocumentationFile>$(MSBuildProjectName).xml</DocumentationFile>
     <NoWarn>1591;1701;1702;1705</NoWarn>
