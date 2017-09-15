@@ -4,10 +4,12 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
+using TradingBot.Repositories;
 
 namespace TradingBot.Exchanges.Concrete.StubImplementation
 {
@@ -19,26 +21,20 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 	    private readonly StubExchangeConfiguration config;
 	    
 
-        public StubExchange(StubExchangeConfiguration config)
-	        : base(Name, config)
+        public StubExchange(StubExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository)
+	        : base(Name, config, translatedSignalsRepository)
         {
             this.config = config;
         }
 
-        protected override Task<bool> TestConnectionImpl(CancellationToken cancellationToken)
-        {
-            return Task.FromResult(true);
-		}
-
-
-        private bool closePricesStreamRequested;
+        private CancellationTokenSource ctSource;
         private Task streamJob;
 
 	    private long counter = 0;
 
-		public override Task OpenPricesStream()
+		protected override void StartImpl()
 		{
-            closePricesStreamRequested = false;
+            ctSource = new CancellationTokenSource();
             var random = new Random();
 		    
 		    var nPoints = 10000000;
@@ -49,7 +45,9 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 
 		    streamJob = Task.Run(async () =>
 		    {
-			    while (!closePricesStreamRequested)
+			    OnConnected();
+			    
+			    while (!ctSource.IsCancellationRequested)
 			    {
 				    foreach (var instrument in Instruments)
 				    {       
@@ -67,7 +65,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 						    var trades = new List<ExecutedTrade>();
 						    var executedOrders = new List<TradingSignal>();
 					    
-						    foreach (var tradingSignal in ActualSignals[instrument.Name].Where(x => x.Count > 0))
+						    foreach (var tradingSignal in ActualSignals[instrument.Name].Where(x => x.Volume > 0))
 						    {
 							    if (tradingSignal.TradeType == TradeType.Buy
 							        && lowestAsk <= tradingSignal.Price)
@@ -76,7 +74,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 									    instrument,
 									    DateTime.UtcNow, 
 									    lowestAsk,
-									    tradingSignal.Count,
+									    tradingSignal.Volume,
 									    TradeType.Buy,
 									    tradingSignal.OrderId,
 									    ExecutionStatus.Fill);
@@ -92,7 +90,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 								    var trade = new ExecutedTrade(instrument,
 									    DateTime.UtcNow,
 									    highestBid,
-									    tradingSignal.Count,
+									    tradingSignal.Volume,
 									    TradeType.Sell,
 									    tradingSignal.OrderId,
 									    ExecutionStatus.Fill);
@@ -129,32 +127,61 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 					    await CallHandlers(new InstrumentTickPrices(instrument, currentPrices));
 				    }
                 
-				    await Task.Delay(config.PricesIntervalInMilliseconds);
+				    await Task.Delay(config.PricesIntervalInMilliseconds, ctSource.Token);
 			    } 
+			    
+			    OnStopped();
 		    });
-
-			return streamJob;
 		}
 	    
-        public override void ClosePricesStream()
+        protected override void StopImpl()
         {
-            closePricesStreamRequested = true;
-	        streamJob?.Wait();
+	        if (ctSource != null && streamJob != null)
+	        {
+		        ctSource.Cancel();
+	        }
         }
 
-	    protected override Task<bool> AddOrder(Instrument instrument, TradingSignal signal)
+	    protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
 	    {
+		    translatedSignal.RequestSent("stub exchange don't send actual request");
+		    SimulateException();
+		    translatedSignal.ResponseReceived("stub exchange don't recevie actual response");
+
 		    return Task.FromResult(true);
 	    }
 
-	    protected override async Task<bool> CancelOrder(Instrument instrument, TradingSignal signal)
+	    private static readonly Random Random = new Random();
+	    private void SimulateException()
 	    {
+		    if (Random.NextDouble() <= 0.2)
+		    {
+			    throw new Exception("Whoops! This exception is simulated!");
+		    }
+	    }
+
+	    protected override async Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+	    {
+		    translatedSignal.RequestSent("stub exchange don't send actual request");
+		    SimulateException();
+		    translatedSignal.ResponseReceived("stub exchange don't recevie actual response");
+		    
 		    await CallExecutedTradeHandlers(new ExecutedTrade(
 			    instrument,
-			    DateTime.UtcNow, signal.Price, signal.Count, signal.TradeType,
+			    DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType,
 			    signal.OrderId, ExecutionStatus.Cancelled));
 
 		    return true;
+	    }
+
+	    public override Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+	    {
+		    throw new NotImplementedException();
+	    }
+
+	    public override Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+	    {
+		    throw new NotImplementedException();
 	    }
     }
 }

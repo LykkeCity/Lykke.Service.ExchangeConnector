@@ -17,17 +17,14 @@ namespace TradingBot.Communications
     {
 		private readonly ILogger logger = Logging.CreateLogger<AzureTablePricesPublisher>();
 
-        private readonly INoSQLTableStorage<PriceTableEntity> tableStorage;
+        private readonly INoSQLTableStorage<PriceTableEntity> _tableStorage;
 
-	    private readonly string tableName;
+	    private readonly string _tableName;
 
-        public AzureTablePricesPublisher(string tableName, string connectionString)
+        public AzureTablePricesPublisher(INoSQLTableStorage<PriceTableEntity> tableStorage, string tableName)
         {
-	        this.tableName = tableName;
-
-			tableStorage = new AzureTableStorage<PriceTableEntity>(connectionString,
-													   tableName,
-													   new LogToConsole());
+            _tableStorage = tableStorage;
+            _tableName = tableName;
         }
 
 		private readonly Queue<TickPrice> pricesQueue = new Queue<TickPrice>();
@@ -58,8 +55,8 @@ namespace TradingBot.Communications
 					
 					try
 					{
-						await tableStorage.InsertAsync(tablePrice);
-						logger.LogDebug($"Prices for {prices.Instrument} published to Azure table {tableName}");
+						await _tableStorage.InsertAsync(tablePrice);
+						logger.LogDebug($"Prices for {prices.Instrument} published to Azure table {_tableName}");
 					}
 					catch (Microsoft.WindowsAzure.Storage.StorageException ex)
 						when (ex.Message == "Conflict")
@@ -69,7 +66,7 @@ namespace TradingBot.Communications
 					catch (Exception ex)
 					{
 						tablePricesQueue.Enqueue(tablePrice);
-						logger.LogError(new EventId(), ex,
+						logger.LogError(0, ex,
 							$"Can't write to Azure Table Storage, will try later. Now in queue: {tablePricesQueue.Count}");
 					}
 				}

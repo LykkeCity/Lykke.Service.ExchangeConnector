@@ -18,7 +18,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
     /// </summary>
     public class PublicData
     {
-        private readonly string EndpointUrl = $"{Urls.ApiBase}/0/public";
+        private readonly string endpointUrl = $"{Urls.ApiBase}/0/public";
 
         private readonly ApiClient apiClient;
 
@@ -108,7 +108,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
 
         private async Task<T> MakeGetRequestAsync<T>(string url, CancellationToken cancellationToken)
         {
-            var response = await apiClient.MakeGetRequestAsync<ResponseBase<T>>($"{EndpointUrl}/{url}", cancellationToken);
+            var response = await apiClient.MakeGetRequestAsync<ResponseBase<T>>($"{endpointUrl}/{url}", cancellationToken);
 
             if (response.Error.Any())
             {

@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
-using AzureStorage.Tables;
+using AzureStorage;
 using Common.Log;
 using Lykke.Logs;
+using Lykke.RabbitMqBroker;
 using Lykke.RabbitMqBroker.Subscriber;
 using Microsoft.Extensions.Logging;
-using Polly;
 using QuickFix;
 using QuickFix.Transport;
 using TradingBot.Communications;
@@ -16,135 +15,122 @@ using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Icm.Converters;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
+using TradingBot.Repositories;
 using OrderBook = TradingBot.Exchanges.Concrete.Icm.Entities.OrderBook;
 
 namespace TradingBot.Exchanges.Concrete.Icm
 {
     public class IcmExchange : Exchange
     {
-        public new static readonly string Name = "icm";
-        
-        public IcmExchange(IcmConfig config) : base(Name, config)
-        {
-            this.config = config;
-        }
-
+        private readonly Common.Log.ILog _log;
         private readonly IcmConfig config;
 
         private RabbitMqSubscriber<OrderBook> rabbit;
         private SocketInitiator initiator;
         private IcmConnector connector;
+        private readonly INoSQLTableStorage<FixMessageTableEntity> _tableStorage;
+        public new static readonly string Name = "icm";
 
-
-        /// <summary>
-        /// For ICM we use internal RabbitMQ exchange with pricefeed
-        /// </summary>
-        public override Task OpenPricesStream()
+        public IcmExchange(
+            IcmConfig config,
+            TranslatedSignalsRepository translatedSignalsRepository,
+            INoSQLTableStorage<FixMessageTableEntity> tableStorage,
+            Common.Log.ILog log)
+            : base(Name, config, translatedSignalsRepository)
         {
-            //StartFixConnection(); // wait for Fix connection before translationg quotes and receiveng signals
-            StartRabbitConnection();
+            this.config = config;
+            _tableStorage = tableStorage;
+            _log = log;
+        }
 
-            return Task.FromResult(0);
+        protected override void StartImpl()
+        {
+            StartFixConnection();
+            
+            if (config.RabbitMq.Enabled && (config.PubQuotesToRabbit || config.SaveQuotesToAzure))
+                StartRabbitConnection();
         }
         
-        public override void ClosePricesStream()
+        protected override void StopImpl()
         {
             rabbit?.Stop();
             initiator?.Stop();
             initiator?.Dispose();
-        }
-
-        private void StartRabbitConnection()
-        {
-            var rabbitSettings = new RabbitMqSubscriberSettings()
-            {
-                ConnectionString = config.RabbitMq.GetConnectionString(),
-                ExchangeName = config.RabbitMq.RatesExchange
-            };
-
-            rabbit = new RabbitMqSubscriber<OrderBook>(rabbitSettings)
-                .SetMessageDeserializer(new GenericRabbitModelConverter<OrderBook>())
-                .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
-                .SetConsole(new ExchangeConnectorApplication.RabbitConsole())
-                .SetLogger(new LykkeLogToAzureStorage("IcmPriceSubscriber", 
-                        new AzureTableStorage<LogEntity>(Configuration.Instance.AzureStorage.StorageConnectionString,
-                        Configuration.Instance.LogsTableName,
-                        new LogToConsole())))
-                .Subscribe(async orderBook =>
-                {
-                    //Logger.LogInformation($"Receive order book for asset: {orderBook.Asset}");
-                    
-                    if (Instruments.Any(x => x.Name == orderBook.Asset))
-                        await CallHandlers(orderBook.ToInstrumentTickPrices());
-                    else
-                    {
-                        //Logger.LogInformation("It's not in the list");
-                    }
-                })
-                .Start()
-                ;
         }
         
         private void StartFixConnection()
         {
             var settings = new SessionSettings(config.GetFixConfigAsReader());
 
-            var repository = new AzureFixMessagesRepository(Configuration.Instance.AzureStorage.StorageConnectionString, "fixMessages");
+            var repository = new AzureFixMessagesRepository(_tableStorage);
             
             connector = new IcmConnector(config, repository);
             var storeFactory = new FileStoreFactory(settings);
             var logFactory = new ScreenLogFactory(settings);
 
             connector.OnTradeExecuted += CallExecutedTradeHandlers;
+            connector.Connected += OnConnected;
+            connector.Disconnected += OnStopped;
             
             initiator = new SocketInitiator(connector, storeFactory, settings, logFactory);
             initiator.Start();
-            
         }
 
-        protected override Task<bool> TestConnectionImpl(CancellationToken cancellationToken)
+        /// <summary>
+        /// For ICM we use internal RabbitMQ exchange with pricefeed
+        /// </summary>
+        private void StartRabbitConnection()
         {
-            StartFixConnection();
-            
-            var retry = Policy
-                .HandleResult<bool>(x => !x)
-                .WaitAndRetry(5, attempt => TimeSpan.FromSeconds(10));
-
-            
-            return Task.FromResult(retry.Execute(() => initiator.IsLoggedOn));
+            var rabbitSettings = new RabbitMqSubscriptionSettings()
+            {
+                ConnectionString = config.RabbitMq.GetConnectionString(),
+                ExchangeName = config.RabbitMq.RatesExchange
+            };
+            var errorStrategy = new DefaultErrorHandlingStrategy(_log, rabbitSettings);
+            rabbit = new RabbitMqSubscriber<OrderBook>(rabbitSettings, errorStrategy)
+                .SetMessageDeserializer(new GenericRabbitModelConverter<OrderBook>())
+                .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
+                .SetConsole(new ExchangeConnectorApplication.RabbitConsole())
+                .SetLogger(_log)
+                .Subscribe(async orderBook =>
+                    {
+                        if (Instruments.Any(x => x.Name == orderBook.Asset))
+                            await CallHandlers(orderBook.ToInstrumentTickPrices());
+                    })
+                .Start();
         }
         
-        protected override Task<bool> AddOrder(Instrument instrument, TradingSignal signal)
+        protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             Logger.LogInformation($"About to place new order for instrument {instrument}: {signal}");
-            return Task.FromResult(connector.AddOrder(instrument, signal));
+            return Task.FromResult(connector.AddOrder(instrument, signal, translatedSignal));
         }
 
-        protected override Task<bool> CancelOrder(Instrument instrument, TradingSignal signal)
+        protected override Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             Logger.LogInformation($"Cancelling order {signal}");
 
-            return Task.FromResult(connector.CancelOrder(instrument, signal));
+            return Task.FromResult(connector.CancelOrder(instrument, signal, translatedSignal));
         }
 
-        public Task<ExecutedTrade> GetOrderInfo(Instrument instrument, long orderId)
+        public Task<ExecutedTrade> GetOrderInfo(Instrument instrument, string orderId)
         {
             return connector.GetOrderInfoAndWaitResponse(instrument, orderId);
         }
 
-        public Task<IEnumerable<ExecutedTrade>> GetAllOrdersInfo()
+        public Task<IEnumerable<ExecutedTrade>> GetAllOrdersInfo(TimeSpan timeout)
         {
-            return connector.GetAllOrdersInfo();
+            return connector.GetAllOrdersInfo(timeout);
         }
 
-        public Task<ExecutedTrade> AddOrderAndWait(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+        public override Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            return connector.AddOrderAndWaitResponse(instrument, signal, timeout);
+            return connector.AddOrderAndWaitResponse(instrument, signal, translatedSignal, timeout);
         }
 
-        public Task<ExecutedTrade> CancelOrderAndWait(Instrument instrument, TradingSignal signal, TimeSpan timeout)
+        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            return connector.CancelOrderAndWaitResponse(instrument, signal, timeout);
+            return connector.CancelOrderAndWaitResponse(instrument, signal, translatedSignal, timeout);
         }
     }
 }

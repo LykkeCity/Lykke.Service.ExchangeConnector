@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using TradingBot.Trading;
 
 namespace TradingBot.Models.Api
 {
-    public class OrderModel : ISignedModel//, IValidatableObject
+    public class OrderModel : ISignedModel
     {
         public string ExchangeName { get; set; }
         
@@ -18,6 +18,9 @@ namespace TradingBot.Models.Api
         [Required]
         public OrderType OrderType { get; set; }
         
+        [DefaultValue(TimeInForce.FillOrKill)]
+        public TimeInForce TimeInForce { get; set; }
+        
         [Required]
         [Range(0.0000, Double.MaxValue)]
         public decimal Price { get; set; }
@@ -27,19 +30,16 @@ namespace TradingBot.Models.Api
         public decimal Volume { get; set; }
         
         [Required]
-        [Range(1, long.MaxValue)]
-        public long Id { get; set; }
+        public string Id { get; set; }
         
+        /// <summary>
+        /// Date and time must be in 5 minutes threshold from UTC now
+        /// </summary>
         public DateTime DateTime { get; set; }
         
         public string GetStringToSign()
         {
             return $"{DateTime:s}{Id}{Instrument}{TradeType}{OrderType}{Price:0.0000}{Volume:0.0000}";
         }
-
-//        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-//        {
-//            throw new NotImplementedException();
-//        }
     }
 }

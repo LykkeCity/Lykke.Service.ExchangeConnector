@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Common.Log;
+using Lykke.RabbitMqBroker.Subscriber;
 using Lykke.RabbitMqBroker.Publisher;
 using TradingBot.Trading;
 
@@ -11,16 +12,17 @@ namespace TradingBot.Handlers
         
         public RabbitMqHandler(string connectionString, string exchangeName)
         {
-            var publisherSettings = new RabbitMqPublisherSettings()
+            var publisherSettings = new RabbitMqSubscriptionSettings()
             {
                 ConnectionString = connectionString,
                 ExchangeName = exchangeName
             };
             
             rabbitPublisher = new RabbitMqPublisher<T>(publisherSettings)
+                .DisableInMemoryQueuePersistence()
                 .SetSerializer(new GenericRabbitModelConverter<T>())
                 .SetLogger(new LogToConsole())
-                .SetPublishStrategy(new DefaultFnoutPublishStrategy())
+                .SetPublishStrategy(new DefaultFanoutPublishStrategy(publisherSettings))
                 .SetConsole(new ExchangeConnectorApplication.RabbitConsole())
                 .Start();
         }

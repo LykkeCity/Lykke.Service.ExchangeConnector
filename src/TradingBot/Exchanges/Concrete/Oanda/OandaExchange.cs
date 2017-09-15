@@ -5,8 +5,10 @@ using System.Threading.Tasks;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Oanda.Endpoints;
 using System;
+using TradingBot.Communications;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
+using TradingBot.Repositories;
 
 namespace TradingBot.Exchanges.Concrete.Oanda
 {
@@ -18,7 +20,7 @@ namespace TradingBot.Exchanges.Concrete.Oanda
         private Prices prices;
         private Instruments instruments;
 
-        public OandaExchange(OandaConfiguration config) : base(Name, config)
+        public OandaExchange(OandaConfiguration config, TranslatedSignalsRepository translatedSignalsRepository) : base(Name, config, translatedSignalsRepository)
         {
             var client = new ApiClient(OandaHttpClient.CreateHttpClient(OandaAuth.Token));
 
@@ -27,27 +29,37 @@ namespace TradingBot.Exchanges.Concrete.Oanda
             instruments = new Instruments(client);
         }
 
-        public override void ClosePricesStream()
+        protected override void StartImpl()
         {
             throw new NotImplementedException();
         }
 
-        protected override Task<bool> AddOrder(Instrument instrument, TradingSignal signal)
+        protected override void StopImpl()
         {
             throw new NotImplementedException();
         }
 
-        protected override Task<bool> CancelOrder(Instrument instrument, TradingSignal signal)
+        protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             throw new NotImplementedException();
         }
 
-        public override Task OpenPricesStream()
+        protected override Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             throw new NotImplementedException();
         }
 
-        protected override async Task<bool> TestConnectionImpl(CancellationToken cancellationToken)
+        public override Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected async Task<bool> EstablishConnectionImpl(CancellationToken cancellationToken)
         {
             var accountsList = await accounts.GetAccounts(cancellationToken);
             Logger.LogDebug($"Received {accountsList.Accounts.Count} accounts");

@@ -3,34 +3,50 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+using Common.Log;
+using AzureStorage;
+using AzureStorage.Tables;
+using Lykke.SettingsReader;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Exchanges;
-using Common.Log;
+using Lykke.RabbitMqBroker;
 using Lykke.RabbitMqBroker.Subscriber;
-using Polly;
-using TradingBot.Infrastructure.Logging;
+using TradingBot.Communications;
 using TradingBot.Trading;
+using TradingBot.Repositories;
 
 namespace TradingBot
 {
     public class ExchangeConnectorApplication : IApplicationFacade
     {
-        private readonly ILogger logger = Logging.CreateLogger<ExchangeConnectorApplication>();
+        private ILog _log;
 
-        public ExchangeConnectorApplication(Configuration config)
+        public TranslatedSignalsRepository TranslatedSignalsRepository { get; }
+
+        public ExchangeConnectorApplication(
+            AppSettings config,
+            IReloadingManager<TradingBotSettings> settingsManager,
+            INoSQLTableStorage<FixMessageTableEntity> fixMessagesStorage,
+            ILog log)
         {
             this.config = config;
-            exchanges = ExchangeFactory.CreateExchanges(config).ToDictionary(x => x.Name, x => x);
+            _log = log;
+            var signalsStorage = AzureTableStorage<TranslatedSignalTableEntity>.Create(
+                settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "translatedSignals", new LogToConsole());
+            TranslatedSignalsRepository = new TranslatedSignalsRepository(signalsStorage, new InverseDateTimeRowKeyProvider());
+
+            exchanges = ExchangeFactory.CreateExchanges(config, TranslatedSignalsRepository, settingsManager, fixMessagesStorage, log)
+                .ToDictionary(x => x.Name, x => x);
         }
 
         private readonly Dictionary<string, Exchange> exchanges;
         
 		private CancellationTokenSource ctSource;
-        private readonly Configuration config;
+        private readonly AppSettings config;
         private RabbitMqSubscriber<InstrumentTradingSignals> signalSubscriber;
 
+        
         public async Task Start()
         {
             ctSource = new CancellationTokenSource();
@@ -38,72 +54,85 @@ namespace TradingBot
 
             if (!exchanges.Any())
             {
-                logger.LogInformation("There is no enabled exchange.");
+                await _log.WriteInfoAsync(
+                    nameof(TradingBot),
+                    nameof(ExchangeConnectorApplication),
+                    nameof(Start),
+                    "There is no enabled exchange.");
                 return;
             }
+
+            await _log.WriteInfoAsync(
+                nameof(TradingBot),
+                nameof(ExchangeConnectorApplication),
+                nameof(Start),
+                $"Price cycle starting for exchanges: {string.Join(", ", exchanges.Keys)}...");
             
-            logger.LogInformation($"Price cycle starting for exchanges: {string.Join(", ", exchanges.Keys)}...");
-
-            var retry = Policy
-                .HandleResult<bool>(x => !x)
-                .WaitAndRetryAsync(5, attempt => TimeSpan.FromSeconds(10));
-
-            foreach (var exchange in exchanges.Values.ToList())
-            {
-                bool connectionTestPassed = await retry.ExecuteAsync(exchange.TestConnection, token);
-                if (!connectionTestPassed)
-                {
-                    logger.LogError($"no connection to exchange {exchange.Name}");
-                    exchanges.Remove(exchange.Name);
-                }    
-            }
-            
-
             if (config.RabbitMq.Enabled)
             {
-                SetupTradingSignalsSubscription(config.RabbitMq);
+                SetupTradingSignalsSubscription(config.RabbitMq); // can take too long
             }
 
-            var task = Task.WhenAll(exchanges.Values.Select(x => x.OpenPricesStream()));
-
+            exchanges.Values.ToList().ForEach(x => x.Start());
+            
             while (!token.IsCancellationRequested)
 			{
                 await Task.Delay(TimeSpan.FromSeconds(15), token);
-				logger.LogDebug($"GetPricesCycle Heartbeat: {DateTime.Now}");
-			    // TODO: collect some stats to get health status
-			}
-
-			if (task.Status == TaskStatus.Running)
-			{
-				task.Wait();
+                await _log.WriteInfoAsync(
+                    nameof(TradingBot),
+                    nameof(ExchangeConnectorApplication),
+                    nameof(Start),
+                    $"Exchange connector heartbeat: {DateTime.Now}. Exchanges statuses: {string.Join(", ", GetExchanges().Select(x => $"{x.Name}: {x.State}"))}");
 			}
         }
 
         private void SetupTradingSignalsSubscription(RabbitMqConfiguration rabbitConfig)
         {
-            var subscriberSettings = new RabbitMqSubscriberSettings()
+            var subscriberSettings = new RabbitMqSubscriptionSettings()
             {
                 ConnectionString = rabbitConfig.GetConnectionString(),
-                ExchangeName = rabbitConfig.SignalsExchange
+                ExchangeName = rabbitConfig.SignalsExchange,
+                QueueName = rabbitConfig.SignalsQueue
             };
-            
-            signalSubscriber = new RabbitMqSubscriber<InstrumentTradingSignals>(subscriberSettings)
+            var errorStrategy = new DefaultErrorHandlingStrategy(_log, subscriberSettings);
+            signalSubscriber = new RabbitMqSubscriber<InstrumentTradingSignals>(subscriberSettings, errorStrategy)
                 .SetMessageDeserializer(new GenericRabbitModelConverter<InstrumentTradingSignals>())
                 .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
                 .SetConsole(new RabbitConsole())
                 .SetLogger(new LogToConsole())
-                .Subscribe(x => exchanges[x.Instrument.Exchange].PlaceTradingOrders(x))
+                .Subscribe(x =>
+                {
+                    if (!exchanges.ContainsKey(x.Instrument.Exchange))
+                    {
+                        _log.WriteWarningAsync(
+                            nameof(TradingBot),
+                            nameof(ExchangeConnectorApplication),
+                            nameof(Start),
+                            $"Received a trading signal for unconnected exchange {x.Instrument.Exchange}")
+                            .Wait();
+                        return Task.FromResult(0);
+                    }
+                    else
+                    {
+                        return exchanges[x.Instrument.Exchange].HandleTradingSignals(x);    
+                    }
+                })
                 .Start();  
         }
 
         public void Stop()
         {
-            logger.LogInformation("Stop requested");
+            _log.WriteInfoAsync(
+                nameof(TradingBot),
+                nameof(ExchangeConnectorApplication),
+                nameof(Start),
+                "Stop requested")
+                .Wait();
             ctSource.Cancel();
 
             foreach (var exchange in exchanges.Values)
             {
-                exchange?.ClosePricesStream();    
+                exchange?.Stop();    
             }
         }
 
@@ -115,14 +144,14 @@ namespace TradingBot
             }
         }
 
-        public IReadOnlyCollection<string> GetConnectedExchanges()
+        public IReadOnlyCollection<Exchange> GetExchanges()
         {
-            return exchanges.Keys.ToList();
+            return exchanges.Values;
         }
 
         public Exchange GetExchange(string name)
         {
-            return exchanges[name];
+            return exchanges.ContainsKey(name) ? exchanges[name] : null;
         }
     }
 }

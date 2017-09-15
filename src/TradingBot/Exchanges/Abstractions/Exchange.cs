@@ -4,39 +4,56 @@ using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Polly;
+using TradingBot.Communications;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
+using TradingBot.Repositories;
 
 namespace TradingBot.Exchanges.Abstractions
 {
     public abstract class Exchange
     {
-        protected ILogger Logger = Logging.CreateLogger<Exchange>();
+        protected readonly ILogger Logger = Logging.CreateLogger<Exchange>();
 
         private readonly List<Handler<InstrumentTickPrices>> tickPriceHandlers = new List<Handler<InstrumentTickPrices>>();
 
         private readonly List<Handler<ExecutedTrade>> executedTradeHandlers = new List<Handler<ExecutedTrade>>();
+
+        private readonly TranslatedSignalsRepository translatedSignalsRepository;
         
         public string Name { get; }
 
-        protected Exchange(string name, IExchangeConfiguration config)
+        public IExchangeConfiguration Config { get; }
+
+        public ExchangeState State { get; private set; }
+
+        private readonly TimeSpan tradingSignalsThreshold = TimeSpan.FromMinutes(10);
+
+        private readonly Dictionary<string, object> lockRoots;
+
+        protected Exchange(string name, IExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository)
         {
             Name = name;
-            decimal initialValue = 100m; // TODO: get initial value from config? or get if from real exchange.
+            Config = config;
+            State = ExchangeState.Initializing;
+
+            this.translatedSignalsRepository = translatedSignalsRepository;
 
             if (config.Instruments == null || config.Instruments.Length == 0)
             {
                 throw new ArgumentException($"There is no instruments in the settings for {Name} exchange");
             }
-            
+
+            decimal initialValue = 100m; // TODO: get initial value from config? or get it from real exchange.
             Instruments = config.Instruments.Select(x => new Instrument(Name, x)).ToList();
             Positions = Instruments.ToDictionary(x => x.Name, x => new Position(x, initialValue));
-
-            AllSignals = Instruments.ToDictionary(x => x.Name, x => new List<TradingSignal>());
             ActualSignals = Instruments.ToDictionary(x => x.Name, x => new LinkedList<TradingSignal>());
-            ExecutedTrades = Instruments.ToDictionary(x => x.Name, x => new List<ExecutedTrade>());
+
+            lockRoots = Instruments.ToDictionary(x => x.Name, x => new object());
         }
 
         public void AddTickPriceHandler(Handler<InstrumentTickPrices> handler)
@@ -49,51 +66,45 @@ namespace TradingBot.Exchanges.Abstractions
             executedTradeHandlers.Add(handler);
         }
 
+        public void Start()
+        {
+            if (State != ExchangeState.ErrorState && State != ExchangeState.Stopped && State != ExchangeState.Initializing)
+                return;
+
+            State = ExchangeState.Connecting;
+            StartImpl();
+        }
+
+        protected abstract void StartImpl();
+        public event Action Connected;
+        protected void OnConnected()
+        {
+            State = ExchangeState.Connected;
+            Connected?.Invoke();
+        }
+
+        public void Stop()
+        {
+            if (State == ExchangeState.Stopped)
+                return;
+
+            State = ExchangeState.Stopping;
+            StopImpl();
+        }
+
+        protected abstract void StopImpl();
+        public event Action Stopped;
+        protected void OnStopped()
+        {
+            State = ExchangeState.Stopped;
+            Stopped?.Invoke();
+        }
+
         public IReadOnlyList<Instrument> Instruments { get; }
-        
-        public IReadOnlyDictionary<string, Position> Positions { get; }
 
-        protected Dictionary<string, List<TradingSignal>> AllSignals;
-        protected Dictionary<string, LinkedList<TradingSignal>> ActualSignals;
-        protected Dictionary<string, List<ExecutedTrade>> ExecutedTrades;
-        
-        public Task<bool> TestConnection()
-        {
-            return TestConnection(CancellationToken.None);
-        }
+        protected IReadOnlyDictionary<string, Position> Positions { get; }
 
-        public async Task<bool> TestConnection(CancellationToken cancellationToken)
-        {
-            Logger.LogDebug("Trying to test connection...");
-
-            try
-            {
-				bool result = await TestConnectionImpl(cancellationToken);
-
-				if (result)
-				{
-					Logger.LogInformation("Connection tested successfully.");
-				}
-				else
-				{
-					Logger.LogError("Connection test failed.");
-				}
-
-				return result;
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(new EventId(), ex, "Connection test failed with error");
-                return false;
-            }
-        }
-
-        protected abstract Task<bool> TestConnectionImpl(CancellationToken cancellationToken);
-
-        //public abstract Task<AccountInfo> GetAccountInfo(CancellationToken cancellationToken);
-
-
-        public abstract Task OpenPricesStream();
+        protected readonly Dictionary<string, LinkedList<TradingSignal>> ActualSignals;
 
         protected Task CallHandlers(InstrumentTickPrices tickPrices)
         {
@@ -105,79 +116,181 @@ namespace TradingBot.Exchanges.Abstractions
             return Task.WhenAll(executedTradeHandlers.Select(x => x.Handle(trade)));
         }
 
-        public abstract void ClosePricesStream();
-
-        
         protected readonly object ActualSignalsSyncRoot = new object();
         
-        public virtual Task PlaceTradingOrders(InstrumentTradingSignals signals)
-        {
-            lock (ActualSignalsSyncRoot)
+
+        private readonly Policy retryTwoTimesPolicy = Policy
+            .Handle<Exception>(x => !(x is InsufficientFundsException))
+            .WaitAndRetryAsync(1, attempt => TimeSpan.FromSeconds(3));
+        
+        public Task HandleTradingSignals(InstrumentTradingSignals signals) // TODO: get rid of whole body lock and make calls async
+        {   
+            // TODO: check if the Exchange is ready for processing signals, maybe put them into inner queue if readyness is not the case
+            
+            // TODO: this method should place signals into inner queue only
+            // the queue have to be processed via separate worker
+
+            var instrumentName = signals.Instrument.Name;
+            
+            lock (lockRoots[instrumentName])
             {
-                if (!ActualSignals.ContainsKey(signals.Instrument.Name))
+                if (!ActualSignals.ContainsKey(instrumentName))
                 {
-                    Logger.LogError($"ActualSignals doesn't contains a key {signals.Instrument.Name}. It has keys: {string.Join(", ", ActualSignals.Keys)}");
+                    Logger.LogWarning($"ActualSignals doesn't contains a key {instrumentName}. It has keys: {string.Join(", ", ActualSignals.Keys)}");
                     return Task.FromResult(0);
                 }
                 
                 foreach (var arrivedSignal in signals.TradingSignals)
                 {
-                    TradingSignal existing;
-                    
-                    switch (arrivedSignal.Command)
+                    var translatedSignal = new TranslatedSignalTableEntity(SignalSource.RabbitQueue, signals.Instrument.Exchange, instrumentName, arrivedSignal);
+
+                    try
                     {
-                        case OrderCommand.Create:
+                        TradingSignal existing;
 
-                            existing = ActualSignals[signals.Instrument.Name]
-                                .SingleOrDefault(x => x.OrderId == arrivedSignal.OrderId);
-                            
-                            if (existing != null)
-                                Logger.LogDebug($"An order with id {arrivedSignal.OrderId} already in actual signals.");
-                                // TODO: return message from the method
-                            
-                            ActualSignals[signals.Instrument.Name].AddLast(arrivedSignal);
-                            AddOrder(signals.Instrument, arrivedSignal).Wait();
-                            Logger.LogDebug($"Created new order {arrivedSignal}");
-                            
-                            break;
-                            
-                        case OrderCommand.Edit:
-                            throw new NotSupportedException("Do not support edit signal");
+                        switch (arrivedSignal.Command)
+                        {
+                            case OrderCommand.Create:
+                                try
+                                {
+                                    if (!arrivedSignal.IsTimeInThreshold(tradingSignalsThreshold))
+                                    {
+                                        Logger.LogDebug($"Skipping old signal {arrivedSignal}");
+                                        translatedSignal.Failure("The signal is too old");
+                                        break;
+                                    }
+                                    
+                                    existing = ActualSignals[instrumentName]
+                                        .SingleOrDefault(x => x.OrderId == arrivedSignal.OrderId);
+
+                                    if (existing != null)
+                                        Logger.LogDebug(
+                                            $"An order with id {arrivedSignal.OrderId} already in actual signals.");
+
+                                    ActualSignals[instrumentName].AddLast(arrivedSignal);
+
+                                    var result = retryTwoTimesPolicy.ExecuteAndCaptureAsync(() =>
+                                        AddOrder(signals.Instrument, arrivedSignal, translatedSignal)).Result;
+                                    
+
+                                    if (result.Outcome == OutcomeType.Successful)
+                                    {
+                                        Logger.LogDebug($"Created new order {arrivedSignal}");
+                                    }
+                                    else
+                                    {
+                                        ActualSignals[instrumentName].Remove(arrivedSignal);
+                                        Logger.LogError(0, result.FinalException, $"Can't create order for {arrivedSignal}");
+                                        translatedSignal.Failure(result.FinalException);   
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                    Logger.LogError(0, e, $"Can't create new order {arrivedSignal}: {e.Message}");
+                                    translatedSignal.Failure(e);
+                                }
+
+
+                                break;
+
+                            case OrderCommand.Edit:
+                                throw new NotSupportedException("Do not support edit signal");
                             //break;
-                            
-                        case OrderCommand.Cancel:
-                            
-                            existing = ActualSignals[signals.Instrument.Name]
-                                .SingleOrDefault(x => x.OrderId == arrivedSignal.OrderId);
 
-                            if (existing != null)
-                            {
-                                ActualSignals[signals.Instrument.Name].Remove(existing);
-                                CancelOrder(signals.Instrument, existing).Wait();
-                                Logger.LogDebug($"Canceled order {arrivedSignal}");
-                            }
-                            else
-                                Logger.LogError($"Command for cancel unexisted order {arrivedSignal}");
-                            
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException();
+                            case OrderCommand.Cancel:
+
+                                existing = ActualSignals[instrumentName]
+                                    .SingleOrDefault(x => x.OrderId == arrivedSignal.OrderId);
+
+                                if (existing != null)
+                                {
+                                    try
+                                    {
+                                        ActualSignals[instrumentName].Remove(existing);
+
+                                        var result = retryTwoTimesPolicy.ExecuteAndCaptureAsync(() =>
+                                            CancelOrder(signals.Instrument, existing, translatedSignal)).Result;
+
+                                        if (result.Outcome == OutcomeType.Successful)
+                                        {
+                                            Logger.LogDebug($"Canceled order {arrivedSignal}");
+                                        }
+                                        else
+                                        {
+                                            Logger.LogError(0, result.FinalException, $"Can't cancel order {existing}");
+                                            translatedSignal.Failure(result.FinalException);
+                                        }
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        Logger.LogError(0, e, $"Can't cancel order {existing.OrderId}: {e.Message}");
+                                        translatedSignal.Failure(e);
+                                    }
+                                }
+                                else
+                                {
+                                    Logger.LogWarning($"Command for cancel unexisted order {arrivedSignal}");
+                                    translatedSignal.Failure("Unexisted order");
+                                }
+
+                                break;
+                            default:
+                                throw new ArgumentOutOfRangeException();
+                        }
                     }
+                    catch (Exception e)
+                    {
+                        translatedSignal.Failure(e);   
+                    }
+                    finally
+                    {
+                        translatedSignalsRepository.Save(translatedSignal);
+                    }
+                    
                 }
 
                 if (signals.TradingSignals.Any(x => x.Command == OrderCommand.Create))
                 {
-                    Logger.LogDebug($"Current orders:\n {string.Join("\n", ActualSignals[signals.Instrument.Name])}");
+                    Logger.LogDebug($"Current orders:\n {string.Join("\n", ActualSignals[instrumentName])}");
                 }
             }
             
-            return Task.FromResult(0);            
+            return Task.FromResult(0);
         }
 
-        protected abstract Task<bool> AddOrder(Instrument instrument, TradingSignal signal);
+        protected Task<bool> AddOrder(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        {
+            // TODO: save or update TranslatedSignalEntity
+            
+            return AddOrderImpl(instrument, signal, translatedSignal);
+        }
+        
+        protected abstract Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal);
+        
+        protected Task<bool> CancelOrder(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        {
+            // TODO: save or update TranslatedSignalEntity
+            
+            return CancelOrderImpl(instrument, signal, translatedSignal);
+        }
+        
+        protected abstract Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal);
 
-        protected abstract Task<bool> CancelOrder(Instrument instrument, TradingSignal signal);
-
+        
+        
         public Dictionary<string, LinkedList<TradingSignal>> ActualOrders => ActualSignals; // TODO: to readonly dictionary and collection
+
+        public abstract Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal,
+            TranslatedSignalTableEntity translatedSignal,
+            TimeSpan timeout);
+
+        public abstract Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal,
+            TranslatedSignalTableEntity translatedSignal,
+            TimeSpan timeout);
+
+        public virtual Task<IEnumerable<AccountBalance>> GetAccountBalance(CancellationToken cancellationToken)
+        {
+            return Task.FromResult(Enumerable.Empty<AccountBalance>());
+        }
     }
 }

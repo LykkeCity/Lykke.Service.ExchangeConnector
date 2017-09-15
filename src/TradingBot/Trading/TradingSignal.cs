@@ -3,12 +3,6 @@ using Newtonsoft.Json;
 
 namespace TradingBot.Trading
 {
-    public enum SignalType
-    {
-        Long,
-        Short
-    }
-
     public enum OrderType
     {
         Market,
@@ -28,54 +22,56 @@ namespace TradingBot.Trading
         Cancel
     }
 
+    public enum TimeInForce
+    {
+        GoodTillCancel,
+        FillOrKill
+    }
+
     public class TradingSignal
     {
         [JsonConstructor]
-        public TradingSignal(long orderId, OrderCommand command, TradeType tradeType, decimal price, decimal count, DateTime time, 
-            OrderType orderType = OrderType.Market)
+        public TradingSignal(string orderId, OrderCommand command, TradeType tradeType, decimal price, decimal volume, DateTime time, 
+            OrderType orderType = OrderType.Market,
+            TimeInForce timeInForce = TimeInForce.FillOrKill)
         {
             OrderId = orderId;
             Command = command;
             
             TradeType = tradeType;
             Price = price;
-            Count = count;
+            Volume = volume;
             Time = time;
             OrderType = orderType;
-
-            Type = tradeType == TradeType.Sell ? SignalType.Short : SignalType.Long;
+            TimeInForce = timeInForce;
         }
         
         public DateTime Time { get; }
-
-        public SignalType Type { get; }
         
         public OrderType OrderType { get; }
         
         public TradeType TradeType { get; }
-
+        
+        public TimeInForce TimeInForce { get; }
+        
         public decimal Price { get; }
 
-        public decimal Count { get; } // volume
-
-        public decimal Amount => Price * Count;
+        public decimal Volume { get; }
         
-        public long OrderId { get; }
+        public string OrderId { get; }
         
         public OrderCommand Command { get; }
 
         public override string ToString()
         {
-            return $"Id: {OrderId}, Command: {Command}, Type: {Type}, Price: {Price}, Count: {Count}";
+            return $"Id: {OrderId}, Time: {Time}, Command: {Command}, TradeType: {TradeType}, Price: {Price}, Count: {Volume}";
         }
 
-        public bool Equals(TradingSignal another)
+        public bool IsTimeInThreshold(TimeSpan threshold)
         {
-            return
-                TradeType == another.TradeType &&
-                Price == another.Price &&
-                Count == another.Count &&
-                OrderType == another.OrderType;
+            var now = DateTime.UtcNow;
+
+            return Math.Abs(now.Ticks - Time.Ticks) <= threshold.Ticks;
         }
     }
 }

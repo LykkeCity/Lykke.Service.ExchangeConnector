@@ -114,6 +114,27 @@ ordertype = order type:
  - ZECEUR, Base=XZEC, Quote=ZEUR
  - ZECUSD, Base=XZEC, Quote=ZUSD
 
+### Minimal order amounts:
+https://support.kraken.com/hc/en-us/articles/205893708-What-is-the-minimum-order-size-
+
+ - Augur (REP): 0.3
+ - Bitcoin (XBT): 0.002
+ - Bitcoin Cash (BCH): 0.002
+ - Dash (DASH): 0.03
+ - Dogecoin (DOGE): 3000
+ - EOS (EOS): 3
+ - Ethereum (ETH): 0.02
+ - Ethereum Classic (ETC): 0.3
+ - Gnosis (GNO): 0.03
+ - Iconomi (ICN): 2
+ - Litecoin (LTC): 0.1
+ - Melon (MLN): 0.1
+ - Monero (XMR): 0.1
+ - Ripple (XRP): 30
+ - Stellar Lumens (XLM): 300
+ - Zcash (ZEC): 0.03
+ - Tether (USDT): 5
+
 ### Info Provided
 
 Trades balance:
@@ -201,8 +222,12 @@ API implemented FIX protocol (http://fixprotocol.org) of version 4.4
 5:00 EST Sunday - 17:00 EST Friday, No operation on Saturday
 
 **Quantity**
+
 ICM rejects orders which quantity is not divisible by Step. For FOREX currency pairs, Step is 1000 units of base currency. For Gold step is 1 ounce, for Silver step is 50 ounces.
 
+**Additional notes**
+
+ICM automatically cancels all client orders on disconnect. So that the client needs to place all actual orders after every reconnection.
 
 ### Order Types
 

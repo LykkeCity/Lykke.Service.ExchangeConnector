@@ -11,6 +11,10 @@
         public string Name { get; }
         
         public string Exchange { get; }
+        
+        // TODO: public int PriceDecimalsCount { get; set; }
+        
+        
 
         public override string ToString()
         {

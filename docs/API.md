@@ -150,6 +150,24 @@ Where `{DateTime:s}` produce date and time in format `YYYY-MM-DDTHH:mm:ss`, for 
 }
 ```
 
+
+## Cancelling previously added order
+
+**URL**: `DELETE /api/v1/orders/{exchangeName}`
+
+body:
+
+```json
+{
+    "instrument": "EURUSD",
+    "id": 1,
+    "volume": 1000,
+    "price": 12.1234,
+    "tradeType": "sell",
+    "orderType": "limit"
+}
+```
+
 ## API Authorization
 
 API calls are authorized with API KEY. Every request must be signed with the key. The request sign must be placed into `Authorization` header of the request.

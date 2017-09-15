@@ -13,13 +13,11 @@ namespace TradingBot.Communications
     {
         private readonly ILogger logger = Logging.CreateLogger<AzureFixMessagesRepository>();
 
-        private readonly INoSQLTableStorage<FixMessageTableEntity> tableStorage;
+        private readonly INoSQLTableStorage<FixMessageTableEntity> _tableStorage;
    
-        public AzureFixMessagesRepository(string connectionString, string tableName)
+        public AzureFixMessagesRepository(INoSQLTableStorage<FixMessageTableEntity> tableStorage)
         {
-            tableStorage = new AzureTableStorage<FixMessageTableEntity>(connectionString,
-                tableName,
-                new LogToConsole());
+            _tableStorage = tableStorage;
         }
 
         public void SaveMessage(Message message, FixMessageDirection direction)
@@ -40,11 +38,11 @@ namespace TradingBot.Communications
                     Direction = direction
                 };
 
-                await tableStorage.InsertAsync(entity);
+                await _tableStorage.InsertAsync(entity);
             }
             catch (Exception ex)
             {
-                logger.LogError(new EventId(), ex, "Can't save FIX message into azure storage");
+                logger.LogError(0, ex, "Can't save FIX message into azure storage");
             }
         }
     }

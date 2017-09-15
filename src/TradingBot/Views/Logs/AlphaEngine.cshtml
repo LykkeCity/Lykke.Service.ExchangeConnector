@@ -1,12 +1,15 @@
-﻿@model IEnumerable<TradingBot.Controllers.JavaLogEntity>
+﻿@model IEnumerable<TradingBot.Repositories.JavaLogEntity>
 
 @{
     ViewData["Title"] = "Alpha Engine logs";
 }
 
 <p>
-    <a asp-controller="Logs" asp-action="Index">Exchange Connector Logs</a> | Alpha Engine Logs | 
-    <a asp-controller="Logs" asp-action="FIX">FIX</a>
+    <a asp-controller="Logs" asp-action="Index">Exchange Connector Logs</a> | 
+    Alpha Engine Logs | 
+    <a asp-controller="Logs" asp-action="FIX">FIX</a> |
+    <a asp-controller="Logs" asp-action="TranslatedSignals">Translated Signals</a> |
+    <a asp-controller="Logs" asp-action="IntrinsicEvents">Intrinsic Events</a>
 </p>
 
 

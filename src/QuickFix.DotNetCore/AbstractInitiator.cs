@@ -73,7 +73,7 @@ namespace QuickFix
             // start it up
             isStopped_ = false;
             OnConfigure(_settings);
-            thread_ = new Thread(new ThreadStart(OnStart));
+            thread_ = new Thread(OnStart);
             thread_.Start();
         }
 

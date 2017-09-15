@@ -18,6 +18,8 @@
         
         public string TradesExchange { get; set; }
         
+        public string SignalsQueue { get; set; }
+        
         /// <summary>
         /// see https://www.rabbitmq.com/uri-spec.html
         /// </summary>
