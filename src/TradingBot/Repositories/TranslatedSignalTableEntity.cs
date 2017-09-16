@@ -61,6 +61,11 @@ namespace TradingBot.Repositories
         
         public TranslationStatus Status { get; set; }
         
+        public static string GeneratePartitionKey()
+        {
+            return "TranslatedSignal";
+        }
+        
         public TranslatedSignalTableEntity()
         {
         }
