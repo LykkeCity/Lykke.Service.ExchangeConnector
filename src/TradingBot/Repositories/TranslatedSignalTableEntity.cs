@@ -6,21 +6,27 @@ using TradingBot.Trading;
 
 namespace TradingBot.Repositories
 {
-    public class TranslatedSignalTableEntity : TableEntity
+    public enum SignalSource
+    {
+        RabbitQueue,
+        RestApi
+    }
+
+    public enum TranslationStatus
+    {
+        Success,
+        Failure
+    }
+
+    public class TranslatedSignalTableEntity : BaseEntity
     {
         public DateTime ReceiveDateTime { get; set; }
         
         public string Exchange { get; set; }
         
         public string Instrument { get; set; }
-        
-        public int OrderCommandInt { get; set; }
 
-        public OrderCommand OrderCommand
-        {
-            get => (OrderCommand) OrderCommandInt;
-            set => OrderCommandInt = (int) value;
-        }
+        public OrderCommand OrderCommand { get; set; }
         
         public DateTime SignalDateTime { get; set; }
         
@@ -28,51 +34,21 @@ namespace TradingBot.Repositories
         
         public string ExternalId { get; set; }
         
-        public double Price { get; set; } // azure table storage don't support decimal
+        public decimal Price { get; set; }
         
-        public double Volume { get; set; }
+        public decimal Volume { get; set; }
+
+        public OrderType OrderType { get; set; }
         
+        public TradeType TradeType { get; set; }
+
+        public TimeInForce TimeInForce { get; set; }
         
-        public int OrderTypeInt { get; set; }
-        public OrderType OrderType
-        {
-            get => (OrderType) OrderTypeInt;
-            set => OrderTypeInt = (int) value;
-        }
-        
-        
-        public int TradeTypeInt { get; set; }
-        public TradeType TradeType
-        {
-            get => (TradeType) TradeTypeInt;
-            set => TradeTypeInt = (int) value;
-        }
-        
-        
-        public int TimeInForceInt { get; set; }
-        public TimeInForce TimeInForce
-        {
-            get => (TimeInForce) TimeInForceInt;
-            set => TimeInForceInt = (int) value;
-        }
-        
-        
-        public int SignalSourceInt { get; set; }
-        public SignalSource SignalSource
-        {
-            get => (SignalSource) SignalSourceInt;
-            set => SignalSourceInt = (int) value;
-        }
-        
+        public SignalSource SignalSource { get; set; }
+
         public string ErrorMessage { get; set; }
         
-        
-        public int ExecutionStatusInt { get; set; }
-        public ExecutionStatus ExecutionStatus
-        {
-            get => (ExecutionStatus) ExecutionStatusInt;
-            set => ExecutionStatusInt = (int) value;
-        }
+        public ExecutionStatus ExecutionStatus { get; set; }
         
         public string ClientIP { get; set; }
         
@@ -84,14 +60,7 @@ namespace TradingBot.Repositories
         
         public DateTime? ResponseFromExchangeDateTime { get; set; }
         
-        
-        public int TranslationStatusInt { get; set; }
-        public TranslationStatus Status
-        {
-            get => (TranslationStatus) TranslationStatusInt;
-            set => TranslationStatusInt = (int) value;
-        }
-        
+        public TranslationStatus Status { get; set; }
         
         public TranslatedSignalTableEntity()
         {
@@ -109,8 +78,8 @@ namespace TradingBot.Repositories
             SignalDateTime = signal.Time;
             OrderCommand = signal.Command;
             OrderId = signal.OrderId;
-            Price = (double)signal.Price;
-            Volume = (double)signal.Volume;
+            Price = signal.Price;
+            Volume = signal.Volume;
             OrderType = signal.OrderType;
             TradeType = signal.TradeType;
             TimeInForce = signal.TimeInForce;
@@ -165,17 +134,5 @@ namespace TradingBot.Repositories
             Status = TranslationStatus.Failure;
             ErrorMessage = error;
         }
-    }
-
-    public enum SignalSource
-    {
-        RabbitQueue,
-        RestApi
-    }
-
-    public enum TranslationStatus
-    {
-        Success,
-        Failure
     }
 }

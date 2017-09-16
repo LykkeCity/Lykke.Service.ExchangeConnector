@@ -92,30 +92,54 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         protected override async Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal)
         {
             // TODO: if it is Market order, use another method.
-            var orderId = await apiClient.MakePostRequestAsync<string>(
-                $"{Config.EndpointUrl}/api/Orders/PlaceLimitOrder", 
-                CreateHttpContent(new LimitOrder()
-                    {
-                        AssetPairId = instrument.Name,
-                        OrderAction = signal.TradeType,
-                        Volume = signal.Volume,
-                        Price = signal.Price
-                    }),
-                trasnlatedSignal, 
-                CancellationToken.None);
+            if (signal.OrderType == OrderType.Limit) {
 
-            Guid id;
-            var orderPlaced = Guid.TryParse(orderId, out id) && id != default(Guid);
+                var orderId = await apiClient.MakePostRequestAsync<string>(
+                    $"{Config.EndpointUrl}/api/Orders/PlaceLimitOrder", 
+                    CreateHttpContent(new LimitOrder()
+                        {
+                            AssetPairId = instrument.Name,
+                            OrderAction = signal.TradeType,
+                            Volume = signal.Volume,
+                            Price = signal.Price
+                        }),
+                    trasnlatedSignal, 
+                    CancellationToken.None);
 
-            if (orderPlaced)
-            {
-                lock (orderIds)
+                Guid id;
+                var orderPlaced = Guid.TryParse(orderId, out id) && id != default(Guid);
+
+                if (orderPlaced)
                 {
-                    orderIds.Add(signal.OrderId, id);
+                    lock (orderIds)
+                    {
+                        orderIds.Add(signal.OrderId, id);
+                    }
+                }
+
+                return orderPlaced;
+            }
+            else {
+                // TODO: place market order
+                var marketOrderResponse = await apiClient.MakePostRequestAsync<MarketOrderResponse>(
+                    $"{Config.EndpointUrl}/api/Orders/PlaceMarketOrder", 
+                    CreateHttpContent(new MarketOrderRequest()
+                        {
+                            AssetPairId = instrument.Name,
+                            OrderAction = signal.TradeType,
+                            Volume = signal.Volume
+                        }),
+                    trasnlatedSignal, 
+                    CancellationToken.None);
+
+                if (marketOrderResponse.Error == null) {
+                    return true;
+                }
+                else {
+                    trasnlatedSignal.Failure(marketOrderResponse.Error);
+                    return false;
                 }
             }
-
-            return orderPlaced;
         }
         
         private readonly Dictionary<string, Guid> orderIds = new Dictionary<string, Guid>();
