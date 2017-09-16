@@ -91,7 +91,6 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
 
         protected override async Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal)
         {
-            // TODO: if it is Market order, use another method.
             if (signal.OrderType == OrderType.Limit) {
 
                 var orderId = await apiClient.MakePostRequestAsync<string>(
@@ -120,7 +119,6 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                 return orderPlaced;
             }
             else {
-                // TODO: place market order
                 var marketOrderResponse = await apiClient.MakePostRequestAsync<MarketOrderResponse>(
                     $"{Config.EndpointUrl}/api/Orders/PlaceMarketOrder", 
                     CreateHttpContent(new MarketOrderRequest()
@@ -136,7 +134,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     return true;
                 }
                 else {
-                    trasnlatedSignal.Failure(marketOrderResponse.Error);
+                    trasnlatedSignal.Failure(marketOrderResponse.Error.ToString());
                     return false;
                 }
             }

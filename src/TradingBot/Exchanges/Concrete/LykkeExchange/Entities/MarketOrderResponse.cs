@@ -1,5 +1,3 @@
-using TradingBot.Trading;
-
 namespace TradingBot.Exchanges.Concrete.LykkeExchange.Entities
 {
     public class MarketOrderResponse

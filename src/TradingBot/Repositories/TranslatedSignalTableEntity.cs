@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Net.Http;
-using Microsoft.WindowsAzure.Storage.Table;
 using TradingBot.Trading;
 
 namespace TradingBot.Repositories
