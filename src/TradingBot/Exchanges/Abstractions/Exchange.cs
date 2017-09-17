@@ -189,8 +189,6 @@ namespace TradingBot.Exchanges.Abstractions
                                     Logger.LogError(0, e, $"Can't create new order {arrivedSignal}: {e.Message}");
                                     translatedSignal.Failure(e);
                                 }
-
-
                                 break;
 
                             case OrderCommand.Edit:

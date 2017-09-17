@@ -71,7 +71,8 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                                 new TickPrice(g.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow,
                                     g.FirstOrDefault(ob => !ob.IsBuy)?.Prices.Select(x => x.Price).DefaultIfEmpty(0).Min() ?? 0,
                                     g.FirstOrDefault(ob => ob.IsBuy)?.Prices.Select(x => x.Price).DefaultIfEmpty(0).Max() ?? 0)
-                            }));
+                            }))
+                        .Where(x => x.TickPrices.First().Ask > 0 && x.TickPrices.First().Bid > 0);
 
                     foreach (var tickPrice in tickPrices)
                     {
