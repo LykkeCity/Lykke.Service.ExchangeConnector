@@ -94,7 +94,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             if (signal.OrderType == OrderType.Limit) {
 
                 var orderId = await apiClient.MakePostRequestAsync<string>(
-                    $"{Config.EndpointUrl}/api/Orders/PlaceLimitOrder", 
+                    $"{Config.EndpointUrl}/api/Orders/limit", 
                     CreateHttpContent(new LimitOrder()
                         {
                             AssetPairId = instrument.Name,
@@ -119,8 +119,8 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                 return orderPlaced;
             }
             else {
-                var marketOrderResponse = await apiClient.MakePostRequestAsync<MarketOrderResponse>(
-                    $"{Config.EndpointUrl}/api/Orders/PlaceMarketOrder", 
+                var executionPrice = await apiClient.MakePostRequestAsync<string>(
+                    $"{Config.EndpointUrl}/api/Orders/market", 
                     CreateHttpContent(new MarketOrderRequest()
                         {
                             AssetPairId = instrument.Name,
@@ -130,13 +130,10 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     trasnlatedSignal, 
                     CancellationToken.None);
 
-                if (marketOrderResponse.Error == null) {
-                    return true;
-                }
-                else {
-                    trasnlatedSignal.Failure(marketOrderResponse.Error.ToString());
-                    return false;
-                }
+                decimal price;
+                var orderExecuted = decimal.TryParse(executionPrice, out price) && price != default(decimal);
+
+                return orderExecuted;
             }
         }
         

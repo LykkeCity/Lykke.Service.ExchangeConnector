@@ -91,6 +91,7 @@ namespace TradingBot
                 var topSettings = settingsManager.CurrentValue;
                 var settings = topSettings.TradingBot;
 
+                
                 // Register dependencies, populate the services from
                 // the collection, and build the container. If you want
                 // to dispose of the container at the end of the app,
@@ -129,9 +130,11 @@ namespace TradingBot
                 var fixMessagesStorage = AzureTableStorage<FixMessageTableEntity>.Create(
                     settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "fixMessages", log);
                 builder.RegisterInstance(fixMessagesStorage).As<INoSQLTableStorage<FixMessageTableEntity>>().SingleInstance();
+                
                 var javaLogsStorage = AzureTableStorage<JavaLogEntity>.Create(
                     settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "logsAlphaEngine", log);
                 builder.RegisterInstance(javaLogsStorage).As<INoSQLTableStorage<JavaLogEntity>>().SingleInstance();
+                
                 var javaEventsStorage = AzureTableStorage<JavaIntrinsicEventEntity>.Create(
                     settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "intrinsicEvents", log);
                 builder.RegisterInstance(javaEventsStorage).As<INoSQLTableStorage<JavaIntrinsicEventEntity>>().SingleInstance();
