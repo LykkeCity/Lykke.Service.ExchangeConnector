@@ -9,7 +9,5 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange.Entities
         public TradeType OrderAction { get; set; }
         
         public decimal Volume { get; set; }
-        
-        public bool Straight { get; set; } // What's that?
     }
 }

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+using Common.Log;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Kraken.Endpoints;
@@ -30,7 +30,8 @@ namespace TradingBot.Exchanges.Concrete.Kraken
         private Task pricesJob;
         private CancellationTokenSource ctSource;
         
-        public KrakenExchange(KrakenConfig config, TranslatedSignalsRepository translatedSignalsRepository) : base(Name, config, translatedSignalsRepository)
+        public KrakenExchange(KrakenConfig config, TranslatedSignalsRepository translatedSignalsRepository, ILog log) : 
+            base(Name, config, translatedSignalsRepository, log)
         {
             this.config = config;
             
@@ -68,7 +69,11 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                             }
                             catch (Exception e)
                             {
-                                Logger.LogError(0, e, "Can't get prices from kraken.");
+                                await LykkeLog.WriteErrorAsync(
+                                    nameof(Kraken),
+                                    nameof(KrakenExchange),
+                                    nameof(pricesJob),
+                                    e);
                                 continue;
                             }
 
@@ -108,7 +113,11 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             long differenceTicks = Math.Abs(serverTime.FromUnixTime.Ticks - now.Ticks);
             bool differenceInThreshold = differenceTicks <= TimeSpan.FromMinutes(2).Ticks;
 
-            Logger.LogDebug($"Server time: {serverTime.FromUnixTime}; now: {now}; difference ticks: {differenceTicks}. In threshold: {differenceInThreshold}");
+            await LykkeLog.WriteInfoAsync(
+                nameof(Kraken),
+                nameof(KrakenExchange),
+                nameof(pricesJob),
+                $"Server time: {serverTime.FromUnixTime}; now: {now}; difference ticks: {differenceTicks}. In threshold: {differenceInThreshold}");
 
             return differenceInThreshold;
         }

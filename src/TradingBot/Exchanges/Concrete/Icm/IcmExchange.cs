@@ -3,11 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AzureStorage;
-using Common.Log;
-using Lykke.Logs;
 using Lykke.RabbitMqBroker;
 using Lykke.RabbitMqBroker.Subscriber;
-using Microsoft.Extensions.Logging;
 using QuickFix;
 using QuickFix.Transport;
 using TradingBot.Communications;
@@ -36,7 +33,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             TranslatedSignalsRepository translatedSignalsRepository,
             INoSQLTableStorage<FixMessageTableEntity> tableStorage,
             Common.Log.ILog log)
-            : base(Name, config, translatedSignalsRepository)
+            : base(Name, config, translatedSignalsRepository, log)
         {
             this.config = config;
             _tableStorage = tableStorage;
@@ -100,17 +97,26 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 .Start();
         }
         
-        protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        protected override async Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
-            Logger.LogInformation($"About to place new order for instrument {instrument}: {signal}");
-            return Task.FromResult(connector.AddOrder(instrument, signal, translatedSignal));
+            await LykkeLog.WriteInfoAsync(
+                nameof(Icm),
+                nameof(IcmExchange),
+                nameof(AddOrderImpl),
+                $"About to place new order for instrument {instrument}: {signal}");
+            
+            return connector.AddOrder(instrument, signal, translatedSignal);
         }
 
-        protected override Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        protected override async Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
-            Logger.LogInformation($"Cancelling order {signal}");
+            await LykkeLog.WriteInfoAsync(
+                nameof(Icm),
+                nameof(IcmExchange),
+                nameof(AddOrderImpl),
+                $"Cancelling order {signal}");
 
-            return Task.FromResult(connector.CancelOrder(instrument, signal, translatedSignal));
+            return connector.CancelOrder(instrument, signal, translatedSignal);
         }
 
         public Task<ExecutedTrade> GetOrderInfo(Instrument instrument, string orderId)

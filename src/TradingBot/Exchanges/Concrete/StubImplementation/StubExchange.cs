@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Common.Log;
 using Microsoft.Extensions.Logging;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
@@ -21,8 +22,8 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 	    private readonly StubExchangeConfiguration config;
 	    
 
-        public StubExchange(StubExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository)
-	        : base(Name, config, translatedSignalsRepository)
+        public StubExchange(StubExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log)
+	        : base(Name, config, translatedSignalsRepository, log)
         {
             this.config = config;
         }

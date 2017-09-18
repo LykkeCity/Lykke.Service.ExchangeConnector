@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
+using Common.Log;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
 using TradingBot.Repositories;
 
@@ -22,7 +20,8 @@ namespace TradingBot.Exchanges.Concrete.HistoricalData
         private HistoricalDataReader reader;
         private bool stopRequested;
         
-        public HistoricalDataExchange(HistoricalDataConfig config, TranslatedSignalsRepository translatedSignalsRepository) : base(Name, config, translatedSignalsRepository)
+        public HistoricalDataExchange(HistoricalDataConfig config, TranslatedSignalsRepository translatedSignalsRepository, ILog log) : 
+            base(Name, config, translatedSignalsRepository, log)
         {
             this.config = config;
         }

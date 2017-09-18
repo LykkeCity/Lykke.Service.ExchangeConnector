@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Oanda.Endpoints;
 using System;
+using Common.Log;
 using TradingBot.Communications;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
@@ -20,7 +21,8 @@ namespace TradingBot.Exchanges.Concrete.Oanda
         private Prices prices;
         private Instruments instruments;
 
-        public OandaExchange(OandaConfiguration config, TranslatedSignalsRepository translatedSignalsRepository) : base(Name, config, translatedSignalsRepository)
+        public OandaExchange(OandaConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log) : 
+            base(Name, config, translatedSignalsRepository, log)
         {
             var client = new ApiClient(OandaHttpClient.CreateHttpClient(OandaAuth.Token));
 
@@ -62,7 +64,7 @@ namespace TradingBot.Exchanges.Concrete.Oanda
         protected async Task<bool> EstablishConnectionImpl(CancellationToken cancellationToken)
         {
             var accountsList = await accounts.GetAccounts(cancellationToken);
-            Logger.LogDebug($"Received {accountsList.Accounts.Count} accounts");
+            
 
             var accountId = accountsList.Accounts.First().Id;
 

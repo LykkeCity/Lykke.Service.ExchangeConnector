@@ -107,7 +107,7 @@ namespace TradingBot
                         _log.WriteWarningAsync(
                             nameof(TradingBot),
                             nameof(ExchangeConnectorApplication),
-                            nameof(Start),
+                            nameof(SetupTradingSignalsSubscription),
                             $"Received a trading signal for unconnected exchange {x.Instrument.Exchange}")
                             .Wait();
                         return Task.FromResult(0);
@@ -125,7 +125,7 @@ namespace TradingBot
             _log.WriteInfoAsync(
                 nameof(TradingBot),
                 nameof(ExchangeConnectorApplication),
-                nameof(Start),
+                nameof(Stop),
                 "Stop requested")
                 .Wait();
             ctSource.Cancel();

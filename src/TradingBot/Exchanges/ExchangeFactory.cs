@@ -67,16 +67,16 @@ namespace TradingBot.Exchanges
 		        result.Add(new IcmExchange(config.Icm, translatedSignalsRepository, tableStorage, log));
 	        
 	        if (config.Kraken.Enabled)
-		        result.Add(new KrakenExchange(config.Kraken, translatedSignalsRepository));
+		        result.Add(new KrakenExchange(config.Kraken, translatedSignalsRepository, log));
 	        
 	        if (config.Stub.Enabled)
-		        result.Add(new StubExchange(config.Stub, translatedSignalsRepository));
+		        result.Add(new StubExchange(config.Stub, translatedSignalsRepository, log));
 	        
 	        if (config.HistoricalData.Enabled)
-		        result.Add(new HistoricalDataExchange(config.HistoricalData, translatedSignalsRepository));
+		        result.Add(new HistoricalDataExchange(config.HistoricalData, translatedSignalsRepository, log));
 	        
 	        if (config.Lykke.Enabled)
-		        result.Add(new LykkeExchange(config.Lykke, translatedSignalsRepository));
+		        result.Add(new LykkeExchange(config.Lykke, translatedSignalsRepository, log));
 
 	        return result;
         }

@@ -1,15 +1,14 @@
-﻿using Microsoft.Extensions.Logging;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Common.Log;
 using Polly;
 using TradingBot.Communications;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
-using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
 using TradingBot.Repositories;
 
@@ -17,7 +16,9 @@ namespace TradingBot.Exchanges.Abstractions
 {
     public abstract class Exchange
     {
-        protected readonly ILogger Logger = Logging.CreateLogger<Exchange>();
+        //protected readonly ILogger Logger = Logging.CreateLogger<Exchange>();
+
+        protected readonly ILog LykkeLog;
 
         private readonly List<Handler<InstrumentTickPrices>> tickPriceHandlers = new List<Handler<InstrumentTickPrices>>();
 
@@ -35,11 +36,12 @@ namespace TradingBot.Exchanges.Abstractions
 
         private readonly Dictionary<string, object> lockRoots;
 
-        protected Exchange(string name, IExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository)
+        protected Exchange(string name, IExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log)
         {
             Name = name;
             Config = config;
             State = ExchangeState.Initializing;
+            LykkeLog = log;
 
             this.translatedSignalsRepository = translatedSignalsRepository;
 
@@ -51,7 +53,7 @@ namespace TradingBot.Exchanges.Abstractions
             decimal initialValue = 100m; // TODO: get initial value from config? or get it from real exchange.
             Instruments = config.Instruments.Select(x => new Instrument(Name, x)).ToList();
             Positions = Instruments.ToDictionary(x => x.Name, x => new Position(x, initialValue));
-            ActualSignals = Instruments.ToDictionary(x => x.Name, x => new LinkedList<TradingSignal>());
+            ActualSignals = Instruments.ToDictionary(x => x.Name, x => new LinkedList<TradingSignal>()); // TODO: add external id
 
             lockRoots = Instruments.ToDictionary(x => x.Name, x => new object());
         }
@@ -136,7 +138,14 @@ namespace TradingBot.Exchanges.Abstractions
             {
                 if (!ActualSignals.ContainsKey(instrumentName))
                 {
-                    Logger.LogWarning($"ActualSignals doesn't contains a key {instrumentName}. It has keys: {string.Join(", ", ActualSignals.Keys)}");
+                    LykkeLog.WriteWarningAsync(
+                        component: nameof(TradingBot.Exchanges.Abstractions),
+                        process: nameof(Exchange),
+                        context: nameof(HandleTradingSignals),
+                        info:
+                        $"ActualSignals doesn't contains a key {instrumentName}. It has keys: {string.Join(", ", ActualSignals.Keys)}"
+                    ).Wait();
+                    
                     return Task.FromResult(0);
                 }
                 
@@ -155,7 +164,11 @@ namespace TradingBot.Exchanges.Abstractions
                                 {
                                     if (!arrivedSignal.IsTimeInThreshold(tradingSignalsThreshold))
                                     {
-                                        Logger.LogDebug($"Skipping old signal {arrivedSignal}");
+                                        LykkeLog.WriteInfoAsync(nameof(TradingBot.Exchanges.Abstractions),
+                                            nameof(Exchange),
+                                            nameof(HandleTradingSignals),
+                                            $"Skipping old signal {arrivedSignal}").Wait();
+                                        
                                         translatedSignal.Failure("The signal is too old");
                                         break;
                                     }
@@ -164,71 +177,93 @@ namespace TradingBot.Exchanges.Abstractions
                                         .SingleOrDefault(x => x.OrderId == arrivedSignal.OrderId);
 
                                     if (existing != null)
-                                        Logger.LogDebug(
-                                            $"An order with id {arrivedSignal.OrderId} already in actual signals.");
+                                        LykkeLog.WriteWarningAsync(nameof(TradingBot.Exchanges.Abstractions),
+                                            nameof(Exchange),
+                                            nameof(HandleTradingSignals),
+                                            $"An order with id {arrivedSignal.OrderId} already in actual signals.").Wait();
 
-                                    ActualSignals[instrumentName].AddLast(arrivedSignal);
 
                                     var result = retryTwoTimesPolicy.ExecuteAndCaptureAsync(() =>
                                         AddOrder(signals.Instrument, arrivedSignal, translatedSignal)).Result;
-                                    
 
                                     if (result.Outcome == OutcomeType.Successful)
                                     {
-                                        Logger.LogDebug($"Created new order {arrivedSignal}");
+                                        ActualSignals[instrumentName].AddLast(arrivedSignal);
+                                        
+                                        LykkeLog.WriteInfoAsync(nameof(TradingBot.Exchanges.Abstractions),
+                                            nameof(Exchange),
+                                            nameof(HandleTradingSignals),
+                                            $"Created new order {arrivedSignal}").Wait();
                                     }
                                     else
                                     {
-                                        ActualSignals[instrumentName].Remove(arrivedSignal);
-                                        Logger.LogError(0, result.FinalException, $"Can't create order for {arrivedSignal}");
+                                        LykkeLog.WriteErrorAsync(nameof(TradingBot.Exchanges.Abstractions),
+                                            nameof(Exchange),
+                                            nameof(HandleTradingSignals),
+                                            result.FinalException).Wait();
+                                        
                                         translatedSignal.Failure(result.FinalException);   
                                     }
                                 }
                                 catch (Exception e)
                                 {
-                                    Logger.LogError(0, e, $"Can't create new order {arrivedSignal}: {e.Message}");
+                                    LykkeLog.WriteErrorAsync(nameof(TradingBot.Exchanges.Abstractions),
+                                        nameof(Exchange),
+                                        nameof(HandleTradingSignals),
+                                        e);
                                     translatedSignal.Failure(e);
                                 }
                                 break;
 
                             case OrderCommand.Edit:
                                 throw new NotSupportedException("Do not support edit signal");
-                            //break;
 
                             case OrderCommand.Cancel:
 
                                 existing = ActualSignals[instrumentName]
                                     .SingleOrDefault(x => x.OrderId == arrivedSignal.OrderId);
 
-                                if (existing != null)
+                                if (existing == null)
                                 {
-                                    try
+                                    LykkeLog.WriteWarningAsync(nameof(Abstractions),
+                                        nameof(Exchange),
+                                        nameof(HandleTradingSignals),
+                                        $"Command for cancel unexisted order {arrivedSignal}").Wait();
+                                    
+                                    translatedSignal.Failure("Unexisted order");
+                                    break;
+                                }
+                                
+                                try
+                                {
+                                    var result = retryTwoTimesPolicy.ExecuteAndCaptureAsync(() =>
+                                        CancelOrder(signals.Instrument, existing, translatedSignal)).Result;
+
+                                    if (result.Outcome == OutcomeType.Successful)
                                     {
                                         ActualSignals[instrumentName].Remove(existing);
-
-                                        var result = retryTwoTimesPolicy.ExecuteAndCaptureAsync(() =>
-                                            CancelOrder(signals.Instrument, existing, translatedSignal)).Result;
-
-                                        if (result.Outcome == OutcomeType.Successful)
-                                        {
-                                            Logger.LogDebug($"Canceled order {arrivedSignal}");
-                                        }
-                                        else
-                                        {
-                                            Logger.LogError(0, result.FinalException, $"Can't cancel order {existing}");
-                                            translatedSignal.Failure(result.FinalException);
-                                        }
+                                        
+                                        LykkeLog.WriteInfoAsync(nameof(Abstractions),
+                                            nameof(Exchange),
+                                            nameof(HandleTradingSignals),
+                                            $"Canceled order {arrivedSignal}").Wait();
                                     }
-                                    catch (Exception e)
+                                    else
                                     {
-                                        Logger.LogError(0, e, $"Can't cancel order {existing.OrderId}: {e.Message}");
-                                        translatedSignal.Failure(e);
+                                        translatedSignal.Failure(result.FinalException);
+                                        LykkeLog.WriteErrorAsync(nameof(Abstractions),
+                                            nameof(Exchange),
+                                            nameof(HandleTradingSignals),
+                                            result.FinalException);
                                     }
                                 }
-                                else
+                                catch (Exception e)
                                 {
-                                    Logger.LogWarning($"Command for cancel unexisted order {arrivedSignal}");
-                                    translatedSignal.Failure("Unexisted order");
+                                    translatedSignal.Failure(e);
+                                    LykkeLog.WriteErrorAsync(nameof(Abstractions),
+                                        nameof(Exchange),
+                                        nameof(HandleTradingSignals),
+                                        e).Wait();
                                 }
 
                                 break;
@@ -244,12 +279,14 @@ namespace TradingBot.Exchanges.Abstractions
                     {
                         translatedSignalsRepository.Save(translatedSignal);
                     }
-                    
                 }
 
                 if (signals.TradingSignals.Any(x => x.Command == OrderCommand.Create))
                 {
-                    Logger.LogDebug($"Current orders:\n {string.Join("\n", ActualSignals[instrumentName])}");
+                    LykkeLog.WriteInfoAsync(nameof(Abstractions),
+                        nameof(Exchange),
+                        nameof(HandleTradingSignals),
+                        $"Current orders:\n {string.Join("\n", ActualSignals[instrumentName])}").Wait();
                 }
             }
             

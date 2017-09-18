@@ -16,10 +16,11 @@ namespace TradingBot.Tests.LykkeApiTests
         private readonly LykkeExchangeConfiguration config = new LykkeExchangeConfiguration()
             {
                 Instruments = new [] { "BTCUSD" },
-                EndpointUrl = ""
+                EndpointUrl = "",
+                ApiKey = ""
             };
 
-        private LykkeExchange Exchange => new LykkeExchange(config, null);
+        private LykkeExchange Exchange => new LykkeExchange(config, null, null);
 
         [Fact]
         public async Task GetPairsTest()
