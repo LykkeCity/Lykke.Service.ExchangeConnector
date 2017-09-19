@@ -26,7 +26,9 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         public LykkeExchange(LykkeExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log) 
             : base(Name, config, translatedSignalsRepository, log)
         {
-            apiClient = new ApiClient(new HttpClient()); // TODO: HttpClient have to be Singleton
+            var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Add("api-key", Config.ApiKey);
+            apiClient = new ApiClient(httpClient);
         }
 
         public async Task<IEnumerable<Instrument>> GetAvailableInstruments(CancellationToken cancellationToken)
@@ -152,7 +154,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         {
             var content = new StringContent(JsonConvert.SerializeObject(value));
             content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-            content.Headers.Add("api-key", Config.ApiKey);
+            //content.Headers.Add("api-key", Config.ApiKey);
             
             return content;
         }
@@ -256,6 +258,30 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             {
                 return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType,
                     signal.OrderId, ExecutionStatus.Rejected);
+            }
+        }
+
+        public async Task CancelAllOrders()
+        {
+            var allOrdres = await apiClient.MakeGetRequestAsync<IEnumerable<LimitOrderState>>(
+                    $"{Config.EndpointUrl}/api/Orders?status=InOrderBook",
+                    CancellationToken.None);
+
+
+            foreach (var order in allOrdres)
+            {
+                try
+                {
+                    await apiClient.MakePostRequestAsync<string>(
+                        $"{Config.EndpointUrl}/api/Orders/{order.Id}/Cancel",
+                        CreateHttpContent(new object()),
+                        null,
+                        CancellationToken.None);
+                }
+                catch (Exception)
+                {
+                    
+                }
             }
         }
     }
