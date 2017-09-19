@@ -36,8 +36,8 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             this.config = config;
             
             var httpClient = new HttpClient() {Timeout = TimeSpan.FromSeconds(3)}; // TODO: HttpClient have to be Singleton
-            publicData = new PublicData(new ApiClient(httpClient));
-            privateData = new PrivateData(new ApiClient(new HttpClient() {Timeout = TimeSpan.FromSeconds(30)}), config.ApiKey, config.PrivateKey, new NonceProvider());
+            publicData = new PublicData(new ApiClient(httpClient, log));
+            privateData = new PrivateData(new ApiClient(new HttpClient() {Timeout = TimeSpan.FromSeconds(30)}, log), config.ApiKey, config.PrivateKey, new NonceProvider());
         }
 
         protected override void StartImpl()
@@ -59,40 +59,51 @@ namespace TradingBot.Exchanges.Concrete.Kraken
 
                     while(!ctSource.IsCancellationRequested)
                     {
-                        for (int i = 0; i < Instruments.Count && !ctSource.IsCancellationRequested; i++)
+                        try
                         {
-                            SpreadDataResult result;
-
-                            try
+                            for (int i = 0; i < Instruments.Count && !ctSource.IsCancellationRequested; i++)
                             {
-                                result = await publicData.GetSpread(ctSource.Token, Instruments[i].Name, lasts[i]);
-                            }
-                            catch (Exception e)
-                            {
-                                await LykkeLog.WriteErrorAsync(
-                                    nameof(Kraken),
-                                    nameof(KrakenExchange),
-                                    nameof(pricesJob),
-                                    e);
-                                continue;
-                            }
+                                SpreadDataResult result;
 
-                            lasts[i] = result.Last;
-                            var prices = result.Data.Single().Value.Select(x => new TickPrice(x.Time, x.Ask, x.Bid)).ToArray();
-
-                            if (prices.Any())
-                            {
-                                if (prices.Length == 1 && prices[0].Time == DateTimeUtils.FromUnix(lasts[i]))
+                                try
                                 {
-                                    // If there is only one price and it has timestamp of last one, ignore it.
+                                    result = await publicData.GetSpread(ctSource.Token, Instruments[i].Name, lasts[i]);
                                 }
-                                else
+                                catch (Exception e)
                                 {
-                                    await CallHandlers(new InstrumentTickPrices(Instruments[i], prices));
+                                    await LykkeLog.WriteErrorAsync(
+                                        nameof(Kraken),
+                                        nameof(KrakenExchange),
+                                        nameof(pricesJob),
+                                        e);
+                                    continue;
                                 }
-                            }
 
-                            await Task.Delay(TimeSpan.FromSeconds(10), ctSource.Token);
+                                lasts[i] = result.Last;
+                                var prices = result.Data.Single().Value.Select(x => new TickPrice(x.Time, x.Ask, x.Bid)).ToArray();
+
+                                if (prices.Any())
+                                {
+                                    if (prices.Length == 1 && prices[0].Time == DateTimeUtils.FromUnix(lasts[i]))
+                                    {
+                                        // If there is only one price and it has timestamp of last one, ignore it.
+                                    }
+                                    else
+                                    {
+                                        await CallHandlers(new InstrumentTickPrices(Instruments[i], prices));
+                                    }
+                                }
+
+                                await Task.Delay(TimeSpan.FromSeconds(10), ctSource.Token);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            await LykkeLog.WriteErrorAsync(
+                                nameof(Kraken),
+                                nameof(KrakenExchange),
+                                nameof(pricesJob),
+                                e);
                         }
                     }
                     

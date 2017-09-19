@@ -28,7 +28,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         {
             var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Add("api-key", Config.ApiKey);
-            apiClient = new ApiClient(httpClient);
+            apiClient = new ApiClient(httpClient, log);
         }
 
         public async Task<IEnumerable<Instrument>> GetAvailableInstruments(CancellationToken cancellationToken)
@@ -59,29 +59,40 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             OnConnected();
             while (!ctSource.IsCancellationRequested)
             {
-                foreach (var instrument in Instruments)
+                try
                 {
-                    var orderBook = await apiClient.MakeGetRequestAsync<List<OrderBook>>($"{Config.EndpointUrl}/api/OrderBooks/{instrument.Name}", ctSource.Token);
-                    var tickPrices = orderBook.GroupBy(x => x.AssetPair)
-                        .Select(g => new InstrumentTickPrices(
-                            new Instrument(Name, g.Key),
-                            new[]
-                            {
-                                new TickPrice(g.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow,
-                                    g.FirstOrDefault(ob => !ob.IsBuy)?.Prices.Select(x => x.Price).DefaultIfEmpty(0).Min() ?? 0,
-                                    g.FirstOrDefault(ob => ob.IsBuy)?.Prices.Select(x => x.Price).DefaultIfEmpty(0).Max() ?? 0)
-                            }))
-                        .Where(x => x.TickPrices.First().Ask > 0 && x.TickPrices.First().Bid > 0);
-
-                    foreach (var tickPrice in tickPrices)
+                    foreach (var instrument in Instruments)
                     {
-                        await CallHandlers(tickPrice);    
-                    }    
-                }
+                        var orderBook = await apiClient.MakeGetRequestAsync<List<OrderBook>>($"{Config.EndpointUrl}/api/OrderBooks/{instrument.Name}", ctSource.Token);
+                        var tickPrices = orderBook.GroupBy(x => x.AssetPair)
+                            .Select(g => new InstrumentTickPrices(
+                                new Instrument(Name, g.Key),
+                                new[]
+                                {
+                                    new TickPrice(g.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow,
+                                        g.FirstOrDefault(ob => !ob.IsBuy)?.Prices.Select(x => x.Price).DefaultIfEmpty(0).Min() ?? 0,
+                                        g.FirstOrDefault(ob => ob.IsBuy)?.Prices.Select(x => x.Price).DefaultIfEmpty(0).Max() ?? 0)
+                                }))
+                            .Where(x => x.TickPrices.First().Ask > 0 && x.TickPrices.First().Bid > 0);
 
-                await CheckExecutedOrders();
+                        foreach (var tickPrice in tickPrices)
+                        {
+                            await CallHandlers(tickPrice);    
+                        }    
+                    }
+
+                    await CheckExecutedOrders();
                 
-                await Task.Delay(TimeSpan.FromSeconds(1));
+                    await Task.Delay(TimeSpan.FromSeconds(1));
+                }
+                catch (Exception e)
+                {
+                    await LykkeLog.WriteErrorAsync(
+                        nameof(LykkeExchange),
+                        nameof(LykkeExchange),
+                        nameof(GetPricesCycle), 
+                        e);
+                }
             }
             OnStopped();
         }
@@ -198,7 +209,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
 
                     if (await CheckIsOrderExecuted(orderId))
                     {
-                        executedTrades.Add(new ExecutedTrade(new Instrument(Name, pair.Key), DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType, signal.OrderId, ExecutionStatus.Fill));   
+                        executedTrades.Add(new ExecutedTrade(new Instrument(Name, pair.Key), DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType, signal.OrderId, ExecutionStatus.Fill));
                     }    
                 }
             }

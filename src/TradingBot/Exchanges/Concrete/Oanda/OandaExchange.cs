@@ -24,7 +24,7 @@ namespace TradingBot.Exchanges.Concrete.Oanda
         public OandaExchange(OandaConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log) : 
             base(Name, config, translatedSignalsRepository, log)
         {
-            var client = new ApiClient(OandaHttpClient.CreateHttpClient(OandaAuth.Token));
+            var client = new ApiClient(OandaHttpClient.CreateHttpClient(OandaAuth.Token), log);
 
             accounts = new Accounts(client);
             prices = new Prices(client);

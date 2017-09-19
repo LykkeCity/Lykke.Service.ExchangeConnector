@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
+using Common.Log;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Oanda;
 using TradingBot.Exchanges.Concrete.Oanda.Endpoints;
@@ -14,7 +15,7 @@ namespace TradingBot.Tests.OandaApiTests
 
         private Accounts CreateAccountsApi()
         {
-            return new Accounts(new ApiClient(OandaHttpClient.CreateHttpClient(GetToken)));
+            return new Accounts(new ApiClient(OandaHttpClient.CreateHttpClient(GetToken), new LogToConsole()));
         }
 
         [Fact]

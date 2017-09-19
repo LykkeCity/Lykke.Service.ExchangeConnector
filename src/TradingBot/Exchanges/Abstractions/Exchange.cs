@@ -115,6 +115,16 @@ namespace TradingBot.Exchanges.Abstractions
 
         protected Task CallExecutedTradeHandlers(ExecutedTrade trade)
         {
+            lock (lockRoots[trade.Instrument.Name])
+            {
+                var signalToDelete = ActualSignals[trade.Instrument.Name].SingleOrDefault(x => x.OrderId == trade.OrderId);
+
+                if (signalToDelete != null)
+                {
+                    ActualSignals[trade.Instrument.Name].Remove(signalToDelete);
+                }
+            }
+            
             return Task.WhenAll(executedTradeHandlers.Select(x => x.Handle(trade)));
         }
 
