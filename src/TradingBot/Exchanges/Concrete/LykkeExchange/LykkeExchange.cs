@@ -111,7 +111,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             {
                 case OrderType.Market:
                     
-                    var executionPrice = await apiClient.MakePostRequestAsync<string>(
+                    var marketOrderResponse = await apiClient.MakePostRequestAsync<MarketOrderResponse>(
                         $"{Config.EndpointUrl}/api/Orders/market", 
                         CreateHttpContent(new MarketOrderRequest()
                         {
@@ -122,15 +122,13 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                         trasnlatedSignal, 
                         CancellationToken.None);
 
-                    var orderExecuted = decimal.TryParse(executionPrice, out decimal price) && price != default(decimal);
-
-                    return orderExecuted;
+                    return marketOrderResponse != null && marketOrderResponse.Error == null;
                     
                 case OrderType.Limit:
                     
-                    var orderId = await apiClient.MakePostRequestAsync<string>(
+                    var limitOrderResponse = await apiClient.MakePostRequestAsync<LimitOrderResponse>(
                         $"{Config.EndpointUrl}/api/Orders/limit", 
-                        CreateHttpContent(new LimitOrder()
+                        CreateHttpContent(new LimitOrderRequest()
                         {
                             AssetPairId = instrument.Name,
                             OrderAction = signal.TradeType,
@@ -140,15 +138,15 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                         trasnlatedSignal, 
                         CancellationToken.None);
 
-                    var orderPlaced = Guid.TryParse(orderId, out Guid id) && id != default(Guid);
+                    var orderPlaced = limitOrderResponse != null && limitOrderResponse.Error == null;
 
-                    trasnlatedSignal.ExternalId = orderId;
-                
                     if (orderPlaced)
                     {
+                        trasnlatedSignal.ExternalId = limitOrderResponse.Result.ToString();
+                        
                         lock (orderIds)
                         {
-                            orderIds.Add(signal.OrderId, id);
+                            orderIds.Add(signal.OrderId, limitOrderResponse.Result);
                         }
                     }
 
@@ -165,7 +163,6 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         {
             var content = new StringContent(JsonConvert.SerializeObject(value));
             content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-            //content.Headers.Add("api-key", Config.ApiKey);
             
             return content;
         }

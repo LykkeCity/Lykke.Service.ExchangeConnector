@@ -136,7 +136,14 @@ namespace TradingBot.Exchanges.Abstractions
             .WaitAndRetryAsync(1, attempt => TimeSpan.FromSeconds(3));
         
         public Task HandleTradingSignals(InstrumentTradingSignals signals) // TODO: get rid of whole body lock and make calls async
-        {   
+        {
+            if (signals.Instrument == null || string.IsNullOrEmpty(signals.Instrument.Name) ||
+                signals.TradingSignals == null || !signals.TradingSignals.Any())
+            {
+                return Task.FromResult(0);
+            }
+            
+            
             // TODO: check if the Exchange is ready for processing signals, maybe put them into inner queue if readyness is not the case
             
             // TODO: this method should place signals into inner queue only
