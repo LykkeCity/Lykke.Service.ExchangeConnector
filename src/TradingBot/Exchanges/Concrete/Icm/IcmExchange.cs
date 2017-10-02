@@ -65,7 +65,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             
             connector = new IcmConnector(config, repository, LykkeLog);
             var storeFactory = new FileStoreFactory(settings);
-            var logFactory = new ScreenLogFactory(settings);
+            var logFactory = new LykkeLogFactory(_log);
 
             connector.OnTradeExecuted += CallExecutedTradeHandlers;
             connector.Connected += OnConnected;
