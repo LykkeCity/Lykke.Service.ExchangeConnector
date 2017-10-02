@@ -44,6 +44,8 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         
         protected override void StartImpl()
         {
+            LykkeLog.WriteInfoAsync(nameof(LykkeExchange), nameof(StartImpl), string.Empty, $"Starting {Name} exchange").Wait();
+            
             if (getPricesTask != null && getPricesTask.Status == TaskStatus.Running)
             {
                 throw new InvalidOperationException("The process for getting prices is running already");

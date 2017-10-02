@@ -59,6 +59,8 @@ namespace TradingBot.Exchanges.Concrete.Icm
         {
             var settings = new SessionSettings(config.GetFixConfigAsReader());
 
+            _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartImpl), string.Join("/n", config.FixConfiguration), "Starting fix connection with configuration").Wait();
+            
             var repository = new AzureFixMessagesRepository(_tableStorage);
             
             connector = new IcmConnector(config, repository);
