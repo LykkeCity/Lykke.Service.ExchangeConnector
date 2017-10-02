@@ -42,10 +42,29 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
         protected override void StartImpl()
         {
-            StartFixConnection();
-            
+            if (config.SocketConnection)
+            {
+                _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartImpl), string.Empty,
+                    "Socket connection is enabled");
+                StartFixConnection();
+            }
+            else
+            {
+                _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartImpl), string.Empty,
+                    "Socket connection is desibled");
+            }
+
             if (config.RabbitMq.Enabled && (config.PubQuotesToRabbit || config.SaveQuotesToAzure))
+            {
+                _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartImpl), string.Empty,
+                    "RabbitMQ connection is enabled");
                 StartRabbitConnection();
+            }
+            else
+            {
+                _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartImpl), string.Empty,
+                    "RabbitMQ connection is desibled");
+            }
         }
         
         protected override void StopImpl()
