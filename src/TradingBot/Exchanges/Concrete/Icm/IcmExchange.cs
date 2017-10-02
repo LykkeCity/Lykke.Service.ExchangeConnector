@@ -59,7 +59,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
         {
             var settings = new SessionSettings(config.GetFixConfigAsReader());
 
-            _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartImpl), string.Join("/n", config.FixConfiguration), "Starting fix connection with configuration").Wait();
+            _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartFixConnection), string.Join("/n", config.FixConfiguration), "Starting fix connection with configuration").Wait();
             
             var repository = new AzureFixMessagesRepository(_tableStorage);
             
@@ -72,6 +72,8 @@ namespace TradingBot.Exchanges.Concrete.Icm
             connector.Disconnected += OnStopped;
             
             initiator = new SocketInitiator(connector, storeFactory, settings, logFactory);
+            
+            _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartFixConnection), string.Empty, "SocketInitiator is about to start").Wait();
             initiator.Start();
         }
 
