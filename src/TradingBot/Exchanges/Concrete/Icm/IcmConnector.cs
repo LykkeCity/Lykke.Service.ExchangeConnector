@@ -5,26 +5,25 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using QuickFix;
 using QuickFix.Fields;
 using QuickFix.Fields.Converters;
 using QuickFix.FIX44;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
-using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
 using TradingBot.Communications;
 using TradingBot.Repositories;
 using Message = QuickFix.Message;
 using TradeType = TradingBot.Trading.TradeType;
 using TimeInForce = TradingBot.Trading.TimeInForce;
+using ILog = Common.Log.ILog;
 
 namespace TradingBot.Exchanges.Concrete.Icm
 {
     public class IcmConnector : IApplication
     {
-        private readonly ILogger logger = Logging.CreateLogger<IcmConnector>();
+        private readonly ILog logger;
         private readonly IcmConfig config;
         private readonly AzureFixMessagesRepository repository;
 
@@ -39,10 +38,11 @@ namespace TradingBot.Exchanges.Concrete.Icm
         public event Action Disconnected;
         public event Func<ExecutedTrade, Task> OnTradeExecuted;
 
-        public IcmConnector(IcmConfig config, AzureFixMessagesRepository repository)
+        public IcmConnector(IcmConfig config, AzureFixMessagesRepository repository, ILog logger)
         {
             this.config = config;
             this.repository = repository;
+            this.logger = logger;
         }
 
         public void ToAdmin(Message message, SessionID sessionID)
@@ -60,7 +60,8 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
         public void FromAdmin(Message message, SessionID sessionID)
         {
-            logger.LogInformation($"FromAdmin message: {message}");
+            logger.WriteInfoAsync(nameof(IcmConnector), nameof(FromAdmin), string.Empty, $"FromAdmin message: {message}").Wait();
+                
             repository.SaveMessage(message, FixMessageDirection.FromAdmin);
             
             try
@@ -73,25 +74,25 @@ namespace TradingBot.Exchanges.Concrete.Icm
                     default:
                         break;
                     case null:
-                        logger.LogInformation("Received null message");
+                        logger.WriteInfoAsync(nameof(IcmConnector), nameof(FromAdmin), string.Empty, "Received null message").Wait();
                         break;
                 }
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
-                logger.LogError(0, e, "Error");
+                logger.WriteErrorAsync(nameof(IcmConnector), nameof(FromAdmin), string.Empty, e).Wait(); 
             }
         }
 
         public void ToApp(Message message, SessionID sessionId)
         {
-            logger.LogInformation($"Outgoing (ToApp) message is sent: {message}");
+            logger.WriteInfoAsync(nameof(IcmConnector), nameof(ToApp), string.Empty, $"Outgoing (ToApp) message is sent: {message}").Wait();
             repository.SaveMessage(message, FixMessageDirection.ToApp);
         }
 
         public void FromApp(Message message, SessionID sessionID)
         {
-            logger.LogInformation($"FromApp message: {message}");
+            logger.WriteInfoAsync(nameof(IcmConnector), nameof(FromAdmin), string.Empty, $"FromApp message: {message}").Wait();
             repository.SaveMessage(message, FixMessageDirection.FromApp);
             
             try
@@ -108,7 +109,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
                         HandlePositionReport(positionReport);
                         break;
                     case MarketDataIncrementalRefresh marketDataIncrementalRefresh:
-                        logger.LogInformation("Market data incremental refresh is not supported. We read the data from RabbitMQ");
+                        logger.WriteInfoAsync(nameof(IcmConnector), nameof(FromApp), string.Empty, "Market data incremental refresh is not supported. We read the data from RabbitMQ").Wait();
                         break;
                     case ListStatus listStatus:
                         HandleListStatus(listStatus);
@@ -116,25 +117,25 @@ namespace TradingBot.Exchanges.Concrete.Icm
                     default:
                         break;
                     case null:
-                        logger.LogInformation("Received null message");
+                        logger.WriteInfoAsync(nameof(IcmConnector), nameof(FromApp), string.Empty, "Received null message").Wait();
                         break;
                 }
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
-                logger.LogError(0, e, "Error");
+                logger.WriteErrorAsync(nameof(IcmConnector), nameof(FromApp), string.Empty, e).Wait();
             }
         }
 
         public void OnCreate(SessionID sessionID)
         {
-            logger.LogInformation($"Session created {sessionID}");
+            logger.WriteInfoAsync(nameof(IcmConnector), nameof(OnCreate), string.Empty, $"Session created {sessionID}").Wait();
         }
 
         public void OnLogout(SessionID sessionID)
         {
             session = null;
-            logger.LogInformation($"Logout session {sessionID}");
+            logger.WriteInfoAsync(nameof(IcmConnector), nameof(OnLogout), string.Empty, $"Logout session {sessionID}").Wait();
             
             Disconnected?.Invoke();
         }
@@ -142,7 +143,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
         public void OnLogon(SessionID sessionID)
         {
             session = sessionID;
-            logger.LogInformation($"Logon for session {sessionID}");
+            logger.WriteInfoAsync(nameof(IcmConnector), nameof(OnLogon), string.Empty, $"Logon for session {sessionID}").Wait();
 
             SendRequestForPositions();
             SendSecurityListRequest();
@@ -176,12 +177,12 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 }
             }
             
-            logger.LogInformation(sb.ToString());
+            logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandleSecurityList), string.Empty, sb.ToString()).Wait();
         }
 
         private void HandlePositionReport(PositionReport positionReport)
         {
-            logger.LogInformation($"Position report received: {positionReport}. Base currency: {positionReport.Currency.Obj}, Symbol: {positionReport.Symbol.Obj}");
+            logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandlePositionReport), string.Empty, $"Position report received: {positionReport}. Base currency: {positionReport.Currency.Obj}, Symbol: {positionReport.Symbol.Obj}").Wait();
             
             // 8=FIX.4.49=314
             // 35=AP
@@ -204,7 +205,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             // 753=5707=VADJ708=0.000707=IMTM708=7217.280707=TVAR708=33707=PREM708=44707=CRES708=5510=155
             
             
-            logger.LogInformation($"Number of positions: {positionReport.NoPositions.Obj}");
+            logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandlePositionReport), string.Empty, $"Number of positions: {positionReport.NoPositions.Obj}");
             
             var positionsGroup = new PositionReport.NoPositionsGroup();
             
@@ -213,9 +214,9 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 positionReport.GetGroup(i, positionsGroup);
                 
                 if (positionsGroup.IsSetLongQty())
-                    logger.LogInformation($"{i}: Long: {positionsGroup.LongQty.Obj}");
+                    logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandlePositionReport), string.Empty, $"{i}: Long: {positionsGroup.LongQty.Obj}").Wait();
                 else if (positionsGroup.IsSetShortQty())
-                    logger.LogInformation($"{i}: Short: {positionsGroup.ShortQty.Obj}");
+                    logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandlePositionReport), string.Empty, $"{i}: Short: {positionsGroup.ShortQty.Obj}").Wait();
             }
         }
 
@@ -305,7 +306,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
         
         private void HandleExecutionReport(ExecutionReport report)
         {
-            logger.LogDebug("Execution report was received");
+            logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandleExecutionReport), string.Empty, "Execution report was received").Wait();
 
             string id;
             string icmId;
@@ -316,7 +317,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             switch (report.ExecType.Obj)
             {
                 case ExecType.REJECTED:
-                    logger.LogInformation($"ICM rejected the order {id}. Rejection reason is {report.OrdRejReason}");
+                    logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandleExecutionReport), string.Empty, $"ICM rejected the order {id}. Rejection reason is {report.OrdRejReason}").Wait();
                     executionStatus = ExecutionStatus.Rejected;
                     break;
                     
@@ -324,32 +325,32 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
                     if (report.OrdStatus.Obj == OrdStatus.FILLED)
                     {
-                        logger.LogInformation($"ICM filled the order {id}! OrdType: {report.OrdStatus.Obj}");
+                        logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandleExecutionReport), string.Empty, $"ICM filled the order {id}! OrdType: {report.OrdStatus.Obj}").Wait();
                         executionStatus = ExecutionStatus.Fill;    
                     }
                     else if (report.OrdStatus.Obj == OrdStatus.PARTIALLY_FILLED)
                     {
-                        logger.LogInformation($"ICM filled the order {id} partially.");
+                        logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandleExecutionReport), string.Empty, $"ICM filled the order {id} partially.").Wait();
                         executionStatus = ExecutionStatus.PartialFill;
                     }
                     break;
                     
                 case ExecType.NEW:
-                    logger.LogInformation($"Order {id} placed as new!");
+                    logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandleExecutionReport), string.Empty, $"Order {id} placed as new!").Wait();
                     executionStatus = ExecutionStatus.New;
                     break;
                     
                 case ExecType.CANCELLED:
-                    logger.LogInformation($"Order {id} was cancelled!");
+                    logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandleExecutionReport), string.Empty, $"Order {id} was cancelled!").Wait();
                     executionStatus = ExecutionStatus.Cancelled;
                     break;
                     
                 case ExecType.ORDER_STATUS:
-                    logger.LogInformation($"Order status for {id}, side: {report.Side}, orderQty: {report.OrderQty}");
+                    logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandleExecutionReport), string.Empty, $"Order status for {id}, side: {report.Side}, orderQty: {report.OrderQty}").Wait();
                     break;
                     
                 case ExecType.PENDING_CANCEL:
-                    logger.LogInformation($"Cancellation of the order {id} is pending!");
+                    logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandleExecutionReport), string.Empty, $"Cancellation of the order {id} is pending!").Wait();
                     break;
             }
 
@@ -435,9 +436,9 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
         private void HandleListStatus(ListStatus listStatus)
         {
-            logger.LogDebug($"Handling list status: {listStatus}");
+            logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandleListStatus), string.Empty, $"Handling list status: {listStatus}").Wait();
             
-            logger.LogDebug($"Number of orders: {listStatus.TotNoOrders.Obj}");
+            logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandleListStatus), string.Empty, $"Number of orders: {listStatus.TotNoOrders.Obj}").Wait();
 
             lock (listStatuses)
             {
@@ -448,7 +449,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
         private void HandleRejected(Reject reject)
         {
-            logger.LogDebug("Handle reject message");
+            logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandleListStatus), string.Empty, "Handle reject message").Wait();
 
             switch (reject.RefMsgType.Obj)
             {
@@ -466,7 +467,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
         public bool SendAllOrdersStatusRequest()
         {
-            logger.LogDebug($"Trying to send Order Status Request");
+            logger.WriteInfoAsync(nameof(IcmConnector), nameof(SendAllOrdersStatusRequest), string.Empty, "Trying to send Order Status Request").Wait();
             
             var request = new OrderStatusRequest();
 
@@ -486,7 +487,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             if (!orderSignals.TryGetValue(orderId, out signal))
                 throw new InvalidOperationException($"Can't find signal for order {orderId}");
             
-            logger.LogDebug($"Sending order status request for order {orderId}");
+            logger.WriteInfoAsync(nameof(IcmConnector), nameof(SendAllOrdersStatusRequest), string.Empty, $"Sending order status request for order {orderId}").Wait();
             
             var request = new OrderStatusRequest(
                 new ClOrdID(orderId), 
@@ -554,7 +555,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
         private bool SendRequest(Message request)
         {
-            logger.LogDebug($"About to send a request {request}");
+            logger.WriteInfoAsync(nameof(IcmConnector), nameof(SendRequest), string.Empty, $"About to send a request {request}").Wait();
             
             var header = request.Header;
             header.SetField(new SenderCompID(session.SenderCompID));
@@ -568,7 +569,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             if (!orderSignals.TryAdd(signal.OrderId, signal))
                 throw new InvalidOperationException($"Order with ID {signal.OrderId} was sent already");
             
-            logger.LogInformation($"Generarting request for sending order for instrument {instrument}");
+            logger.WriteInfoAsync(nameof(IcmConnector), nameof(AddOrder), string.Empty, $"Generarting request for sending order for instrument {instrument}").Wait();
 
             var request = new NewOrderSingle(
                 new ClOrdID(signal.OrderId),
@@ -680,7 +681,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
         public bool CancelOrder(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
-            logger.LogDebug($"Generating request for cancelling order {signal.OrderId} for {instrument}");
+            logger.WriteInfoAsync(nameof(IcmConnector), nameof(CancelOrder), string.Empty, $"Generating request for cancelling order {signal.OrderId} for {instrument}").Wait();
             
             var request = new OrderCancelRequest(
                 new OrigClOrdID(signal.OrderId.ToString()), 

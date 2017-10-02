@@ -63,7 +63,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             
             var repository = new AzureFixMessagesRepository(_tableStorage);
             
-            connector = new IcmConnector(config, repository);
+            connector = new IcmConnector(config, repository, LykkeLog);
             var storeFactory = new FileStoreFactory(settings);
             var logFactory = new ScreenLogFactory(settings);
 
