@@ -11,7 +11,7 @@ using TradingBot.Repositories;
 
 namespace TradingBot.Exchanges.Concrete.HistoricalData
 {
-    public class HistoricalDataExchange : Exchange
+    internal class HistoricalDataExchange : Exchange
     {
         public new static readonly string Name = "historical";
         

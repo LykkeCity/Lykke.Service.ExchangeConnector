@@ -17,7 +17,7 @@ using OrderBook = TradingBot.Exchanges.Concrete.Icm.Entities.OrderBook;
 
 namespace TradingBot.Exchanges.Concrete.Icm
 {
-    public class IcmExchange : Exchange
+    internal class IcmExchange : Exchange
     {
         private readonly Common.Log.ILog _log;
         private readonly IcmConfig config;

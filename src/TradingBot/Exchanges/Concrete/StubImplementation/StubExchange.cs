@@ -14,7 +14,7 @@ using TradingBot.Repositories;
 
 namespace TradingBot.Exchanges.Concrete.StubImplementation
 {
-    public class StubExchange : Exchange
+    internal class StubExchange : Exchange
     {
 	    public new static readonly string Name = "stub";
 	    

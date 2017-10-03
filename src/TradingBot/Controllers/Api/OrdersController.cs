@@ -28,7 +28,7 @@ namespace TradingBot.Controllers.Api
             translatedSignalsRepository = Application.TranslatedSignalsRepository;
             _timeout = appSettings.AspNet.ApiTimeout;
         }
-        
+
         /// <summary>
         /// Get information about all current orders on exchange
         /// </summary>
@@ -41,11 +41,11 @@ namespace TradingBot.Controllers.Api
 
                 if (exchange is IcmExchange)
                 {
-                    return await ((IcmExchange) exchange).GetAllOrdersInfo(_timeout);
+                    return await ((IcmExchange)exchange).GetAllOrdersInfo(_timeout);
                 }
                 else if (exchange is KrakenExchange)
                 {
-                    return await ((KrakenExchange) exchange).GetOpenOrders(CancellationToken.None);
+                    return await ((KrakenExchange)exchange).GetOpenOrders(CancellationToken.None);
                 }
 
                 return Application.GetExchange(exchangeName).ActualOrders;
@@ -67,8 +67,8 @@ namespace TradingBot.Controllers.Api
                 var exchange = Application.GetExchange(exchangeName);
 
                 if (exchange is IcmExchange)
-                    return await ((IcmExchange) exchange).GetOrderInfo(new Instrument(exchangeName, instrument), id);
-                else 
+                    return await ((IcmExchange)exchange).GetOrderInfo(new Instrument(exchangeName, instrument), id);
+                else
                     throw new NotSupportedException("Get orders method is supported for ICM only");
             }
             catch (Exception e)
@@ -76,8 +76,8 @@ namespace TradingBot.Controllers.Api
                 throw new StatusCodeException(HttpStatusCode.InternalServerError, e.Message);
             }
         }
-        
-        
+
+
         /// <summary>
         /// Place a new order to the exchange
         /// </summary>
@@ -132,7 +132,7 @@ namespace TradingBot.Controllers.Api
                             $"Exchange return status: {result.Status}");
 
                     return CreatedAtAction("GetOrder",
-                        new {exchangeName = exchangeName, instrument = orderModel.Instrument, id = orderModel.Id},
+                        new { exchangeName = exchangeName, instrument = orderModel.Instrument, id = orderModel.Id },
                         result);
                 }
                 catch (Exception e)

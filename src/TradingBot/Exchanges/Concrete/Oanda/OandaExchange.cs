@@ -13,7 +13,7 @@ using TradingBot.Repositories;
 
 namespace TradingBot.Exchanges.Concrete.Oanda
 {
-    public class OandaExchange : Exchange
+    internal class OandaExchange : Exchange
     {
         public new static readonly string Name = "oanda";
         

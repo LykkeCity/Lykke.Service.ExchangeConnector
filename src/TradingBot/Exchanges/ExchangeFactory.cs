@@ -17,7 +17,7 @@ using TradingBot.Trading;
 
 namespace TradingBot.Exchanges
 {
-    public static class ExchangeFactory
+    internal static class ExchangeFactory
     {
 	    public static List<Exchange> CreateExchanges(
             AppSettings config,
