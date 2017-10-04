@@ -128,7 +128,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     
                 case OrderType.Limit:
                     
-                    var limitOrderResponse = await apiClient.MakePostRequestAsync<LimitOrderResponse>(
+                    var limitOrderResponse = await apiClient.MakePostRequestAsync<string>(
                         $"{Config.EndpointUrl}/api/Orders/limit", 
                         CreateHttpContent(new LimitOrderRequest()
                         {
@@ -140,15 +140,16 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                         trasnlatedSignal, 
                         CancellationToken.None);
 
-                    var orderPlaced = limitOrderResponse != null && limitOrderResponse.Error == null;
+                    Guid orderId;
+                    var orderPlaced = limitOrderResponse != null && Guid.TryParse(limitOrderResponse, out orderId);
 
                     if (orderPlaced)
                     {
-                        trasnlatedSignal.ExternalId = limitOrderResponse.Result.ToString();
+                        trasnlatedSignal.ExternalId = orderId.ToString();
                         
                         lock (orderIds)
                         {
-                            orderIds.Add(signal.OrderId, limitOrderResponse.Result);
+                            orderIds.Add(signal.OrderId, orderId);
                         }
                     }
 
