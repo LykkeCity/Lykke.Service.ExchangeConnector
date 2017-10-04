@@ -15,6 +15,16 @@ namespace TradingBot.Trading
                 Base = name.Substring(0, 3);
                 Quote = name.Substring(3, 3);    
             }
+            else if (name.StartsWith("LKK1Y"))
+            {
+                Base = "LKK1Y";
+                Quote = name.Remove(0, 5);
+            }
+            else if (name.EndsWith("LKK1Y"))
+            {
+                Base = name.Substring(0, name.Length - 5);
+                Quote = "LKK1Y";
+            }
         }
 
         public Instrument(string exchange, string name, string @base, string quote) : this(exchange, name)
