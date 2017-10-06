@@ -1,10 +1,12 @@
 ﻿using System;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace TradingBot.Trading
 {
     public enum ExecutionStatus
     {
+        Unknown,
         Fill,
         PartialFill,
         Cancelled,
@@ -29,7 +31,8 @@ namespace TradingBot.Trading
         }
         
         public Instrument Instrument { get; }
-        
+
+        [JsonConverter(typeof(StringEnumConverter))]
         public TradeType Type { get; }
         
         public DateTime Time { get; }
@@ -41,7 +44,8 @@ namespace TradingBot.Trading
         public decimal Fee { get; }
         
         public string OrderId { get; }
-        
+
+        [JsonConverter(typeof(StringEnumConverter))]
         public ExecutionStatus Status { get; }
         
         public string Message { get; set; }
