@@ -16,7 +16,7 @@ using TradingBot.Repositories;
 
 namespace TradingBot.Exchanges.Concrete.Kraken
 {
-    public class KrakenExchange : Exchange
+    internal class KrakenExchange : Exchange
     {
         public new static readonly string Name = "kraken";
         

@@ -10,7 +10,7 @@ using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.Bitstamp
 {
-    public class BitstampExchange : Exchange
+    internal class BitstampExchange : Exchange
     {
         public new static string Name = "bitstamp";
         private readonly BitstampConfiguration config;

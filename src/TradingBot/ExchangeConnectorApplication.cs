@@ -144,12 +144,12 @@ namespace TradingBot
             }
         }
 
-        public IReadOnlyCollection<Exchange> GetExchanges()
+        public IReadOnlyCollection<IExchange> GetExchanges()
         {
             return exchanges.Values;
         }
 
-        public Exchange GetExchange(string name)
+        public IExchange GetExchange(string name)
         {
             return exchanges.ContainsKey(name) ? exchanges[name] : null;
         }

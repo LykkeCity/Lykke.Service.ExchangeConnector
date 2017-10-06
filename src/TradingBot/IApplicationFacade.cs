@@ -6,9 +6,9 @@ namespace TradingBot
 {
     public interface IApplicationFacade
     {
-        IReadOnlyCollection<Exchange> GetExchanges();
+        IReadOnlyCollection<IExchange> GetExchanges();
 
-        Exchange GetExchange(string name);
+        IExchange GetExchange(string name);
         
         TranslatedSignalsRepository TranslatedSignalsRepository { get; }
     }

@@ -1,8 +1,10 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.Icm;
 using TradingBot.Exchanges.Concrete.Kraken;
@@ -20,20 +22,21 @@ namespace TradingBot.Controllers.Api
     {
         private readonly TimeSpan _timeout;
 
-        private readonly TranslatedSignalsRepository translatedSignalsRepository;
+        private readonly TranslatedSignalsRepository _translatedSignalsRepository;
 
         public OrdersController(ExchangeConnectorApplication app, AppSettings appSettings)
             : base(app)
         {
-            translatedSignalsRepository = Application.TranslatedSignalsRepository;
+            _translatedSignalsRepository = Application.TranslatedSignalsRepository;
             _timeout = appSettings.AspNet.ApiTimeout;
         }
-        
+
         /// <summary>
         /// Get information about all current orders on exchange
+        /// <param name="exchangeName">The name of the exchange</param>
         /// </summary>
-        [HttpGet("{exchangeName}")]
-        public async Task<object> Index(string exchangeName)
+        [HttpGet]
+        public async Task<object> Index([FromQuery, Required] string exchangeName)
         {
             try
             {
@@ -41,11 +44,11 @@ namespace TradingBot.Controllers.Api
 
                 if (exchange is IcmExchange)
                 {
-                    return await ((IcmExchange) exchange).GetAllOrdersInfo(_timeout);
+                    return await ((IcmExchange)exchange).GetAllOrdersInfo(_timeout);
                 }
                 else if (exchange is KrakenExchange)
                 {
-                    return await ((KrakenExchange) exchange).GetOpenOrders(CancellationToken.None);
+                    return await ((KrakenExchange)exchange).GetOpenOrders(CancellationToken.None);
                 }
 
                 return Application.GetExchange(exchangeName).ActualOrders;
@@ -59,16 +62,16 @@ namespace TradingBot.Controllers.Api
         /// <summary>
         /// Get information about earlier placed order
         /// </summary>
-        [HttpGet("{exchangeName}/{instrument}/{id}")]
-        public async Task<ExecutedTrade> GetOrder(string exchangeName, string instrument, string id)
+        [HttpGet("{id}")]
+        public async Task<ExecutedTrade> GetOrder(string id, [FromQuery, Required] string exchangeName, [FromQuery, Required] string instrument)
         {
             try
             {
                 var exchange = Application.GetExchange(exchangeName);
 
                 if (exchange is IcmExchange)
-                    return await ((IcmExchange) exchange).GetOrderInfo(new Instrument(exchangeName, instrument), id);
-                else 
+                    return await ((IcmExchange)exchange).GetOrderInfo(new Instrument(exchangeName, instrument), id);
+                else
                     throw new NotSupportedException("Get orders method is supported for ICM only");
             }
             catch (Exception e)
@@ -76,25 +79,32 @@ namespace TradingBot.Controllers.Api
                 throw new StatusCodeException(HttpStatusCode.InternalServerError, e.Message);
             }
         }
-        
-        
+
+
         /// <summary>
         /// Place a new order to the exchange
+        ///<param name="orderModel">A new order</param>
         /// </summary>
-        /// <remarks>In the location header of succesful response placed an URL for getting info about the order</remarks>
+        /// <remarks>In the location header of successful response placed an URL for getting info about the order</remarks>
         /// <response code="200">The order is successfully placed and order status is returned</response>
         /// <response code="400">Can't place the order. The reason is in the response</response>
         [ApiKeyAuth]
-        [HttpPost("{exchangeName}")]
+        [HttpPost]
         [ProducesResponseType(typeof(ExecutedTrade), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 400)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
-        public async Task<IActionResult> Post(string exchangeName, [FromBody] OrderModel orderModel)
+        public async Task<IActionResult> Post([FromBody] OrderModel orderModel)
         {
             try
             {
                 if (orderModel == null)
-                    throw new StatusCodeException(HttpStatusCode.BadRequest, "Order have to be specified");
+                {
+                    throw new StatusCodeException(HttpStatusCode.BadRequest, "Order has to be specified");
+                }
+                if (string.IsNullOrEmpty(orderModel.ExchangeName))
+                {
+                    ModelState.AddModelError(nameof(orderModel.ExchangeName), "Exchange cannot be null");
+                }
 
                 if (Math.Abs((orderModel.DateTime - DateTime.UtcNow).TotalMilliseconds) >=
                     TimeSpan.FromMinutes(5).TotalMilliseconds)
@@ -109,7 +119,7 @@ namespace TradingBot.Controllers.Api
                     throw new StatusCodeException(ModelState);
 
 
-                var instrument = new Instrument(exchangeName, orderModel.Instrument);
+                var instrument = new Instrument(orderModel.ExchangeName, orderModel.Instrument);
                 var tradingSignal = new TradingSignal(orderModel.Id, OrderCommand.Create, orderModel.TradeType,
                     orderModel.Price, orderModel.Volume, DateTime.UtcNow,
                     orderModel.OrderType, orderModel.TimeInForce);
@@ -122,7 +132,7 @@ namespace TradingBot.Controllers.Api
 
                 try
                 {
-                    var result = await Application.GetExchange(exchangeName)
+                    var result = await Application.GetExchange(orderModel.ExchangeName)
                         .AddOrderAndWaitExecution(instrument, tradingSignal, translatedSignal, _timeout);
 
                     translatedSignal.SetExecutionResult(result);
@@ -131,9 +141,7 @@ namespace TradingBot.Controllers.Api
                         throw new StatusCodeException(HttpStatusCode.BadRequest,
                             $"Exchange return status: {result.Status}");
 
-                    return CreatedAtAction("GetOrder",
-                        new {exchangeName = exchangeName, instrument = orderModel.Instrument, id = orderModel.Id},
-                        result);
+                    return CreatedAtAction("Post", new { orderModel.ExchangeName, instrument = orderModel.Instrument, id = orderModel.Id }, result);
                 }
                 catch (Exception e)
                 {
@@ -142,7 +150,7 @@ namespace TradingBot.Controllers.Api
                 }
                 finally
                 {
-                    await translatedSignalsRepository.SaveAsync(translatedSignal);
+                    await _translatedSignalsRepository.SaveAsync(translatedSignal);
                 }
             }
             catch (StatusCodeException)
@@ -160,37 +168,28 @@ namespace TradingBot.Controllers.Api
         /// Cancel existing order
         /// </summary>
         /// <remarks></remarks>
+        /// <param name="id">The order id to cancel</param>
+        /// <param name="exchangeName">The exchange name</param>
         /// <response code="200">The order is successfully canceled</response>
         /// <response code="400">Can't cancel the order. The reason is in the response</response>
         [ApiKeyAuth]
-        [HttpDelete("{exchangeName}")]
+        [HttpDelete("{id}")]
         [ProducesResponseType(typeof(ExecutedTrade), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 400)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
-        public async Task<IActionResult> CancelOrder(string exchangeName, [FromBody] OrderModel orderModel)
+        public async Task<IActionResult> CancelOrder(string id, [FromQuery, Required]string exchangeName)
         {
             try
             {
-                if (orderModel == null)
-                    throw new StatusCodeException(HttpStatusCode.BadRequest, "Order have to be specified");
+                if (string.IsNullOrEmpty(exchangeName))
+                {
+                    throw new StatusCodeException(HttpStatusCode.BadRequest, "Exchange has to be specified");
+                }
 
-                if (Math.Abs((orderModel.DateTime - DateTime.UtcNow).TotalMilliseconds) >=
-                    TimeSpan.FromMinutes(5).TotalMilliseconds)
-                    ModelState.AddModelError(nameof(orderModel.DateTime),
-                        "Date and time must be in 5 minutes threshold from UTC now");
+                var instrument = new Instrument(exchangeName, string.Empty);
+                var tradingSignal = new TradingSignal(id, OrderCommand.Cancel, TradeType.Unknown, 0, 0, DateTime.UtcNow, OrderType.Unknown);
 
-                if (orderModel.Price == 0 && orderModel.OrderType != OrderType.Market)
-                    ModelState.AddModelError(nameof(orderModel.Price),
-                        "Price have to be declared for non-market orders");
-
-                if (!ModelState.IsValid)
-                    throw new StatusCodeException(ModelState);
-
-                var instrument = new Instrument(exchangeName, orderModel.Instrument);
-                var tradingSignal = new TradingSignal(orderModel.Id, OrderCommand.Cancel, orderModel.TradeType,
-                    orderModel.Price, orderModel.Volume, DateTime.UtcNow, orderModel.OrderType);
-
-                var translatedSignal = new TranslatedSignalTableEntity(SignalSource.RestApi, exchangeName, orderModel.Instrument, tradingSignal)
+                var translatedSignal = new TranslatedSignalTableEntity(SignalSource.RestApi, exchangeName, instrument.Name, tradingSignal)
                 {
                     ClientIP = HttpContext.Connection.RemoteIpAddress.ToString()
                 };
@@ -212,7 +211,7 @@ namespace TradingBot.Controllers.Api
                 }
                 finally
                 {
-                    await translatedSignalsRepository.SaveAsync(translatedSignal);
+                    await _translatedSignalsRepository.SaveAsync(translatedSignal);
                 }
             }
             catch (StatusCodeException)

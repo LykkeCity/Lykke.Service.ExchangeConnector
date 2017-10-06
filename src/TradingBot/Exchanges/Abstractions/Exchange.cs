@@ -14,7 +14,7 @@ using TradingBot.Repositories;
 
 namespace TradingBot.Exchanges.Abstractions
 {
-    public abstract class Exchange
+    internal abstract class Exchange : IExchange
     {
         //protected readonly ILogger Logger = Logging.CreateLogger<Exchange>();
 
@@ -28,7 +28,7 @@ namespace TradingBot.Exchanges.Abstractions
         
         public string Name { get; }
 
-        public IExchangeConfiguration Config { get; }
+        internal IExchangeConfiguration Config { get; }
 
         public ExchangeState State { get; private set; }
 
@@ -332,7 +332,7 @@ namespace TradingBot.Exchanges.Abstractions
 
         
         
-        public Dictionary<string, LinkedList<TradingSignal>> ActualOrders => ActualSignals; // TODO: to readonly dictionary and collection
+        public IDictionary<string, LinkedList<TradingSignal>> ActualOrders => ActualSignals; // TODO: to readonly dictionary and collection
 
         public abstract Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal,

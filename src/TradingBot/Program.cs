@@ -11,12 +11,12 @@ namespace TradingBot
             try
             {
                 var host = new WebHostBuilder()
-                    .UseKestrel()
-                    .UseUrls("http://*:5000")
-                    .UseContentRoot(Directory.GetCurrentDirectory())
-                    .UseStartup<Startup>()
-                    .UseApplicationInsights()
-                    .Build();
+	                .UseKestrel()
+	                .UseUrls("http://*:5000")
+	                .UseContentRoot(Directory.GetCurrentDirectory())
+	                .UseStartup<Startup>()
+	                .UseApplicationInsights()
+	                .Build();
 
                 host.Run(); // returns on Ctrl+C
 

@@ -17,7 +17,7 @@ using OrderBook = TradingBot.Exchanges.Concrete.LykkeExchange.Entities.OrderBook
 
 namespace TradingBot.Exchanges.Concrete.LykkeExchange
 {
-    public class LykkeExchange : Exchange
+    internal class LykkeExchange : Exchange
     {
         public new static readonly string Name = "lykke";
         private new LykkeExchangeConfiguration Config => (LykkeExchangeConfiguration) base.Config;

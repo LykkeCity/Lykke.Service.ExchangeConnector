@@ -5,12 +5,14 @@ namespace TradingBot.Trading
 {
     public enum OrderType
     {
+        Unknown,
         Market,
         Limit
     }
 
     public enum TradeType
     {
+        Unknown,
         Buy,
         Sell
     }
