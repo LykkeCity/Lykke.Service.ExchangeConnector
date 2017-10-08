@@ -169,7 +169,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 		    
 		    await CallExecutedTradeHandlers(new ExecutedTrade(
 			    instrument,
-			    DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType,
+			    DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
 			    signal.OrderId, ExecutionStatus.Cancelled));
 
 		    return true;

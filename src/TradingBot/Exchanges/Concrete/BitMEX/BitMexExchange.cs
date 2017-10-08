@@ -38,12 +38,11 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             var volume = ConvertVolume(signal.Volume);
             var orderType = ConvertOrderType(signal.OrderType);
             var side = ConvertTradeType(signal.TradeType);
-            var clientOrderId = signal.OrderId;
-            var price = (double)signal.Price;
+            var price = (double?)signal.Price;
             var ct = new CancellationTokenSource(timeout);
 
 
-            var response = await _exchangeApi.OrdernewAsync(symbol, orderQty: volume, price: price, ordType: orderType, side: side, cancellationToken: ct.Token, clOrdID: clientOrderId);
+            var response = await _exchangeApi.OrdernewAsync(symbol, orderQty: volume, price: price, ordType: orderType, side: side, cancellationToken: ct.Token);
 
             if (response is Error error)
             {
@@ -58,16 +57,17 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             var exceTime = order.TransactTime ?? DateTime.UtcNow;
             var execType = ConvertTradeType(order.Side);
 
-            return new ExecutedTrade(instrument, exceTime, execPrice, execVolume, execType, order.ClOrdID, execStatus) { Message = order.Text };
+            return new ExecutedTrade(instrument, exceTime, execPrice, execVolume, execType, order.OrderID, execStatus) { Message = order.Text };
         }
 
 
 
         public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
+            
             var ct = new CancellationTokenSource(timeout);
-            var clientOrderId = signal.OrderId;
-            var response = await _exchangeApi.OrdercancelAsync(clOrdID: clientOrderId, cancellationToken: ct.Token);
+            var ordeId = signal.OrderId;
+            var response = await _exchangeApi.OrdercancelAsync(cancellationToken: ct.Token, orderID: ordeId);
 
             if (response is Error error)
             {
@@ -76,7 +76,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             var res = (IReadOnlyList<AutorestClient.Models.Order>)response;
             if (res.Count != 1)
             {
-                throw new InvalidOperationException($"Received {res.Count} orders. Expected exactly one with id {clientOrderId}");
+                throw new InvalidOperationException($"Received {res.Count} orders. Expected exactly one with id {ordeId}");
             }
 
             var order = res[0];
@@ -87,7 +87,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             var status = ConvertExecutionStatus(order.OrdStatus);
             var instr = ConvertSymbolFromBiMexToLykke(order.Symbol);
 
-            return new ExecutedTrade(instr, execTime, execPrice, execVolume, tradeType, clientOrderId, status) { Message = order.Text };
+            return new ExecutedTrade(instr, execTime, execPrice, execVolume, tradeType, ordeId, status) { Message = order.Text };
         }
 
         protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal)
@@ -138,19 +138,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                     return "Market";
                 case OrderType.Limit:
                     return "Limit";
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
-            }
-        }
-
-        private OrderType ConvertOrderType(string type)
-        {
-            switch (type)
-            {
-                case "Market":
-                    return OrderType.Market;
-                case "Limit":
-                    return OrderType.Limit;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }

@@ -120,7 +120,7 @@ namespace TradingBot
                 }
 
                 ApiKeyAuthAttribute.ApiKey = settings.AspNet.ApiKey;
-                SignedModelAuthAttribute.ApiKey = settings.AspNet.ApiKey;
+                //   SignedModelAuthAttribute.ApiKey = settings.AspNet.ApiKey; //TODO use it somewhere
 
                 builder.RegisterInstance(log).As<ILog>().SingleInstance();
 

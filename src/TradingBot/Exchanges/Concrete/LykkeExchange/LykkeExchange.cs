@@ -135,7 +135,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                             AssetPairId = instrument.Name,
                             OrderAction = signal.TradeType,
                             Volume = signal.Volume,
-                            Price = signal.Price
+                            Price = signal.Price ?? 0
                         }),
                         trasnlatedSignal, 
                         CancellationToken.None);
@@ -209,7 +209,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
 
                     if (await CheckIsOrderExecuted(orderId))
                     {
-                        executedTrades.Add(new ExecutedTrade(new Instrument(Name, pair.Key), DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType, signal.OrderId, ExecutionStatus.Fill));
+                        executedTrades.Add(new ExecutedTrade(new Instrument(Name, pair.Key), DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, ExecutionStatus.Fill));
                     }    
                 }
             }
@@ -247,12 +247,12 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         {
             if (await AddOrder(instrument, signal, translatedSignal))
             {
-                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType,
+                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
                     signal.OrderId, ExecutionStatus.New);
             }
             else
             {
-                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType,
+                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
                     signal.OrderId, ExecutionStatus.Rejected);
             }
         }
@@ -262,12 +262,12 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         {
             if (await CancelOrder(instrument, signal, translatedSignal))
             {
-                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType,
+                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
                     signal.OrderId, ExecutionStatus.Cancelled);
             }
             else
             {
-                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType,
+                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
                     signal.OrderId, ExecutionStatus.Rejected);
             }
         }

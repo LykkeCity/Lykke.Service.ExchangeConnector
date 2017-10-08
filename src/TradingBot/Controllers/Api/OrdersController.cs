@@ -120,7 +120,7 @@ namespace TradingBot.Controllers.Api
 
 
                 var instrument = new Instrument(orderModel.ExchangeName, orderModel.Instrument);
-                var tradingSignal = new TradingSignal(orderModel.Id, OrderCommand.Create, orderModel.TradeType,
+                var tradingSignal = new TradingSignal(null, OrderCommand.Create, orderModel.TradeType,
                     orderModel.Price, orderModel.Volume, DateTime.UtcNow,
                     orderModel.OrderType, orderModel.TimeInForce);
 
@@ -141,7 +141,7 @@ namespace TradingBot.Controllers.Api
                         throw new StatusCodeException(HttpStatusCode.BadRequest,
                             $"Exchange return status: {result.Status}");
 
-                    return CreatedAtAction("Post", new { orderModel.ExchangeName, instrument = orderModel.Instrument, id = orderModel.Id }, result);
+                    return Ok(result);
                 }
                 catch (Exception e)
                 {
