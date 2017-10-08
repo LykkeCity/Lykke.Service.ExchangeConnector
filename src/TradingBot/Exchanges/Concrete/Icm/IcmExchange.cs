@@ -3,11 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AzureStorage;
-using Common.Log;
-using Lykke.Logs;
 using Lykke.RabbitMqBroker;
 using Lykke.RabbitMqBroker.Subscriber;
-using Microsoft.Extensions.Logging;
 using QuickFix;
 using QuickFix.Transport;
 using TradingBot.Communications;
@@ -20,7 +17,7 @@ using OrderBook = TradingBot.Exchanges.Concrete.Icm.Entities.OrderBook;
 
 namespace TradingBot.Exchanges.Concrete.Icm
 {
-    public class IcmExchange : Exchange
+    internal class IcmExchange : Exchange
     {
         private readonly Common.Log.ILog _log;
         private readonly IcmConfig config;
@@ -36,7 +33,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             TranslatedSignalsRepository translatedSignalsRepository,
             INoSQLTableStorage<FixMessageTableEntity> tableStorage,
             Common.Log.ILog log)
-            : base(Name, config, translatedSignalsRepository)
+            : base(Name, config, translatedSignalsRepository, log)
         {
             this.config = config;
             _tableStorage = tableStorage;
@@ -45,10 +42,29 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
         protected override void StartImpl()
         {
-            StartFixConnection();
-            
+            if (config.SocketConnection)
+            {
+                _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartImpl), string.Empty,
+                    "Socket connection is enabled");
+                StartFixConnection();
+            }
+            else
+            {
+                _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartImpl), string.Empty,
+                    "Socket connection is desibled");
+            }
+
             if (config.RabbitMq.Enabled && (config.PubQuotesToRabbit || config.SaveQuotesToAzure))
+            {
+                _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartImpl), string.Empty,
+                    "RabbitMQ connection is enabled");
                 StartRabbitConnection();
+            }
+            else
+            {
+                _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartImpl), string.Empty,
+                    "RabbitMQ connection is desibled");
+            }
         }
         
         protected override void StopImpl()
@@ -62,17 +78,21 @@ namespace TradingBot.Exchanges.Concrete.Icm
         {
             var settings = new SessionSettings(config.GetFixConfigAsReader());
 
+            _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartFixConnection), string.Join("/n", config.FixConfiguration), "Starting fix connection with configuration").Wait();
+            
             var repository = new AzureFixMessagesRepository(_tableStorage);
             
-            connector = new IcmConnector(config, repository);
+            connector = new IcmConnector(config, repository, LykkeLog);
             var storeFactory = new FileStoreFactory(settings);
-            var logFactory = new ScreenLogFactory(settings);
+            var logFactory = new LykkeLogFactory(_log);
 
             connector.OnTradeExecuted += CallExecutedTradeHandlers;
             connector.Connected += OnConnected;
             connector.Disconnected += OnStopped;
             
             initiator = new SocketInitiator(connector, storeFactory, settings, logFactory);
+            
+            _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartFixConnection), string.Empty, "SocketInitiator is about to start").Wait();
             initiator.Start();
         }
 
@@ -100,17 +120,26 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 .Start();
         }
         
-        protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        protected override async Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
-            Logger.LogInformation($"About to place new order for instrument {instrument}: {signal}");
-            return Task.FromResult(connector.AddOrder(instrument, signal, translatedSignal));
+            await LykkeLog.WriteInfoAsync(
+                nameof(Icm),
+                nameof(IcmExchange),
+                nameof(AddOrderImpl),
+                $"About to place new order for instrument {instrument}: {signal}");
+            
+            return connector.AddOrder(instrument, signal, translatedSignal);
         }
 
-        protected override Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        protected override async Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
-            Logger.LogInformation($"Cancelling order {signal}");
+            await LykkeLog.WriteInfoAsync(
+                nameof(Icm),
+                nameof(IcmExchange),
+                nameof(AddOrderImpl),
+                $"Cancelling order {signal}");
 
-            return Task.FromResult(connector.CancelOrder(instrument, signal, translatedSignal));
+            return connector.CancelOrder(instrument, signal, translatedSignal);
         }
 
         public Task<ExecutedTrade> GetOrderInfo(Instrument instrument, string orderId)

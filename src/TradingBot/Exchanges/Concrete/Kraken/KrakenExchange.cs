@@ -4,7 +4,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+using Common.Log;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Kraken.Endpoints;
@@ -16,27 +16,28 @@ using TradingBot.Repositories;
 
 namespace TradingBot.Exchanges.Concrete.Kraken
 {
-    public class KrakenExchange : Exchange
+    internal class KrakenExchange : Exchange
     {
         public new static readonly string Name = "kraken";
-        
+
         private readonly KrakenConfig config;
 
         private readonly PublicData publicData;
         private readonly PrivateData privateData;
-        
+
         private readonly Dictionary<string, string> orderIdsToKrakenIds = new Dictionary<string, string>();
-        
+
         private Task pricesJob;
         private CancellationTokenSource ctSource;
-        
-        public KrakenExchange(KrakenConfig config, TranslatedSignalsRepository translatedSignalsRepository) : base(Name, config, translatedSignalsRepository)
+
+        public KrakenExchange(KrakenConfig config, TranslatedSignalsRepository translatedSignalsRepository, ILog log) :
+            base(Name, config, translatedSignalsRepository, log)
         {
             this.config = config;
-            
-            var httpClient = new HttpClient() {Timeout = TimeSpan.FromSeconds(3)}; // TODO: HttpClient have to be Singleton
-            publicData = new PublicData(new ApiClient(httpClient));
-            privateData = new PrivateData(new ApiClient(new HttpClient() {Timeout = TimeSpan.FromSeconds(30)}), config.ApiKey, config.PrivateKey, new NonceProvider());
+
+            var httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds(3) }; // TODO: HttpClient have to be Singleton
+            publicData = new PublicData(new ApiClient(httpClient, log));
+            privateData = new PrivateData(new ApiClient(new HttpClient() { Timeout = TimeSpan.FromSeconds(30) }, log), config.ApiKey, config.PrivateKey, new NonceProvider());
         }
 
         protected override void StartImpl()
@@ -49,48 +50,63 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                     if (!task.IsFaulted && task.Result)
                         OnConnected();
                 });
-           
+
             if (config.PubQuotesToRabbit || config.SaveQuotesToAzure)
             {
                 pricesJob = Task.Run(async () =>
                 {
                     var lasts = Instruments.Select(x => (long)0).ToList();
 
-                    while(!ctSource.IsCancellationRequested)
+                    while (!ctSource.IsCancellationRequested)
                     {
-                        for (int i = 0; i < Instruments.Count && !ctSource.IsCancellationRequested; i++)
+                        try
                         {
-                            SpreadDataResult result;
-
-                            try
+                            for (int i = 0; i < Instruments.Count && !ctSource.IsCancellationRequested; i++)
                             {
-                                result = await publicData.GetSpread(ctSource.Token, Instruments[i].Name, lasts[i]);
-                            }
-                            catch (Exception e)
-                            {
-                                Logger.LogError(0, e, "Can't get prices from kraken.");
-                                continue;
-                            }
+                                SpreadDataResult result;
 
-                            lasts[i] = result.Last;
-                            var prices = result.Data.Single().Value.Select(x => new TickPrice(x.Time, x.Ask, x.Bid)).ToArray();
-
-                            if (prices.Any())
-                            {
-                                if (prices.Length == 1 && prices[0].Time == DateTimeUtils.FromUnix(lasts[i]))
+                                try
                                 {
-                                    // If there is only one price and it has timestamp of last one, ignore it.
+                                    result = await publicData.GetSpread(ctSource.Token, Instruments[i].Name, lasts[i]);
                                 }
-                                else
+                                catch (Exception e)
                                 {
-                                    await CallHandlers(new InstrumentTickPrices(Instruments[i], prices));
+                                    await LykkeLog.WriteErrorAsync(
+                                        nameof(Kraken),
+                                        nameof(KrakenExchange),
+                                        nameof(pricesJob),
+                                        e);
+                                    continue;
                                 }
-                            }
 
-                            await Task.Delay(TimeSpan.FromSeconds(10), ctSource.Token);
+                                lasts[i] = result.Last;
+                                var prices = result.Data.Single().Value.Select(x => new TickPrice(x.Time, x.Ask, x.Bid)).ToArray();
+
+                                if (prices.Any())
+                                {
+                                    if (prices.Length == 1 && prices[0].Time == DateTimeUtils.FromUnix(lasts[i]))
+                                    {
+                                        // If there is only one price and it has timestamp of last one, ignore it.
+                                    }
+                                    else
+                                    {
+                                        await CallHandlers(new InstrumentTickPrices(Instruments[i], prices));
+                                    }
+                                }
+
+                                await Task.Delay(TimeSpan.FromSeconds(10), ctSource.Token);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            await LykkeLog.WriteErrorAsync(
+                                nameof(Kraken),
+                                nameof(KrakenExchange),
+                                nameof(pricesJob),
+                                e);
                         }
                     }
-                    
+
                     OnStopped();
                 });
             }
@@ -100,7 +116,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
         {
             ctSource.Cancel();
         }
-        
+
         private async Task<bool> CheckServerTime(CancellationToken cancellationToken)
         {
             var serverTime = await publicData.GetServerTime(cancellationToken);
@@ -108,7 +124,11 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             long differenceTicks = Math.Abs(serverTime.FromUnixTime.Ticks - now.Ticks);
             bool differenceInThreshold = differenceTicks <= TimeSpan.FromMinutes(2).Ticks;
 
-            Logger.LogDebug($"Server time: {serverTime.FromUnixTime}; now: {now}; difference ticks: {differenceTicks}. In threshold: {differenceInThreshold}");
+            await LykkeLog.WriteInfoAsync(
+                nameof(Kraken),
+                nameof(KrakenExchange),
+                nameof(pricesJob),
+                $"Server time: {serverTime.FromUnixTime}; now: {now}; difference ticks: {differenceTicks}. In threshold: {differenceInThreshold}");
 
             return differenceInThreshold;
         }
@@ -117,10 +137,10 @@ namespace TradingBot.Exchanges.Concrete.Kraken
         {
             return (await privateData.GetAccountBalance(null, cancellationToken))
                 .Select(x => new AccountBalance()
-                    {
-                        Asset = x.Key,
-                        Balance = x.Value
-                    });
+                {
+                    Asset = x.Key,
+                    Balance = x.Value
+                });
         }
 
         public Task<TradeBalanceInfo> GetTradeBalance(CancellationToken cancellationToken)
@@ -133,9 +153,9 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             var executedTrade = await AddOrderAndWaitExecution(instrument, signal, translatedSignal, TimeSpan.FromSeconds(30));
 
             if (executedTrade == null) return false;
-            
+
             translatedSignal.SetExecutionResult(executedTrade);
-            
+
             return true;
         }
 
@@ -146,11 +166,11 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             return executedTrade.Status == ExecutionStatus.Cancelled;
         }
 
-        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, 
+        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var cts = new CancellationTokenSource(timeout);
-            
+
             var orderInfo = await privateData.AddOrder(instrument, signal, translatedSignal, cts.Token);
             string txId = orderInfo.TxId.FirstOrDefault();
 
@@ -158,8 +178,8 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             {
                 orderIdsToKrakenIds.Add(signal.OrderId, txId);
             }
-            
-            return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType, txId, ExecutionStatus.New);
+
+            return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, txId, ExecutionStatus.New);
         }
 
         public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
@@ -169,20 +189,20 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             {
                 if (orderIdsToKrakenIds.ContainsKey(signal.OrderId))
                     krakenId = orderIdsToKrakenIds[signal.OrderId];
-                else 
+                else
                     throw new ArgumentException($"Unknown order id of {signal.OrderId}");
             }
-            
+
             var result = await privateData.CancelOrder(krakenId, translatedSignal);
-            
-            var executedTrade = new ExecutedTrade(instrument, 
-                DateTime.UtcNow, 
-                signal.Price, 
-                signal.Volume, 
-                signal.TradeType, 
-                signal.OrderId, 
+
+            var executedTrade = new ExecutedTrade(instrument,
+                DateTime.UtcNow,
+                signal.Price ?? 0,
+                signal.Volume,
+                signal.TradeType,
+                signal.OrderId,
                 result.Pending ? ExecutionStatus.Pending : ExecutionStatus.Cancelled);
-            
+
             translatedSignal.SetExecutionResult(executedTrade);
 
             return executedTrade;

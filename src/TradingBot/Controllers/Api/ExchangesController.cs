@@ -35,7 +35,7 @@ namespace TradingBot.Controllers.Api
         [ProducesResponseType(typeof(ExchangeInformationModel), 200)]
         public IActionResult Index(string exchangeName)
         {
-            Exchange exchange = Application.GetExchange(exchangeName);
+            var exchange = Application.GetExchange(exchangeName);
             
             if (exchange == null)
             {

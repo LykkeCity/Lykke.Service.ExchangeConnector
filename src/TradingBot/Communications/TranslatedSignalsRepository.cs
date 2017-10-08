@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AzureStorage;
-using AzureStorage.Tables;
-using Common.Log;
 using Microsoft.Extensions.Logging;
 using TradingBot.Infrastructure.Logging;
 using TradingBot.Repositories;
@@ -33,7 +31,7 @@ namespace TradingBot.Communications
         {
             try
             {
-                translatedSignal.PartitionKey = "nopartition";
+                translatedSignal.PartitionKey = TranslatedSignalTableEntity.GeneratePartitionKey();
                 translatedSignal.RowKey = keyProvider.GetNextRowKey().ToString();
                 
                 await _tableStorage.InsertAsync(translatedSignal); // TODO: save by batchs
@@ -46,7 +44,7 @@ namespace TradingBot.Communications
 
         public Task<IEnumerable<TranslatedSignalTableEntity>> GetTop(int count)
         {
-            return _tableStorage.GetTopRecordsAsync("nopartition", count);
+            return _tableStorage.GetTopRecordsAsync(TranslatedSignalTableEntity.GeneratePartitionKey(), count);
         }
     }
 }

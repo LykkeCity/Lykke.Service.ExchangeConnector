@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AzureStorage;
-using AzureStorage.Tables;
 using Common;
-using Common.Log;
 using Microsoft.Extensions.Logging;
 using TradingBot.Handlers;
 using TradingBot.Helpers;
@@ -17,14 +15,14 @@ namespace TradingBot.Communications
     {
 		private readonly ILogger logger = Logging.CreateLogger<AzureTablePricesPublisher>();
 
-        private readonly INoSQLTableStorage<PriceTableEntity> _tableStorage;
+        private readonly INoSQLTableStorage<PriceTableEntity> tableStorage;
 
-	    private readonly string _tableName;
+	    private readonly string tableName;
 
         public AzureTablePricesPublisher(INoSQLTableStorage<PriceTableEntity> tableStorage, string tableName)
         {
-            _tableStorage = tableStorage;
-            _tableName = tableName;
+            this.tableStorage = tableStorage;
+            this.tableName = tableName;
         }
 
 		private readonly Queue<TickPrice> pricesQueue = new Queue<TickPrice>();
@@ -33,7 +31,7 @@ namespace TradingBot.Communications
 
 		public override async Task Handle(InstrumentTickPrices prices)
 		{
-			if (currentPriceMinute == default(DateTime))
+			if (currentPriceMinute == default)
                 currentPriceMinute = prices.TickPrices[0].Time.TruncSeconds();
 
             foreach (var price in prices.TickPrices)
@@ -55,8 +53,8 @@ namespace TradingBot.Communications
 					
 					try
 					{
-						await _tableStorage.InsertAsync(tablePrice);
-						logger.LogDebug($"Prices for {prices.Instrument} published to Azure table {_tableName}");
+						await tableStorage.InsertAsync(tablePrice);
+						logger.LogDebug($"Prices for {prices.Instrument} published to Azure table {tableName}");
 					}
 					catch (Microsoft.WindowsAzure.Storage.StorageException ex)
 						when (ex.Message == "Conflict")

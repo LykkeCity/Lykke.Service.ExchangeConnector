@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Common.Log;
 using TradingBot.Exchanges.Concrete.LykkeExchange;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
@@ -16,10 +17,11 @@ namespace TradingBot.Tests.LykkeApiTests
         private readonly LykkeExchangeConfiguration config = new LykkeExchangeConfiguration()
             {
                 Instruments = new [] { "BTCUSD" },
-                EndpointUrl = ""
+                EndpointUrl = "",
+                ApiKey = ""
             };
 
-        private LykkeExchange Exchange => new LykkeExchange(config, null);
+        private LykkeExchange Exchange => new LykkeExchange(config, null, new LogToConsole());
 
         [Fact]
         public async Task GetPairsTest()

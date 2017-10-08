@@ -3,16 +3,16 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Common.Log;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Kraken.Endpoints;
-using TradingBot.Helpers;
 using Xunit;
 
 namespace TradingBot.Tests.KrakenApiTests
 {
     public class PublicDataTests
     {
-        private PublicData PublicData => new PublicData(new ApiClient(new HttpClient()));
+        private PublicData PublicData => new PublicData(new ApiClient(new HttpClient(), new LogToConsole()));
 
         [Fact]
         public async Task GetServerTimeTest()

@@ -10,17 +10,19 @@ namespace TradingBot
         {
             try
             {
-	            var host = new WebHostBuilder()
-		            .UseKestrel()
-		            .UseContentRoot(Directory.GetCurrentDirectory())
-		            .UseStartup<Startup>()
-		            .Build();
+                var host = new WebHostBuilder()
+	                .UseKestrel()
+	                .UseUrls("http://*:5000")
+	                .UseContentRoot(Directory.GetCurrentDirectory())
+	                .UseStartup<Startup>()
+	                .UseApplicationInsights()
+	                .Build();
 
-	            host.Run(); // returns on Ctrl+C
+                host.Run(); // returns on Ctrl+C
 
-	            Console.WriteLine("The service is stopped.");
+                Console.WriteLine("The service is stopped.");
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Console.WriteLine(e);
             }

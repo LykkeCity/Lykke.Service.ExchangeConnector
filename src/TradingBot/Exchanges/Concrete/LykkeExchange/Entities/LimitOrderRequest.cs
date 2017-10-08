@@ -2,7 +2,7 @@
 
 namespace TradingBot.Exchanges.Concrete.LykkeExchange.Entities
 {
-    public class LimitOrder
+    public class LimitOrderRequest
     {
         public string AssetPairId { get; set; }
         

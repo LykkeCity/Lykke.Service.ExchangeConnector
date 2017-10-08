@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace TradingBot.Infrastructure.Configuration
 {
-    public class ExchangesConfiguration : IEnumerable<IExchangeConfiguration>
+    public sealed class ExchangesConfiguration : IEnumerable<IExchangeConfiguration>
     {
         public IcmConfig Icm { get; set; }
         
@@ -14,6 +14,8 @@ namespace TradingBot.Infrastructure.Configuration
         public HistoricalDataConfig HistoricalData { get; set; }
         
         public LykkeExchangeConfiguration Lykke { get; set; }
+
+        public BitMexExchangeConfiguration BitMex { get; set; }
         
         
         public IEnumerator<IExchangeConfiguration> GetEnumerator()
@@ -23,6 +25,7 @@ namespace TradingBot.Infrastructure.Configuration
             yield return Stub;
             yield return HistoricalData;
             yield return Lykke;
+            yield return BitMex;
         }
 
         IEnumerator IEnumerable.GetEnumerator()

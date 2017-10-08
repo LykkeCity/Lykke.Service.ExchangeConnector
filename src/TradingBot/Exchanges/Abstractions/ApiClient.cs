@@ -3,28 +3,28 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using TradingBot.Infrastructure.Exceptions;
 using System.IO;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Threading;
-using TradingBot.Infrastructure.Logging;
+using Common.Log;
 using TradingBot.Repositories;
 
 namespace TradingBot.Exchanges.Abstractions
 {
     public class ApiClient
     {
-        private readonly ILogger logger = Logging.CreateLogger<ApiClient>();
+        private readonly ILog lykkeLog;
         
         private readonly HttpClient httpClient;
 
-        public ApiClient(HttpClient httpClient)
+        public ApiClient(HttpClient httpClient, ILog lykkeLog)
         {
             this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            this.lykkeLog = lykkeLog;
         }
         
         public async Task<TResponse> MakeGetRequestAsync<TResponse>(string url, CancellationToken cancellationToken)
         {
-            Log($"Making request to url: {url}");
+            Log(nameof(MakeGetRequestAsync), $"Making request to url: {url}");
 
             cancellationToken.ThrowIfCancellationRequested();
             using (var response = await httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false))
@@ -36,7 +36,7 @@ namespace TradingBot.Exchanges.Abstractions
                     throw new ApiException($"Unexpected status code: {response.StatusCode}. {content}");
                 }
 
-                Log($"Received content: {content}");
+                Log(nameof(MakeGetRequestAsync), $"Received content: {content}");
 
                 var result = JsonConvert.DeserializeObject<TResponse>(content);
                 return result;
@@ -48,14 +48,14 @@ namespace TradingBot.Exchanges.Abstractions
             CancellationToken cancellationToken)
         {
             translatedSignal?.RequestSent(HttpMethod.Post, url, content);
-            Log($"Making request to url: {url}. {translatedSignal?.RequestSentToExchange}");
+            Log(nameof(MakePostRequestAsync), $"Making request to url: {url}. {translatedSignal?.RequestSentToExchange}");
             
             cancellationToken.ThrowIfCancellationRequested();
             using (var response = await httpClient.PostAsync(url, content, cancellationToken).ConfigureAwait(false))
             {
                 string responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 translatedSignal?.ResponseReceived(responseContent);
-                Log($"Received content: {responseContent}");
+                Log(nameof(MakePostRequestAsync), $"Received content: {responseContent}");
                 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -78,9 +78,13 @@ namespace TradingBot.Exchanges.Abstractions
             return httpClient.GetStreamAsync(url);
         }
 
-        private void Log(string message)
+        private void Log(string context, string message)
         {
-            logger.LogDebug(message);
+            lykkeLog.WriteInfoAsync(
+                nameof(ApiClient),
+                nameof(ApiClient),
+                context,
+                message);
         }
     }
 }

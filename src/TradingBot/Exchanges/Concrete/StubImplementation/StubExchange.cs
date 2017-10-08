@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Common.Log;
 using Microsoft.Extensions.Logging;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
@@ -13,7 +14,7 @@ using TradingBot.Repositories;
 
 namespace TradingBot.Exchanges.Concrete.StubImplementation
 {
-    public class StubExchange : Exchange
+    internal class StubExchange : Exchange
     {
 	    public new static readonly string Name = "stub";
 	    
@@ -21,8 +22,8 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 	    private readonly StubExchangeConfiguration config;
 	    
 
-        public StubExchange(StubExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository)
-	        : base(Name, config, translatedSignalsRepository)
+        public StubExchange(StubExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log)
+	        : base(Name, config, translatedSignalsRepository, log)
         {
             this.config = config;
         }
@@ -168,7 +169,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 		    
 		    await CallExecutedTradeHandlers(new ExecutedTrade(
 			    instrument,
-			    DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType,
+			    DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
 			    signal.OrderId, ExecutionStatus.Cancelled));
 
 		    return true;
