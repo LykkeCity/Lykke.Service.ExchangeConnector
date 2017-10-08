@@ -20,10 +20,10 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
     internal class LykkeExchange : Exchange
     {
         public new static readonly string Name = "lykke";
-        private new LykkeExchangeConfiguration Config => (LykkeExchangeConfiguration) base.Config;
+        private new LykkeExchangeConfiguration Config => (LykkeExchangeConfiguration)base.Config;
         private readonly ApiClient apiClient;
-        
-        public LykkeExchange(LykkeExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log) 
+
+        public LykkeExchange(LykkeExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log)
             : base(Name, config, translatedSignalsRepository, log)
         {
             var httpClient = new HttpClient();
@@ -41,16 +41,16 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
 
         private CancellationTokenSource ctSource;
         private Task getPricesTask;
-        
+
         protected override void StartImpl()
         {
             LykkeLog.WriteInfoAsync(nameof(LykkeExchange), nameof(StartImpl), string.Empty, $"Starting {Name} exchange").Wait();
-            
+
             if (getPricesTask != null && getPricesTask.Status == TaskStatus.Running)
             {
                 throw new InvalidOperationException("The process for getting prices is running already");
             }
-            
+
             ctSource = new CancellationTokenSource();
 
             getPricesTask = GetPricesCycle();
@@ -79,12 +79,12 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
 
                         foreach (var tickPrice in tickPrices)
                         {
-                            await CallHandlers(tickPrice);    
-                        }    
+                            await CallHandlers(tickPrice);
+                        }
                     }
 
                     await CheckExecutedOrders();
-                
+
                     await Task.Delay(TimeSpan.FromSeconds(1));
                 }
                 catch (Exception e)
@@ -92,7 +92,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     await LykkeLog.WriteErrorAsync(
                         nameof(LykkeExchange),
                         nameof(LykkeExchange),
-                        nameof(GetPricesCycle), 
+                        nameof(GetPricesCycle),
                         e);
                 }
             }
@@ -103,8 +103,8 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         {
             ctSource?.Cancel();
         }
-        
-        
+
+
         //private readonly Dictionary<string, Tuple<TradingSignal, TranslatedSignalTableEntity, ExecutedTrade>>
 
         protected override async Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal)
@@ -112,32 +112,32 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             switch (signal.OrderType)
             {
                 case OrderType.Market:
-                    
+
                     var marketOrderResponse = await apiClient.MakePostRequestAsync<MarketOrderResponse>(
-                        $"{Config.EndpointUrl}/api/Orders/market", 
+                        $"{Config.EndpointUrl}/api/Orders/market",
                         CreateHttpContent(new MarketOrderRequest()
                         {
                             AssetPairId = instrument.Name,
                             OrderAction = signal.TradeType,
                             Volume = signal.Volume
                         }),
-                        trasnlatedSignal, 
+                        trasnlatedSignal,
                         CancellationToken.None);
 
                     return marketOrderResponse != null && marketOrderResponse.Error == null;
-                    
+
                 case OrderType.Limit:
-                    
+
                     var limitOrderResponse = await apiClient.MakePostRequestAsync<LimitOrderResponse>(
-                        $"{Config.EndpointUrl}/api/Orders/limit", 
+                        $"{Config.EndpointUrl}/api/Orders/limit",
                         CreateHttpContent(new LimitOrderRequest()
                         {
                             AssetPairId = instrument.Name,
                             OrderAction = signal.TradeType,
                             Volume = signal.Volume,
-                            Price = signal.Price
+                            Price = signal.Price ?? 0
                         }),
-                        trasnlatedSignal, 
+                        trasnlatedSignal,
                         CancellationToken.None);
 
                     var orderPlaced = limitOrderResponse != null && limitOrderResponse.Error == null;
@@ -145,7 +145,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     if (orderPlaced)
                     {
                         trasnlatedSignal.ExternalId = limitOrderResponse.Result.ToString();
-                        
+
                         lock (orderIds)
                         {
                             orderIds.Add(signal.OrderId, limitOrderResponse.Result);
@@ -153,19 +153,19 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     }
 
                     return orderPlaced;
-                    
+
                 default:
                     throw new ArgumentOutOfRangeException();
             }
         }
-        
+
         private readonly Dictionary<string, Guid> orderIds = new Dictionary<string, Guid>();
-        
+
         private StringContent CreateHttpContent(object value)
         {
             var content = new StringContent(JsonConvert.SerializeObject(value));
             content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-            
+
             return content;
         }
 
@@ -179,12 +179,12 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     orderId = orderIds[signal.OrderId];
                 }
             }
-            
-             await apiClient.MakePostRequestAsync<string>(
-                $"{Config.EndpointUrl}/api/Orders/{orderId}/Cancel", 
-                CreateHttpContent(new object()),
-                trasnlatedSignal, 
-                CancellationToken.None);
+
+            await apiClient.MakePostRequestAsync<string>(
+               $"{Config.EndpointUrl}/api/Orders/{orderId}/Cancel",
+               CreateHttpContent(new object()),
+               trasnlatedSignal,
+               CancellationToken.None);
 
             return true;
         }
@@ -208,14 +208,14 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
 
                     if (await CheckIsOrderExecuted(orderId))
                     {
-                        executedTrades.Add(new ExecutedTrade(new Instrument(Name, pair.Key), DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType, signal.OrderId, ExecutionStatus.Fill));
-                    }    
+                        executedTrades.Add(new ExecutedTrade(new Instrument(Name, pair.Key), DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, ExecutionStatus.Fill));
+                    }
                 }
             }
 
             foreach (var executedTrade in executedTrades)
             {
-                await CallExecutedTradeHandlers(executedTrade);    
+                await CallExecutedTradeHandlers(executedTrade);
             }
         }
 
@@ -234,9 +234,9 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                 await LykkeLog.WriteErrorAsync(
                     nameof(LykkeExchange),
                     nameof(LykkeExchange),
-                    nameof(CheckIsOrderExecuted), 
+                    nameof(CheckIsOrderExecuted),
                     e);
-                
+
                 return false;
             }
         }
@@ -246,12 +246,12 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         {
             if (await AddOrder(instrument, signal, translatedSignal))
             {
-                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType,
+                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
                     signal.OrderId, ExecutionStatus.New);
             }
             else
             {
-                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType,
+                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
                     signal.OrderId, ExecutionStatus.Rejected);
             }
         }
@@ -261,12 +261,12 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         {
             if (await CancelOrder(instrument, signal, translatedSignal))
             {
-                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType,
+                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
                     signal.OrderId, ExecutionStatus.Cancelled);
             }
             else
             {
-                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price, signal.Volume, signal.TradeType,
+                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
                     signal.OrderId, ExecutionStatus.Rejected);
             }
         }
@@ -290,7 +290,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                 }
                 catch (Exception)
                 {
-                    
+
                 }
             }
         }
