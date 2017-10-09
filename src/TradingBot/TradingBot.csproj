@@ -13,10 +13,10 @@
   <ItemGroup>
     <PackageReference Include="Lykke.AzureQueueIntegration" Version="1.0.7" />
     <PackageReference Include="Lykke.AzureStorage" Version="2.0.1" />
-    <PackageReference Include="Lykke.Common" Version="1.1.100" />
+    <PackageReference Include="Lykke.Common" Version="3.0.0" />
     <PackageReference Include="Lykke.Common.ApiLibrary" Version="1.0.13" />
-    <PackageReference Include="Lykke.RabbitMqBroker" Version="2.1.0" />
-    <PackageReference Include="Lykke.Logs" Version="3.1.2" />
+    <PackageReference Include="Lykke.RabbitMqBroker" Version="3.0.3" />
+    <PackageReference Include="Lykke.Logs" Version="3.2.0" />
     <PackageReference Include="Lykke.SettingsReader" Version="1.0.41" />
     <PackageReference Include="Lykke.SlackNotification.AzureQueue" Version="1.0.5" />
     <PackageReference Include="Microsoft.AspNetCore" Version="2.0.0" />

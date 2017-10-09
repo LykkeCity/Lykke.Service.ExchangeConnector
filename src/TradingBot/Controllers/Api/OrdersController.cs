@@ -32,7 +32,7 @@ namespace TradingBot.Controllers.Api
         }
 
         /// <summary>
-        /// Get information about all current orders on exchange
+        /// Get information about all OPEN orders on the exchange
         /// <param name="exchangeName">The name of the exchange</param>
         /// </summary>
         [HttpGet]
@@ -42,13 +42,12 @@ namespace TradingBot.Controllers.Api
             {
                 var exchange = Application.GetExchange(exchangeName);
 
-                if (exchange is IcmExchange)
+                switch (exchange)
                 {
-                    return await ((IcmExchange)exchange).GetAllOrdersInfo(_timeout);
-                }
-                else if (exchange is KrakenExchange)
-                {
-                    return await ((KrakenExchange)exchange).GetOpenOrders(CancellationToken.None);
+                    case IcmExchange e:
+                        return await e.GetOpenOrders(_timeout);
+                    case KrakenExchange e:
+                        return await e.GetOpenOrders(_timeout);
                 }
 
                 return Application.GetExchange(exchangeName).ActualOrders;
@@ -62,17 +61,21 @@ namespace TradingBot.Controllers.Api
         /// <summary>
         /// Get information about earlier placed order
         /// </summary>
+        /// <param name="id">The order id</param>
+        /// <param name="instrument">The instrument name of the order</param>
+        /// <param name="exchangeName">The exchange name</param>
+        /// <response code="200">The order is found</response>
+        /// <response code="500">The order either not exist or other server error</response>
         [HttpGet("{id}")]
+        [ProducesResponseType(typeof(ExecutedTrade), 200)]
+        [ProducesResponseType(typeof(ResponseMessage), 500)]
         public async Task<ExecutedTrade> GetOrder(string id, [FromQuery, Required] string exchangeName, [FromQuery, Required] string instrument)
         {
             try
             {
                 var exchange = Application.GetExchange(exchangeName);
+                return await exchange.GetOrder(id, new Instrument(exchangeName, instrument));
 
-                if (exchange is IcmExchange)
-                    return await ((IcmExchange)exchange).GetOrderInfo(new Instrument(exchangeName, instrument), id);
-                else
-                    throw new NotSupportedException("Get orders method is supported for ICM only");
             }
             catch (Exception e)
             {

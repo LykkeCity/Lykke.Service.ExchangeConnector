@@ -4,7 +4,7 @@
     <Version>1.0.1</Version>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Lykke.Common" Version="1.1.97" />
+    <PackageReference Include="Lykke.Common" Version="3.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="WebSocket4Net" Version="0.15.0" />
   </ItemGroup>

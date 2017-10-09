@@ -137,17 +137,17 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 nameof(Icm),
                 nameof(IcmExchange),
                 nameof(AddOrderImpl),
-                $"Cancelling order {signal}");
+                $"Canceling order {signal}");
 
             return connector.CancelOrder(instrument, signal, translatedSignal);
         }
 
-        public Task<ExecutedTrade> GetOrderInfo(Instrument instrument, string orderId)
+        public override Task<ExecutedTrade> GetOrder(string orderId, Instrument instrument)
         {
             return connector.GetOrderInfoAndWaitResponse(instrument, orderId);
         }
 
-        public Task<IEnumerable<ExecutedTrade>> GetAllOrdersInfo(TimeSpan timeout)
+        public Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout)
         {
             return connector.GetAllOrdersInfo(timeout);
         }

@@ -208,9 +208,9 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             return executedTrade;
         }
 
-        public Task<string> GetOpenOrders(CancellationToken cancellationToken)
+        public Task<string> GetOpenOrders(TimeSpan timeout)
         {
-            return privateData.GetOpenOrders(cancellationToken);
+            return privateData.GetOpenOrders(new CancellationTokenSource(timeout).Token);
         }
     }
 }
