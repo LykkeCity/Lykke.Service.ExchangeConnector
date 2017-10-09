@@ -25,7 +25,7 @@ namespace TradingBot.Exchanges.Abstractions
         private readonly List<Handler<ExecutedTrade>> executedTradeHandlers = new List<Handler<ExecutedTrade>>();
 
         private readonly TranslatedSignalsRepository translatedSignalsRepository;
-        
+
         public string Name { get; }
 
         internal IExchangeConfiguration Config { get; }
@@ -71,7 +71,7 @@ namespace TradingBot.Exchanges.Abstractions
         public void Start()
         {
             LykkeLog.WriteInfoAsync(nameof(Exchange), nameof(Start), Name, $"Starging exchange {Name}, current state is {State}").Wait();
-            
+
             if (State != ExchangeState.ErrorState && State != ExchangeState.Stopped && State != ExchangeState.Initializing)
                 return;
 
@@ -126,17 +126,17 @@ namespace TradingBot.Exchanges.Abstractions
                     ActualSignals[trade.Instrument.Name].Remove(signalToDelete);
                 }
             }
-            
+
             return Task.WhenAll(executedTradeHandlers.Select(x => x.Handle(trade)));
         }
 
         protected readonly object ActualSignalsSyncRoot = new object();
-        
+
 
         private readonly Policy retryTwoTimesPolicy = Policy
             .Handle<Exception>(x => !(x is InsufficientFundsException))
             .WaitAndRetryAsync(1, attempt => TimeSpan.FromSeconds(3));
-        
+
         public Task HandleTradingSignals(InstrumentTradingSignals signals) // TODO: get rid of whole body lock and make calls async
         {
             if (signals.Instrument == null || string.IsNullOrEmpty(signals.Instrument.Name) ||
@@ -144,15 +144,15 @@ namespace TradingBot.Exchanges.Abstractions
             {
                 return Task.FromResult(0);
             }
-            
-            
+
+
             // TODO: check if the Exchange is ready for processing signals, maybe put them into inner queue if readyness is not the case
-            
+
             // TODO: this method should place signals into inner queue only
             // the queue have to be processed via separate worker
 
             var instrumentName = signals.Instrument.Name;
-            
+
             lock (lockRoots[instrumentName])
             {
                 if (!ActualSignals.ContainsKey(instrumentName))
@@ -164,10 +164,10 @@ namespace TradingBot.Exchanges.Abstractions
                         info:
                         $"ActualSignals doesn't contains a key {instrumentName}. It has keys: {string.Join(", ", ActualSignals.Keys)}"
                     ).Wait();
-                    
+
                     return Task.FromResult(0);
                 }
-                
+
                 foreach (var arrivedSignal in signals.TradingSignals)
                 {
                     var translatedSignal = new TranslatedSignalTableEntity(SignalSource.RabbitQueue, signals.Instrument.Exchange, instrumentName, arrivedSignal);
@@ -187,11 +187,11 @@ namespace TradingBot.Exchanges.Abstractions
                                             nameof(Exchange),
                                             nameof(HandleTradingSignals),
                                             $"Skipping old signal {arrivedSignal}").Wait();
-                                        
+
                                         translatedSignal.Failure("The signal is too old");
                                         break;
                                     }
-                                    
+
                                     existing = ActualSignals[instrumentName]
                                         .SingleOrDefault(x => x.OrderId == arrivedSignal.OrderId);
 
@@ -208,7 +208,7 @@ namespace TradingBot.Exchanges.Abstractions
                                     if (result.Outcome == OutcomeType.Successful)
                                     {
                                         ActualSignals[instrumentName].AddLast(arrivedSignal);
-                                        
+
                                         LykkeLog.WriteInfoAsync(nameof(TradingBot.Exchanges.Abstractions),
                                             nameof(Exchange),
                                             nameof(HandleTradingSignals),
@@ -220,8 +220,8 @@ namespace TradingBot.Exchanges.Abstractions
                                             nameof(Exchange),
                                             nameof(HandleTradingSignals),
                                             result.FinalException).Wait();
-                                        
-                                        translatedSignal.Failure(result.FinalException);   
+
+                                        translatedSignal.Failure(result.FinalException);
                                     }
                                 }
                                 catch (Exception e)
@@ -248,11 +248,11 @@ namespace TradingBot.Exchanges.Abstractions
                                         nameof(Exchange),
                                         nameof(HandleTradingSignals),
                                         $"Command for cancel unexisted order {arrivedSignal}").Wait();
-                                    
+
                                     translatedSignal.Failure("Unexisted order");
                                     break;
                                 }
-                                
+
                                 try
                                 {
                                     var result = retryTwoTimesPolicy.ExecuteAndCaptureAsync(() =>
@@ -261,7 +261,7 @@ namespace TradingBot.Exchanges.Abstractions
                                     if (result.Outcome == OutcomeType.Successful)
                                     {
                                         ActualSignals[instrumentName].Remove(existing);
-                                        
+
                                         LykkeLog.WriteInfoAsync(nameof(Abstractions),
                                             nameof(Exchange),
                                             nameof(HandleTradingSignals),
@@ -292,7 +292,7 @@ namespace TradingBot.Exchanges.Abstractions
                     }
                     catch (Exception e)
                     {
-                        translatedSignal.Failure(e);   
+                        translatedSignal.Failure(e);
                     }
                     finally
                     {
@@ -308,30 +308,30 @@ namespace TradingBot.Exchanges.Abstractions
                         $"Current orders:\n {string.Join("\n", ActualSignals[instrumentName])}").Wait();
                 }
             }
-            
+
             return Task.FromResult(0);
         }
 
         protected Task<bool> AddOrder(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             // TODO: save or update TranslatedSignalEntity
-            
+
             return AddOrderImpl(instrument, signal, translatedSignal);
         }
-        
+
         protected abstract Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal);
-        
+
         protected Task<bool> CancelOrder(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             // TODO: save or update TranslatedSignalEntity
-            
+
             return CancelOrderImpl(instrument, signal, translatedSignal);
         }
-        
+
         protected abstract Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal);
 
-        
-        
+
+
         public IDictionary<string, LinkedList<TradingSignal>> ActualOrders => ActualSignals; // TODO: to readonly dictionary and collection
 
         public abstract Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal,
@@ -341,6 +341,11 @@ namespace TradingBot.Exchanges.Abstractions
         public abstract Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal,
             TimeSpan timeout);
+
+        public virtual Task<ExecutedTrade> GetOrder(string id, Instrument instrument)
+        {
+            throw new NotSupportedException($"{Name} does not support receiving order information by {nameof(id)} and {nameof(instrument)}");
+        }
 
         public virtual Task<IEnumerable<AccountBalance>> GetAccountBalance(CancellationToken cancellationToken)
         {

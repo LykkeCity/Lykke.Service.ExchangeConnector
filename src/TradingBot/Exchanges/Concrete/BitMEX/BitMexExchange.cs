@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
+using Microsoft.Rest.Serialization;
+using Newtonsoft.Json;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.AutorestClient;
@@ -13,6 +15,7 @@ using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Repositories;
 using TradingBot.Trading;
 using Instrument = TradingBot.Trading.Instrument;
+using Order = TradingBot.Exchanges.Concrete.AutorestClient.Models.Order;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
@@ -49,7 +52,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 throw new ApiException(error.ErrorProperty.Message);
             }
 
-            var order = (AutorestClient.Models.Order)response;
+            var order = (Order)response;
 
             var execStatus = ConvertExecutionStatus(order.OrdStatus);
             var execPrice = (decimal)(order.Price ?? 0d);
@@ -64,30 +67,53 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
         public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            
+
             var ct = new CancellationTokenSource(timeout);
-            var ordeId = signal.OrderId;
-            var response = await _exchangeApi.OrdercancelAsync(cancellationToken: ct.Token, orderID: ordeId);
+            var id = signal.OrderId;
+            var response = await _exchangeApi.OrdercancelAsync(cancellationToken: ct.Token, orderID: id);
 
             if (response is Error error)
             {
                 throw new ApiException(error.ErrorProperty.Message);
             }
-            var res = (IReadOnlyList<AutorestClient.Models.Order>)response;
-            if (res.Count != 1)
-            {
-                throw new InvalidOperationException($"Received {res.Count} orders. Expected exactly one with id {ordeId}");
-            }
+            var res = EnsureCorrectResponce(id, response);
+            return OrderToTrade(id, res);
+        }
 
+        public override async Task<ExecutedTrade> GetOrder(string id, Instrument instrument)
+        {
+            var filterObj = new { orderID = id };
+            var filterArg = JsonConvert.SerializeObject(filterObj);
+            var response = await _exchangeApi.OrdergetOrdersAsync(filter: filterArg);
+            var res = EnsureCorrectResponce(id, response);
+            return OrderToTrade(id, res);
+        }
+
+        private ExecutedTrade OrderToTrade(string id, IReadOnlyList<Order> res)
+        {
             var order = res[0];
             var execTime = order.TransactTime ?? DateTime.UtcNow;
-            var execPrice = (decimal)(order.Price ?? 0);
-            var execVolume = (decimal)(order.OrderQty ?? 0);
+            var execPrice = (decimal) (order.Price ?? 0);
+            var execVolume = (decimal) (order.OrderQty ?? 0);
             var tradeType = ConvertTradeType(order.Side);
             var status = ConvertExecutionStatus(order.OrdStatus);
             var instr = ConvertSymbolFromBiMexToLykke(order.Symbol);
 
-            return new ExecutedTrade(instr, execTime, execPrice, execVolume, tradeType, ordeId, status) { Message = order.Text };
+            return new ExecutedTrade(instr, execTime, execPrice, execVolume, tradeType, id, status) {Message = order.Text};
+        }
+
+        private static IReadOnlyList<Order> EnsureCorrectResponce(string id, object response)
+        {
+            if (response is Error error)
+            {
+                throw new ApiException(error.ErrorProperty.Message);
+            }
+            var res = (IReadOnlyList<Order>) response;
+            if (res.Count != 1)
+            {
+                throw new InvalidOperationException($"Received {res.Count} orders. Expected exactly one with id {id}");
+            }
+            return res;
         }
 
         protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal)

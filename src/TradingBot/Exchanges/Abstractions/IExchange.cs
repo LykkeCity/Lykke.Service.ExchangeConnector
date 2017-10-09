@@ -8,7 +8,7 @@ using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Abstractions
 {
- 
+
     public interface IExchange
     {
         string Name { get; }
@@ -24,6 +24,8 @@ namespace TradingBot.Exchanges.Abstractions
         Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout);
 
         Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout);
+
+        Task<ExecutedTrade> GetOrder(string id, Instrument instrument);
 
     }
 }

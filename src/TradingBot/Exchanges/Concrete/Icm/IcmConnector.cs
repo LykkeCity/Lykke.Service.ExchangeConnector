@@ -483,9 +483,10 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
         public bool SendOrderStatusRequest(Instrument instrument, string orderId)
         {
-            TradingSignal signal;
-            if (!orderSignals.TryGetValue(orderId, out signal))
+            if (!orderSignals.TryGetValue(orderId, out var signal))
+            {
                 throw new InvalidOperationException($"Can't find signal for order {orderId}");
+            }
 
             logger.WriteInfoAsync(nameof(IcmConnector), nameof(SendAllOrdersStatusRequest), string.Empty, $"Sending order status request for order {orderId}").Wait();
 

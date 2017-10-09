@@ -44,7 +44,7 @@
         </member>
         <member name="M:TradingBot.Controllers.Api.OrdersController.Index(System.String)">
             <summary>
-            Get information about all current orders on exchange
+            Get information about all OPEN orders on the exchange
             <param name="exchangeName">The name of the exchange</param>
             </summary>
         </member>
@@ -52,6 +52,11 @@
             <summary>
             Get information about earlier placed order
             </summary>
+            <param name="id">The order id</param>
+            <param name="instrument">The instrument name of the order</param>
+            <param name="exchangeName">The exchange name</param>
+            <response code="200">The order is found</response>
+            <response code="500">The order either not exist or other server error</response>
         </member>
         <member name="M:TradingBot.Controllers.Api.OrdersController.Post(TradingBot.Models.Api.OrderModel)">
              <summary>
