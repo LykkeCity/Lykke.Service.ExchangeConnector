@@ -41,17 +41,15 @@ namespace TradingBot.Exchanges
 
             if (config.RabbitMq.Enabled)
             {
-                var pricesHandler =
-                    new RabbitMqHandler<InstrumentTickPrices>(config.RabbitMq.GetConnectionString(), config.RabbitMq.RatesExchange);
-
-                var tradesHandler =
-                    new RabbitMqHandler<ExecutedTrade>(config.RabbitMq.GetConnectionString(), config.RabbitMq.TradesExchange);
-
+                var pricesHandler = new RabbitMqHandler<InstrumentTickPrices>(config.RabbitMq.GetConnectionString(), config.RabbitMq.RatesExchange);
+                var tradesHandler = new RabbitMqHandler<ExecutedTrade>(config.RabbitMq.GetConnectionString(), config.RabbitMq.TradesExchange);
+                var acknowledgementsHandler = new RabbitMqHandler<Acknowledgement>(config.RabbitMq.GetConnectionString(), config.RabbitMq.AcknowledgementsExchange);
 
                 foreach (var exchange in exchanges.Where(x => x.Config.PubQuotesToRabbit))
                 {
                     exchange.AddTickPriceHandler(pricesHandler);
                     exchange.AddExecutedTradeHandler(tradesHandler);
+                    exchange.AddAcknowledgementsHandler(acknowledgementsHandler);
                 }
             }
 

@@ -19,6 +19,8 @@ namespace TradingBot.Exchanges.Abstractions
         private readonly List<Handler<InstrumentTickPrices>> tickPriceHandlers = new List<Handler<InstrumentTickPrices>>();
 
         private readonly List<Handler<ExecutedTrade>> executedTradeHandlers = new List<Handler<ExecutedTrade>>();
+        
+        private readonly List<Handler<Acknowledgement>> acknowledgementsHandlers = new List<Handler<Acknowledgement>>();
 
         public string Name { get; }
 
@@ -51,6 +53,11 @@ namespace TradingBot.Exchanges.Abstractions
         public void AddExecutedTradeHandler(Handler<ExecutedTrade> handler)
         {
             executedTradeHandlers.Add(handler);
+        }
+
+        public void AddAcknowledgementsHandler(Handler<Acknowledgement> handler)
+        {
+            acknowledgementsHandlers.Add(handler);
         }
 
         public void Start()
@@ -103,10 +110,17 @@ namespace TradingBot.Exchanges.Abstractions
         {
             bool added = await AddOrderImpl(instrument, signal, translatedSignal);
 
-            if (added && !string.IsNullOrEmpty(translatedSignal.ExternalId))
+            var ack = new Acknowledgement()
             {
-                // TODO: call acknowledgement handler
-            }
+                Success = added,
+                Exchange = Name,
+                Instrument = instrument.Name,
+                ClientOrderId = signal.OrderId,
+                ExchangeOrderId = translatedSignal.ExternalId,
+                Message = translatedSignal.ErrorMessage
+            };
+            
+            await Task.WhenAll(acknowledgementsHandlers.Select(x => x.Handle(ack)));
             
             return added;
         }

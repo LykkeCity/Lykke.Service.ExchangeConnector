@@ -34,11 +34,9 @@ namespace TradingBot.Trading
     {
         [JsonConstructor]
         public TradingSignal(
-            //  Instrument instrument,
             string orderId, OrderCommand command, TradeType tradeType, decimal? price, decimal volume, DateTime time, OrderType orderType = OrderType.Market,
             TimeInForce timeInForce = TimeInForce.FillOrKill)
         {
-            //  Instrument = instrument;
             OrderId = orderId;
             Command = command;
 
@@ -49,8 +47,6 @@ namespace TradingBot.Trading
             OrderType = orderType;
             TimeInForce = timeInForce;
         }
-
-        //public Instrument Instrument { get; }
 
         public DateTime Time { get; }
 
