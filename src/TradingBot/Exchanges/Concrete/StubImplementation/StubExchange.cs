@@ -4,11 +4,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
-using Microsoft.Extensions.Logging;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
 using TradingBot.Repositories;
 
@@ -18,20 +16,27 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
     {
 	    public new static readonly string Name = "stub";
 	    
-	    private readonly ILogger logger = Logging.CreateLogger<StubExchange>();
 	    private readonly StubExchangeConfiguration config;
 	    
+        protected IReadOnlyDictionary<string, Position> Positions { get; }
+
+        protected readonly Dictionary<string, LinkedList<TradingSignal>> ActualSignals;
+        
+        private readonly object syncRoot = new object();
 
         public StubExchange(StubExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log)
 	        : base(Name, config, translatedSignalsRepository, log)
         {
             this.config = config;
+
+            decimal initialValue = 100m;
+            Positions = Instruments.ToDictionary(x => x.Name, x => new Position(x, initialValue));
+            ActualSignals = Instruments.ToDictionary(x => x.Name, x => new LinkedList<TradingSignal>());
         }
 
         private CancellationTokenSource ctSource;
         private Task streamJob;
-
-	    private long counter = 0;
+        private int counter = 0;
 
 		protected override void StartImpl()
 		{
@@ -58,7 +63,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 							    .Select(x => new TickPrice(DateTime.UtcNow, x))
 							    .ToArray();
 
-					    lock (ActualSignalsSyncRoot)
+					    lock (syncRoot)
 					    {
 						    decimal lowestAsk = currentPrices.Min(x => x.Ask);
 						    decimal highestBid = currentPrices.Max(x => x.Bid);
@@ -82,8 +87,9 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 							    
 								    trades.Add(trade);
 								    executedOrders.Add(tradingSignal);
-								    
-								    logger.LogDebug($"EXECUTION of order {tradingSignal} by price {trade.Price}");
+
+							        LykkeLog.WriteInfoAsync(nameof(StubExchange), nameof(StartImpl), nameof(streamJob),
+							            $"EXECUTION of order {tradingSignal} by price {trade.Price}").Wait();
 							    }
 							    else if (tradingSignal.TradeType == TradeType.Sell
 							             && highestBid >= tradingSignal.Price)
@@ -99,14 +105,16 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 								    trades.Add(trade);
 								    executedOrders.Add(tradingSignal);
 								    
-								    logger.LogDebug($"EXECUTION of order {tradingSignal} by price {trade.Price}");
+							        LykkeLog.WriteInfoAsync(nameof(StubExchange), nameof(StartImpl), nameof(streamJob),
+							            $"EXECUTION of order {tradingSignal} by price {trade.Price}").Wait();
 							    }
 						    }
 
 						    foreach (var signal in executedOrders)
 						    {
 							    ActualSignals[instrument.Name].Remove(signal);
-							    logger.LogDebug($"Trading order {signal} was removed from actual signals as executed");
+						        LykkeLog.WriteInfoAsync(nameof(StubExchange), nameof(StartImpl), nameof(streamJob),
+						            $"Trading order {signal} was removed from actual signals as executed").Wait();
 						    }
 
 							trades.ForEach(async x =>
@@ -119,13 +127,14 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 						    {
 							    if (++counter % 100 == 0)
 							    {
-								    logger.LogDebug($"Step {counter}, total PnL: {Positions[instrument.Name].GetPnL(currentPrice.Mid)}");
+							        LykkeLog.WriteInfoAsync(nameof(StubExchange), nameof(StartImpl), nameof(streamJob),
+							            $"Step {counter}, total PnL: {Positions[instrument.Name].GetPnL(currentPrice.Mid)}").Wait();
 							    }    
 						    }
 					    }
 					    
 					    // TODO: deal with awaitable. I don't want to wait here for Azure and Rabbit connections
-					    await CallHandlers(new InstrumentTickPrices(instrument, currentPrices));
+					    await CallTickPricesHandlers(new InstrumentTickPrices(instrument, currentPrices));
 				    }
                 
 				    await Task.Delay(config.PricesIntervalInMilliseconds, ctSource.Token);

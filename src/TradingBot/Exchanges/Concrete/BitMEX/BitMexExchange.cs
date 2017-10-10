@@ -116,7 +116,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return res;
         }
 
-        protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal)
+        protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             throw new NotImplementedException();
         }

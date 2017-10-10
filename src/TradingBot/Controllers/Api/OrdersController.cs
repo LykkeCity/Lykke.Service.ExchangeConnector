@@ -1,10 +1,8 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.Icm;
 using TradingBot.Exchanges.Concrete.Kraken;
@@ -48,9 +46,9 @@ namespace TradingBot.Controllers.Api
                         return await e.GetOpenOrders(_timeout);
                     case KrakenExchange e:
                         return await e.GetOpenOrders(_timeout);
+                    default:
+                        throw new NotSupportedException();
                 }
-
-                return Application.GetExchange(exchangeName).ActualOrders;
             }
             catch (Exception e)
             {
