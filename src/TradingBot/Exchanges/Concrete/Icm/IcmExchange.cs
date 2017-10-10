@@ -147,7 +147,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return connector.GetOrderInfoAndWaitResponse(instrument, orderId);
         }
 
-        public Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout)
+        public override Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout)
         {
             return connector.GetAllOrdersInfo(timeout);
         }

@@ -1,11 +1,7 @@
 ﻿using System.Collections.Generic;
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 using AzureStorage;
-using AzureStorage.Tables;
-using Common.Application;
-using Common.Log;
 using Lykke.Logs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.WindowsAzure.Storage.Table;

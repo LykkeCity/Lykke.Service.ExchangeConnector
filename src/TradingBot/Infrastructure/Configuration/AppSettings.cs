@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
-using Lykke.AzureQueueIntegration;
+﻿using Lykke.AzureQueueIntegration;
 
 namespace TradingBot.Infrastructure.Configuration
 {

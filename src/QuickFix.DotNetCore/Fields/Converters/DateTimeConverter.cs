@@ -1,5 +1,4 @@
-﻿using System.Text;
-using System.Globalization;
+﻿using System.Globalization;
 
 namespace QuickFix.Fields.Converters
 {

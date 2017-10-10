@@ -1,5 +1,4 @@
 ﻿using Newtonsoft.Json;
-using TradingBot.Exchanges.Concrete.Oanda.Entities.Prices;
 
 namespace TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments
 {

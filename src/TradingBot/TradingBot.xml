@@ -17,6 +17,20 @@
             https://docs.microsoft.com/en-us/rest/api/storageservices/Understanding-the-Table-Service-Data-Model
             </summary>
         </member>
+        <member name="M:TradingBot.Controllers.Api.AccountController.GetBalance(System.String)">
+            <summary>
+            Returns a simple balance for the exchange
+            </summary>
+            <param name="exchangeName">The exchange name</param>
+            <returns></returns>
+        </member>
+        <member name="M:TradingBot.Controllers.Api.AccountController.GetTradeBalance(System.String)">
+            <summary>
+            Returns full balance information on the exchange
+            </summary>
+            <param name="exchangeName">The exchange name</param>
+            <returns></returns>
+        </member>
         <member name="M:TradingBot.Controllers.Api.ExchangesController.List">
             <summary>
             Get a list of all connected exchanges
@@ -76,6 +90,22 @@
             <param name="exchangeName">The exchange name</param>
             <response code="200">The order is successfully canceled</response>
             <response code="400">Can't cancel the order. The reason is in the response</response>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Bitfinex.RestClient.BitfinexApi.SerializationSettings">
+            <summary>
+            Gets or sets json serialization settings.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Bitfinex.RestClient.BitfinexApi.DeserializationSettings">
+            <summary>
+            Gets or sets json deserialization settings.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.Bitfinex.RestClient.Model.BitfinexOrderStatusPost.OrderId">
+            <summary>
+            This class can be used to send a cancel message in addition to 
+            retrieving the current status of an order.
+            </summary>
         </member>
         <member name="T:TradingBot.Exchanges.Concrete.AutorestClient.BitMEXAPI">
              <summary>

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Common.Log;
 using TradingBot.Exchanges.Concrete.Bitstamp;
 using TradingBot.Infrastructure.Configuration;

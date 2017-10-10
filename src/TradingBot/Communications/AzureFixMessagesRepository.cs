@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using AzureStorage;
-using AzureStorage.Tables;
-using Common.Log;
 using Microsoft.Extensions.Logging;
 using QuickFix;
 using TradingBot.Infrastructure.Logging;

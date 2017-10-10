@@ -1,6 +1,6 @@
 # Auto normalize line-endings
 
-* text=auto encoding=UTF-8
+* text eol=lf encoding=UTF-8
 
 # Always LF line-endings
 
@@ -15,3 +15,7 @@
 
 *.cs     diff=csharp text 
 *.vb     text
+*.ttf     -text diff
+*.eot     -text diff
+*.woff    -text diff
+*.woff2   -text diff

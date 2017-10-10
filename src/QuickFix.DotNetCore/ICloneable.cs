@@ -1,5 +1,4 @@
-﻿using System;
-namespace QuickFix
+﻿namespace QuickFix
 {
     public interface ICloneable
     {

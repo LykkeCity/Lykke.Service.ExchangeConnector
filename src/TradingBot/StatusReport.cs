@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AzureStorage;
-using Common.Log;
 using Microsoft.WindowsAzure.Storage.Table;
 using TradingBot.Communications;
-using TradingBot.Infrastructure.Configuration;
 
 namespace TradingBot
 {

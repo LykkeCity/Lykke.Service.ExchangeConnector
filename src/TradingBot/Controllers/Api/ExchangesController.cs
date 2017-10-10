@@ -1,13 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using TradingBot.Exchanges.Abstractions;
 using TradingBot.Models;
 using TradingBot.Models.Api;
 
 namespace TradingBot.Controllers.Api
 {
-    public class ExchangesController : BaseApiController
+    public sealed class ExchangesController : BaseApiController
     {
         public ExchangesController(ExchangeConnectorApplication app)
             : base(app)
@@ -24,7 +23,7 @@ namespace TradingBot.Controllers.Api
         {
             return Application.GetExchanges().Select(x => x.Name);
         }
-        
+
         /// <summary>
         /// Get information about a specific exchange
         /// </summary>
@@ -36,18 +35,18 @@ namespace TradingBot.Controllers.Api
         public IActionResult Index(string exchangeName)
         {
             var exchange = Application.GetExchange(exchangeName);
-            
+
             if (exchange == null)
             {
                 return BadRequest(new ResponseMessage($"There isn't connected exchange with the name of {exchangeName}. Try GET api/exchanges for the list of all connected exchanges."));
             }
 
             return Ok(new ExchangeInformationModel
-                {
-                    Name = exchangeName,
-                    State = exchange.State,
-                    Instruments = exchange.Instruments
-                });
+            {
+                Name = exchangeName,
+                State = exchange.State,
+                Instruments = exchange.Instruments
+            });
         }
     }
 }

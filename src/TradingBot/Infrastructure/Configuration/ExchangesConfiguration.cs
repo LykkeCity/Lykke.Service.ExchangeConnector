@@ -16,6 +16,8 @@ namespace TradingBot.Infrastructure.Configuration
         public LykkeExchangeConfiguration Lykke { get; set; }
 
         public BitMexExchangeConfiguration BitMex { get; set; }
+
+        public BitfinexExchangeConfiguration Bitfinex { get; set; }
         
         
         public IEnumerator<IExchangeConfiguration> GetEnumerator()
