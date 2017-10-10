@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Threading.Tasks;
+
 using Microsoft.AspNetCore.Mvc;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.Icm;
@@ -52,7 +53,7 @@ namespace TradingBot.Controllers.Api
             }
             catch (Exception e)
             {
-                throw new StatusCodeException(HttpStatusCode.BadRequest, e.Message);
+                throw new StatusCodeException(HttpStatusCode.BadRequest, e.Message, e);
             }
         }
 
@@ -77,7 +78,7 @@ namespace TradingBot.Controllers.Api
             }
             catch (Exception e)
             {
-                throw new StatusCodeException(HttpStatusCode.InternalServerError, e.Message);
+                throw new StatusCodeException(HttpStatusCode.InternalServerError, e.Message, e);
             }
         }
 
@@ -100,7 +101,7 @@ namespace TradingBot.Controllers.Api
             {
                 if (orderModel == null)
                 {
-                    throw new StatusCodeException(HttpStatusCode.BadRequest, "Order has to be specified");
+                    return BadRequest("Order has to be specified");
                 }
                 if (string.IsNullOrEmpty(orderModel.ExchangeName))
                 {
@@ -117,7 +118,7 @@ namespace TradingBot.Controllers.Api
                         "Price have to be declared for non-market orders");
 
                 if (!ModelState.IsValid)
-                    throw new StatusCodeException(ModelState);
+                    throw new StatusCodeException(HttpStatusCode.BadRequest) { Model = new SerializableError(ModelState) };
 
 
                 var instrument = new Instrument(orderModel.ExchangeName, orderModel.Instrument);
@@ -139,8 +140,7 @@ namespace TradingBot.Controllers.Api
                     translatedSignal.SetExecutionResult(result);
 
                     if (result.Status == ExecutionStatus.Rejected || result.Status == ExecutionStatus.Cancelled)
-                        throw new StatusCodeException(HttpStatusCode.BadRequest,
-                            $"Exchange return status: {result.Status}");
+                        throw new StatusCodeException(HttpStatusCode.BadRequest, $"Exchange return status: {result.Status}", null);
 
                     return Ok(result);
                 }
@@ -160,7 +160,7 @@ namespace TradingBot.Controllers.Api
             }
             catch (Exception e)
             {
-                throw new StatusCodeException(HttpStatusCode.InternalServerError, e.Message);
+                throw new StatusCodeException(HttpStatusCode.InternalServerError, e.Message, e);
             }
         }
 
@@ -184,7 +184,7 @@ namespace TradingBot.Controllers.Api
             {
                 if (string.IsNullOrEmpty(exchangeName))
                 {
-                    throw new StatusCodeException(HttpStatusCode.BadRequest, "Exchange has to be specified");
+                    return BadRequest("Exchange has to be specified");
                 }
 
                 var instrument = new Instrument(exchangeName, string.Empty);
@@ -201,7 +201,7 @@ namespace TradingBot.Controllers.Api
                         .CancelOrderAndWaitExecution(instrument, tradingSignal, translatedSignal, _timeout);
 
                     if (result.Status == ExecutionStatus.Rejected)
-                        throw new StatusCodeException(HttpStatusCode.BadRequest, $"Exchange return status: {result.Status}");
+                        throw new StatusCodeException(HttpStatusCode.BadRequest, $"Exchange return status: {result.Status}", null);
 
                     return Ok(result);
                 }
@@ -221,7 +221,7 @@ namespace TradingBot.Controllers.Api
             }
             catch (Exception e)
             {
-                throw new StatusCodeException(HttpStatusCode.InternalServerError, e.Message);
+                throw new StatusCodeException(HttpStatusCode.InternalServerError, e.Message, e);
             }
         }
     }
