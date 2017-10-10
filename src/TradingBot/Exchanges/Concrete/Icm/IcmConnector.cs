@@ -599,9 +599,14 @@ namespace TradingBot.Exchanges.Concrete.Icm
             }
         }
 
+        private static string GetUniqueOrderId()
+        {
+            return DateTime.UtcNow.Ticks.ToString();
+        }
+
         public async Task<ExecutedTrade> AddOrderAndWaitResponse(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            var id = signal.OrderId;
+            var id = GetUniqueOrderId();
             var tcs = new TaskCompletionSource<ExecutedTrade>();
 
             lock (orderExecutions)
