@@ -80,6 +80,11 @@ namespace TradingBot.Exchanges.Abstractions
 
         private void Log(string context, string message)
         {
+            const int maxMessageLen = 32000;
+            
+            if (message.Length >= maxMessageLen)
+                message = message.Substring(0, maxMessageLen);
+                
             lykkeLog.WriteInfoAsync(
                 nameof(ApiClient),
                 nameof(ApiClient),

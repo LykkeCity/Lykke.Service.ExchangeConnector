@@ -48,7 +48,7 @@ namespace TradingBot.Exchanges.Concrete.HistoricalData
                 using (var enumerator = reader.GetEnumerator())
                     while (!stopRequested && enumerator.MoveNext())
                     {
-                        await CallHandlers(new InstrumentTickPrices(Instruments.First(), new TickPrice[] { enumerator.Current }));
+                        await CallTickPricesHandlers(new InstrumentTickPrices(Instruments.First(), new TickPrice[] { enumerator.Current }));
                     }
             });
         }

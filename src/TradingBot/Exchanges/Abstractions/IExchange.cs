@@ -17,8 +17,6 @@ namespace TradingBot.Exchanges.Abstractions
 
         IReadOnlyList<Instrument> Instruments { get; }
 
-        IDictionary<string, LinkedList<TradingSignal>> ActualOrders { get; }
-
         Task<IEnumerable<AccountBalance>> GetAccountBalance(CancellationToken cancellationToken);
 
         Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout);

@@ -13,6 +13,7 @@ using TradingBot.Exchanges;
 using Lykke.RabbitMqBroker;
 using Lykke.RabbitMqBroker.Subscriber;
 using TradingBot.Communications;
+using TradingBot.Handlers;
 using TradingBot.Trading;
 using TradingBot.Repositories;
 
@@ -88,6 +89,9 @@ namespace TradingBot
 
         private void SetupTradingSignalsSubscription(RabbitMqConfiguration rabbitConfig)
         {
+            var handler = new TradingSignalsHandler(exchanges, _log, TranslatedSignalsRepository);
+            
+            
             var subscriberSettings = new RabbitMqSubscriptionSettings()
             {
                 ConnectionString = rabbitConfig.GetConnectionString(),
@@ -100,23 +104,7 @@ namespace TradingBot
                 .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
                 .SetConsole(new RabbitConsole())
                 .SetLogger(new LogToConsole())
-                .Subscribe(x =>
-                {
-                    if (!exchanges.ContainsKey(x.Instrument.Exchange))
-                    {
-                        _log.WriteWarningAsync(
-                            nameof(TradingBot),
-                            nameof(ExchangeConnectorApplication),
-                            nameof(SetupTradingSignalsSubscription),
-                            $"Received a trading signal for unconnected exchange {x.Instrument.Exchange}")
-                            .Wait();
-                        return Task.FromResult(0);
-                    }
-                    else
-                    {
-                        return exchanges[x.Instrument.Exchange].HandleTradingSignals(x);    
-                    }
-                })
+                .Subscribe(handler.Handle)
                 .Start();  
         }
 

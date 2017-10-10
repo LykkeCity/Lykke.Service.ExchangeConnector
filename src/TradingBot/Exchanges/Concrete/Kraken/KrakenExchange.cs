@@ -90,7 +90,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                                     }
                                     else
                                     {
-                                        await CallHandlers(new InstrumentTickPrices(Instruments[i], prices));
+                                        await CallTickPricesHandlers(new InstrumentTickPrices(Instruments[i], prices));
                                     }
                                 }
 
