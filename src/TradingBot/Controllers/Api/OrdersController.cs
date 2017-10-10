@@ -122,7 +122,7 @@ namespace TradingBot.Controllers.Api
 
 
                 var instrument = new Instrument(orderModel.ExchangeName, orderModel.Instrument);
-                var tradingSignal = new TradingSignal(null, OrderCommand.Create, orderModel.TradeType,
+                var tradingSignal = new TradingSignal(GetUniqueOrderId(orderModel), OrderCommand.Create, orderModel.TradeType,
                     orderModel.Price, orderModel.Volume, DateTime.UtcNow,
                     orderModel.OrderType, orderModel.TimeInForce);
 
@@ -164,6 +164,10 @@ namespace TradingBot.Controllers.Api
             }
         }
 
+        private static string GetUniqueOrderId(OrderModel orderModel)
+        {
+            return orderModel.ExchangeName + DateTime.UtcNow.Ticks;
+        }
 
         /// <summary>
         /// Cancel existing order
