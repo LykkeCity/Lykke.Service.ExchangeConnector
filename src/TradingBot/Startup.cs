@@ -165,7 +165,7 @@ namespace TradingBot
 
         private void StartHandler()
         {
-            Task.Run(() => _app.Start().Wait());
+            _app.Start().Wait();
         }
 
         private void ShutDownHandler()

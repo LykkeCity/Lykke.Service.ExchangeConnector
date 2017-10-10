@@ -21,7 +21,12 @@ namespace TradingBot
 {
     public class ExchangeConnectorApplication : IApplicationFacade
     {
-        private ILog _log;
+        private readonly ILog _log;
+        private readonly Timer _timer;
+        private readonly Dictionary<string, Exchange> _exchanges;
+        private readonly AppSettings _config;
+        private RabbitMqSubscriber<InstrumentTradingSignals> _signalSubscriber;
+
 
         public TranslatedSignalsRepository TranslatedSignalsRepository { get; }
 
@@ -31,29 +36,20 @@ namespace TradingBot
             INoSQLTableStorage<FixMessageTableEntity> fixMessagesStorage,
             ILog log)
         {
-            this.config = config;
+            _config = config;
             _log = log;
             var signalsStorage = AzureTableStorage<TranslatedSignalTableEntity>.Create(
                 settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "translatedSignals", new LogToConsole());
             TranslatedSignalsRepository = new TranslatedSignalsRepository(signalsStorage, new InverseDateTimeRowKeyProvider());
 
-            exchanges = ExchangeFactory.CreateExchanges(config, TranslatedSignalsRepository, settingsManager, fixMessagesStorage, log)
+            _exchanges = ExchangeFactory.CreateExchanges(config, TranslatedSignalsRepository, settingsManager, fixMessagesStorage, log)
                 .ToDictionary(x => x.Name, x => x);
+            _timer = new Timer(OnHeartbeat);
         }
 
-        private readonly Dictionary<string, Exchange> exchanges;
-        
-		private CancellationTokenSource ctSource;
-        private readonly AppSettings config;
-        private RabbitMqSubscriber<InstrumentTradingSignals> signalSubscriber;
-
-        
         public async Task Start()
         {
-            ctSource = new CancellationTokenSource();
-            var token = ctSource.Token;
-
-            if (!exchanges.Any())
+            if (!_exchanges.Any())
             {
                 await _log.WriteInfoAsync(
                     nameof(TradingBot),
@@ -67,31 +63,40 @@ namespace TradingBot
                 nameof(TradingBot),
                 nameof(ExchangeConnectorApplication),
                 nameof(Start),
-                $"Price cycle starting for exchanges: {string.Join(", ", exchanges.Keys)}...");
-            
-            if (config.RabbitMq.Enabled)
+                $"Price cycle starting for exchanges: {string.Join(", ", _exchanges.Keys)}...");
+
+            if (_config.RabbitMq.Enabled)
             {
-                SetupTradingSignalsSubscription(config.RabbitMq); // can take too long
+                SetupTradingSignalsSubscription(_config.RabbitMq); // can take too long
             }
 
-            exchanges.Values.ToList().ForEach(x => x.Start());
-            
-            while (!token.IsCancellationRequested)
-			{
-                await Task.Delay(TimeSpan.FromSeconds(15), token);
-                await _log.WriteInfoAsync(
-                    nameof(TradingBot),
-                    nameof(ExchangeConnectorApplication),
-                    nameof(Start),
-                    $"Exchange connector heartbeat: {DateTime.Now}. Exchanges statuses: {string.Join(", ", GetExchanges().Select(x => $"{x.Name}: {x.State}"))}");
-			}
+            try
+            {
+                _exchanges.Values.ToList().ForEach(x => x.Start());
+            }
+            catch (Exception ex)
+            {
+                await _log.WriteErrorAsync(nameof(ExchangeConnectorApplication), nameof(Start), "Starting exchange", ex);
+                throw;
+            }
+
+            _timer.Change(TimeSpan.Zero, TimeSpan.FromSeconds(15));
+        }
+
+        private async void OnHeartbeat(object state)
+        {
+            await _log.WriteInfoAsync(
+                nameof(TradingBot),
+                nameof(ExchangeConnectorApplication),
+                nameof(Start),
+                $"Exchange connector heartbeat: {DateTime.Now}. Exchanges statuses: {string.Join(", ", GetExchanges().Select(x => $"{x.Name}: {x.State}"))}");
         }
 
         private void SetupTradingSignalsSubscription(RabbitMqConfiguration rabbitConfig)
         {
-            var handler = new TradingSignalsHandler(exchanges, _log, TranslatedSignalsRepository);
-            
-            
+            var handler = new TradingSignalsHandler(_exchanges, _log, TranslatedSignalsRepository);
+
+
             var subscriberSettings = new RabbitMqSubscriptionSettings()
             {
                 ConnectionString = rabbitConfig.GetConnectionString(),
@@ -99,13 +104,13 @@ namespace TradingBot
                 QueueName = rabbitConfig.SignalsQueue
             };
             var errorStrategy = new DefaultErrorHandlingStrategy(_log, subscriberSettings);
-            signalSubscriber = new RabbitMqSubscriber<InstrumentTradingSignals>(subscriberSettings, errorStrategy)
+            _signalSubscriber = new RabbitMqSubscriber<InstrumentTradingSignals>(subscriberSettings, errorStrategy)
                 .SetMessageDeserializer(new GenericRabbitModelConverter<InstrumentTradingSignals>())
                 .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
                 .SetConsole(new RabbitConsole())
                 .SetLogger(new LogToConsole())
                 .Subscribe(handler.Handle)
-                .Start();  
+                .Start();
         }
 
         public void Stop()
@@ -116,12 +121,14 @@ namespace TradingBot
                 nameof(Stop),
                 "Stop requested")
                 .Wait();
-            ctSource.Cancel();
 
-            foreach (var exchange in exchanges.Values)
+            _timer.Change(Timeout.Infinite, Timeout.Infinite);
+
+            foreach (var exchange in _exchanges.Values)
             {
-                exchange?.Stop();    
+                exchange?.Stop();
             }
+
         }
 
         public class RabbitConsole : IConsole
@@ -134,12 +141,18 @@ namespace TradingBot
 
         public IReadOnlyCollection<IExchange> GetExchanges()
         {
-            return exchanges.Values;
+            return _exchanges.Values;
         }
 
         public IExchange GetExchange(string name)
         {
-            return exchanges.ContainsKey(name) ? exchanges[name] : null;
+            return _exchanges.ContainsKey(name) ? _exchanges[name] : null;
+        }
+
+        public void Dispose()
+        {
+            _timer?.Dispose();
+            _signalSubscriber?.Dispose();
         }
     }
 }
