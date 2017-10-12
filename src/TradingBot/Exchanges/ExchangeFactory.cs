@@ -6,6 +6,7 @@ using AzureStorage.Tables;
 using Lykke.SettingsReader;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
+using TradingBot.Exchanges.Concrete.Bitfinex;
 using TradingBot.Exchanges.Concrete.BitMEX;
 using TradingBot.Exchanges.Concrete.HistoricalData;
 using TradingBot.Exchanges.Concrete.Icm;
@@ -81,6 +82,9 @@ namespace TradingBot.Exchanges
 
             if (config.BitMex.Enabled)
                 result.Add(new BitMexExchange(config.BitMex, translatedSignalsRepository, log));
+
+            if (config.Bitfinex.Enabled)
+                result.Add(new BitfinexExchange(config.Bitfinex, translatedSignalsRepository, log));
 
             return result;
         }

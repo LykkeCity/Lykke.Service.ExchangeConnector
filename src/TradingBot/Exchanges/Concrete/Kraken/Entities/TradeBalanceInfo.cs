@@ -2,36 +2,36 @@
 
 namespace TradingBot.Exchanges.Concrete.Kraken.Entities
 {
-    public class TradeBalanceInfo
+    public sealed class TradeBalanceInfo
     {
-        [JsonProperty("eb")]
-        public string EquivalentBalance { get; set; }
+        [JsonProperty("equivalentBalance")]
+        public double? EquivalentBalance { get; set; }
         
-        [JsonProperty("tb")]
-        public string TradeBalance { get; set; }
+        [JsonProperty("tradeBalance")]
+        public double? TradeBalance { get; set; }
         
-        [JsonProperty("m")]
-        public string MarginAmount { get; set; }
+        [JsonProperty("marginAmount")]
+        public double? MarginAmount { get; set; }
         
-        [JsonProperty("n")]
-        public string UnrealizedNetPnL { get; set; }
+        [JsonProperty("unrealizedNetPnL")]
+        public double? UnrealizedNetPnL { get; set; }
         
-        [JsonProperty("c")]
-        public string CostBasis { get; set; }
+        [JsonProperty("costBasis")]
+        public double? CostBasis { get; set; }
         
-        [JsonProperty("v")]
-        public string FloatingValuation { get; set; }
+        [JsonProperty("floatingValuation")]
+        public double? FloatingValuation { get; set; }
         
         /// <summary>
         /// Trade balance + unrealized net profit/loss
         /// </summary>
-        [JsonProperty("e")]
-        public string Equity { get; set; }
+        [JsonProperty("equity")]
+        public double? Equity { get; set; }
         
-        [JsonProperty("mf")]
-        public string FreeMargin { get; set; }
+        [JsonProperty("freeMargin")]
+        public double? FreeMargin { get; set; }
         
-        [JsonProperty("ml")]
-        public string MarginLevel { get; set; }
+        [JsonProperty("marginLevel")]
+        public double? MarginLevel { get; set; }
     }
 }

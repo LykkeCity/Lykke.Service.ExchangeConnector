@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Common.Log;
 using TradingBot.Communications;
+using TradingBot.Exchanges.Concrete.Kraken.Entities;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
@@ -19,7 +20,7 @@ namespace TradingBot.Exchanges.Abstractions
         private readonly List<Handler<InstrumentTickPrices>> tickPriceHandlers = new List<Handler<InstrumentTickPrices>>();
 
         private readonly List<Handler<ExecutedTrade>> executedTradeHandlers = new List<Handler<ExecutedTrade>>();
-        
+
         private readonly List<Handler<Acknowledgement>> acknowledgementsHandlers = new List<Handler<Acknowledgement>>();
 
         public string Name { get; }
@@ -27,7 +28,7 @@ namespace TradingBot.Exchanges.Abstractions
         internal IExchangeConfiguration Config { get; }
 
         public ExchangeState State { get; private set; }
-        
+
         public IReadOnlyList<Instrument> Instruments { get; }
 
         protected Exchange(string name, IExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log)
@@ -119,9 +120,9 @@ namespace TradingBot.Exchanges.Abstractions
                 ExchangeOrderId = translatedSignal.ExternalId,
                 Message = translatedSignal.ErrorMessage
             };
-            
+
             await Task.WhenAll(acknowledgementsHandlers.Select(x => x.Handle(ack)));
-            
+
             return added;
         }
 
@@ -150,6 +151,16 @@ namespace TradingBot.Exchanges.Abstractions
         public virtual Task<IEnumerable<AccountBalance>> GetAccountBalance(CancellationToken cancellationToken)
         {
             return Task.FromResult(Enumerable.Empty<AccountBalance>());
+        }
+
+        public virtual Task<TradeBalanceInfo> GetTradeBalance(CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
+
+        public virtual Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout)
+        {
+            throw new NotSupportedException();
         }
     }
 }

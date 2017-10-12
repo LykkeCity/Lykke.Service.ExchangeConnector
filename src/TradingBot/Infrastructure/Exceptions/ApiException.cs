@@ -2,6 +2,7 @@
 
 namespace TradingBot.Infrastructure.Exceptions
 {
+    [Serializable]
     public class ApiException : Exception
     {
         public ApiException()

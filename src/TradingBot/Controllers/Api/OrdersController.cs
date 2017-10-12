@@ -1,12 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Threading.Tasks;
 
 using Microsoft.AspNetCore.Mvc;
 using TradingBot.Communications;
-using TradingBot.Exchanges.Concrete.Icm;
-using TradingBot.Exchanges.Concrete.Kraken;
 using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
@@ -17,7 +16,7 @@ using TradingBot.Repositories;
 
 namespace TradingBot.Controllers.Api
 {
-    public class OrdersController : BaseApiController
+    public sealed class OrdersController : BaseApiController
     {
         private readonly TimeSpan _timeout;
 
@@ -35,21 +34,15 @@ namespace TradingBot.Controllers.Api
         /// <param name="exchangeName">The name of the exchange</param>
         /// </summary>
         [HttpGet]
-        public async Task<object> Index([FromQuery, Required] string exchangeName)
+        [ApiKeyAuth]
+        [ProducesResponseType(typeof(IEnumerable<ExecutedTrade>), 200)]
+        [ProducesResponseType(typeof(ResponseMessage), 500)]
+        public async Task<IEnumerable<ExecutedTrade>> Index([FromQuery, Required] string exchangeName)
         {
             try
             {
                 var exchange = Application.GetExchange(exchangeName);
-
-                switch (exchange)
-                {
-                    case IcmExchange e:
-                        return await e.GetOpenOrders(_timeout);
-                    case KrakenExchange e:
-                        return await e.GetOpenOrders(_timeout);
-                    default:
-                        throw new NotSupportedException();
-                }
+                return await exchange.GetOpenOrders(_timeout);
             }
             catch (Exception e)
             {
@@ -66,6 +59,7 @@ namespace TradingBot.Controllers.Api
         /// <response code="200">The order is found</response>
         /// <response code="500">The order either not exist or other server error</response>
         [HttpGet("{id}")]
+        [ApiKeyAuth]
         [ProducesResponseType(typeof(ExecutedTrade), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
         public async Task<ExecutedTrade> GetOrder(string id, [FromQuery, Required] string exchangeName, [FromQuery, Required] string instrument)

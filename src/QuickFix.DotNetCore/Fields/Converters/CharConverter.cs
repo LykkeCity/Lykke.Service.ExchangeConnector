@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace QuickFix.Fields.Converters
+﻿namespace QuickFix.Fields.Converters
 {
     /// <summary>
     /// Converts char to/from string

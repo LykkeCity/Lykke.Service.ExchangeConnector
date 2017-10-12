@@ -146,7 +146,7 @@ namespace TradingBot
 
         public IExchange GetExchange(string name)
         {
-            return _exchanges.ContainsKey(name) ? _exchanges[name] : null;
+            return _exchanges.ContainsKey(name) ? _exchanges[name] : throw new ArgumentException(@"Invalid exchangeName", nameof(name));
         }
 
         public void Dispose()
