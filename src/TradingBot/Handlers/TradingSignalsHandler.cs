@@ -66,8 +66,6 @@ namespace TradingBot.Handlers
 
                 try
                 {
-                    TradingSignal existing;
-
                     switch (arrivedSignal.Command)
                     {
                         case OrderCommand.Create:

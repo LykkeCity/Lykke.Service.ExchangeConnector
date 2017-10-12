@@ -33,16 +33,12 @@ namespace TradingBot.Trading
             Quote = quote;
         }
 
-        [JsonProperty("name")]
         public string Name { get; }
         
-        [JsonProperty("exchange")]
         public string Exchange { get; }
         
-        [JsonProperty("base")]
         public string Base { get; }
         
-        [JsonProperty("quote")]
         public string Quote { get; }
         
         public override string ToString()

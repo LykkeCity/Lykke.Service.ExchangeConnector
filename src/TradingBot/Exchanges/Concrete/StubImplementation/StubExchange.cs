@@ -47,7 +47,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 		    
             var gbms = 
                 Instruments.ToDictionary(x => x, 
-                x => new GeometricalBrownianMotion(1.0, 0.25, 1.0, nPoints, 0, random));
+                x => new GeometricalBrownianMotion(1.0, 0.95, 1.0, nPoints, 0, random));
 
 		    streamJob = Task.Run(async () =>
 		    {
@@ -154,9 +154,16 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 
 	    protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
 	    {
-		    translatedSignal.RequestSent("stub exchange don't send actual request");
-		    SimulateException();
+	        translatedSignal.RequestSent("stub exchange don't send actual request");
+		    //SimulateException();
+	        
 		    translatedSignal.ResponseReceived("stub exchange don't recevie actual response");
+	        lock (syncRoot)
+	        {
+	            var s = new TradingSignal(Guid.NewGuid().ToString(), signal.Command, signal.TradeType, signal.Price, signal.Volume, signal.Time, signal.OrderType, signal.TimeInForce);
+	            ActualSignals[instrument.Name].AddLast(s);
+	            translatedSignal.ExternalId = s.OrderId;
+	        }
 
 		    return Task.FromResult(true);
 	    }
@@ -173,15 +180,29 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 	    protected override async Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
 	    {
 		    translatedSignal.RequestSent("stub exchange don't send actual request");
-		    SimulateException();
+		    //SimulateException();
 		    translatedSignal.ResponseReceived("stub exchange don't recevie actual response");
-		    
-		    await CallExecutedTradeHandlers(new ExecutedTrade(
-			    instrument,
-			    DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
-			    signal.OrderId, ExecutionStatus.Cancelled));
 
-		    return true;
+	        bool isCanceled = false;
+	        lock (syncRoot)
+	        {
+	            TradingSignal existing = ActualSignals[instrument.Name].FirstOrDefault(x => x.OrderId == signal.OrderId);
+	            if (existing != null)
+	            {
+	                ActualSignals[instrument.Name].Remove(existing);
+	                isCanceled = true;
+	            }
+	        }
+
+	        if (isCanceled)
+	        {
+	            await CallExecutedTradeHandlers(new ExecutedTrade(
+	                instrument,
+	                DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
+	                signal.OrderId, ExecutionStatus.Cancelled));    
+	        }
+		    
+		    return isCanceled;
 	    }
 
 	    public override Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)

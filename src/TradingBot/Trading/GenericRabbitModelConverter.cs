@@ -2,6 +2,7 @@
 using Lykke.RabbitMqBroker.Publisher;
 using Lykke.RabbitMqBroker.Subscriber;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace TradingBot.Trading
 {
@@ -11,6 +12,7 @@ namespace TradingBot.Trading
         {
             return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(model, new JsonSerializerSettings()
             {
+                ContractResolver = new CamelCasePropertyNamesContractResolver(),
                 DateFormatString = "yyyy-MM-ddTHH:mm:ss.fff"
             }));
         }

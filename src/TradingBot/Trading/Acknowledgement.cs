@@ -13,5 +13,10 @@
         public string Exchange { get; set; }
         
         public string Instrument { get; set; }
+
+        public override string ToString()
+        {
+            return $"ClientId: {ClientOrderId}, ExternalId: {ExchangeOrderId}, Success: {Success}, {Exchange}, {Instrument}";
+        }
     }
 }
