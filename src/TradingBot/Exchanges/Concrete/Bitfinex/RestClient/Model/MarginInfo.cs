@@ -2,7 +2,7 @@
 
 namespace TradingBot.Exchanges.Concrete.Bitfinex.RestClient.Model
 {
-    internal sealed class BitfinexMarginInfoResponse
+    internal sealed class MarginInfo
     {
 
         [JsonProperty("margin_balance")]

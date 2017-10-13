@@ -21,6 +21,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex.RestClient
         private const string OrderCancelRequestUrl = @"/v1/order/cancel";
 
         private const string ActiveOrdersRequestUrl = @"/v1/orders";
+        private const string ActivePositionsRequestUrl = @"/v1/positions";
         private const string MarginInfoRequstUrl = @"/v1/margin_infos";
 
 
@@ -100,7 +101,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex.RestClient
             return response;
         }
 
-        public async Task<object> CancelOrder(long orderId, CancellationToken cancellationToken = default )
+        public async Task<object> CancelOrder(long orderId, CancellationToken cancellationToken = default)
         {
             var cancelPost = new BitfinexOrderStatusPost
             {
@@ -164,7 +165,20 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex.RestClient
             };
 
 
-            var response = await GetRestResponse<IReadOnlyCollection<BitfinexMarginInfoResponse>>(marginPost, cancellationToken);
+            var response = await GetRestResponse<IReadOnlyList<MarginInfo>>(marginPost, cancellationToken);
+
+            return response;
+        }
+
+        public async Task<object> GetActivePositions(CancellationToken cancellationToken = default)
+        {
+            var activePositionsPost = new BitfinexPostBase
+            {
+                Request = ActivePositionsRequestUrl,
+                Nonce = Common.UnixTimeStampUtc().ToString()
+            };
+
+            var response = await GetRestResponse<IReadOnlyList<Position>>(activePositionsPost, cancellationToken);
 
             return response;
         }
@@ -196,6 +210,9 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex.RestClient
 
             return httpRequest;
         }
+
+
+
 
 
         private async Task<object> CheckError<T>(HttpResponseMessage response)

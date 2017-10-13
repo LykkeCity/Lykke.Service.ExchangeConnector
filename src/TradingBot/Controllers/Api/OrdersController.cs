@@ -39,7 +39,7 @@ namespace TradingBot.Controllers.Api
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<ExecutedTrade>), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
-        public async Task<IEnumerable<ExecutedTrade>> Index([FromQuery, Required] string exchangeName)
+        private async Task<IEnumerable<ExecutedTrade>> Index([FromQuery, Required] string exchangeName) // Intentionally disabled
         {
             try
             {
@@ -68,7 +68,7 @@ namespace TradingBot.Controllers.Api
             try
             {
                 var exchange = Application.GetExchange(exchangeName);
-                return await exchange.GetOrder(id, new Instrument(exchangeName, instrument));
+                return await exchange.GetOrder(id, new Instrument(exchangeName, instrument), _timeout);
 
             }
             catch (Exception e)
