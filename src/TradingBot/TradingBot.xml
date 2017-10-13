@@ -58,13 +58,15 @@
         </member>
         <member name="M:TradingBot.Controllers.Api.OrdersController.Index(System.String)">
             <summary>
-            Get information about all OPEN orders on the exchange
+            Returns information about all OPEN orders on the exchange
             <param name="exchangeName">The name of the exchange</param>
             </summary>
+            <response code="200">Active orders</response>
+            <response code="500">Unexpected error</response>
         </member>
         <member name="M:TradingBot.Controllers.Api.OrdersController.GetOrder(System.String,System.String,System.String)">
             <summary>
-            Get information about earlier placed order
+            Returns information about the earlier placed order
             </summary>
             <param name="id">The order id</param>
             <param name="instrument">The instrument name of the order</param>
@@ -74,22 +76,30 @@
         </member>
         <member name="M:TradingBot.Controllers.Api.OrdersController.Post(TradingBot.Models.Api.OrderModel)">
              <summary>
-             Place a new order to the exchange
+             Places a new order on the exchange
             <param name="orderModel">A new order</param>
              </summary>
              <remarks>In the location header of successful response placed an URL for getting info about the order</remarks>
-             <response code="200">The order is successfully placed and order status is returned</response>
+             <response code="200">The order is successfully placed and an order status is returned</response>
              <response code="400">Can't place the order. The reason is in the response</response>
         </member>
         <member name="M:TradingBot.Controllers.Api.OrdersController.CancelOrder(System.String,System.String)">
             <summary>
-            Cancel existing order
+            Cancels the existing order
             </summary>
             <remarks></remarks>
             <param name="id">The order id to cancel</param>
             <param name="exchangeName">The exchange name</param>
             <response code="200">The order is successfully canceled</response>
             <response code="400">Can't cancel the order. The reason is in the response</response>
+        </member>
+        <member name="M:TradingBot.Controllers.Api.PositionsController.Index(System.String)">
+            <summary>
+            Returns information about opened positions
+            </summary>
+            <param name="exchangeName">The exchange name</param>
+            <response code="200">Active positions</response>
+            <response code="500">Unexpected error</response>
         </member>
         <member name="P:TradingBot.Exchanges.Concrete.Bitfinex.RestClient.BitfinexApi.SerializationSettings">
             <summary>

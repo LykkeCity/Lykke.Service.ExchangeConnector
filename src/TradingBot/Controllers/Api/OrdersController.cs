@@ -16,6 +16,7 @@ using TradingBot.Repositories;
 
 namespace TradingBot.Controllers.Api
 {
+    [ApiKeyAuth]
     public sealed class OrdersController : BaseApiController
     {
         private readonly TimeSpan _timeout;
@@ -30,11 +31,12 @@ namespace TradingBot.Controllers.Api
         }
 
         /// <summary>
-        /// Get information about all OPEN orders on the exchange
+        /// Returns information about all OPEN orders on the exchange
         /// <param name="exchangeName">The name of the exchange</param>
         /// </summary>
+        /// <response code="200">Active orders</response>
+        /// <response code="500">Unexpected error</response>
         [HttpGet]
-        [ApiKeyAuth]
         [ProducesResponseType(typeof(IEnumerable<ExecutedTrade>), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
         public async Task<IEnumerable<ExecutedTrade>> Index([FromQuery, Required] string exchangeName)
@@ -51,7 +53,7 @@ namespace TradingBot.Controllers.Api
         }
 
         /// <summary>
-        /// Get information about earlier placed order
+        /// Returns information about the earlier placed order
         /// </summary>
         /// <param name="id">The order id</param>
         /// <param name="instrument">The instrument name of the order</param>
@@ -59,7 +61,6 @@ namespace TradingBot.Controllers.Api
         /// <response code="200">The order is found</response>
         /// <response code="500">The order either not exist or other server error</response>
         [HttpGet("{id}")]
-        [ApiKeyAuth]
         [ProducesResponseType(typeof(ExecutedTrade), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
         public async Task<ExecutedTrade> GetOrder(string id, [FromQuery, Required] string exchangeName, [FromQuery, Required] string instrument)
@@ -78,13 +79,12 @@ namespace TradingBot.Controllers.Api
 
 
         /// <summary>
-        /// Place a new order to the exchange
+        /// Places a new order on the exchange
         ///<param name="orderModel">A new order</param>
         /// </summary>
         /// <remarks>In the location header of successful response placed an URL for getting info about the order</remarks>
-        /// <response code="200">The order is successfully placed and order status is returned</response>
+        /// <response code="200">The order is successfully placed and an order status is returned</response>
         /// <response code="400">Can't place the order. The reason is in the response</response>
-        [ApiKeyAuth]
         [HttpPost]
         [ProducesResponseType(typeof(ExecutedTrade), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 400)]
@@ -164,14 +164,13 @@ namespace TradingBot.Controllers.Api
         }
 
         /// <summary>
-        /// Cancel existing order
+        /// Cancels the existing order
         /// </summary>
         /// <remarks></remarks>
         /// <param name="id">The order id to cancel</param>
         /// <param name="exchangeName">The exchange name</param>
         /// <response code="200">The order is successfully canceled</response>
         /// <response code="400">Can't cancel the order. The reason is in the response</response>
-        [ApiKeyAuth]
         [HttpDelete("{id}")]
         [ProducesResponseType(typeof(ExecutedTrade), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 400)]

@@ -143,10 +143,6 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                 });
         }
 
-        public override Task<TradeBalanceInfo> GetTradeBalance(CancellationToken cancellationToken)
-        {
-            return privateData.GetTradeBalance(null, cancellationToken);
-        }
 
         protected override async Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {

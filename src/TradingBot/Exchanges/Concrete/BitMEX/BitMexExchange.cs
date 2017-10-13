@@ -11,10 +11,12 @@ using TradingBot.Exchanges.Concrete.AutorestClient;
 using TradingBot.Exchanges.Concrete.AutorestClient.Models;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
+using TradingBot.Models.Api;
 using TradingBot.Repositories;
 using TradingBot.Trading;
 using Instrument = TradingBot.Trading.Instrument;
 using Order = TradingBot.Exchanges.Concrete.AutorestClient.Models.Order;
+using Position = TradingBot.Exchanges.Concrete.AutorestClient.Models.Position;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
@@ -36,10 +38,10 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
         public override async Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            var symbol = ConvertSymbolFromLykkeToBitMex(instrument.Name);
-            var volume = ConvertVolume(signal.Volume);
-            var orderType = ConvertOrderType(signal.OrderType);
-            var side = ConvertTradeType(signal.TradeType);
+            var symbol = BitMexModelConverter.ConvertSymbolFromLykkeToBitMex(instrument.Name, _configuration);
+            var volume = BitMexModelConverter.ConvertVolume(signal.Volume);
+            var orderType = BitMexModelConverter.ConvertOrderType(signal.OrderType);
+            var side = BitMexModelConverter.ConvertTradeType(signal.TradeType);
             var price = (double?)signal.Price;
             var ct = new CancellationTokenSource(timeout);
 
@@ -53,11 +55,11 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
             var order = (Order)response;
 
-            var execStatus = ConvertExecutionStatus(order.OrdStatus);
+            var execStatus = BitMexModelConverter.ConvertExecutionStatus(order.OrdStatus);
             var execPrice = (decimal)(order.Price ?? 0d);
             var execVolume = (decimal)(order.OrderQty ?? 0d);
             var exceTime = order.TransactTime ?? DateTime.UtcNow;
-            var execType = ConvertTradeType(order.Side);
+            var execType = BitMexModelConverter.ConvertTradeType(order.Side);
 
             return new ExecutedTrade(instrument, exceTime, execPrice, execVolume, execType, order.OrderID, execStatus) { Message = order.Text };
         }
@@ -76,7 +78,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 throw new ApiException(error.ErrorProperty.Message);
             }
             var res = EnsureCorrectResponse(id, response);
-            return OrderToTrade(res[0]);
+            return BitMexModelConverter.OrderToTrade(res[0], _configuration);
         }
 
         public override async Task<ExecutedTrade> GetOrder(string id, Instrument instrument)
@@ -85,7 +87,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             var filterArg = JsonConvert.SerializeObject(filterObj);
             var response = await _exchangeApi.OrdergetOrdersAsync(filter: filterArg);
             var res = EnsureCorrectResponse(id, response);
-            return OrderToTrade(res[0]);
+            return BitMexModelConverter.OrderToTrade(res[0], _configuration);
         }
 
         public override async Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout)
@@ -98,22 +100,36 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 throw new ApiException(error.ErrorProperty.Message);
             }
 
-            var trades = ((IReadOnlyCollection<Order>)response).Select(OrderToTrade);
+            var trades = ((IReadOnlyCollection<Order>)response).Select(r => BitMexModelConverter.OrderToTrade(r, _configuration));
             return trades;
         }
 
-        private ExecutedTrade OrderToTrade(Order order)
+        public override async Task<TradeBalanceModel> GetTradeBalance(CancellationToken cancellationToken)
         {
+            var response = await _exchangeApi.UsergetMarginWithHttpMessagesAsync(cancellationToken: cancellationToken);
+            var bitmexMargin = response.Body;
 
-            var execTime = order.TransactTime ?? DateTime.UtcNow;
-            var execPrice = (decimal)(order.Price ?? 0);
-            var execVolume = (decimal)(order.OrderQty ?? 0);
-            var tradeType = ConvertTradeType(order.Side);
-            var status = ConvertExecutionStatus(order.OrdStatus);
-            var instr = ConvertSymbolFromBiMexToLykke(order.Symbol);
-
-            return new ExecutedTrade(instr, execTime, execPrice, execVolume, tradeType, order.OrderID, status) { Message = order.Text };
+            var model = BitMexModelConverter.ExchangeBalanceToModel(bitmexMargin);
+            return model;
         }
+
+
+
+        public override async Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout)
+        {
+            var cts = new CancellationTokenSource(timeout);
+            var onlyOpensFileter = "{\"isOpen\":true}";
+            var response = await _exchangeApi.PositiongetAsync(cancellationToken: cts.Token, filter: onlyOpensFileter);
+
+            if (response is Error error)
+            {
+                throw new ApiException(error.ErrorProperty.Message);
+            }
+
+            var model = ((IReadOnlyCollection<Position>)response).Select(r => BitMexModelConverter.ExchangePositionToModel(r, _configuration)).ToArray();
+            return model;
+        }
+
 
         private static IReadOnlyList<Order> EnsureCorrectResponse(string id, object response)
         {
@@ -148,87 +164,5 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         {
 
         }
-
-        private string ConvertSymbolFromLykkeToBitMex(string symbol)
-        {
-            if (!_configuration.CurrencyMapping.TryGetValue(symbol, out var result))
-            {
-                throw new ArgumentException($"Symbol {symbol} is not mapped to BitMex value");
-            }
-            return result;
-        }
-
-        private Instrument ConvertSymbolFromBiMexToLykke(string symbol)
-        {
-            var result = _configuration.CurrencyMapping.FirstOrDefault(kv => kv.Value == symbol).Key;
-            if (result == null)
-            {
-                throw new ArgumentException($"Symbol {symbol} is not mapped to lykke value");
-            }
-            return new Instrument(BitMex, result);
-        }
-
-
-        private string ConvertOrderType(OrderType type)
-        {
-            switch (type)
-            {
-                case OrderType.Market:
-                    return "Market";
-                case OrderType.Limit:
-                    return "Limit";
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
-            }
-        }
-
-        private static double ConvertVolume(decimal volume)
-        {
-            return (double)volume;
-        }
-
-        private static string ConvertTradeType(TradeType signalTradeType)
-        {
-            switch (signalTradeType)
-            {
-                case TradeType.Buy:
-                    return "Buy";
-                case TradeType.Sell:
-                    return "Sell";
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(signalTradeType), signalTradeType, null);
-            }
-        }
-
-        private static TradeType ConvertTradeType(string signalTradeType)
-        {
-            switch (signalTradeType)
-            {
-                case "Buy":
-                    return TradeType.Buy;
-                case "Sell":
-                    return TradeType.Sell;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(signalTradeType), signalTradeType, null);
-            }
-        }
-
-        private ExecutionStatus ConvertExecutionStatus(string executionStatus)
-        {
-            switch (executionStatus)
-            {
-                case "New":
-                    return ExecutionStatus.New;
-                case "Filled":
-                    return ExecutionStatus.Fill;
-                case "Partially Filled":
-                    return ExecutionStatus.PartialFill;
-                case "Canceled":
-                    return ExecutionStatus.Cancelled;
-                default:
-                    return ExecutionStatus.Unknown;
-            }
-        }
-
     }
 }

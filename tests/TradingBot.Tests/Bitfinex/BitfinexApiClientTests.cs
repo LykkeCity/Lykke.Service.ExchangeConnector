@@ -7,13 +7,13 @@ using Order = TradingBot.Exchanges.Concrete.AutorestClient.Models.Order;
 
 namespace TradingBot.Tests.Bitfinex
 {
-    public class ApiClientTests
+    public class BitfinexApiClientTests
     {
         private readonly BitfinexApi _api;
 
-        public ApiClientTests()
+        public BitfinexApiClientTests()
         {
-            var cred = new BitfinexServiceClientCredentials("Your API key", "Your API secret");
+            var cred = new BitfinexServiceClientCredentials("Your API key", "Your secret");
             _api = new BitfinexApi(cred);
         }
 
