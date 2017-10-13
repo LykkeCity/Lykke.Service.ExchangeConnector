@@ -34,7 +34,7 @@ namespace TradingBot.Controllers.Api
         [ProducesResponseType(typeof(IEnumerable<AccountBalance>), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
-        public async Task<IActionResult> GetBalance([FromQuery]string exchangeName)
+        private async Task<IActionResult> GetBalance([FromQuery]string exchangeName)// Intentionally disabled
         {
             if (string.IsNullOrWhiteSpace(exchangeName))
             {
@@ -42,7 +42,7 @@ namespace TradingBot.Controllers.Api
             }
             try
             {
-                return Ok(await Application.GetExchange(exchangeName).GetAccountBalance(CancellationToken.None));
+                return Ok(await Application.GetExchange(exchangeName).GetAccountBalance(_timeout));
             }
             catch (Exception e)
             {
@@ -57,7 +57,7 @@ namespace TradingBot.Controllers.Api
         /// <returns></returns>
         [ApiKeyAuth]
         [HttpGet("tradeBalance")]
-        [ProducesResponseType(typeof(TradeBalanceModel), 200)]
+        [ProducesResponseType(typeof(IEnumerable<TradeBalanceModel>), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
         public async Task<IActionResult> GetTradeBalance([FromQuery]string exchangeName)
@@ -68,7 +68,7 @@ namespace TradingBot.Controllers.Api
             }
             try
             {
-                return Ok(await Application.GetExchange(exchangeName).GetTradeBalance(new CancellationTokenSource(_timeout).Token));
+                return Ok(await Application.GetExchange(exchangeName).GetTradeBalances(_timeout));
             }
             catch (Exception e)
             {

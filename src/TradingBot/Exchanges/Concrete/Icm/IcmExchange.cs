@@ -142,7 +142,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return connector.CancelOrder(instrument, signal, translatedSignal);
         }
 
-        public override Task<ExecutedTrade> GetOrder(string orderId, Instrument instrument)
+        public override Task<ExecutedTrade> GetOrder(string orderId, Instrument instrument, TimeSpan timeout)
         {
             return connector.GetOrderInfoAndWaitResponse(instrument, orderId);
         }

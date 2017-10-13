@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.Models.Api;
 using TradingBot.Repositories;
@@ -17,15 +16,15 @@ namespace TradingBot.Exchanges.Abstractions
 
         IReadOnlyList<Instrument> Instruments { get; }
 
-        Task<IEnumerable<AccountBalance>> GetAccountBalance(CancellationToken cancellationToken);
+        Task<IEnumerable<AccountBalance>> GetAccountBalance(TimeSpan timeout);
 
-        Task<TradeBalanceModel> GetTradeBalance(CancellationToken cancellationToken);
+        Task<IReadOnlyCollection<TradeBalanceModel>> GetTradeBalances(TimeSpan timeout);
         
         Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout);
 
         Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout);
 
-        Task<ExecutedTrade> GetOrder(string id, Instrument instrument);
+        Task<ExecutedTrade> GetOrder(string id, Instrument instrument, TimeSpan timeout);
 
         Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout);
 

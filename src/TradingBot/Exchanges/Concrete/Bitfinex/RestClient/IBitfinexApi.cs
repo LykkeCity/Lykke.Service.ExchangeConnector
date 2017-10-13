@@ -12,5 +12,6 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex.RestClient
         Task<object> GetOrderStatus(long orderId, CancellationToken cancellationToken = default);
         Task<object> GetBalances(CancellationToken cancellationToken = default);
         Task<object> GetMarginInformation(CancellationToken cancellationToken = default);
+        Task<object> GetActivePositions(CancellationToken cancellationToken = default);
     }
 }
