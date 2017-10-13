@@ -8,6 +8,7 @@ using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.Kraken.Entities;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Models.Api;
 using TradingBot.Trading;
 using TradingBot.Repositories;
 
@@ -153,12 +154,17 @@ namespace TradingBot.Exchanges.Abstractions
             return Task.FromResult(Enumerable.Empty<AccountBalance>());
         }
 
-        public virtual Task<TradeBalanceInfo> GetTradeBalance(CancellationToken cancellationToken)
+        public virtual Task<TradeBalanceModel> GetTradeBalance(CancellationToken cancellationToken)
         {
             throw new NotSupportedException();
         }
 
         public virtual Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout)
+        {
+            throw new NotSupportedException();
+        }
+
+        public virtual Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout)
         {
             throw new NotSupportedException();
         }

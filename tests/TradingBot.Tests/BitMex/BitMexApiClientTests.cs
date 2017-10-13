@@ -11,13 +11,13 @@ using Xunit;
 
 namespace TradingBot.Tests.BitMex
 {
-    public class ApiClientTests
+    public class BitMexApiClientTests
     {
         private BitMEXAPI _api;
 
-        public ApiClientTests()
+        public BitMexApiClientTests()
         {
-            var cred = new BitMexServiceClientCredentials("Your ApiKeyId", "SecretKey");
+            var cred = new BitMexServiceClientCredentials("Your API key", "Your secret");
             _api = new BitMEXAPI(cred, new LoggingHandler(new HttpClientHandler()))
             {
                 BaseUri = new Uri(@"https://testnet.bitmex.com/api/v1")
@@ -43,6 +43,25 @@ namespace TradingBot.Tests.BitMex
             Assert.NotNull(result);
             Assert.IsType<Order>(result);
         }
+
+        [Fact]
+        public async Task ShouldGetActiveOrders()
+        {
+            var filter = "{\"ordStatus\":\"New\"}";
+            var result = await _api.OrdergetOrdersAsync(filter: filter);
+
+            Assert.NotNull(result);
+            Assert.IsAssignableFrom<IReadOnlyCollection<Order>>(result);
+        }
+
+        [Fact]
+        public async Task ShouldGetMarginInfo()
+        {
+            var result = await _api.UsergetMarginWithHttpMessagesAsync("");
+
+            Assert.NotNull(result);
+            Assert.IsAssignableFrom<IReadOnlyCollection<Order>>(result);
+        }
     }
 
     public class LoggingHandler : DelegatingHandler
@@ -60,7 +79,7 @@ namespace TradingBot.Tests.BitMex
             if (request.Content != null)
             {
                 sb.AppendLine(await request.Content.ReadAsStringAsync());
-            } 
+            }
             sb.AppendLine();
 
             HttpResponseMessage response = await base.SendAsync(request, cancellationToken);

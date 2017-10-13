@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using TradingBot.Exchanges.Concrete.Kraken.Entities;
+using TradingBot.Models.Api;
 using TradingBot.Repositories;
 using TradingBot.Trading;
 
@@ -19,7 +19,7 @@ namespace TradingBot.Exchanges.Abstractions
 
         Task<IEnumerable<AccountBalance>> GetAccountBalance(CancellationToken cancellationToken);
 
-        Task<TradeBalanceInfo> GetTradeBalance(CancellationToken cancellationToken);
+        Task<TradeBalanceModel> GetTradeBalance(CancellationToken cancellationToken);
         
         Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout);
 
@@ -28,5 +28,7 @@ namespace TradingBot.Exchanges.Abstractions
         Task<ExecutedTrade> GetOrder(string id, Instrument instrument);
 
         Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout);
+
+        Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout);
     }
 }

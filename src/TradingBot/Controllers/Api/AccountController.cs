@@ -5,8 +5,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using TradingBot.Exchanges.Concrete.Kraken.Entities;
+using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
+using TradingBot.Models.Api;
 using TradingBot.Trading;
 
 namespace TradingBot.Controllers.Api
@@ -28,6 +30,7 @@ namespace TradingBot.Controllers.Api
         /// <param name="exchangeName">The exchange name</param>
         /// <returns></returns>
         [HttpGet("balance")]
+        [ApiKeyAuth]
         [ProducesResponseType(typeof(IEnumerable<AccountBalance>), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
@@ -52,8 +55,9 @@ namespace TradingBot.Controllers.Api
         /// </summary>
         /// <param name="exchangeName">The exchange name</param>
         /// <returns></returns>
+        [ApiKeyAuth]
         [HttpGet("tradeBalance")]
-        [ProducesResponseType(typeof(TradeBalanceInfo), 200)]
+        [ProducesResponseType(typeof(TradeBalanceModel), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
         public async Task<IActionResult> GetTradeBalance([FromQuery]string exchangeName)
