@@ -20,11 +20,10 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
         private const string OrderStatusRequestUrl = @"/v1/order/status";
         private const string OrderCancelRequestUrl = @"/v1/order/cancel";
 
-        private const string ActiveOrdersRequestUrl = @"/v1/orders";
+        private const string ActiveOrdersRequestUrl = @"/orders";
         private const string MarginInfoRequstUrl = @"/v1/margin_infos";
-
-
-        private const string BaseGdaxUrl = @"https://public.sandbox.gdax.com";  // TODO: Remove sandbox
+        
+        private const string BaseGdaxUrl = @"https://api-public.sandbox.gdax.com";  // TODO: Remove sandbox
 
         private const string Exchange = "GDAX";
 
@@ -80,8 +79,8 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
             };
         }
 
-
-        public async Task<object> AddOrder(string symbol, decimal amount, decimal price, string side, string type, CancellationToken cancellationToken = default)
+        public async Task<object> AddOrder(string symbol, decimal amount, decimal price, string side, string type, 
+            CancellationToken cancellationToken = default)
         {
             var newOrder = new GdaxNewOrderPost
             {

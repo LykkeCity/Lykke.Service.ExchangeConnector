@@ -27,14 +27,16 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             : base(GDAX, configuration, translatedSignalsRepository, log)
         {
             _configuration = configuration;
-            var credenitals = new GdaxServiceClientCredentials(_configuration.ApiKey, _configuration.ApiSecret);
+            var credenitals = new GdaxServiceClientCredentials(_configuration.ApiKey, _configuration.ApiSecret, 
+                _configuration.PassPhrase);
             _exchangeApi = new GdaxApi(credenitals)
             {
                 BaseUri = new Uri(configuration.EndpointUrl)
             };
         }
 
-        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, 
+            TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var symbol = ConvertSymbolFromLykkeToExchange(instrument.Name);
             var volume = signal.Volume;
@@ -55,7 +57,8 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             return trade;
         }
 
-        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, 
+            TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
 
             var cts = new CancellationTokenSource(timeout);
