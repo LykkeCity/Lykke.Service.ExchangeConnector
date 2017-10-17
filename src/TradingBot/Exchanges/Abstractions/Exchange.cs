@@ -106,21 +106,16 @@ namespace TradingBot.Exchanges.Abstractions
             return Task.WhenAll(executedTradeHandlers.Select(x => x.Handle(trade)));
         }
 
+        public Task CallAcknowledgementsHandlers(Acknowledgement ack)
+        {
+            return Task.WhenAll(acknowledgementsHandlers.Select(x => x.Handle(ack)));
+        }
+
         internal async Task<bool> AddOrder(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             bool added = await AddOrderImpl(instrument, signal, translatedSignal);
 
-            var ack = new Acknowledgement()
-            {
-                Success = added,
-                Exchange = Name,
-                Instrument = instrument.Name,
-                ClientOrderId = signal.OrderId,
-                ExchangeOrderId = translatedSignal.ExternalId,
-                Message = translatedSignal.ErrorMessage
-            };
-
-            await Task.WhenAll(acknowledgementsHandlers.Select(x => x.Handle(ack)));
+            await LykkeLog.WriteInfoAsync(nameof(Exchange), nameof(AddOrder), "", $"Signal {signal} added with result {added}");
 
             return added;
         }

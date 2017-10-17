@@ -135,9 +135,9 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 					    
 					    // TODO: deal with awaitable. I don't want to wait here for Azure and Rabbit connections
 					    await CallTickPricesHandlers(new InstrumentTickPrices(instrument, currentPrices));
+				        
+				        await Task.Delay(config.PricesIntervalInMilliseconds, ctSource.Token);
 				    }
-                
-				    await Task.Delay(config.PricesIntervalInMilliseconds, ctSource.Token);
 			    } 
 			    
 			    OnStopped();

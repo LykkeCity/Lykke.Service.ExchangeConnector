@@ -25,8 +25,6 @@ namespace TradingBot.Exchanges.Concrete.Kraken
         private readonly PublicData publicData;
         private readonly PrivateData privateData;
 
-        private readonly Dictionary<string, string> orderIdsToKrakenIds = new Dictionary<string, string>();
-
         private Task pricesJob;
         private CancellationTokenSource ctSource;
 
@@ -170,27 +168,14 @@ namespace TradingBot.Exchanges.Concrete.Kraken
 
             var orderInfo = await privateData.AddOrder(instrument, signal, translatedSignal, cts.Token);
             string txId = orderInfo.TxId.FirstOrDefault();
+            translatedSignal.ExternalId = txId;
 
-            lock (orderIdsToKrakenIds)
-            {
-                orderIdsToKrakenIds.Add(signal.OrderId, txId);
-            }
-
-            return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, txId, ExecutionStatus.New);
+            return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, ExecutionStatus.New);
         }
 
         public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            string krakenId;
-            lock (orderIdsToKrakenIds)
-            {
-                if (orderIdsToKrakenIds.ContainsKey(signal.OrderId))
-                    krakenId = orderIdsToKrakenIds[signal.OrderId];
-                else
-                    throw new ArgumentException($"Unknown order id of {signal.OrderId}");
-            }
-
-            var result = await privateData.CancelOrder(krakenId, translatedSignal);
+            var result = await privateData.CancelOrder(signal.OrderId, translatedSignal);
 
             var executedTrade = new ExecutedTrade(instrument,
                 DateTime.UtcNow,

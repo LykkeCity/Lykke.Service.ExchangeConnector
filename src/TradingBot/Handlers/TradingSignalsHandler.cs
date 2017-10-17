@@ -101,6 +101,19 @@ namespace TradingBot.Handlers
 
                                     translatedSignal.Failure(result.FinalException);
                                 }
+                                
+                                            
+                                var ack = new Acknowledgement()
+                                {
+                                    Success = result.Outcome == OutcomeType.Successful,
+                                    Exchange = exchange.Name,
+                                    Instrument = instrumentName,
+                                    ClientOrderId = arrivedSignal.OrderId,
+                                    ExchangeOrderId = translatedSignal.ExternalId,
+                                    Message = translatedSignal.ErrorMessage
+                                };
+
+                                await exchange.CallAcknowledgementsHandlers(ack);
                             }
                             catch (Exception e)
                             {
