@@ -94,6 +94,8 @@ namespace TradingBot.Exchanges.Concrete.Kraken
 
                                 await Task.Delay(TimeSpan.FromSeconds(10), ctSource.Token);
                             }
+
+                            await CheckExecutedOrders();
                         }
                         catch (Exception e)
                         {
@@ -107,6 +109,20 @@ namespace TradingBot.Exchanges.Concrete.Kraken
 
                     OnStopped();
                 });
+            }
+        }
+
+        private DateTime lastOrdersCheckTime = DateTime.UtcNow;
+        
+        private async Task CheckExecutedOrders()
+        {
+            var newTime = DateTime.UtcNow;
+            var executed = await GetExecutedOrders(lastOrdersCheckTime, TimeSpan.FromSeconds(5));
+            lastOrdersCheckTime = newTime;
+
+            foreach (var executedTrade in executed)
+            {
+                await CallExecutedTradeHandlers(executedTrade);
             }
         }
 
@@ -190,9 +206,47 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             return executedTrade;
         }
 
-        public Task<string> GetOpenOrders(TimeSpan timeout)
+        public override async Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout)
         {
-            return privateData.GetOpenOrders(new CancellationTokenSource(timeout).Token);
+            return (await privateData.GetOpenOrders(new CancellationTokenSource(timeout).Token))
+                .Select(x => new ExecutedTrade(new Instrument(Name, x.Value.DescriptionInfo.Pair), 
+                    DateTimeUtils.FromUnix(x.Value.StartTime), 
+                    x.Value.Price,
+                    x.Value.Volume,
+                    x.Value.DescriptionInfo.Type == TradeDirection.Buy ? TradeType.Buy : TradeType.Sell,
+                    x.Key,
+                    ConvertStatus(x.Value.Status)));
+        }
+
+        public async Task<IEnumerable<ExecutedTrade>> GetExecutedOrders(DateTime start, TimeSpan timeout)
+        {
+            return (await privateData.GetClosedOrders(start, new CancellationTokenSource(timeout).Token)).Closed
+                .Select(x => new ExecutedTrade(new Instrument(Name, x.Value.DescriptionInfo.Pair), 
+                    DateTimeUtils.FromUnix(x.Value.StartTime), 
+                    x.Value.Price,
+                    x.Value.Volume,
+                    x.Value.DescriptionInfo.Type == TradeDirection.Buy ? TradeType.Buy : TradeType.Sell,
+                    x.Key,
+                    ConvertStatus(x.Value.Status)));
+        }
+
+        private ExecutionStatus ConvertStatus(OrderStatus status)
+        {
+            switch (status)
+            {
+                case OrderStatus.Pending:
+                    return ExecutionStatus.Pending;
+                case OrderStatus.Open:
+                    return ExecutionStatus.New;
+                case OrderStatus.Closed:
+                    return ExecutionStatus.Fill;
+                case OrderStatus.Canceled:
+                    return ExecutionStatus.Cancelled;
+                case OrderStatus.Expired:
+                    return ExecutionStatus.Rejected;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(status), status, null);
+            }
         }
     }
 }
