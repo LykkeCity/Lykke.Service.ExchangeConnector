@@ -142,6 +142,15 @@ namespace TradingBot.Handlers
                                         nameof(HandleTradingSignals),
                                         string.Empty,
                                         $"Canceled order {arrivedSignal}").Wait();
+
+                                    if (result.Result)
+                                    {
+                                        await exchange.CallExecutedTradeHandlers(new ExecutedTrade(
+                                            signals.Instrument,
+                                            DateTime.UtcNow, arrivedSignal.Price ?? 0, arrivedSignal.Volume,
+                                            arrivedSignal.TradeType,
+                                            arrivedSignal.OrderId, ExecutionStatus.Cancelled));
+                                    }
                                 }
                                 else
                                 {

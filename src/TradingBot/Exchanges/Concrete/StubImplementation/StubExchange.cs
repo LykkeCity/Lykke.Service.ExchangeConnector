@@ -177,7 +177,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 		    }
 	    }
 
-	    protected override async Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+	    protected override Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
 	    {
 		    translatedSignal.RequestSent("stub exchange don't send actual request");
 		    //SimulateException();
@@ -193,16 +193,8 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 	                isCanceled = true;
 	            }
 	        }
-
-	        if (isCanceled)
-	        {
-	            await CallExecutedTradeHandlers(new ExecutedTrade(
-	                instrument,
-	                DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
-	                signal.OrderId, ExecutionStatus.Cancelled));    
-	        }
-		    
-		    return isCanceled;
+	        
+		    return Task.FromResult(isCanceled);
 	    }
 
 	    public override Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)

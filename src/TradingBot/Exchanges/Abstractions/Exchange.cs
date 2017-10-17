@@ -101,7 +101,7 @@ namespace TradingBot.Exchanges.Abstractions
             return Task.WhenAll(tickPriceHandlers.Select(x => x.Handle(tickPrices)));
         }
 
-        protected Task CallExecutedTradeHandlers(ExecutedTrade trade)
+        public Task CallExecutedTradeHandlers(ExecutedTrade trade)
         {
             return Task.WhenAll(executedTradeHandlers.Select(x => x.Handle(trade)));
         }
