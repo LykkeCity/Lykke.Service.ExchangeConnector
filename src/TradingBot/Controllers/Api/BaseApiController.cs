@@ -9,7 +9,7 @@ namespace TradingBot.Controllers.Api
     {
         protected readonly IApplicationFacade Application;
         
-        protected BaseApiController(ExchangeConnectorApplication app)
+        protected BaseApiController(IApplicationFacade app)
         {
             Application = app;
         }

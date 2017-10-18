@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AzureStorage;
+using Common.Log;
 using Lykke.RabbitMqBroker;
 using Lykke.RabbitMqBroker.Subscriber;
 using QuickFix;
@@ -110,7 +111,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             rabbit = new RabbitMqSubscriber<OrderBook>(rabbitSettings, errorStrategy)
                 .SetMessageDeserializer(new GenericRabbitModelConverter<OrderBook>())
                 .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
-                .SetConsole(new ExchangeConnectorApplication.RabbitConsole())
+                .SetConsole(new LogToConsole())
                 .SetLogger(_log)
                 .Subscribe(async orderBook =>
                     {

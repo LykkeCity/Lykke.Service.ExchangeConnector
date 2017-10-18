@@ -15,19 +15,21 @@ using Lykke.SlackNotification.AzureQueue;
 using AzureStorage;
 using AzureStorage.Tables;
 using TradingBot.Communications;
+using TradingBot.Exchanges;
 using TradingBot.Repositories;
 using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Modules;
 
 namespace TradingBot
 {
-    public class Startup
+    public sealed class Startup
     {
         public IConfigurationRoot Configuration { get; }
         public IContainer ApplicationContainer { get; private set; }
 
-        private ExchangeConnectorApplication _app;
+        private readonly Lazy<IApplicationFacade> _app;
 
         private INoSQLTableStorage<PriceTableEntity> _pricesStorage;
 
@@ -39,6 +41,7 @@ namespace TradingBot
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
                 .AddEnvironmentVariables();
             Configuration = builder.Build();
+            _app = new Lazy<IApplicationFacade>(() => ApplicationContainer.Resolve<IApplicationFacade>());
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime appLifetime)
@@ -74,6 +77,11 @@ namespace TradingBot
         {
             ILog log = new LogToConsole();
             string appName = nameof(TradingBot);
+            // Register dependencies, populate the services from
+            // the collection, and build the container. If you want
+            // to dispose of the container at the end of the app,
+            // be sure to keep a reference to it as a property or field.
+            var builder = new ContainerBuilder();
 
             try
             {
@@ -87,15 +95,19 @@ namespace TradingBot
                 });
 
                 var settingsManager = Configuration.LoadSettings<TradingBotSettings>("SettingsUrl");
+
+                builder.RegisterInstance(settingsManager)
+                    .As<IReloadingManager<TradingBotSettings>>();
+
                 var topSettings = settingsManager.CurrentValue;
                 var settings = topSettings.TradingBot;
+                builder.RegisterInstance(settings)
+                    .As<AppSettings>()
+                    .SingleInstance();
 
 
-                // Register dependencies, populate the services from
-                // the collection, and build the container. If you want
-                // to dispose of the container at the end of the app,
-                // be sure to keep a reference to it as a property or field.
-                var builder = new ContainerBuilder();
+
+
 
                 if (settings.AzureStorage.Enabled)
                 {
@@ -123,7 +135,6 @@ namespace TradingBot
 
                 builder.RegisterInstance(log).As<ILog>().SingleInstance();
 
-                builder.RegisterInstance(settings).As<AppSettings>().SingleInstance();
 
                 _pricesStorage = AzureTableStorage<PriceTableEntity>.Create(
                     settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "kraken", log);
@@ -140,11 +151,20 @@ namespace TradingBot
                     settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "intrinsicEvents", log);
                 builder.RegisterInstance(javaEventsStorage).As<INoSQLTableStorage<JavaIntrinsicEventEntity>>().SingleInstance();
 
-                _app = new ExchangeConnectorApplication(settings, settingsManager, fixMessagesStorage, log);
-                builder.RegisterInstance(_app).SingleInstance();
+                var signalsStorage = AzureTableStorage<TranslatedSignalTableEntity>.Create(
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "translatedSignals", new LogToConsole());
+                builder.RegisterInstance(signalsStorage).As<INoSQLTableStorage<TranslatedSignalTableEntity>>().SingleInstance();
+
+
+
+
+                builder.RegisterModule(new ServiceModule(settings.Exchanges));
 
                 builder.Populate(services);
+
+
                 ApplicationContainer = builder.Build();
+
 
                 // Create the IServiceProvider based on the container.
                 return new AutofacServiceProvider(ApplicationContainer);
@@ -164,12 +184,12 @@ namespace TradingBot
 
         private void StartHandler()
         {
-            _app.Start().Wait();
+            _app.Value.Start().Wait();
         }
 
         private void ShutDownHandler()
         {
-            _app.Stop();
+            _app.Value.Stop();
         }
     }
 }

@@ -23,7 +23,7 @@ namespace TradingBot.Handlers
                 .SetSerializer(new GenericRabbitModelConverter<T>())
                 .SetLogger(new LogToConsole())
                 .SetPublishStrategy(new DefaultFanoutPublishStrategy(publisherSettings))
-                .SetConsole(new ExchangeConnectorApplication.RabbitConsole())
+                .SetConsole(new LogToConsole())
                 .Start();
         }
         

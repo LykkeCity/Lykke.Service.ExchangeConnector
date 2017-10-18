@@ -4,9 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
-using AzureStorage;
-using AzureStorage.Tables;
-using Lykke.SettingsReader;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Exchanges;
@@ -15,11 +12,10 @@ using Lykke.RabbitMqBroker.Subscriber;
 using TradingBot.Communications;
 using TradingBot.Handlers;
 using TradingBot.Trading;
-using TradingBot.Repositories;
 
 namespace TradingBot
 {
-    public class ExchangeConnectorApplication : IApplicationFacade
+    internal sealed class ExchangeConnectorApplication : IApplicationFacade
     {
         private readonly ILog _log;
         private readonly Timer _timer;
@@ -30,19 +26,13 @@ namespace TradingBot
 
         public TranslatedSignalsRepository TranslatedSignalsRepository { get; }
 
-        public ExchangeConnectorApplication(
-            AppSettings config,
-            IReloadingManager<TradingBotSettings> settingsManager,
-            INoSQLTableStorage<FixMessageTableEntity> fixMessagesStorage,
-            ILog log)
+        public ExchangeConnectorApplication(AppSettings config, TranslatedSignalsRepository translatedSignalsRepository, ExchangeFactory exchange, ILog log)
         {
             _config = config;
             _log = log;
-            var signalsStorage = AzureTableStorage<TranslatedSignalTableEntity>.Create(
-                settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "translatedSignals", new LogToConsole());
-            TranslatedSignalsRepository = new TranslatedSignalsRepository(signalsStorage, new InverseDateTimeRowKeyProvider());
 
-            _exchanges = ExchangeFactory.CreateExchanges(config, TranslatedSignalsRepository, settingsManager, fixMessagesStorage, log)
+            TranslatedSignalsRepository = translatedSignalsRepository;
+            _exchanges = exchange.CreateExchanges()
                 .ToDictionary(x => x.Name, x => x);
             _timer = new Timer(OnHeartbeat);
         }
@@ -107,7 +97,7 @@ namespace TradingBot
             _signalSubscriber = new RabbitMqSubscriber<InstrumentTradingSignals>(subscriberSettings, errorStrategy)
                 .SetMessageDeserializer(new GenericRabbitModelConverter<InstrumentTradingSignals>())
                 .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
-                .SetConsole(new RabbitConsole())
+                .SetConsole(new LogToConsole())
                 .SetLogger(new LogToConsole())
                 .Subscribe(handler.Handle)
                 .Start();
@@ -129,14 +119,6 @@ namespace TradingBot
                 exchange?.Stop();
             }
 
-        }
-
-        public class RabbitConsole : IConsole
-        {
-            public void WriteLine(string line)
-            {
-                Console.WriteLine(line);
-            }
         }
 
         public IReadOnlyCollection<IExchange> GetExchanges()
