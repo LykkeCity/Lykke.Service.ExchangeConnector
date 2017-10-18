@@ -30,6 +30,8 @@ namespace TradingBot.Exchanges.Abstractions
 
         public IReadOnlyList<Instrument> Instruments { get; }
 
+        private readonly TimeSpan defaultTimeOut = TimeSpan.FromSeconds(30);
+
         protected Exchange(string name, IExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log)
         {
             Name = name;
@@ -120,14 +122,30 @@ namespace TradingBot.Exchanges.Abstractions
             return added;
         }
 
-        protected abstract Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal);
+        protected virtual async Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal,
+            TranslatedSignalTableEntity translatedSignal)
+        {
+            ExecutedTrade trade = await AddOrderAndWaitExecution(instrument, signal, translatedSignal, defaultTimeOut);
+
+            return trade != null && (
+                       trade.Status == ExecutionStatus.New ||
+                       trade.Status == ExecutionStatus.Fill ||
+                       trade.Status == ExecutionStatus.PartialFill ||
+                       trade.Status == ExecutionStatus.Pending);
+        }
 
         internal Task<bool> CancelOrder(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             return CancelOrderImpl(instrument, signal, translatedSignal);
         }
 
-        protected abstract Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal);
+        protected virtual async Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal,
+            TranslatedSignalTableEntity translatedSignal)
+        {
+            ExecutedTrade trade = await CancelOrderAndWaitExecution(instrument, signal, translatedSignal, defaultTimeOut);
+
+            return trade != null && trade.Status == ExecutionStatus.Cancelled;
+        }
 
         public abstract Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal,

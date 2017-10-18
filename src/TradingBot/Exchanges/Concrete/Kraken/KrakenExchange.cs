@@ -170,13 +170,6 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             return true;
         }
 
-        protected override async Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
-        {
-            var executedTrade = await CancelOrderAndWaitExecution(instrument, signal, translatedSignal, TimeSpan.FromSeconds(30));
-
-            return executedTrade.Status == ExecutionStatus.Cancelled;
-        }
-
         public override async Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
