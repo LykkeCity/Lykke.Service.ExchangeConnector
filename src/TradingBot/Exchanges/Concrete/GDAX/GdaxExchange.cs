@@ -75,13 +75,14 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             return trade;
         }
 
-        public override async Task<ExecutedTrade> GetOrder(string id, Instrument instrument)
+        public override async Task<ExecutedTrade> GetOrder(string id, Instrument instrument, TimeSpan timeout)
         {
             if (!long.TryParse(id, out var orderId))
             {
-                throw new ApiException("GDAX order id can be only integer");
+                throw new ApiException("Bitfinex order id can be only integer");
             }
-            var response = await _exchangeApi.GetOrderStatus(orderId);
+            var cts = new CancellationTokenSource(timeout);
+            var response = await _exchangeApi.GetOrderStatus(orderId, cts.Token);
             if (response is Error error)
             {
                 throw new ApiException(error.Message);

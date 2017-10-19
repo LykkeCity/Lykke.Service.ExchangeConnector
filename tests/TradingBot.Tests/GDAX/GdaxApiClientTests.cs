@@ -2,8 +2,8 @@
 using System.Threading.Tasks;
 using TradingBot.Exchanges.Concrete.GDAX;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient;
+using TradingBot.Exchanges.Concrete.GDAX.RestClient.Model;
 using Xunit;
-using Order = TradingBot.Exchanges.Concrete.AutorestClient.Models.Order;
 
 namespace TradingBot.Tests.GDAX
 {
@@ -11,9 +11,9 @@ namespace TradingBot.Tests.GDAX
     {
         private readonly GdaxApi _api;
 
-        private const string ApiKey = "Key";
-        private const string ApiSecret = "Secret";
-        private const string ApiPassPhrase = "Phrase";
+        private const string ApiKey = "1e127272cef41056e178817509caf26a";
+        private const string ApiSecret = "Ajptk9vBwPfVQbhLCy2jsKZduHf3DGjXseK+7Gvqc2QIKaMZ1SrMG/U5Qz7SeXZbBR8Jr1GorQOZFVW59iQjyQ==";
+        private const string ApiPassPhrase = "lcuu5q0u1i";
 
         public GdaxApiClientTests()
         {
@@ -26,7 +26,7 @@ namespace TradingBot.Tests.GDAX
         {
             var result = await _api.GetOpenOrders();
             Assert.NotNull(result);
-            Assert.IsAssignableFrom<IReadOnlyList<Order>>(result);
+            Assert.IsAssignableFrom<IReadOnlyList<GdaxOrder>>(result);
         }
 
         [Fact]

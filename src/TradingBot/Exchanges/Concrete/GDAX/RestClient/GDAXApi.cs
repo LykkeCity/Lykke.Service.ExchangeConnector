@@ -27,9 +27,8 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
         private const string BaseGdaxUrl = @"https://api-public.sandbox.gdax.com";  // TODO: Remove sandbox
 
         private const string Exchange = "GDAX";
-        private const string UserAgent = "Lykke";
-
-
+        private const string ConnectorUserAgent = "Lykke";
+        
         public Uri BaseUri { get; set; }
 
         private readonly ServiceClientCredentials _credentials;
@@ -184,7 +183,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
                 Method = new HttpMethod("GET"),
                 RequestUri = new Uri(BaseUri, postBase.RequestUrl)
             };
-            httpRequest.Headers.Add("User-Agent", UserAgent);
+            httpRequest.Headers.Add("User-Agent", ConnectorUserAgent);
 
             var jsonObj = SafeJsonConvert.SerializeObject(postBase, SerializationSettings);
             httpRequest.Content = new StringContent(jsonObj, Encoding.UTF8, "application/json");
