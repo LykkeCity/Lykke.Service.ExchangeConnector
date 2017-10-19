@@ -7,13 +7,12 @@ using Common.Log;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient;
-using TradingBot.Exchanges.Concrete.GDAX.RestClient.Model;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Repositories;
 using TradingBot.Trading;
-using Instrument = TradingBot.Trading.Instrument;
 using GdaxOrder = TradingBot.Exchanges.Concrete.GDAX.RestClient.Model.GdaxOrder;
+using Instrument = TradingBot.Trading.Instrument;
 
 namespace TradingBot.Exchanges.Concrete.GDAX
 {
@@ -31,92 +30,84 @@ namespace TradingBot.Exchanges.Concrete.GDAX
                 _configuration.PassPhrase);
             _exchangeApi = new GdaxApi(credenitals)
             {
-                BaseUri = new Uri(configuration.EndpointUrl)
+                BaseUri = new Uri(configuration.EndpointUrl),
+                ConnectorUserAgent = configuration.UserAgent
             };
         }
 
         public override async Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, 
             TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            var symbol = ConvertSymbolFromLykkeToExchange(instrument.Name);
+            var symbol = LykkeSymbolToGdaxSymbol(instrument.Name);
             var volume = signal.Volume;
-            var orderType = ConvertOrderType(signal.OrderType);
-            var side = ConvertTradeType(signal.TradeType);
+            var orderType = OrderTypeToGdaxOrderType(signal.OrderType);
+            var side = TradeTypeToGdaxTradeType(signal.TradeType);
             var price = signal.Price == 0 ? 1 : signal.Price ?? 1;
             var cts = new CancellationTokenSource(timeout);
 
-
-            var response = await _exchangeApi.AddOrder(symbol, volume, price, side, orderType, cts.Token);
-
-            if (response is Error error)
+            try
             {
-                throw new ApiException(error.Message);
+                var response = await _exchangeApi.AddOrder(symbol, volume, price, side, orderType, cts.Token);
+                var trade = OrderToTrade(response);
+                return trade;
             }
-
-            var trade = OrderToTrade((GdaxOrder)response);
-            return trade;
+            catch (StatusCodeException ex)
+            {
+                throw new ApiException(ex.Message);
+            }
         }
 
         public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, 
             TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
+            if (!Guid.TryParse(signal.OrderId, out var id))
+                throw new ApiException("GDAX order id can be only Guid");
 
             var cts = new CancellationTokenSource(timeout);
-            if (!long.TryParse(signal.OrderId, out var id))
+            try
             {
-                throw new ApiException("GDAX order id can be only integer");
+                var response = await _exchangeApi.CancelOrder(id, cts.Token);
+                var trade = OrderToTrade(response);
+                return trade;
             }
-            var response = await _exchangeApi.CancelOrder(id, cts.Token);
-            if (response is Error error)
+            catch (StatusCodeException ex)
             {
-                throw new ApiException(error.Message);
+                throw new ApiException(ex.Message);
             }
-            var trade = OrderToTrade((GdaxOrder)response);
-            return trade;
         }
 
         public override async Task<ExecutedTrade> GetOrder(string id, Instrument instrument, TimeSpan timeout)
         {
-            if (!long.TryParse(id, out var orderId))
-            {
-                throw new ApiException("Bitfinex order id can be only integer");
-            }
+            if (!Guid.TryParse(id, out var orderId))
+                throw new ApiException("GDAX order id can be only Guid");
+
             var cts = new CancellationTokenSource(timeout);
-            var response = await _exchangeApi.GetOrderStatus(orderId, cts.Token);
-            if (response is Error error)
+            try
             {
-                throw new ApiException(error.Message);
+                var response = await _exchangeApi.GetOrderStatus(orderId, cts.Token);
+                var trade = OrderToTrade(response);
+                return trade;
             }
-            var trade = OrderToTrade((GdaxOrder)response);
-            return trade;
+            catch (StatusCodeException ex)
+            {
+                throw new ApiException(ex.Message);
+            }
         }
 
         public override async Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout)
         {
-
             var cts = new CancellationTokenSource(timeout);
-            var response = await _exchangeApi.GetOpenOrders(cts.Token);
-            if (response is Error error)
+            try
             {
-                throw new ApiException(error.Message);
+                var response = await _exchangeApi.GetOpenOrders(cts.Token);
+                var trades = response.Select(OrderToTrade);
+                return trades;
             }
-            var trades = ((IReadOnlyCollection<GdaxOrder>)response).Select(OrderToTrade);
-            return trades;
+            catch (StatusCodeException ex)
+            {
+                throw new ApiException(ex.Message);
+            }
         }
-
-        private ExecutedTrade OrderToTrade(GdaxOrder order)
-        {
-            var id = order.Id;
-            var execTime = order.Timestamp;
-            var execPrice = order.Price;
-            var execVolume = order.ExecutedAmount;
-            var tradeType = ConvertTradeType(order.Side);
-            var status = ConvertExecutionStatus(order);
-            var instr = ConvertSymbolFromExchangeToLykke(order.Symbol);
-
-            return new ExecutedTrade(instr, execTime, execPrice, execVolume, tradeType, id, status);
-        }
-
 
         protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
@@ -138,7 +129,20 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 
         }
 
-        private string ConvertSymbolFromLykkeToExchange(string symbol)
+        private ExecutedTrade OrderToTrade(GdaxOrder order)
+        {
+            var id = order.Id;
+            var execTime = order.CreatedAt;
+            var execPrice = order.Price;
+            var execVolume = order.ExecutedValue;
+            var tradeType = GdaxTradeTypeToTradeType(order.Side);
+            var status = GdaxOrderStatusToExecutionStatus(order);
+            var instr = LykkeSymbolToGdaxInstrument(order.ProductId);
+
+            return new ExecutedTrade(instr, execTime, execPrice, execVolume, tradeType, id.ToString(), status);
+        }
+
+        private string LykkeSymbolToGdaxSymbol(string symbol)
         {
             if (!_configuration.CurrencyMapping.TryGetValue(symbol, out var result))
             {
@@ -147,7 +151,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             return result;
         }
 
-        private Instrument ConvertSymbolFromExchangeToLykke(string symbol)
+        private Instrument LykkeSymbolToGdaxInstrument(string symbol)
         {
             var result = _configuration.CurrencyMapping.FirstOrDefault(kv => kv.Value == symbol).Key;
             if (result == null)
@@ -156,9 +160,8 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             }
             return new Instrument(GDAX, result);
         }
-
-
-        private string ConvertOrderType(OrderType type)
+        
+        private static string OrderTypeToGdaxOrderType(OrderType type)
         {
             switch (type)
             {
@@ -171,7 +174,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             }
         }
 
-        private static string ConvertTradeType(TradeType signalTradeType)
+        private static string TradeTypeToGdaxTradeType(TradeType signalTradeType)
         {
             switch (signalTradeType)
             {
@@ -184,7 +187,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             }
         }
 
-        private static TradeType ConvertTradeType(string signalTradeType)
+        private static TradeType GdaxTradeTypeToTradeType(string signalTradeType)
         {
             switch (signalTradeType)
             {
@@ -197,18 +200,23 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             }
         }
 
-        private static ExecutionStatus ConvertExecutionStatus(GdaxOrder order)
+        private static ExecutionStatus GdaxOrderStatusToExecutionStatus(GdaxOrder order)
         {
-            if (order.IsCancelled)
+            switch (order.Status)
             {
-                return ExecutionStatus.Cancelled;
+                case "open":
+                    return ExecutionStatus.New;
+                case "pending":
+                    return ExecutionStatus.Pending;
+                case "active":  // Is this correct - Investigate
+                    return ExecutionStatus.PartialFill;
+                case "cancelled":  // do we have such status? Investigate
+                    return ExecutionStatus.Cancelled;
+                case "done":
+                    return ExecutionStatus.Fill;
             }
-            if (order.IsLive)
-            {
-                return ExecutionStatus.New;
-            }
-            return ExecutionStatus.Fill;
-        }
 
+            return ExecutionStatus.Unknown;
+        }
     }
 }

@@ -9795,6 +9795,16 @@
             Thrown if validation fails
             </exception>
         </member>
+        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.GdaxApi.BaseUri">
+            <summary>
+            Base GDAX Uri
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.GdaxApi.ConnectorUserAgent">
+            <summary>
+            User agent for identification
+            </summary>
+        </member>
         <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.GdaxApi.SerializationSettings">
             <summary>
             Gets or sets json serialization settings.

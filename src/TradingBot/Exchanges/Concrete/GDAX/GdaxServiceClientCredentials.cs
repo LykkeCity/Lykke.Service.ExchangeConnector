@@ -12,10 +12,10 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 {
     internal sealed class GdaxServiceClientCredentials : ServiceClientCredentials
     {
-        private const string AccessKeyHeader = "CB-ACCESS-KEY";
-        private const string AccessSignatureHeader = "CB-ACCESS-SIGN";
-        private const string TimeStampHeader = "CB-ACCESS-TIMESTAMP";
-        private const string PassPhraseHeader = "CB-ACCESS-PASSPHRASE";
+        private const string _accessKeyHeader = "CB-ACCESS-KEY";
+        private const string _accessSignatureHeader = "CB-ACCESS-SIGN";
+        private const string _timeStampHeader = "CB-ACCESS-TIMESTAMP";
+        private const string _passPhraseHeader = "CB-ACCESS-PASSPHRASE";
 
         private readonly string _apiKey;
         private readonly string _apiSecret;
@@ -35,10 +35,10 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 
             var signature = await GetGdaxHashedSignature(request, unixTime, cancellationToken);
 
-            request.Headers.Add(AccessKeyHeader, _apiKey);
-            request.Headers.Add(AccessSignatureHeader, signature);
-            request.Headers.Add(TimeStampHeader, unixTime);
-            request.Headers.Add(PassPhraseHeader, _passPhrase);
+            request.Headers.Add(_accessKeyHeader, _apiKey);
+            request.Headers.Add(_accessSignatureHeader, signature);
+            request.Headers.Add(_timeStampHeader, unixTime);
+            request.Headers.Add(_passPhraseHeader, _passPhrase);
         }
 
         private async Task<string> GetGdaxHashedSignature(HttpRequestMessage request, string timeStampString, 

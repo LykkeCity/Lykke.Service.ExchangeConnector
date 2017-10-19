@@ -19,6 +19,7 @@ namespace TradingBot.Infrastructure.Configuration
 
         public BitfinexExchangeConfiguration Bitfinex { get; set; }
         
+        public GdaxExchangeConfiguration Gdax { get; set; }
         
         public IEnumerator<IExchangeConfiguration> GetEnumerator()
         {
@@ -28,6 +29,7 @@ namespace TradingBot.Infrastructure.Configuration
             yield return HistoricalData;
             yield return Lykke;
             yield return BitMex;
+            yield return Gdax;
         }
 
         IEnumerator IEnumerable.GetEnumerator()

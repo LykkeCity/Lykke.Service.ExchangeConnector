@@ -16,6 +16,7 @@ using TradingBot.Exchanges.Concrete.StubImplementation;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
+using TradingBot.Exchanges.Concrete.GDAX;
 
 namespace TradingBot.Exchanges
 {
@@ -85,6 +86,9 @@ namespace TradingBot.Exchanges
 
             if (config.Bitfinex.Enabled)
                 result.Add(new BitfinexExchange(config.Bitfinex, translatedSignalsRepository, log));
+
+            if (config.Gdax.Enabled)
+                result.Add(new GdaxExchange(config.Gdax, translatedSignalsRepository, log));
 
             return result;
         }

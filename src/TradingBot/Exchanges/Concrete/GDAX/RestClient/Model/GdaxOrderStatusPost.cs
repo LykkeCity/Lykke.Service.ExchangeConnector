@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using Newtonsoft.Json;
 
 namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Model
 {
@@ -9,6 +10,6 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Model
       /// retrieving the current status of an order.
       /// </summary>
       [JsonProperty("order_id")]
-      public long OrderId { get; set; }
+      public Guid OrderId { get; set; }
    }
 }
