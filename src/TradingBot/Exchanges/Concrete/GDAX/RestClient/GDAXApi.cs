@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
 using System.Net.Http;
+using System.Security.Authentication;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -26,6 +27,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
         private const string BaseGdaxUrl = @"https://api-public.sandbox.gdax.com";  // TODO: Remove sandbox
 
         private const string Exchange = "GDAX";
+        private const string UserAgent = "Lykke";
 
 
         public Uri BaseUri { get; set; }
@@ -90,8 +92,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
                 Exchange = Exchange,
                 Side = side,
                 Type = type,
-                Request = NewOrderRequestUrl,
-                Nonce = Common.UnixTimeStampUtc().ToString()
+                RequestUrl = NewOrderRequestUrl
             };
 
             var response = await GetRestResponse<Order>(newOrder, cancellationToken);
@@ -103,8 +104,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
         {
             var cancelPost = new GdaxOrderStatusPost
             {
-                Request = OrderCancelRequestUrl,
-                Nonce = Common.UnixTimeStampUtc().ToString(),
+                RequestUrl = OrderCancelRequestUrl,
                 OrderId = orderId
             };
 
@@ -117,8 +117,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
         {
             var activeOrdersPost = new GdaxPostBase
             {
-                Request = ActiveOrdersRequestUrl,
-                Nonce = Common.UnixTimeStampUtc().ToString()
+                RequestUrl = ActiveOrdersRequestUrl
             };
 
             var response = await GetRestResponse<IReadOnlyList<Order>>(activeOrdersPost, cancellationToken);
@@ -131,8 +130,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
         {
             var orderStatusPost = new GdaxOrderStatusPost
             {
-                Request = OrderStatusRequestUrl,
-                Nonce = Common.UnixTimeStampUtc().ToString(),
+                RequestUrl = OrderStatusRequestUrl,
                 OrderId = orderId
             };
 
@@ -145,8 +143,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
         public async Task<object> GetBalances(CancellationToken cancellationToken = default)
         {
             var balancePost = new GdaxPostBase();
-            balancePost.Request = BalanceRequestUrl;
-            balancePost.Nonce = Common.UnixTimeStampUtc().ToString();
+            balancePost.RequestUrl = BalanceRequestUrl;
 
             var response = await GetRestResponse<IReadOnlyList<GdaxBalanceResponse>>(balancePost, cancellationToken);
 
@@ -158,8 +155,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
         {
             var marginPost = new GdaxPostBase
             {
-                Request = MarginInfoRequstUrl,
-                Nonce = Common.UnixTimeStampUtc().ToString()
+                RequestUrl = MarginInfoRequstUrl
             };
 
 
@@ -168,27 +164,29 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
             return response;
         }
 
-        private async Task<object> GetRestResponse<T>(GdaxPostBase obj, CancellationToken cancellationToken)
+        private async Task<object> GetRestResponse<T>(GdaxPostBase postBase, CancellationToken cancellationToken)
         {
-            using (var request = await GetRestRequest(obj, cancellationToken))
-            using (var response = await HttpClient.SendAsync(request, cancellationToken))
+            using (var request = await GetRestRequest(postBase, cancellationToken))
             {
-                var responseBody = await CheckError<T>(response);
-                return responseBody;
+                using (var response = await HttpClient.SendAsync(request, cancellationToken))
+                {
+                    var responseBody = await CheckError<T>(response);
+                    return responseBody;
+                }
             }
         }
 
-        private async Task<HttpRequestMessage> GetRestRequest(GdaxPostBase obj, CancellationToken cancellationToken)
+        private async Task<HttpRequestMessage> GetRestRequest(GdaxPostBase postBase, CancellationToken cancellationToken)
         {
-
             // Create HTTP transport objects
             var httpRequest = new HttpRequestMessage
             {
-                Method = new HttpMethod("POST"),
-                RequestUri = new Uri(BaseUri, obj.Request)
+                Method = new HttpMethod("GET"),
+                RequestUri = new Uri(BaseUri, postBase.RequestUrl)
             };
+            httpRequest.Headers.Add("User-Agent", UserAgent);
 
-            var jsonObj = SafeJsonConvert.SerializeObject(obj, SerializationSettings);
+            var jsonObj = SafeJsonConvert.SerializeObject(postBase, SerializationSettings);
             httpRequest.Content = new StringContent(jsonObj, Encoding.UTF8, "application/json");
 
             await _credentials.ProcessHttpRequestAsync(httpRequest, cancellationToken).ConfigureAwait(false);

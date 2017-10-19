@@ -9805,6 +9805,12 @@
             Gets or sets json deserialization settings.
             </summary>
         </member>
+        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.Model.GdaxActiveOrdersPost.OrderId">
+            <summary>
+            This class can be used to send a cancel message in addition to 
+            retrieving the current status of an order.
+            </summary>
+        </member>
         <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.Model.GdaxOrderStatusPost.OrderId">
             <summary>
             This class can be used to send a cancel message in addition to 

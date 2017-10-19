@@ -11,9 +11,9 @@ namespace TradingBot.Tests.GDAX
     {
         private readonly GdaxApi _api;
 
-        private const string ApiKey = "YourAPIkey";
-        private const string ApiSecret = "YourAPIsecret";
-        private const string ApiPassPhrase = "YourAPIpassphrase";
+        private const string ApiKey = "Key";
+        private const string ApiSecret = "Secrect";
+        private const string ApiPassPhrase = "Phrase";
 
         public GdaxApiClientTests()
         {

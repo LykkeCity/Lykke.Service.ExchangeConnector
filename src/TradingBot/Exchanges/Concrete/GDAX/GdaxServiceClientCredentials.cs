@@ -30,7 +30,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 
         public override async Task ProcessHttpRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var unixTime = DateTime.UtcNow.ToUnixTimestamp()
+            var unixTime = DateTime.UtcNow.ToUnixTimestampInt()
                 .ToString(System.Globalization.CultureInfo.InvariantCulture);
 
             var signature = await GetGdaxHashedSignature(request, unixTime, cancellationToken);
@@ -46,10 +46,11 @@ namespace TradingBot.Exchanges.Concrete.GDAX
         {
             var content = await GetContent(request, cancellationToken);
 
-            var signature = timeStampString + request.Method.ToString().ToUpper() + request.RequestUri + content;
-            var secretBase64 = Convert.FromBase64String(_apiSecret);
+            var signature = timeStampString + request.Method.ToString().ToUpper() + 
+                    request.RequestUri.AbsolutePath + content;
+            var apiSecretFromBase64 = Convert.FromBase64String(_apiSecret);
 
-            return HashString(signature, secretBase64);
+            return HashString(signature, apiSecretFromBase64);
         }
 
         private static async Task<string> GetContent(HttpRequestMessage request, CancellationToken cancellationToken)
