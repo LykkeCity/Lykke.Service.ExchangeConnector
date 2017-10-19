@@ -1,11 +1,9 @@
-﻿using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Common.Log;
 using TradingBot.Communications;
-using TradingBot.Exchanges.Concrete.Kraken.Entities;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Models.Api;
@@ -144,17 +142,17 @@ namespace TradingBot.Exchanges.Abstractions
             TranslatedSignalTableEntity translatedSignal,
             TimeSpan timeout);
 
-        public virtual Task<ExecutedTrade> GetOrder(string id, Instrument instrument)
+        public virtual Task<ExecutedTrade> GetOrder(string id, Instrument instrument, TimeSpan timeout)
         {
             throw new NotSupportedException($"{Name} does not support receiving order information by {nameof(id)} and {nameof(instrument)}");
         }
 
-        public virtual Task<IEnumerable<AccountBalance>> GetAccountBalance(CancellationToken cancellationToken)
+        public virtual Task<IEnumerable<AccountBalance>> GetAccountBalance(TimeSpan timeout)
         {
             return Task.FromResult(Enumerable.Empty<AccountBalance>());
         }
 
-        public virtual Task<TradeBalanceModel> GetTradeBalance(CancellationToken cancellationToken)
+        public virtual Task<IReadOnlyCollection<TradeBalanceModel>> GetTradeBalances(TimeSpan timeout)
         {
             throw new NotSupportedException();
         }

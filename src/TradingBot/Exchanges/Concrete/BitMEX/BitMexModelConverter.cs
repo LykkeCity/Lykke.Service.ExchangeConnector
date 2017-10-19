@@ -123,11 +123,11 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             }
         }
 
-        public static TradeBalanceModel ExchangeBalanceToModel(Margin bitmexMargin)
+        public static TradeBalanceModel ExchangeBalanceToModel(Margin bitmexMargin, BitMexExchangeConfiguration configuration)
         {
             var model = new TradeBalanceModel
             {
-                AccountCurrency = "XBT", // The only currency supported
+                AccountCurrency = "BTC", // The only currency supported
                 Totalbalance = Convert.ToDecimal(bitmexMargin.MarginBalance) / SatoshiRate,
                 UnrealisedPnL = Convert.ToDecimal(bitmexMargin.UnrealisedPnl) / SatoshiRate,
                 MaringAvailable = Convert.ToDecimal(bitmexMargin.AvailableMargin) / SatoshiRate,

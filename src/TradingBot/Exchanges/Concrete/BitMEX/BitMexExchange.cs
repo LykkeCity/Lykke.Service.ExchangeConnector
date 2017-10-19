@@ -81,11 +81,12 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return BitMexModelConverter.OrderToTrade(res[0], _configuration);
         }
 
-        public override async Task<ExecutedTrade> GetOrder(string id, Instrument instrument)
+        public override async Task<ExecutedTrade> GetOrder(string id, Instrument instrument, TimeSpan timeout)
         {
             var filterObj = new { orderID = id };
             var filterArg = JsonConvert.SerializeObject(filterObj);
-            var response = await _exchangeApi.OrdergetOrdersAsync(filter: filterArg);
+            var cts = new CancellationTokenSource(timeout);
+            var response = await _exchangeApi.OrdergetOrdersAsync(filter: filterArg, cancellationToken: cts.Token);
             var res = EnsureCorrectResponse(id, response);
             return BitMexModelConverter.OrderToTrade(res[0], _configuration);
         }
@@ -104,13 +105,14 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return trades;
         }
 
-        public override async Task<TradeBalanceModel> GetTradeBalance(CancellationToken cancellationToken)
+        public override async Task<IReadOnlyCollection<TradeBalanceModel>> GetTradeBalances(TimeSpan timeout)
         {
-            var response = await _exchangeApi.UsergetMarginWithHttpMessagesAsync(cancellationToken: cancellationToken);
+            var cts = new CancellationTokenSource(timeout);
+            var response = await _exchangeApi.UsergetMarginWithHttpMessagesAsync(cancellationToken: cts.Token);
             var bitmexMargin = response.Body;
 
-            var model = BitMexModelConverter.ExchangeBalanceToModel(bitmexMargin);
-            return model;
+            var model = BitMexModelConverter.ExchangeBalanceToModel(bitmexMargin, _configuration);
+            return new[] { model };
         }
 
 

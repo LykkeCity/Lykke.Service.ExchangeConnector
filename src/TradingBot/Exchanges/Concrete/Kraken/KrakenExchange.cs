@@ -133,9 +133,10 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             return differenceInThreshold;
         }
 
-        public override async Task<IEnumerable<AccountBalance>> GetAccountBalance(CancellationToken cancellationToken)
+        public override async Task<IEnumerable<AccountBalance>> GetAccountBalance(TimeSpan timeout)
         {
-            return (await privateData.GetAccountBalance(null, cancellationToken))
+            var cts = new CancellationTokenSource(timeout);
+            return (await privateData.GetAccountBalance(null, cts.Token))
                 .Select(x => new AccountBalance()
                 {
                     Asset = x.Key,
