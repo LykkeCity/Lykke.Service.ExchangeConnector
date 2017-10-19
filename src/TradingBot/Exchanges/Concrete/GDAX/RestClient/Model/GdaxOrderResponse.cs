@@ -1,9 +1,10 @@
 ﻿using System;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Model
 {
-    internal sealed class GdaxOrder
+    internal sealed class GdaxOrderResponse
     {
         //public override string ToString()
         //{
@@ -24,13 +25,15 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Model
         public string ProductId { get; set; }
 
         [JsonProperty("side")]
-        public string Side { get; set; }
+        [JsonConverter(typeof(StringEnumConverter))]
+        public GdaxOrderSide Side { get; set; }
 
         [JsonProperty("stp")]
         public string Stp { get; set; }
 
         [JsonProperty("type")]
-        public string OrderType { get; set; }
+        [JsonConverter(typeof(StringEnumConverter))]
+        public GdaxOrderType OrderType { get; set; }
 
         [JsonProperty("time_in_force")]
         public string TimeInForce { get; set; }

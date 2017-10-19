@@ -9,7 +9,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Model
       /// This class can be used to send a cancel message in addition to 
       /// retrieving the current status of an order.
       /// </summary>
-      [JsonProperty("order_id")]
+      [JsonProperty("order-id")]
       public Guid OrderId { get; set; }
    }
 }

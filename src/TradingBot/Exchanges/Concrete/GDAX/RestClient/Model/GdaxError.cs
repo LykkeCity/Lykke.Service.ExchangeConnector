@@ -2,7 +2,7 @@
 
 namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Model
 {
-    internal sealed class Error
+    internal sealed class GdaxError
     {
         [JsonProperty("message")]
         public string Message { get; set; }

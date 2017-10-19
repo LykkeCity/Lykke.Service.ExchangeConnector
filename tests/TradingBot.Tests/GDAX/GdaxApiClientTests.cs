@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using TradingBot.Exchanges.Concrete.GDAX;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient;
@@ -14,9 +15,9 @@ namespace TradingBot.Tests.GDAX
         private readonly Guid _orderId = Guid.NewGuid();
 
         private const string _userAgent = "LykkeTest";
-        private const string _apiKey = "1e127272cef41056e178817509caf26a";
-        private const string _apiSecret = "Ajptk9vBwPfVQbhLCy2jsKZduHf3DGjXseK+7Gvqc2QIKaMZ1SrMG/U5Qz7SeXZbBR8Jr1GorQOZFVW59iQjyQ==";
-        private const string _apiPassPhrase = "lcuu5q0u1i";
+        private const string _apiKey = "143f281de7ab32f6269eb0dc9aa14aeb";
+        private const string _apiSecret = "H/bVM/bBNcLDAToPmloL1IJe0KKW0XjLk4HA/UUrO/e/91tsx5Y56BsG6hgGaReV1MIShv1LDUNLCJ99wgDk0Q==";
+        private const string _apiPassPhrase = "prulog9byo9";
 
         public GdaxApiClientTests()
         {
@@ -33,28 +34,82 @@ namespace TradingBot.Tests.GDAX
         {
             var result = await _api.GetOpenOrders();
             Assert.NotNull(result);
-            Assert.IsAssignableFrom<IReadOnlyList<GdaxOrder>>(result);
+            Assert.IsAssignableFrom<IReadOnlyList<GdaxOrderResponse>>(result);
         }
 
         [Fact]
-        public async Task AddNewOrder()
+        public async Task AddNewMarketOrder()
         {
-            var result = await _api.AddOrder("btc-usd", 0.001m, 1, "buy", "market");
+            var symbol = "BTC-USD";
+            var amount = 2m;
+            var price = 0;
+            var orderSide = GdaxOrderSide.Buy;
+            var orderType = GdaxOrderType.Market;
+
+            var result = await _api.AddOrder(symbol, amount, price, orderSide, orderType);
+
             Assert.NotNull(result);
+            Assert.Equal(symbol, result.ProductId);
+            Assert.Equal(amount, result.Size);
+            Assert.Equal(price, result.Price);
+            Assert.Equal(orderSide, result.Side);
+            Assert.Equal(orderType, result.OrderType);
         }
 
         [Fact]
-        public async Task CancelOrder()
+        public async Task AddNewLimitOrder()
         {
-            var result = await _api.CancelOrder(_orderId);
+            var symbol = "BTC-USD";
+            var amount = 1.15m;
+            var price = 1;
+            var orderSide = GdaxOrderSide.Buy;
+            var orderType = GdaxOrderType.Limit;
+
+            var result = await _api.AddOrder(symbol, amount, price, orderSide, orderType);
+            
             Assert.NotNull(result);
+            Assert.Equal(symbol, result.ProductId);
+            Assert.Equal(amount, result.Size);
+            Assert.Equal(price, result.Price);
+            Assert.Equal(orderSide, result.Side);
+            Assert.Equal(orderType, result.OrderType);
         }
 
+        /// <summary>
+        /// Creates a new order and then cancels it
+        /// </summary>
+        [Fact]
+        public async Task AddAndCancelOrder()
+        {
+            var newOrder = await _api.AddOrder("BTC-USD", 5, 0.01m, GdaxOrderSide.Buy, GdaxOrderType.Limit);
+            //var newOrder2 = await _api.AddOrder("BTC-USD", 10, 0.01m, GdaxOrderSide.Buy, GdaxOrderType.Limit);
+            
+            var result = await _api.CancelOrder(newOrder.Id);
+
+            Assert.NotNull(result);
+            Assert.Equal(1, result.Count);
+            Assert.Equal(result.First(), newOrder.Id);
+        }
+
+        /// <summary>
+        /// Creates an order, gets its status and then cancels it
+        /// </summary>
         [Fact]
         public async Task GetOrderStatus()
         {
-            var result = await _api.GetOrderStatus(_orderId);
+            var newOrder = await _api.AddOrder("BTC-USD", 5, 0.01m, GdaxOrderSide.Buy, GdaxOrderType.Limit);
+
+            var result = await _api.GetOrderStatus(newOrder.Id);
+
+            await _api.CancelOrder(newOrder.Id);
+
             Assert.NotNull(result);
+            Assert.Equal(result.Id, newOrder.Id);
+            Assert.Equal(result.ProductId, newOrder.ProductId);
+            Assert.Equal(result.Size, newOrder.Size);
+            Assert.Equal(result.Price, newOrder.Price);
+            Assert.Equal(result.Side, newOrder.Side);
+            Assert.Equal(result.OrderType, newOrder.OrderType);
         }
 
         [Fact]

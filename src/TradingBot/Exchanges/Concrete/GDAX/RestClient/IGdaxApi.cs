@@ -8,11 +8,11 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
 {
     internal interface IGdaxApi : IDisposable
     {
-        Task<GdaxOrder> AddOrder(string symbol, decimal amount, decimal price, string side, 
-            string type, CancellationToken cancellationToken = default);
-        Task<GdaxOrder> CancelOrder(Guid orderId, CancellationToken cancellationToken = default);
-        Task<IReadOnlyList<GdaxOrder>> GetOpenOrders(CancellationToken cancellationToken = default);
-        Task<GdaxOrder> GetOrderStatus(Guid orderId, CancellationToken cancellationToken = default);
+        Task<GdaxOrderResponse> AddOrder(string symbol, decimal amount, decimal price, GdaxOrderSide side, 
+            GdaxOrderType type, CancellationToken cancellationToken = default);
+        Task<IReadOnlyCollection<Guid>> CancelOrder(Guid orderId, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<GdaxOrderResponse>> GetOpenOrders(CancellationToken cancellationToken = default);
+        Task<GdaxOrderResponse> GetOrderStatus(Guid orderId, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<GdaxBalanceResponse>> GetBalances(CancellationToken cancellationToken = default);
         Task<IReadOnlyCollection<GdaxMarginInfoResponse>> GetMarginInformation(CancellationToken cancellationToken = default);
     }

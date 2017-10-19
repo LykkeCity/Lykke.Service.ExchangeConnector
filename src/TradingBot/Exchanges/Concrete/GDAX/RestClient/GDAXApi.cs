@@ -20,9 +20,9 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
         public const string GdaxSandboxApiUrl = @"https://api-public.sandbox.gdax.com";
 
         private const string _balanceRequestUrl = @"/v1/balances";
-        private const string _newOrderRequestUrl = @"/v1/order/new";
-        private const string _orderStatusRequestUrl = @"/v1/order/status";
-        private const string _orderCancelRequestUrl = @"/v1/order/cancel";
+        private const string _newOrderRequestUrl = @"/orders";
+        private const string _orderStatusRequestUrl = @"/orders/{0}";
+        private const string _orderCancelRequestUrl = @"/orders/{0}";
         private const string _activeOrdersRequestUrl = @"/orders";
         private const string _marginInfoRequstUrl = @"/v1/margin_infos";
         
@@ -89,16 +89,15 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
             };
         }
 
-        public async Task<GdaxOrder> AddOrder(string symbol, decimal amount, decimal price, string side, string type, 
-            CancellationToken cancellationToken = default)
+        public async Task<GdaxOrderResponse> AddOrder(string productId, decimal amount, decimal price,
+            GdaxOrderSide side, GdaxOrderType type, CancellationToken cancellationToken = default)
         {
-            var response = await ExecuteRestMethod<GdaxOrder>(HttpMethod.Post, _newOrderRequestUrl,
+            var response = await ExecuteRestMethod<GdaxOrderResponse>(HttpMethod.Post, _newOrderRequestUrl,
                 new GdaxNewOrderPost
                 {
-                    Symbol = symbol,
-                    Amount = amount,
+                    ProductId = productId,
+                    Size = amount,
                     Price = price,
-                    Exchange = _exchangeName,
                     Side = side,
                     Type = type,
                 }, cancellationToken);
@@ -106,32 +105,26 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
             return response;
         }
 
-        public async Task<GdaxOrder> CancelOrder(Guid orderId, CancellationToken cancellationToken = default )
+        public async Task<IReadOnlyCollection<Guid>> CancelOrder(Guid orderId, CancellationToken cancellationToken = default)
         {
-            var response = await ExecuteRestMethod<GdaxOrder>(HttpMethod.Post, _orderCancelRequestUrl,
-                new GdaxOrderStatusPost
-                {
-                    OrderId = orderId
-                }, cancellationToken);
+            var response = await ExecuteRestMethod<IReadOnlyCollection<Guid>>(HttpMethod.Delete, 
+                string.Format(_orderCancelRequestUrl, orderId), new GdaxPostBase(), cancellationToken);
 
             return response;
         }
 
-        public async Task<IReadOnlyList<GdaxOrder>> GetOpenOrders(CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<GdaxOrderResponse>> GetOpenOrders(CancellationToken cancellationToken = default)
         {
-            var response = await ExecuteRestMethod<IReadOnlyList<GdaxOrder>>(HttpMethod.Get, _activeOrdersRequestUrl,
+            var response = await ExecuteRestMethod<IReadOnlyList<GdaxOrderResponse>>(HttpMethod.Get, _activeOrdersRequestUrl,
                 new GdaxPostBase(), cancellationToken);
 
             return response;
         }
 
-        public async Task<GdaxOrder> GetOrderStatus(Guid orderId, CancellationToken cancellationToken = default)
+        public async Task<GdaxOrderResponse> GetOrderStatus(Guid orderId, CancellationToken cancellationToken = default)
         {
-            var response = await ExecuteRestMethod<GdaxOrder>(HttpMethod.Get, _orderStatusRequestUrl,
-                new GdaxOrderStatusPost
-                {
-                    OrderId = orderId
-                }, cancellationToken);
+            var response = await ExecuteRestMethod<GdaxOrderResponse>(HttpMethod.Get,
+                string.Format(_orderCancelRequestUrl, orderId), new GdaxPostBase(), cancellationToken);
 
             return response;
         }
@@ -191,11 +184,12 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
             switch (response.StatusCode)
             {
                 case HttpStatusCode.OK:
-                    return SafeJsonConvert.DeserializeObject<T>(await response.Content.ReadAsStringAsync(), DeserializationSettings);
+                    var content = await response.Content.ReadAsStringAsync();
+                    return SafeJsonConvert.DeserializeObject<T>(content, DeserializationSettings);
                 case HttpStatusCode.BadRequest:
                 case HttpStatusCode.NotFound:
                     throw new StatusCodeException(response.StatusCode, 
-                        JsonConvert.DeserializeObject<Error>(await response.Content.ReadAsStringAsync(), DeserializationSettings).Message);
+                        JsonConvert.DeserializeObject<GdaxError>(await response.Content.ReadAsStringAsync(), DeserializationSettings).Message);
                 default:
                     throw new HttpOperationException(string.Format("Operation returned an invalid status code '{0}'", response.StatusCode));
             }
