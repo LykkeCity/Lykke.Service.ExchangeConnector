@@ -95,7 +95,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
                 RequestUrl = NewOrderRequestUrl
             };
 
-            var response = await GetRestResponse<Order>(newOrder, cancellationToken);
+            var response = await GetRestResponse<GdaxOrder>(newOrder, cancellationToken);
 
             return response;
         }
@@ -108,19 +108,19 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
                 OrderId = orderId
             };
 
-            var response = await GetRestResponse<Order>(cancelPost, cancellationToken);
+            var response = await GetRestResponse<GdaxOrder>(cancelPost, cancellationToken);
 
             return response;
         }
 
-        public async Task<object> GetActiveOrders(CancellationToken cancellationToken = default)
+        public async Task<object> GetOpenOrders(CancellationToken cancellationToken = default)
         {
             var activeOrdersPost = new GdaxPostBase
             {
                 RequestUrl = ActiveOrdersRequestUrl
             };
 
-            var response = await GetRestResponse<IReadOnlyList<Order>>(activeOrdersPost, cancellationToken);
+            var response = await GetRestResponse<IReadOnlyList<GdaxOrder>>(activeOrdersPost, cancellationToken);
 
             return response;
         }
@@ -134,7 +134,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
                 OrderId = orderId
             };
 
-            var response = await GetRestResponse<Order>(orderStatusPost, cancellationToken);
+            var response = await GetRestResponse<GdaxOrder>(orderStatusPost, cancellationToken);
 
             return response;
         }

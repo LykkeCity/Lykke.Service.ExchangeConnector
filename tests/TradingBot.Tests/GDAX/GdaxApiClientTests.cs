@@ -12,7 +12,7 @@ namespace TradingBot.Tests.GDAX
         private readonly GdaxApi _api;
 
         private const string ApiKey = "Key";
-        private const string ApiSecret = "Secrect";
+        private const string ApiSecret = "Secret";
         private const string ApiPassPhrase = "Phrase";
 
         public GdaxApiClientTests()
@@ -22,9 +22,9 @@ namespace TradingBot.Tests.GDAX
         }
 
         [Fact]
-        public async Task GetAllOrders()
+        public async Task GetOpenOrders()
         {
-            var result = await _api.GetActiveOrders();
+            var result = await _api.GetOpenOrders();
             Assert.NotNull(result);
             Assert.IsAssignableFrom<IReadOnlyList<Order>>(result);
         }

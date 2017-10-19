@@ -13,7 +13,7 @@ using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Repositories;
 using TradingBot.Trading;
 using Instrument = TradingBot.Trading.Instrument;
-using Order = TradingBot.Exchanges.Concrete.GDAX.RestClient.Model.Order;
+using GdaxOrder = TradingBot.Exchanges.Concrete.GDAX.RestClient.Model.GdaxOrder;
 
 namespace TradingBot.Exchanges.Concrete.GDAX
 {
@@ -53,7 +53,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
                 throw new ApiException(error.Message);
             }
 
-            var trade = OrderToTrade((Order)response);
+            var trade = OrderToTrade((GdaxOrder)response);
             return trade;
         }
 
@@ -71,7 +71,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             {
                 throw new ApiException(error.Message);
             }
-            var trade = OrderToTrade((Order)response);
+            var trade = OrderToTrade((GdaxOrder)response);
             return trade;
         }
 
@@ -86,7 +86,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             {
                 throw new ApiException(error.Message);
             }
-            var trade = OrderToTrade((Order)response);
+            var trade = OrderToTrade((GdaxOrder)response);
             return trade;
         }
 
@@ -94,16 +94,16 @@ namespace TradingBot.Exchanges.Concrete.GDAX
         {
 
             var cts = new CancellationTokenSource(timeout);
-            var response = await _exchangeApi.GetActiveOrders(cts.Token);
+            var response = await _exchangeApi.GetOpenOrders(cts.Token);
             if (response is Error error)
             {
                 throw new ApiException(error.Message);
             }
-            var trades = ((IReadOnlyCollection<Order>)response).Select(OrderToTrade);
+            var trades = ((IReadOnlyCollection<GdaxOrder>)response).Select(OrderToTrade);
             return trades;
         }
 
-        private ExecutedTrade OrderToTrade(Order order)
+        private ExecutedTrade OrderToTrade(GdaxOrder order)
         {
             var id = order.Id;
             var execTime = order.Timestamp;
@@ -196,7 +196,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             }
         }
 
-        private static ExecutionStatus ConvertExecutionStatus(Order order)
+        private static ExecutionStatus ConvertExecutionStatus(GdaxOrder order)
         {
             if (order.IsCancelled)
             {
