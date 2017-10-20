@@ -10,7 +10,6 @@
   "profiles": {
     "IIS Express": {
       "commandName": "IISExpress",
-      "launchBrowser": true,
       "environmentVariables": {
         "settingsUrl": "appsettings.Development.json",
         "ASPNETCORE_ENVIRONMENT": "Development"
@@ -18,8 +17,8 @@
     },
     "TradingBot": {
       "commandName": "Project",
-      "launchBrowser": true,
       "environmentVariables": {
+        "settingsUrl": "appsettings.Development.json",
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "applicationUrl": "http://localhost:5000/"

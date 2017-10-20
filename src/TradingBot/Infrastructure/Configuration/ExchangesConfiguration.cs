@@ -28,6 +28,7 @@ namespace TradingBot.Infrastructure.Configuration
             yield return HistoricalData;
             yield return Lykke;
             yield return BitMex;
+            yield return Bitfinex;
         }
 
         IEnumerator IEnumerable.GetEnumerator()

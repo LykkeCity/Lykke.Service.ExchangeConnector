@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
+using TradingBot.Infrastructure.Monitoring;
 using TradingBot.Models;
 using TradingBot.Models.Api;
 
@@ -8,9 +9,12 @@ namespace TradingBot.Controllers.Api
 {
     public sealed class ExchangesController : BaseApiController
     {
-        public ExchangesController(IApplicationFacade app)
+        private readonly IExchangeRatingValuer _ratingValuer;
+
+        public ExchangesController(IApplicationFacade app, IExchangeRatingValuer ratingValuer)
             : base(app)
         {
+            _ratingValuer = ratingValuer;
         }
 
         /// <summary>
@@ -47,6 +51,19 @@ namespace TradingBot.Controllers.Api
                 State = exchange.State,
                 Instruments = exchange.Instruments
             });
+        }
+
+
+        /// <summary>
+        /// Returns ratings of exchanges
+        /// </summary>
+        /// <returns>A collection of ratings for each enabled exchange</returns>
+        [HttpGet("rating")]
+        [ProducesResponseType(typeof(IEnumerable<ExchangeRatingModel>), 200)]
+        [ProducesResponseType(typeof(ResponseMessage), 500)]
+        public IActionResult GetRating()
+        {
+            return Ok(_ratingValuer.Rating);
         }
     }
 }

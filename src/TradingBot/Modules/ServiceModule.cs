@@ -1,4 +1,6 @@
 ﻿using Autofac;
+using Autofac.Extras.DynamicProxy;
+using Castle.DynamicProxy;
 using TradingBot.Communications;
 using TradingBot.Exchanges;
 using TradingBot.Exchanges.Abstractions;
@@ -10,6 +12,7 @@ using TradingBot.Exchanges.Concrete.Kraken;
 using TradingBot.Exchanges.Concrete.LykkeExchange;
 using TradingBot.Exchanges.Concrete.StubImplementation;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Infrastructure.Monitoring;
 
 namespace TradingBot.Modules
 {
@@ -24,14 +27,21 @@ namespace TradingBot.Modules
 
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterType<InverseDateTimeRowKeyProvider>()
-                .AsSelf();
+            builder.RegisterType<InverseDateTimeRowKeyProvider>();
 
-            builder.RegisterType<TranslatedSignalsRepository>()
-                .AsSelf();
+            builder.RegisterType<TranslatedSignalsRepository>();
 
-            builder.RegisterType<ExchangeFactory>()
-                .AsSelf();
+            builder.RegisterType<ExchangeFactory>();
+
+            builder.RegisterType<ExchangeCallsInterceptor>()
+                .SingleInstance();
+
+            builder.RegisterType<ExchangeStatisticsCollector>()
+                .SingleInstance();
+
+            builder.RegisterType<ExchangeRatingValuer>()
+                .As<IExchangeRatingValuer>()
+                .SingleInstance();
 
             builder.RegisterType<ExchangeConnectorApplication>()
                 .As<IApplicationFacade>()
@@ -63,10 +73,13 @@ namespace TradingBot.Modules
 
         private static void RegisterExchange<T>(ContainerBuilder container, bool enabled)
         {
+
             if (enabled)
             {
                 container.RegisterType<T>()
-                    .As<Exchange>();
+                    .As<Exchange>()
+                    .EnableClassInterceptors()
+                    .InterceptedBy(typeof(ExchangeCallsInterceptor));
             }
 
         }

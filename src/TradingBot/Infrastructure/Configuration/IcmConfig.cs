@@ -15,7 +15,9 @@ namespace TradingBot.Infrastructure.Configuration
         public bool SaveQuotesToAzure { get; set; }
         
         public bool PubQuotesToRabbit { get; set; }
-        
+
+        public double InitialRating { get; set; }
+
         public bool SocketConnection { get; set; }
 
         public RabbitMqConfiguration RabbitMq { get; set; }

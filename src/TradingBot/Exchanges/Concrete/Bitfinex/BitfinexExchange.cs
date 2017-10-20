@@ -19,7 +19,7 @@ using Position = TradingBot.Exchanges.Concrete.Bitfinex.RestClient.Model.Positio
 
 namespace TradingBot.Exchanges.Concrete.Bitfinex
 {
-    internal sealed class BitfinexExchange : Exchange
+    internal class BitfinexExchange : Exchange
     {
         private readonly BitfinexExchangeConfiguration _configuration;
         private readonly IBitfinexApi _exchangeApi;

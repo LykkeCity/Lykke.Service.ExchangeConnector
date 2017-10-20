@@ -20,7 +20,7 @@ using Position = TradingBot.Exchanges.Concrete.AutorestClient.Models.Position;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
-    internal sealed class BitMexExchange : Exchange
+    internal class BitMexExchange : Exchange
     {
         private readonly BitMexExchangeConfiguration _configuration;
         private readonly IBitMEXAPI _exchangeApi;
