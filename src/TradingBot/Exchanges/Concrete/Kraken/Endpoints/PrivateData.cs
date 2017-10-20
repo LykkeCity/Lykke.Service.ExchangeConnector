@@ -11,6 +11,7 @@ using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Kraken.Entities;
 using TradingBot.Exchanges.Concrete.Kraken.Requests;
 using TradingBot.Exchanges.Concrete.Kraken.Responses;
+using TradingBot.Helpers;
 using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
@@ -56,9 +57,14 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
             return MakePostRequestAsync<TradeBalanceInfo>("TradeBalance", request, translatedSignal, cancellationToken);
         }
 
-        public Task<string> GetOpenOrders(CancellationToken cancellationToken)
+        public Task<Dictionary<string, OrderInfo>> GetOpenOrders(CancellationToken cancellationToken)
         {
-            return MakePostRequestAsync<string>("OpenOrders", new OpenOrdersRequest(), null, cancellationToken);
+            return MakePostRequestAsync<Dictionary<string, OrderInfo>>("OpenOrders", new OpenOrdersRequest(), null, cancellationToken);
+        }
+
+        public Task<ClosedOrdersResponse> GetClosedOrders(DateTime start, CancellationToken cancellationToken)
+        {
+            return MakePostRequestAsync<ClosedOrdersResponse>("ClosedOrders", new ClosedOrdersRequest() { Start = DateTimeUtils.ToUnix(start)}, null, cancellationToken);
         }
 
         public Task<AddStandardOrderResponse> AddOrder(Instrument instrument, TradingSignal tradingSignal, TranslatedSignalTableEntity translatedSignal, CancellationToken cancellationToken)

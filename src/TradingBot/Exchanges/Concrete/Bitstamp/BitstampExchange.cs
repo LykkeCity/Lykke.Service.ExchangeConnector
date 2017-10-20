@@ -53,15 +53,6 @@ namespace TradingBot.Exchanges.Concrete.Bitstamp
             throw new NotImplementedException();
         }
 
-        protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal)
-        {
-            throw new NotImplementedException();
-        }
 
         public override Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal,
             TimeSpan timeout)

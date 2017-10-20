@@ -23,7 +23,7 @@ namespace TradingBot.Controllers.Api
 
         private readonly TranslatedSignalsRepository _translatedSignalsRepository;
 
-        public OrdersController(ExchangeConnectorApplication app, AppSettings appSettings)
+        public OrdersController(IApplicationFacade app, AppSettings appSettings)
             : base(app)
         {
             _translatedSignalsRepository = Application.TranslatedSignalsRepository;

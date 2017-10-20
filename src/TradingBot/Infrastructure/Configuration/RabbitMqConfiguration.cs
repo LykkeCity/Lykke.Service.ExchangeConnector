@@ -21,6 +21,8 @@
         public string SignalsQueue { get; set; }
         
         public string AcknowledgementsExchange { get; set; }
+        
+        public string AcknowledgementsQueue { get; set; }
 
         /// <summary>
         /// see https://www.rabbitmq.com/uri-spec.html

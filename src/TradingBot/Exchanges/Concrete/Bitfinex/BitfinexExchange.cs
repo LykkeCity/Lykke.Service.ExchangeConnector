@@ -188,17 +188,6 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             return new ExecutedTrade(instr, execTime, execPrice, execVolume, tradeType, id, status);
         }
 
-
-        protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal)
-        {
-            throw new NotImplementedException();
-        }
-
         protected override void StartImpl()
         {
             OnConnected();

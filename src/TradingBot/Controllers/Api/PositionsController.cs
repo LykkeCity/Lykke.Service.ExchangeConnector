@@ -17,7 +17,7 @@ namespace TradingBot.Controllers.Api
     {
         private readonly TimeSpan _timeout;
 
-        public PositionsController(ExchangeConnectorApplication app, AppSettings appSettings)
+        public PositionsController(IApplicationFacade app, AppSettings appSettings)
             : base(app)
         {
             _timeout = appSettings.AspNet.ApiTimeout;

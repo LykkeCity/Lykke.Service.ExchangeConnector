@@ -12,7 +12,7 @@ namespace TradingBot.Controllers
 {
     public class LogsController : Controller
     {
-        private readonly ExchangeConnectorApplication _app;
+        private readonly IApplicationFacade _app;
         private readonly int entriesCount = 50;
         private readonly INoSQLTableStorage<LogEntity> _logsStorage;
         private readonly INoSQLTableStorage<JavaLogEntity> _javaLogsStorage;
@@ -20,7 +20,7 @@ namespace TradingBot.Controllers
         private readonly INoSQLTableStorage<JavaIntrinsicEventEntity> _javaEventsStorage;
 
         public LogsController(
-            ExchangeConnectorApplication app,
+            IApplicationFacade app,
             INoSQLTableStorage<LogEntity> logsStorage,
             INoSQLTableStorage<JavaLogEntity> javaLogsStorage,
             INoSQLTableStorage<FixMessageTableEntity> fixMessagesStorage,
