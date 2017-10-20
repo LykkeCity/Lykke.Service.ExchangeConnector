@@ -15,11 +15,9 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Model
         public decimal Price { get; set; }
 
         [JsonProperty("side")]
-        [JsonConverter(typeof(StringEnumConverter))]
         public GdaxOrderSide Side { get; set; }
 
         [JsonProperty("type")]
-        [JsonConverter(typeof(StringEnumConverter))]
         public GdaxOrderType Type { get; set; }
 
         public override string ToString()

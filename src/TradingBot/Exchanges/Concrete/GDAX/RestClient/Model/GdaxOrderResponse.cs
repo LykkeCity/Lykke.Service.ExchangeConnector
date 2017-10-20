@@ -25,14 +25,12 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Model
         public string ProductId { get; set; }
 
         [JsonProperty("side")]
-        [JsonConverter(typeof(StringEnumConverter))]
         public GdaxOrderSide Side { get; set; }
 
         [JsonProperty("stp")]
         public string Stp { get; set; }
 
         [JsonProperty("type")]
-        [JsonConverter(typeof(StringEnumConverter))]
         public GdaxOrderType OrderType { get; set; }
 
         [JsonProperty("time_in_force")]

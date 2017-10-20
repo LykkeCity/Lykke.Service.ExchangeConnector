@@ -22,7 +22,7 @@ namespace TradingBot.Tests.GDAX
         public GdaxApiClientTests()
         {
             var cred = new GdaxServiceClientCredentials(_apiKey, _apiSecret, _apiPassPhrase);
-            _api = new GdaxApi(cred)
+            _api = new GdaxApi(cred, null)
             {
                 BaseUri = new Uri(GdaxApi.GdaxSandboxApiUrl),
                 ConnectorUserAgent = _userAgent

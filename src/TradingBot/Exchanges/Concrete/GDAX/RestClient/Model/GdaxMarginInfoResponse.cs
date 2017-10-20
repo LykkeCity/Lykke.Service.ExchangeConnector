@@ -4,7 +4,6 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Model
 {
     internal sealed class GdaxMarginInfoResponse
     {
-
         [JsonProperty("margin_balance")]
         public decimal MarginBalance { get; set; }
 
@@ -21,7 +20,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Model
         public decimal RequiredMargin { get; set; }
 
         [JsonProperty("margin_limits")]
-        public MarginLimit[] MarginLimits { get; set; }
+        public GdaxMarginLimit[] MarginLimits { get; set; }
 
         [JsonProperty("message")]
         public string Message { get; set; }

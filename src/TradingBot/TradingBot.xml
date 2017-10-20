@@ -9795,6 +9795,21 @@
             Thrown if validation fails
             </exception>
         </member>
+        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.ApiRestClient.HttpClient">
+            <summary>
+            Gets the used HttpClient
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.ApiRestClient.SerializationSettings">
+            <summary>
+            Gets or sets json serialization settings.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.ApiRestClient.DeserializationSettings">
+            <summary>
+            Gets or sets json deserialization settings.
+            </summary>
+        </member>
         <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.GdaxApi.BaseUri">
             <summary>
             Base GDAX Uri
@@ -9803,16 +9818,6 @@
         <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.GdaxApi.ConnectorUserAgent">
             <summary>
             User agent for identification
-            </summary>
-        </member>
-        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.GdaxApi.SerializationSettings">
-            <summary>
-            Gets or sets json serialization settings.
-            </summary>
-        </member>
-        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.GdaxApi.DeserializationSettings">
-            <summary>
-            Gets or sets json deserialization settings.
             </summary>
         </member>
         <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.Model.GdaxActiveOrdersPost.OrderId">

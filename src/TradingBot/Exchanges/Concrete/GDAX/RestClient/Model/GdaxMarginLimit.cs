@@ -2,7 +2,7 @@
 
 namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Model
 {
-    internal sealed class MarginLimit
+    internal sealed class GdaxMarginLimit
     {
         [JsonProperty("on_pair")]
         public string OnPair { get; set; }
