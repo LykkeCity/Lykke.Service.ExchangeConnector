@@ -21,7 +21,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
 
         private const string _balanceRequestUrl = @"/accounts";
         private const string _newOrderRequestUrl = @"/orders";
-        private const string _orderStatusRequestUrl = @"/orders/{0}";
+        private const string _orderStatusRequestUrl = @"/orders/{0}&status=done&status=pending&status=open&status=cancelled";
         private const string _orderCancelRequestUrl = @"/orders/{0}";
         private const string _activeOrdersRequestUrl = @"/orders";
         private const string _marginInfoRequstUrl = @"/v1/margin_infos";
@@ -188,8 +188,9 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
                     return SafeJsonConvert.DeserializeObject<T>(content, DeserializationSettings);
                 case HttpStatusCode.BadRequest:
                 case HttpStatusCode.NotFound:
+                    content = await response.Content.ReadAsStringAsync();
                     throw new StatusCodeException(response.StatusCode, 
-                        JsonConvert.DeserializeObject<GdaxError>(await response.Content.ReadAsStringAsync(), DeserializationSettings).Message);
+                        JsonConvert.DeserializeObject<GdaxError>(content, DeserializationSettings).Message);
                 default:
                     throw new HttpOperationException(string.Format("Operation returned an invalid status code '{0}'", response.StatusCode));
             }

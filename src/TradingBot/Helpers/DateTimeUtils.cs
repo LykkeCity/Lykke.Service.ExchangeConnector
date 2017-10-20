@@ -23,6 +23,11 @@ namespace TradingBot.Helpers
             return new DateTime(ticks + baseTicks);
         }
 
+        public static long ToUnix(DateTime time)
+        {
+            return (time.Ticks - BaseUnixDateTime.Ticks) / 10000000L;
+        }
+
         public static DateTime TruncSeconds(this DateTime time)
         {
             return new DateTime(time.Year, time.Month, time.Day, time.Hour, time.Minute, 0);

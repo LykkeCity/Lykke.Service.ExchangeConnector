@@ -70,8 +70,10 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             try
             {
                 var response = await _exchangeApi.CancelOrder(id, cts.Token);
-                // Get the information first?
-                return null; // TODO? Should we just return true or false?
+                if (response == null || response.Count == 0)
+                    return null;
+
+                return null;  // TODO: Here we should just return the ID of the cancelled order 
             }
             catch (StatusCodeException ex)
             {
@@ -110,36 +112,6 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             {
                 throw new ApiException(ex.Message);
             }
-        }
-
-        protected override async Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, 
-            TranslatedSignalTableEntity translatedSignal)
-        {
-            try
-            {
-                // TODO: Use translatedSignal
-                await AddOrderAndWaitExecution(instrument, signal, translatedSignal, TimeSpan.Zero);
-                return true;
-            }
-            catch (StatusCodeException)
-            {
-                return false;
-            }
-        }
-
-        protected override async Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, 
-            TranslatedSignalTableEntity trasnlatedSignal)
-        {
-            try
-            {
-                // TODO: Use translatedSignal
-                await CancelOrderImpl(instrument, signal, trasnlatedSignal);
-                return true;
-            }
-            catch (StatusCodeException)
-            {
-                return false;
-            };
         }
 
         public override async Task<IEnumerable<AccountBalance>> GetAccountBalance(TimeSpan timeout)

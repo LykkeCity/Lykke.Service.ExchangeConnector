@@ -4,6 +4,7 @@ using TradingBot.Exchanges;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Bitfinex;
 using TradingBot.Exchanges.Concrete.BitMEX;
+using TradingBot.Exchanges.Concrete.GDAX;
 using TradingBot.Exchanges.Concrete.HistoricalData;
 using TradingBot.Exchanges.Concrete.Icm;
 using TradingBot.Exchanges.Concrete.Kraken;
@@ -51,6 +52,8 @@ namespace TradingBot.Modules
                 .AsSelf();
             builder.RegisterInstance(_config.Bitfinex)
                 .AsSelf();
+            builder.RegisterInstance(_config.Gdax)
+               .AsSelf();
 
             RegisterExchange<IcmExchange>(builder, _config.Icm.Enabled);
             RegisterExchange<KrakenExchange>(builder, _config.Kraken.Enabled);
@@ -59,6 +62,7 @@ namespace TradingBot.Modules
             RegisterExchange<LykkeExchange>(builder, _config.Lykke.Enabled);
             RegisterExchange<BitMexExchange>(builder, _config.BitMex.Enabled);
             RegisterExchange<BitfinexExchange>(builder, _config.Bitfinex.Enabled);
+            RegisterExchange<GdaxExchange>(builder, _config.Gdax.Enabled);
         }
 
         private static void RegisterExchange<T>(ContainerBuilder container, bool enabled)

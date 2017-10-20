@@ -82,13 +82,18 @@ namespace TradingBot.Tests.GDAX
         public async Task AddAndCancelOrder()
         {
             var newOrder = await _api.AddOrder("BTC-USD", 5, 0.01m, GdaxOrderSide.Buy, GdaxOrderType.Limit);
-            //var newOrder2 = await _api.AddOrder("BTC-USD", 10, 0.01m, GdaxOrderSide.Buy, GdaxOrderType.Limit);
-            
-            var result = await _api.CancelOrder(newOrder.Id);
 
+            var result = await _api.CancelOrder(newOrder.Id);
+            
             Assert.NotNull(result);
             Assert.Equal(1, result.Count);
-            Assert.Equal(result.First(), newOrder.Id);
+            var cancelledId = result.First();
+            Assert.Equal(cancelledId, newOrder.Id);
+
+            //var order = await _api.GetOrderStatus(newOrder.Id);
+            //Assert.NotNull(order);
+            //Assert.Equal(cancelledId, order.Id);
+            //Assert.Equal("cancelled", order.Status);
         }
 
         /// <summary>
