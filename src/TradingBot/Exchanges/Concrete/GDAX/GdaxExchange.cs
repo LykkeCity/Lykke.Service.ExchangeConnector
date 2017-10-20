@@ -18,17 +18,17 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 {
     internal sealed class GdaxExchange : Exchange
     {
-        public const string ExchangeName = "GDAX";
+        public new static readonly string Name = "GDAX";
 
         private readonly GdaxExchangeConfiguration _configuration;
         private readonly IGdaxApi _exchangeApi;
         private readonly GdaxConverters _converters;
 
         public GdaxExchange(GdaxExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository, ILog log) 
-            : base(ExchangeName, configuration, translatedSignalsRepository, log)
+            : base(Name, configuration, translatedSignalsRepository, log)
         {
             _configuration = configuration;
-            _converters = new GdaxConverters(configuration, ExchangeName);
+            _converters = new GdaxConverters(configuration, Name);
             var credenitals = new GdaxServiceClientCredentials(_configuration.ApiKey, _configuration.ApiSecret, 
                 _configuration.PassPhrase);
             _exchangeApi = new GdaxApi(credenitals)
@@ -45,7 +45,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             var orderType = _converters.OrderTypeToGdaxOrderType(signal.OrderType);
             var side = _converters.TradeTypeToGdaxOrderSide(signal.TradeType);
             var volume = signal.Volume;
-            var price = (!signal.Price.HasValue || signal.Price == 0 ) ? 1 : signal.Price.Value;  // Should we pass 1 or 0 here?
+            var price = (!signal.Price.HasValue || signal.Price == 0 ) ? 1 : signal.Price.Value;
             var cts = CreateCancellationTokenSource(timeout);
 
             try
