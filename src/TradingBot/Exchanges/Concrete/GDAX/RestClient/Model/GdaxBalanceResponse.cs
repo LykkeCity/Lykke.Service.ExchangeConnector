@@ -1,26 +1,36 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using Newtonsoft.Json;
 
 namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Model
 {
     internal sealed class GdaxBalanceResponse
     {
-        [JsonProperty("type")]
-        public string Type { get; set; }
+        [JsonProperty("id")]
+        public Guid Id { get; set; }
+
+        [JsonProperty("profile_id")]
+        public Guid ProfileId { get; set; }
 
         [JsonProperty("currency")]
         public string Currency { get; set; }
 
-        [JsonProperty("amount")]
-        public decimal Amount { get; set; }
+        [JsonProperty("balance")]
+        public decimal Balance { get; set; }
+
+        [JsonProperty("hold")]
+        public decimal Hold { get; set; }
 
         [JsonProperty("available")]
         public decimal Available { get; set; }
 
-       public override string ToString()
-       {
-          var str = string.Format("Type: {0}, Currency: {1}, Amount: {2}, Available: {3}", Type, Currency, Amount,Available);
-          return str;
-       }
+        [JsonProperty("margin_enabled")]
+        public bool MarginEnabled { get; set; }
+
+        [JsonProperty("funded_amount")]
+        public decimal FundedAmount { get; set; }
+
+        [JsonProperty("default_amount")]
+        public decimal DefaultAmount { get; set; }
     }
 
 }

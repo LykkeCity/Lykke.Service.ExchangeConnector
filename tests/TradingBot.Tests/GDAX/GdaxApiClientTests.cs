@@ -116,7 +116,9 @@ namespace TradingBot.Tests.GDAX
         public async Task GetBalances()
         {
             var result = await _api.GetBalances();
+
             Assert.NotNull(result);
+            Assert.NotEmpty(result);
         }
 
         [Fact]

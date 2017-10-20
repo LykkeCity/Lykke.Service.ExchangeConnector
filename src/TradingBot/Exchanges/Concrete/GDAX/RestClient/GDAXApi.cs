@@ -19,7 +19,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
         public const string GdaxPublicApiUrl = @"https://api.gdax.com";
         public const string GdaxSandboxApiUrl = @"https://api-public.sandbox.gdax.com";
 
-        private const string _balanceRequestUrl = @"/v1/balances";
+        private const string _balanceRequestUrl = @"/accounts";
         private const string _newOrderRequestUrl = @"/orders";
         private const string _orderStatusRequestUrl = @"/orders/{0}";
         private const string _orderCancelRequestUrl = @"/orders/{0}";
