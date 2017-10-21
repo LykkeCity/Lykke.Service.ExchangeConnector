@@ -101,6 +101,21 @@
             <response code="200">Active positions</response>
             <response code="500">Unexpected error</response>
         </member>
+        <member name="P:TradingBot.Exchanges.Abstractions.RestClient.RestApiClient.HttpClient">
+            <summary>
+            Gets the used HttpClient
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Abstractions.RestClient.RestApiClient.SerializationSettings">
+            <summary>
+            Gets or sets json serialization settings.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Abstractions.RestClient.RestApiClient.DeserializationSettings">
+            <summary>
+            Gets or sets json deserialization settings.
+            </summary>
+        </member>
         <member name="P:TradingBot.Exchanges.Concrete.Bitfinex.RestClient.BitfinexApi.SerializationSettings">
             <summary>
             Gets or sets json serialization settings.
@@ -9795,27 +9810,12 @@
             Thrown if validation fails
             </exception>
         </member>
-        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.ApiRestClient.HttpClient">
-            <summary>
-            Gets the used HttpClient
-            </summary>
-        </member>
-        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.ApiRestClient.SerializationSettings">
-            <summary>
-            Gets or sets json serialization settings.
-            </summary>
-        </member>
-        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.ApiRestClient.DeserializationSettings">
-            <summary>
-            Gets or sets json deserialization settings.
-            </summary>
-        </member>
-        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.GdaxApi.BaseUri">
+        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.GdaxRestApi.BaseUri">
             <summary>
             Base GDAX Uri
             </summary>
         </member>
-        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.GdaxApi.ConnectorUserAgent">
+        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.GdaxRestApi.ConnectorUserAgent">
             <summary>
             User agent for identification
             </summary>

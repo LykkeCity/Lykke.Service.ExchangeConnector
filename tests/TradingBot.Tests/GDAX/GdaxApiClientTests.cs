@@ -11,7 +11,7 @@ namespace TradingBot.Tests.GDAX
 {
     public class GdaxApiClientTests
     {
-        private readonly GdaxApi _api;
+        private readonly GdaxRestApi _api;
         private readonly Guid _orderId = Guid.NewGuid();
 
         private const string _userAgent = "LykkeTest";
@@ -21,10 +21,10 @@ namespace TradingBot.Tests.GDAX
 
         public GdaxApiClientTests()
         {
-            var cred = new GdaxServiceClientCredentials(_apiKey, _apiSecret, _apiPassPhrase);
-            _api = new GdaxApi(cred, null)
+            var credentials = new GdaxServiceClientCredentials(_apiKey, _apiSecret, _apiPassPhrase);
+            _api = new GdaxRestApi(credentials)
             {
-                BaseUri = new Uri(GdaxApi.GdaxSandboxApiUrl),
+                BaseUri = new Uri(GdaxRestApi.GdaxSandboxApiUrl),
                 ConnectorUserAgent = _userAgent
             };
         }

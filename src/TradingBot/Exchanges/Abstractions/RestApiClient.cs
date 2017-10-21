@@ -2,26 +2,22 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Log;
 using Microsoft.Rest;
 using Microsoft.Rest.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using TradingBot.Exchanges.Concrete.GDAX.RestClient.Model;
+using TradingBot.Exchanges.Abstractions.Models;
 using TradingBot.Helpers;
 using TradingBot.Infrastructure.Exceptions;
 
-namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
+namespace TradingBot.Exchanges.Abstractions.RestClient
 {
-    internal class ApiRestClient
+    internal class RestApiClient
     {
         private readonly ServiceClientCredentials _credentials;
-        private readonly ILog _log;
-        private static readonly string _apiRestClientName = nameof(ApiRestClient);
 
         /// <summary>
         /// Gets the used HttpClient
@@ -31,18 +27,17 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
         /// <summary>
         /// Gets or sets json serialization settings.
         /// </summary>
-        public JsonSerializerSettings SerializationSettings { get; private set; }
+        public JsonSerializerSettings SerializationSettings { get; set; }
 
         /// <summary>
         /// Gets or sets json deserialization settings.
         /// </summary>
-        public JsonSerializerSettings DeserializationSettings { get; private set; }
+        public JsonSerializerSettings DeserializationSettings { get; set; }
 
-        public ApiRestClient(HttpClient httpClient, ServiceClientCredentials credentials, ILog log)
+        public RestApiClient(HttpClient httpClient, ServiceClientCredentials credentials)
         {
             HttpClient = httpClient;
             _credentials = credentials;
-            _log = log;
 
             SerializationSettings = new JsonSerializerSettings
             {
@@ -73,22 +68,30 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
             };
         }
 
-        public async Task<T> ExecuteRestMethod<T>(HttpMethod httpMethod, string relativePath, GdaxPostBase bodyContent,
-            CancellationToken cancellationToken)
+        public async Task<T> ExecuteRestMethod<T>(HttpMethod httpMethod, string relativePath, PostContentBase bodyContent,
+            CancellationToken cancellationToken, EventHandler<SentHttpRequest> sentHttpRequestHandler, 
+            EventHandler<ReceivedHttpResponse> receivedHttpRequestHandler)
         {
             using (var request = await GetRestRequest(httpMethod, relativePath, bodyContent, cancellationToken))
             {
-                Log($"Making request to URL: {request.RequestUri}");
+                sentHttpRequestHandler?.Invoke(this, 
+                    new SentHttpRequest(HttpMethod.Post, request.RequestUri, request.Content));
+
                 using (var response = await HttpClient.SendAsync(request, cancellationToken))
                 {
-                    var responseBody = await DeserializeResponse<T>(response, cancellationToken);
+                    var content = await response.Content.ReadAsStringAsync()
+                        .WithCancellation(cancellationToken).ConfigureAwait(false);
+
+                    receivedHttpRequestHandler?.Invoke(this, new ReceivedHttpResponse(content));
+
+                    var responseBody = DeserializeResponse<T>(response.StatusCode, content);
                     return responseBody;
                 }
             }
         }
 
         private async Task<HttpRequestMessage> GetRestRequest(HttpMethod httpMethod, string relativeUrl,
-            GdaxPostBase bodyContent, CancellationToken cancellationToken)
+            PostContentBase bodyContent, CancellationToken cancellationToken)
         {
             // Create HTTP transport objects
             var httpRequest = new HttpRequestMessage
@@ -100,41 +103,23 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
             var jsonObj = SafeJsonConvert.SerializeObject(bodyContent, SerializationSettings);
             httpRequest.Content = new StringContent(jsonObj, Encoding.UTF8, "application/json");
 
-            await _credentials.ProcessHttpRequestAsync(httpRequest, cancellationToken).ConfigureAwait(false);
+            if (_credentials != null)
+                await _credentials.ProcessHttpRequestAsync(httpRequest, cancellationToken).ConfigureAwait(false);
 
             return httpRequest;
         }
 
-        private async Task<T> DeserializeResponse<T>(HttpResponseMessage response, CancellationToken cancellationToken)
+        private T DeserializeResponse<T>(HttpStatusCode statusCode, string content)
         {
-            var content = await response.Content.ReadAsStringAsync()
-                .WithCancellation(cancellationToken).ConfigureAwait(false);
-            Log($"Received content: {content}");
+            if (!IsSuccessHttpStatusCode(statusCode))
+                throw new StatusCodeException(statusCode, content);
 
-            switch (response.StatusCode)
-            {
-                case HttpStatusCode.OK:
-                    return SafeJsonConvert.DeserializeObject<T>(content, DeserializationSettings);
-                case HttpStatusCode.BadRequest:
-                case HttpStatusCode.NotFound:
-                    throw new StatusCodeException(response.StatusCode,
-                        JsonConvert.DeserializeObject<GdaxError>(content, DeserializationSettings).Message);
-                default:
-                    throw new HttpOperationException(string.Format("Operation returned an invalid status code '{0}'", response.StatusCode));
-            }
+            return SafeJsonConvert.DeserializeObject<T>(content, DeserializationSettings);
         }
 
-        private void Log(string message, [CallerMemberName]string context = null)
+        private bool IsSuccessHttpStatusCode(HttpStatusCode statusCode)
         {
-            const int maxMessageLength = 32000;
-
-            if (_log == null)
-                return;
- 
-            if (message.Length >= maxMessageLength)
-                message = message.Substring(0, maxMessageLength);
-
-            _log.WriteInfoAsync(_apiRestClientName, _apiRestClientName, context, message);
+            return ((int)statusCode >= 200) && ((int)statusCode <= 299); 
         }
     }
 }

@@ -1,27 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
+using TradingBot.Exchanges.Abstractions.Models;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Models.Api;
 using TradingBot.Repositories;
 using TradingBot.Trading;
-using Instrument = TradingBot.Trading.Instrument;
 
 namespace TradingBot.Exchanges.Concrete.GDAX
 {
     internal sealed class GdaxExchange : Exchange
     {
         public new static readonly string Name = "GDAX";
+        private static readonly string _gdaxExchangeTypeName = nameof(GdaxExchange);
 
         private readonly GdaxExchangeConfiguration _configuration;
-        private readonly IGdaxApi _exchangeApi;
+        private readonly IGdaxRestApi _exchangeApi;
         private readonly GdaxConverters _converters;
 
         public GdaxExchange(GdaxExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository, ILog log) 
@@ -32,7 +34,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 
             var credenitals = new GdaxServiceClientCredentials(_configuration.ApiKey, _configuration.ApiSecret, 
                 _configuration.PassPhrase);
-            _exchangeApi = new GdaxApi(credenitals, log)
+            _exchangeApi = new GdaxRestApi(credenitals)
             {
                 BaseUri = new Uri(configuration.EndpointUrl),
                 ConnectorUserAgent = configuration.UserAgent
@@ -51,7 +53,9 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 
             try
             {
-                var response = await _exchangeApi.AddOrder(symbol, volume, price, side, orderType, cts.Token);
+                var response = await _exchangeApi.AddOrder(symbol, volume, price, side, orderType, cts.Token, 
+                    (sender, httpRequest) => OnSentHttpRequest(sender, httpRequest, translatedSignal), 
+                    (sender, httpResponse) => OnReceivedHttpRequest(sender, httpResponse, translatedSignal));
                 var trade = _converters.OrderToTrade(response);
                 return trade;
             }
@@ -70,7 +74,9 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             var cts = CreateCancellationTokenSource(timeout);
             try
             {
-                var response = await _exchangeApi.CancelOrder(id, cts.Token);
+                var response = await _exchangeApi.CancelOrder(id, cts.Token,
+                    (sender, httpRequest) => OnSentHttpRequest(sender, httpRequest, translatedSignal),
+                    (sender, httpResponse) => OnReceivedHttpRequest(sender, httpResponse, translatedSignal));
                 if (response == null || response.Count == 0)
                     return null;
 
@@ -156,6 +162,33 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             return timeout == TimeSpan.Zero
                 ? new CancellationTokenSource()
                 : new CancellationTokenSource(timeout);
+        }
+
+        private void OnSentHttpRequest(object sender, SentHttpRequest request, 
+            TranslatedSignalTableEntity translatedSignal)
+        {
+            var url = request.Uri.ToString();
+            translatedSignal?.RequestSent(request.HttpMethod, url, request.Content);
+            Log($"Making request to url: {url}. {translatedSignal?.RequestSentToExchange}");
+        }
+
+        private void OnReceivedHttpRequest(object sender, ReceivedHttpResponse response, 
+            TranslatedSignalTableEntity translatedSignal)
+        {
+            translatedSignal?.ResponseReceived(response.Content);
+        }
+
+        private void Log(string message, [CallerMemberName]string context = null)
+        {
+            const int maxMessageLength = 32000;
+
+            if (LykkeLog == null)
+                return;
+
+            if (message.Length >= maxMessageLength)
+                message = message.Substring(0, maxMessageLength);
+
+            LykkeLog.WriteInfoAsync(_gdaxExchangeTypeName, _gdaxExchangeTypeName, context, message);
         }
     }
 }

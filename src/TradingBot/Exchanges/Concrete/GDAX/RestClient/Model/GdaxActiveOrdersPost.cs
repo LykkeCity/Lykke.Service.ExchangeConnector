@@ -2,7 +2,7 @@
 
 namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Model
 {
-    internal sealed class GdaxActiveOrdersPost : GdaxPostBase
+    internal sealed class GdaxActiveOrdersPost : GdaxPostContentBase
    {
       /// <summary>
       /// This class can be used to send a cancel message in addition to 

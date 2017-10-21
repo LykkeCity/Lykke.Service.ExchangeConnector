@@ -3,7 +3,7 @@ using Newtonsoft.Json.Converters;
 
 namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Model
 {
-    internal sealed class GdaxNewOrderPost : GdaxPostBase
+    internal sealed class GdaxNewOrderPost : GdaxPostContentBase
     {
         [JsonProperty("product_id")]
         public string ProductId { get; set; }
