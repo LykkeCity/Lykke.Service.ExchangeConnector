@@ -47,6 +47,9 @@ namespace TradingBot.Modules
                 .As<IApplicationFacade>()
                 .SingleInstance();
 
+            builder.RegisterType<OrderBooksHarvester>()
+                .SingleInstance();
+
             builder.RegisterInstance(_config.Icm)
                 .AsSelf();
             builder.RegisterInstance(_config.Kraken)

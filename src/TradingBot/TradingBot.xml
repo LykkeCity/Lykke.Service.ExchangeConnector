@@ -10144,7 +10144,7 @@
             <param name="mu">yearly trend</param>
             <param name="random">the source of randomness</param>
         </member>
-        <member name="M:TradingBot.Infrastructure.Configuration.RabbitMqConfiguration.GetConnectionString">
+        <member name="M:TradingBot.Infrastructure.Configuration.RabbitMqConfigurationBase.GetConnectionString">
             <summary>
             see https://www.rabbitmq.com/uri-spec.html
             </summary>

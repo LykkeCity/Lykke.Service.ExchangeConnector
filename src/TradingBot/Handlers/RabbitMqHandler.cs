@@ -8,7 +8,7 @@ namespace TradingBot.Handlers
 {
     public class RabbitMqHandler<T> : Handler<T>
     {
-        private readonly RabbitMqPublisher<T> rabbitPublisher;
+        private readonly RabbitMqPublisher<T> _rabbitPublisher;
         
         public RabbitMqHandler(string connectionString, string exchangeName)
         {
@@ -18,18 +18,19 @@ namespace TradingBot.Handlers
                 ExchangeName = exchangeName
             };
             
-            rabbitPublisher = new RabbitMqPublisher<T>(publisherSettings)
+            _rabbitPublisher = new RabbitMqPublisher<T>(publisherSettings)
                 .DisableInMemoryQueuePersistence()
                 .SetSerializer(new GenericRabbitModelConverter<T>())
                 .SetLogger(new LogToConsole())
                 .SetPublishStrategy(new DefaultFanoutPublishStrategy(publisherSettings))
                 .SetConsole(new LogToConsole())
+                .PublishSynchronously()
                 .Start();
         }
         
         public override Task Handle(T message)
         {
-            return rabbitPublisher.ProduceAsync(message);
+            return _rabbitPublisher.ProduceAsync(message);
         }
     }
 }

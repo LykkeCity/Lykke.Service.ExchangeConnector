@@ -1,36 +1,50 @@
 ﻿using System;
+using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace TradingBot.Trading
 {
-    public class OrderBook
+    public sealed class OrderBook
     {
-        public OrderBook(Instrument instrument, PriceVolume[] asks, PriceVolume[] bids)
+        public OrderBook(string source, string assetPairId, IReadOnlyCollection<VolumePrice> asks, IReadOnlyCollection<VolumePrice> bids, DateTime timestamp)
         {
-            Instrument = instrument;
+            Source = source;
+            AssetPairId = assetPairId;
             Asks = asks;
             Bids = bids;
+            Timestamp = timestamp;
         }
 
-        public Instrument Instrument { get; }
-        
-        public PriceVolume[] Asks { get; }
-        
-        public PriceVolume[] Bids { get; }
+        [JsonProperty("source")]
+        public string Source { get; }
+
+        [JsonProperty("asset")]
+        public string AssetPairId { get; }
+
+        [JsonProperty("timestamp")]
+        public DateTime Timestamp { get; }
+
+        [JsonProperty("asks")]
+        public IReadOnlyCollection<VolumePrice> Asks { get; }
+
+        [JsonProperty("bids")]
+        public IReadOnlyCollection<VolumePrice> Bids { get; }
+
     }
 
-    public class PriceVolume
+    public sealed class VolumePrice
     {
-        public PriceVolume(DateTime time, decimal price, decimal volume)
+        public VolumePrice(decimal price, decimal volume)
         {
-            Time = time;
             Price = price;
             Volume = volume;
         }
-        
+
+        [JsonProperty("price")]
         public decimal Price { get; }
-        
+
+        [JsonProperty("volume")]
         public decimal Volume { get; }
-        
-        public DateTime Time { get; }
+
     }
 }
