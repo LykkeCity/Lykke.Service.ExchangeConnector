@@ -10,13 +10,13 @@ using Polly;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
-    public class WebSocketTextMessenger : IDisposable
+    public sealed class WebSocketTextMessenger : IDisposable
     {
         private readonly string _endpointUrl;
         private readonly ILog _log;
         private readonly ClientWebSocket _clientWebSocket;
         private readonly TimeSpan _responseTimeout = TimeSpan.FromMinutes(1);
-        private readonly CancellationTokenSource _globalCancellationTokenSource;
+        private CancellationTokenSource _globalCancellationTokenSource;
 
         public WebSocketTextMessenger(string endpointUrl, ILog log)
         {
@@ -24,17 +24,19 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
             _endpointUrl = endpointUrl;
             _log = log;
-            _globalCancellationTokenSource = new CancellationTokenSource();
+
         }
 
         public void Dispose()
         {
             _clientWebSocket?.Dispose();
+            _globalCancellationTokenSource?.Dispose();
         }
 
 
         public async Task Connect()
         {
+            _globalCancellationTokenSource = new CancellationTokenSource();
             await _log.WriteInfoAsync(nameof(Connect), "Connecting to WebSocket", $"Bitmex API {_endpointUrl}");
             var uri = new Uri(_endpointUrl);
 
