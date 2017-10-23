@@ -20,6 +20,8 @@ namespace TradingBot.Infrastructure.Configuration
 
         public string EndpointUrl { get; set; }
 
+        public string WebSocketEndpointUrl { get; set; }
+
         public Dictionary<string, string> CurrencyMapping { get; set; }
     }
 }

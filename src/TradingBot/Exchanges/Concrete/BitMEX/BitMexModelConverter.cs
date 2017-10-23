@@ -18,7 +18,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         {
             return new PositionModel
             {
-                Symbol = ConvertSymbolFromBiMexToLykke(position.Symbol, configuration).Name,
+                Symbol = ConvertSymbolFromBitMexToLykke(position.Symbol, configuration).Name,
                 PositionVolume = Convert.ToDecimal(position.CurrentQty),
                 MaintMarginUsed = Convert.ToDecimal(position.MaintMargin) / SatoshiRate,
                 RealisedPnL = Convert.ToDecimal(position.RealisedPnl) / SatoshiRate,
@@ -38,7 +38,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             var execVolume = (decimal)(order.OrderQty ?? 0);
             var tradeType = ConvertTradeType(order.Side);
             var status = ConvertExecutionStatus(order.OrdStatus);
-            var instr = ConvertSymbolFromBiMexToLykke(order.Symbol, configuration);
+            var instr = ConvertSymbolFromBitMexToLykke(order.Symbol, configuration);
 
             return new ExecutedTrade(instr, execTime, execPrice, execVolume, tradeType, order.OrderID, status) { Message = order.Text };
         }
@@ -52,14 +52,14 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return result;
         }
 
-        private static Instrument ConvertSymbolFromBiMexToLykke(string symbol, BitMexExchangeConfiguration configuration)
+        public static Instrument ConvertSymbolFromBitMexToLykke(string symbol, BitMexExchangeConfiguration configuration)
         {
             var result = configuration.CurrencyMapping.FirstOrDefault(kv => kv.Value == symbol).Key;
             if (result == null)
             {
                 throw new ArgumentException($"Symbol {symbol} is not mapped to lykke value");
             }
-            return new Instrument(BitMexExchange.BitMex, result);
+            return new Instrument(BitMexExchange.Name, result);
         }
 
         public static string ConvertOrderType(OrderType type)

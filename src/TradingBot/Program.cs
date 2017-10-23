@@ -1,12 +1,13 @@
 ﻿using System;
 using System.IO;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 
 namespace TradingBot
 {
     internal sealed class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             try
             {
@@ -18,7 +19,7 @@ namespace TradingBot
                     .UseApplicationInsights()
                     .Build();
 
-                host.Run(); // returns on Ctrl+C
+                await host.RunAsync(); // returns on Ctrl+C
 
                 Console.WriteLine("The service is stopped.");
             }
