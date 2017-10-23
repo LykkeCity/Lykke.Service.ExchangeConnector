@@ -1,6 +1,6 @@
 ﻿using System.Runtime.Serialization;
 
-namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Model
+namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities
 {
     internal enum GdaxOrderSide
     {

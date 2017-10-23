@@ -32,9 +32,8 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             _configuration = configuration;
             _converters = new GdaxConverters(configuration, Name);
 
-            var credenitals = new GdaxServiceClientCredentials(_configuration.ApiKey, _configuration.ApiSecret, 
-                _configuration.PassPhrase);
-            _exchangeApi = new GdaxRestApi(credenitals)
+            _exchangeApi = new GdaxRestApi(_configuration.ApiKey, _configuration.ApiSecret,
+                _configuration.PassPhrase)
             {
                 BaseUri = new Uri(configuration.EndpointUrl),
                 ConnectorUserAgent = configuration.UserAgent

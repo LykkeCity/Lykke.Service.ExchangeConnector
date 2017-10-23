@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Linq;
-using TradingBot.Exchanges.Concrete.GDAX.RestClient.Model;
+using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 

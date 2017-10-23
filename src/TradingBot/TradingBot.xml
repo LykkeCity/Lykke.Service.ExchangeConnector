@@ -9810,6 +9810,12 @@
             Thrown if validation fails
             </exception>
         </member>
+        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities.GdaxActiveOrdersPost.OrderId">
+            <summary>
+            This class can be used to send a cancel message in addition to 
+            retrieving the current status of an order.
+            </summary>
+        </member>
         <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.GdaxRestApi.BaseUri">
             <summary>
             Base GDAX Uri
@@ -9820,10 +9826,9 @@
             User agent for identification
             </summary>
         </member>
-        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.Model.GdaxActiveOrdersPost.OrderId">
+        <member name="P:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketsApi.BaseUri">
             <summary>
-            This class can be used to send a cancel message in addition to 
-            retrieving the current status of an order.
+            Base GDAX WebSockets Uri
             </summary>
         </member>
         <member name="M:TradingBot.Exchanges.Concrete.HistoricalData.LineParsers.ParseMTLine(System.String)">

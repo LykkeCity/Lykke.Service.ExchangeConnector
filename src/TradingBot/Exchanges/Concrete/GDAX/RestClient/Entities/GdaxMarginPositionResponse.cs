@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Model
+namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities
 {
     internal sealed class GdaxMarginPositionResponse
    {

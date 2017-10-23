@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using TradingBot.Exchanges.Concrete.GDAX;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient;
-using TradingBot.Exchanges.Concrete.GDAX.RestClient.Model;
+using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
 using Xunit;
 
 namespace TradingBot.Tests.GDAX
@@ -21,8 +20,7 @@ namespace TradingBot.Tests.GDAX
 
         public GdaxApiClientTests()
         {
-            var credentials = new GdaxServiceClientCredentials(_apiKey, _apiSecret, _apiPassPhrase);
-            _api = new GdaxRestApi(credentials)
+            _api = new GdaxRestApi(_apiKey, _apiSecret, _apiPassPhrase)
             {
                 BaseUri = new Uri(GdaxRestApi.GdaxSandboxApiUrl),
                 ConnectorUserAgent = _userAgent

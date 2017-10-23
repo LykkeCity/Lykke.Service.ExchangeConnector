@@ -1,7 +1,6 @@
 ﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 
-namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Model
+namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities
 {
     internal sealed class GdaxNewOrderPost : GdaxPostContentBase
     {

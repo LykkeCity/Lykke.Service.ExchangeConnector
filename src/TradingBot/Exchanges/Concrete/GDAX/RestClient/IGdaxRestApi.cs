@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.Exchanges.Abstractions.Models;
-using TradingBot.Exchanges.Concrete.GDAX.RestClient.Model;
+using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
 
 namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
 {

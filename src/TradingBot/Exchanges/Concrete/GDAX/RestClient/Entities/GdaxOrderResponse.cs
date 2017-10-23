@@ -1,17 +1,10 @@
 ﻿using System;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 
-namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Model
+namespace TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities
 {
     internal sealed class GdaxOrderResponse
     {
-        //public override string ToString()
-        //{
-        //    var str = $"New Order (Id: {Id}) Symb:{Symbol} {Side} Sz:{OriginalAmount} - Px:{Price}. (Type:{Type}, IsLive:{IsLive}, Executed Amt:{ExecutedAmount} - OrderId: {Id})" + $"(IsCancelled: {IsCancelled}, WasForced: {WasForced}, RemainingAmount: {RemainingAmount}, ExecutedAmount: {ExecutedAmount})";
-        //    return str;
-        //}
-
         [JsonProperty("id")]
         public Guid Id { get; set; }
 

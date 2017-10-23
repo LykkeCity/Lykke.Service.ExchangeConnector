@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Rest;
 using TradingBot.Exchanges.Abstractions.Models;
 using TradingBot.Exchanges.Abstractions.RestClient;
-using TradingBot.Exchanges.Concrete.GDAX.RestClient.Model;
+using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
 
 namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
 {
@@ -50,9 +50,9 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
             }
         }
 
-        public GdaxRestApi(ServiceClientCredentials credentials)
+        public GdaxRestApi(string apiKey, string apiSecret, string passPhrase)
         {
-            _credentials = credentials;
+            _credentials = new GdaxRestClientCredentials(apiKey, apiSecret, passPhrase);
 
             BaseUri = new Uri(GdaxPublicApiUrl);
             ConnectorUserAgent = _defaultConnectorUserAgent;
