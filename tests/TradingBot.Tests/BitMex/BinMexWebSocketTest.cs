@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Dynamic;
-using System.IO;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
 using Xunit;
 using Xunit.Abstractions;
@@ -16,8 +13,8 @@ namespace TradingBot.Tests.BitMex
 {
     public class BinMexWebSocketTest : IDisposable
     {
-        private ClientWebSocket _clientWebSocket;
-        private const string ApiUrl = "wss://testnet.bitmex.com/realtime";
+        private readonly ClientWebSocket _clientWebSocket;
+        private const string ApiUrl = @"wss://testnet.bitmex.com/realtime";
         private readonly ITestOutputHelper _output;
 
         public BinMexWebSocketTest(ITestOutputHelper output)
@@ -59,9 +56,6 @@ namespace TradingBot.Tests.BitMex
             var buffer = new byte[10000];
             var segment = new ArraySegment<byte>(buffer);
 
-            var fs = File.Open(@"D:\Dev\Socket.txt", FileMode.Truncate, FileAccess.ReadWrite, FileShare.ReadWrite);
-
-
             var sb = new StringBuilder();
             int counter = 0;
             while (true)
@@ -82,14 +76,13 @@ namespace TradingBot.Tests.BitMex
                 }
                 counter++;
                 sb.Length = 0;
+
+                if (counter == 100)
+                {
+                    break;
+                }
             }
         }
-
-        private void HandleResponse(Response response)
-        {
-
-        }
-
 
 
         private byte[] EncodeText(string text)
