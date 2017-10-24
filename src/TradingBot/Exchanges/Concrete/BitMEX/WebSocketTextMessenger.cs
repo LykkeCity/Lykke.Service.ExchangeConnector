@@ -46,12 +46,24 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 .WaitAndRetryAsync(attempts, attempt => TimeSpan.FromSeconds(3));
             try
             {
-                _clientWebSocket = new ClientWebSocket();
-                await retryPolicy.ExecuteAsync(async () => await _clientWebSocket.ConnectAsync(uri, _globalCancellationTokenSource.Token));
+                await retryPolicy.ExecuteAsync(async () =>
+                {
+                    _clientWebSocket = new ClientWebSocket();
+                    try
+                    {
+                        await _clientWebSocket.ConnectAsync(uri, _globalCancellationTokenSource.Token);
+                    }
+                    catch (Exception ex)
+                    {
+                        await _log.WriteErrorAsync(nameof(Connect), $"Unable to connect to {_endpointUrl}", ex);
+                        throw;
+                    }
+                });
             }
             catch (Exception ex)
             {
                 await _log.WriteErrorAsync(nameof(Connect), $"Unable to connect to BitMex after {attempts} attempts", ex);
+                throw;
             }
         }
 
