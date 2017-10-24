@@ -14,13 +14,12 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
     {
         private readonly string _endpointUrl;
         private readonly ILog _log;
-        private readonly ClientWebSocket _clientWebSocket;
+        private ClientWebSocket _clientWebSocket;
         private readonly TimeSpan _responseTimeout = TimeSpan.FromMinutes(1);
         private CancellationTokenSource _globalCancellationTokenSource;
 
         public WebSocketTextMessenger(string endpointUrl, ILog log)
         {
-            _clientWebSocket = new ClientWebSocket();
 
             _endpointUrl = endpointUrl;
             _log = log;
@@ -37,6 +36,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         public async Task Connect()
         {
             _globalCancellationTokenSource = new CancellationTokenSource();
+
             await _log.WriteInfoAsync(nameof(Connect), "Connecting to WebSocket", $"Bitmex API {_endpointUrl}");
             var uri = new Uri(_endpointUrl);
 
@@ -46,6 +46,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 .WaitAndRetryAsync(attempts, attempt => TimeSpan.FromSeconds(3));
             try
             {
+                _clientWebSocket = new ClientWebSocket();
                 await retryPolicy.ExecuteAsync(async () => await _clientWebSocket.ConnectAsync(uri, _globalCancellationTokenSource.Token));
             }
             catch (Exception ex)
