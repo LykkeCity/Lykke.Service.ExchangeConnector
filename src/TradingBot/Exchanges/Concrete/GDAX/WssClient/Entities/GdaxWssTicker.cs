@@ -8,9 +8,6 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient.Entities
         [JsonProperty("trade_id")]
         public long TradeId { get; set; }
 
-        [JsonProperty("product_id")]
-        public string ProductId { get; set; }
-
         [JsonProperty("last_size")]
         public decimal LastSize { get; set; }
 
@@ -19,9 +16,6 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient.Entities
 
         [JsonProperty("best_ask")]
         public decimal BestAsk { get; set; }
-
-        [JsonProperty("time")]
-        public DateTime Time { get; set; }
 
         public override string ToString()
         {

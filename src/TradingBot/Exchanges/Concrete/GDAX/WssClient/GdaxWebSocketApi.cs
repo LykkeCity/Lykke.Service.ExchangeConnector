@@ -114,13 +114,13 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
             Connected?.Invoke(this, BaseUri);
         }
 
-        public async Task SubscribeAsync(ICollection<string> productIds, CancellationToken cancellationToken)
+        public async Task SubscribeToPrivateUpdatesAsync(ICollection<string> productIds, CancellationToken cancellationToken)
         {
             if (_clientWebSocket == null || _clientWebSocket.State != WebSocketState.Open)
                 throw new ApiException($"Could not subscribe to {BaseUri} because no connection is established.");
 
             var credentials = _credentialsFactory.GenerateCredentials(HttpMethod.Get, 
-                new Uri(_selfVerifyUrl), string.Empty);
+                new Uri(BaseUri, _selfVerifyUrl), string.Empty);
             var requestString = JsonConvert.SerializeObject(new
             {
                 type = "subscribe",

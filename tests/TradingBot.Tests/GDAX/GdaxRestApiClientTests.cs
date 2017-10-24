@@ -8,7 +8,7 @@ using Xunit;
 
 namespace TradingBot.Tests.GDAX
 {
-    public class GdaxApiClientTests
+    public class GdaxRestApiClientTests
     {
         private readonly GdaxRestApi _api;
         private readonly Guid _orderId = Guid.NewGuid();
@@ -18,7 +18,7 @@ namespace TradingBot.Tests.GDAX
         private const string _apiSecret = "H/bVM/bBNcLDAToPmloL1IJe0KKW0XjLk4HA/UUrO/e/91tsx5Y56BsG6hgGaReV1MIShv1LDUNLCJ99wgDk0Q==";
         private const string _apiPassPhrase = "prulog9byo9";
 
-        public GdaxApiClientTests()
+        public GdaxRestApiClientTests()
         {
             _api = new GdaxRestApi(_apiKey, _apiSecret, _apiPassPhrase)
             {

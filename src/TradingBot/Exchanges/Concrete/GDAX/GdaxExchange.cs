@@ -60,7 +60,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             };
             websocketApi.Ticker += OnWebSocketTicker;
             websocketApi.OrderReceived += OnWebSocketOrderReceived;
-            websocketApi.OrderMatched += OnWebSocketOrderMatched;
+            websocketApi.OrderChanged += OnOrderChanged;
             websocketApi.OrderDone += OnWebSocketOrderDone;
 
             return websocketApi;
@@ -181,7 +181,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
                 await _websocketApi.ConnectAsync(_webSocketCtSource.Token);
                 OnConnected();
 
-                await _websocketApi.SubscribeAsync(Instruments.Select(i => i.Name).ToList(), 
+                await _websocketApi.SubscribeToPrivateUpdatesAsync(Instruments.Select(i => i.Name).ToList(), 
                     _webSocketCtSource.Token);
             }
             catch (Exception ex)
@@ -242,13 +242,13 @@ namespace TradingBot.Exchanges.Concrete.GDAX
                 order.OrderId.ToString(), ExecutionStatus.New);
         }
 
-        private void OnWebSocketOrderMatched(object sender, GdaxWssOrderMatch order)
+        private void OnOrderChanged(object sender, GdaxWssOrderChange order)
         {
             new ExecutedTrade(new Instrument(Name, order.ProductId),
-                        order.Time, order.Price ?? 0, order.Size,
-                        order.Side == GdaxOrderSide.Buy ? TradeType.Buy : TradeType.Sell,
-                        order.MakerOrderId.ToString(), // TODO! Which order is that?
-                        ExecutionStatus.PartialFill);
+                order.Time, order.Price ?? 0, order.NewSize,
+                order.Side == GdaxOrderSide.Buy ? TradeType.Buy : TradeType.Sell,
+                order.OrderId.ToString(),
+                ExecutionStatus.PartialFill);
         }
 
         private void OnWebSocketOrderDone(object sender, GdaxWssOrderDone order)
@@ -256,7 +256,8 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             new ExecutedTrade(new Instrument(Name, order.ProductId),
                 order.Time, order.Price ?? 0, order.RemainingSize,
                 order.Side == GdaxOrderSide.Buy ? TradeType.Buy : TradeType.Sell,
-                order.OrderId.ToString(), ExecutionStatus.New);
+                order.OrderId.ToString(), 
+                order.Reason == "cancelled" ? ExecutionStatus.Cancelled : ExecutionStatus.Fill);
         }
 
         private async Task LogAsync(string message, [CallerMemberName]string context = null)

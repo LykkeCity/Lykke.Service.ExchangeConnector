@@ -8,9 +8,6 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient.Entities
         [JsonProperty("order_id")]
         public string OrderId { get; set; }
 
-        [JsonProperty("time")]
-        public DateTime Time { get; set; }
-
         [JsonProperty("new_size")]
         public decimal NewSize { get; set; }
 
