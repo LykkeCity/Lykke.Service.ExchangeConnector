@@ -21,6 +21,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         private readonly WebSocketTextMessenger _messenger;
         private bool _stopRequested;
         private readonly HashSet<RowItem> _orderBookSnapshot;
+        private Task _messageLoopTaks;
 
         public OrderBooksHarvester(BitMexExchangeConfiguration configuration, ILog log)
         {
@@ -53,7 +54,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
         public void Start()
         {
-            ThreadPool.QueueUserWorkItem(MessageLoop);
+            _messageLoopTaks = new Task(MessageLoop);
+            _messageLoopTaks.Start();
         }
 
         public void Stop()
@@ -61,7 +63,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             _stopRequested = true;
         }
 
-        private async void MessageLoop(object state)
+        private async void MessageLoop()
         {
             const int attempts = int.MaxValue;
             var retryPolicy = Policy
@@ -70,17 +72,17 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
             try
             {
-                await retryPolicy.ExecuteAsync(async () => await MessageLoop());
+                await retryPolicy.ExecuteAsync(async () => await MessageLoopImpl());
             }
             catch (Exception ex)
             {
-                await _log.WriteErrorAsync(nameof(MessageLoop), "Unable to connect to BitMex. Silence for ever...", ex);
+                await _log.WriteErrorAsync(nameof(MessageLoopImpl), "Unable to connect to BitMex. Silence for ever...", ex);
             }
         }
 
-        private async Task MessageLoop()
+        private async Task MessageLoopImpl()
         {
-            await _log.WriteInfoAsync(nameof(MessageLoop), "Starting message loop", "");
+            await _log.WriteInfoAsync(nameof(MessageLoopImpl), "Starting message loop", "");
 
             try
             {
@@ -110,7 +112,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                     }
                     catch (Exception ex)
                     {
-                        await _log.WriteErrorAsync(nameof(MessageLoop), "An exception occurred while receiving order books. Try to recover", ex);
+                        await _log.WriteErrorAsync(nameof(MessageLoopImpl), "An exception occurred while receiving order books. Try to recover", ex);
                     }
                     try
                     {
@@ -128,10 +130,10 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             }
             catch (Exception ex)
             {
-                await _log.WriteErrorAsync(nameof(MessageLoop), "An exception occurred while working with WebSocket. Unable to recover", ex);
+                await _log.WriteErrorAsync(nameof(MessageLoopImpl), "An exception occurred while working with WebSocket. Unable to recover", ex);
             }
 
-            await _log.WriteInfoAsync(nameof(MessageLoop), "Exiting message loop", "");
+            await _log.WriteInfoAsync(nameof(MessageLoopImpl), "Exiting message loop", "");
         }
 
         private async Task<object> ReadResponse()
