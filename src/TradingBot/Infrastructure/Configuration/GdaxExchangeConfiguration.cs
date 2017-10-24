@@ -18,7 +18,9 @@ namespace TradingBot.Infrastructure.Configuration
 
         public string ApiSecret { get; set; }
 
-        public string EndpointUrl { get; set; }
+        public string RestEndpointUrl { get; set; }
+
+        public string WssEndpointUrl { get; set; }
 
         public string UserAgent { get; set; }
 
