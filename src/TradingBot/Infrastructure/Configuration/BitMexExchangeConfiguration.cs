@@ -12,11 +12,15 @@ namespace TradingBot.Infrastructure.Configuration
 
         public bool PubQuotesToRabbit { get; set; }
 
+        public double InitialRating { get; set; }
+
         public string ApiKey { get; set; }
 
         public string ApiSecret { get; set; }
 
         public string EndpointUrl { get; set; }
+
+        public string WebSocketEndpointUrl { get; set; }
 
         public Dictionary<string, string> CurrencyMapping { get; set; }
     }

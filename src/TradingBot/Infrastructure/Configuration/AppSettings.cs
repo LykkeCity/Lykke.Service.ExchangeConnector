@@ -5,10 +5,12 @@ namespace TradingBot.Infrastructure.Configuration
     public class AppSettings
     {
         public AspNetConfiguration AspNet { get; set; }
-        
+
         public ExchangesConfiguration Exchanges { get; set; }
 
-        public RabbitMqConfiguration RabbitMq { get; set; }
+        public RabbitMqMultyExchangeConfiguration RabbitMq { get; set; }
+
+        public RabbitMqSingleExchangeConfiguration OrderBooksRabbitMq { get; set; }
 
         public AzureTableConfiguration AzureStorage { get; set; }
     }

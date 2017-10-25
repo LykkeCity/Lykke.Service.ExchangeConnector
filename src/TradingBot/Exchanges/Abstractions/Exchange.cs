@@ -18,6 +18,8 @@ namespace TradingBot.Exchanges.Abstractions
 
         private readonly List<Handler<InstrumentTickPrices>> tickPriceHandlers = new List<Handler<InstrumentTickPrices>>();
 
+        private readonly List<Handler<OrderBook>> _orderBookHandlers = new List<Handler<OrderBook>>();
+
         private readonly List<Handler<ExecutedTrade>> executedTradeHandlers = new List<Handler<ExecutedTrade>>();
 
         private readonly List<Handler<Acknowledgement>> acknowledgementsHandlers = new List<Handler<Acknowledgement>>();
@@ -50,6 +52,11 @@ namespace TradingBot.Exchanges.Abstractions
         public void AddTickPriceHandler(Handler<InstrumentTickPrices> handler)
         {
             tickPriceHandlers.Add(handler);
+        }
+
+        public void AddOrderBookHandler(Handler<OrderBook> handler)
+        {
+            _orderBookHandlers.Add(handler);
         }
 
         public void AddExecutedTradeHandler(Handler<ExecutedTrade> handler)
@@ -101,6 +108,11 @@ namespace TradingBot.Exchanges.Abstractions
         protected Task CallTickPricesHandlers(InstrumentTickPrices tickPrices)
         {
             return Task.WhenAll(tickPriceHandlers.Select(x => x.Handle(tickPrices)));
+        }
+
+        protected Task CallOrderBookHandlers(OrderBook orderBook)
+        {
+            return Task.WhenAll(_orderBookHandlers.Select(x => x.Handle(orderBook)));
         }
 
         public Task CallExecutedTradeHandlers(ExecutedTrade trade)

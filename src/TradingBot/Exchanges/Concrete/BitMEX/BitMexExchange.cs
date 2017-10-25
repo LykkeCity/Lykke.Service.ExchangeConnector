@@ -20,20 +20,23 @@ using Position = TradingBot.Exchanges.Concrete.AutorestClient.Models.Position;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
-    internal sealed class BitMexExchange : Exchange
+    internal class BitMexExchange : Exchange
     {
         private readonly BitMexExchangeConfiguration _configuration;
+        private readonly OrderBooksHarvester _orderBooksHarvester;
         private readonly IBitMEXAPI _exchangeApi;
-        public const string BitMex = "bitmex";
+        public new const string Name = "bitmex";
 
-        public BitMexExchange(BitMexExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository, ILog log) : base(BitMex, configuration, translatedSignalsRepository, log)
+        public BitMexExchange(BitMexExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository, OrderBooksHarvester orderBooksHarvester, ILog log) : base(Name, configuration, translatedSignalsRepository, log)
         {
             _configuration = configuration;
+            _orderBooksHarvester = orderBooksHarvester;
             var credenitals = new BitMexServiceClientCredentials(_configuration.ApiKey, _configuration.ApiSecret);
             _exchangeApi = new BitMEXAPI(credenitals)
             {
                 BaseUri = new Uri(configuration.EndpointUrl)
             };
+            orderBooksHarvester.AddHandler(CallOrderBookHandlers);
         }
 
         public override async Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
@@ -63,7 +66,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
             return new ExecutedTrade(instrument, exceTime, execPrice, execVolume, execType, order.OrderID, execStatus) { Message = order.Text };
         }
-
 
 
         public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
@@ -150,11 +152,12 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         protected override void StartImpl()
         {
             OnConnected();
+            _orderBooksHarvester.Start();
         }
 
         protected override void StopImpl()
         {
-
+            _orderBooksHarvester.Stop();
         }
     }
 }

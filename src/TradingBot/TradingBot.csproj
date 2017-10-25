@@ -14,6 +14,8 @@
     <Content Remove="Exchanges\Concrete\BitMEX\BitMex.json" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Autofac.Extras.DynamicProxy" Version="4.2.1" />
+    <PackageReference Include="Castle.Core" Version="4.2.1" />
     <PackageReference Include="Lykke.AzureQueueIntegration" Version="1.0.7" />
     <PackageReference Include="Lykke.AzureStorage" Version="2.1.4" />
     <PackageReference Include="Lykke.Common" Version="3.0.2" />

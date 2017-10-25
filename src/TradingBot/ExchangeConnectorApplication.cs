@@ -82,7 +82,7 @@ namespace TradingBot
                 $"Exchange connector heartbeat: {DateTime.Now}. Exchanges statuses: {string.Join(", ", GetExchanges().Select(x => $"{x.Name}: {x.State}"))}");
         }
 
-        private void SetupTradingSignalsSubscription(RabbitMqConfiguration rabbitConfig)
+        private void SetupTradingSignalsSubscription(RabbitMqMultyExchangeConfiguration rabbitConfig)
         {
             var handler = new TradingSignalsHandler(_exchanges, _log, TranslatedSignalsRepository);
 
