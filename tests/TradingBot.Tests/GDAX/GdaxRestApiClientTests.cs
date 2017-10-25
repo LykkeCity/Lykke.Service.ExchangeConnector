@@ -123,12 +123,5 @@ namespace TradingBot.Tests.GDAX
             Assert.NotNull(result);
             Assert.NotEmpty(result);
         }
-
-        [Fact]
-        public async Task GetGetMarginInformation()
-        {
-            var result = await _api.GetMarginInformation();
-            Assert.NotNull(result);
-        }
     }
 }

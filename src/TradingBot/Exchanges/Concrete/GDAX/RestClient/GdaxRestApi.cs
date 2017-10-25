@@ -121,17 +121,5 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
 
             return response;
         }
-
-        public async Task<IReadOnlyCollection<GdaxMarginInfoResponse>> GetMarginInformation(
-            CancellationToken cancellationToken = default,
-            EventHandler<SentHttpRequest> sentHttpRequestHandler = default,
-            EventHandler<ReceivedHttpResponse> receivedHttpRequestHandler = default)
-        {
-            var response = await _restClient.ExecuteRestMethod<IReadOnlyCollection<GdaxMarginInfoResponse>>(
-                HttpMethod.Get, _marginInfoRequstUrl, new GdaxPostContentBase(), cancellationToken, 
-                sentHttpRequestHandler, receivedHttpRequestHandler);
-
-            return response;
-        }
     }
 }

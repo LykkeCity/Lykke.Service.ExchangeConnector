@@ -25,8 +25,5 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
         Task<IReadOnlyList<GdaxBalanceResponse>> GetBalances(CancellationToken cancellationToken = default,
             EventHandler<SentHttpRequest> sentHttpRequestHandler = default,
             EventHandler<ReceivedHttpResponse> receivedHttpRequestHandler = default);
-        Task<IReadOnlyCollection<GdaxMarginInfoResponse>> GetMarginInformation(CancellationToken cancellationToken = default,
-            EventHandler<SentHttpRequest> sentHttpRequestHandler = default,
-            EventHandler<ReceivedHttpResponse> receivedHttpRequestHandler = default);
     }
 }

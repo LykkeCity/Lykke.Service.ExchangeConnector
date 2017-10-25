@@ -1,11 +1,12 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using Newtonsoft.Json;
 
 namespace TradingBot.Exchanges.Concrete.GDAX.WssClient.Entities
 {
     internal class GdaxWssOrderDone : GdaxWssMessageBase
     {
         [JsonProperty("order_id")]
-        public string OrderId { get; set; }
+        public Guid OrderId { get; set; }
 
         [JsonProperty("remaining_size")]
         public decimal RemainingSize { get; set; }

@@ -6,7 +6,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient.Entities
     internal class GdaxWssOrderChange : GdaxWssMessageBase
     {
         [JsonProperty("order_id")]
-        public string OrderId { get; set; }
+        public Guid OrderId { get; set; }
 
         [JsonProperty("new_size")]
         public decimal NewSize { get; set; }

@@ -164,12 +164,12 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 
         public override Task<IReadOnlyCollection<TradeBalanceModel>> GetTradeBalances(TimeSpan timeout)
         {
-            throw new NotSupportedException();  // TODO
+            throw new NotSupportedException(); 
         }
 
         public override Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout)
         {
-            throw new NotSupportedException(); // TODO
+            throw new NotSupportedException();
         }
 
         protected override async void StartImpl()

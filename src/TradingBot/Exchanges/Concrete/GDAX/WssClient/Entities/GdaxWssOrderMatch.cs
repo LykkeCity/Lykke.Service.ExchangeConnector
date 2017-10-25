@@ -9,10 +9,10 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient.Entities
         public decimal TradeId { get; set; }
 
         [JsonProperty("maker_order_id")]
-        public string MakerOrderId { get; set; }
+        public Guid MakerOrderId { get; set; }
 
         [JsonProperty("taker_order_id")]
-        public string TakerOrderId { get; set; }
+        public Guid TakerOrderId { get; set; }
 
         [JsonProperty("size")]
         public decimal Size { get; set; }
