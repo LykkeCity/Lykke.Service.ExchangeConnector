@@ -8,7 +8,6 @@ using TradingBot.Exchanges.Abstractions;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
-using TradingBot.Exchanges.Concrete.GDAX;
 
 namespace TradingBot.Exchanges
 {
@@ -53,7 +52,7 @@ namespace TradingBot.Exchanges
 
             if (_config.OrderBooksRabbitMq.Enabled)
             {
-                var orderBookHandler = new RabbitMqHandler<OrderBook>(_config.OrderBooksRabbitMq.GetConnectionString(), _config.OrderBooksRabbitMq.Exchange, true);
+                var orderBookHandler = new RabbitMqHandler<OrderBook>(_config.OrderBooksRabbitMq.GetConnectionString(), _config.OrderBooksRabbitMq.Exchange, _config.OrderBooksRabbitMq.Durable);
                 foreach (var exchange in _implementations)
                 {
                     exchange.AddOrderBookHandler(orderBookHandler);

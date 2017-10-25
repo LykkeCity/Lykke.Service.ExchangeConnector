@@ -15,7 +15,6 @@ using Lykke.SlackNotification.AzureQueue;
 using AzureStorage;
 using AzureStorage.Tables;
 using TradingBot.Communications;
-using TradingBot.Exchanges;
 using TradingBot.Repositories;
 using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Exceptions;

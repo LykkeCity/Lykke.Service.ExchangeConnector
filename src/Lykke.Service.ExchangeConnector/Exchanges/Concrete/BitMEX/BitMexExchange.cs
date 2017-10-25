@@ -23,11 +23,11 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
     internal class BitMexExchange : Exchange
     {
         private readonly BitMexExchangeConfiguration _configuration;
-        private readonly OrderBooksHarvester _orderBooksHarvester;
+        private readonly BitMexOrderBooksHarvester _orderBooksHarvester;
         private readonly IBitMEXAPI _exchangeApi;
         public new const string Name = "bitmex";
 
-        public BitMexExchange(BitMexExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository, OrderBooksHarvester orderBooksHarvester, ILog log) : base(Name, configuration, translatedSignalsRepository, log)
+        public BitMexExchange(BitMexExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository, BitMexOrderBooksHarvester orderBooksHarvester, ILog log) : base(Name, configuration, translatedSignalsRepository, log)
         {
             _configuration = configuration;
             _orderBooksHarvester = orderBooksHarvester;
@@ -37,6 +37,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 BaseUri = new Uri(configuration.EndpointUrl)
             };
             orderBooksHarvester.AddHandler(CallOrderBookHandlers);
+            orderBooksHarvester.ExchangeName = Name;
+            orderBooksHarvester.MaxOrderBookRate = configuration.MaxOrderBookRate;
         }
 
         public override async Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
@@ -113,7 +115,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             var response = await _exchangeApi.UsergetMarginWithHttpMessagesAsync(cancellationToken: cts.Token);
             var bitmexMargin = response.Body;
 
-            var model = BitMexModelConverter.ExchangeBalanceToModel(bitmexMargin, _configuration);
+            var model = BitMexModelConverter.ExchangeBalanceToModel(bitmexMargin);
             return new[] { model };
         }
 

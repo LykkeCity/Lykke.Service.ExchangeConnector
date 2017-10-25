@@ -8,91 +8,84 @@ using Common.Log;
 using Newtonsoft.Json;
 using Polly;
 
-namespace TradingBot.Exchanges.Concrete.BitMEX
+namespace TradingBot.Exchanges.Concrete.Shared
 {
     public sealed class WebSocketTextMessenger : IDisposable
     {
         private readonly string _endpointUrl;
         private readonly ILog _log;
+        private readonly CancellationToken _cancellationToken;
         private ClientWebSocket _clientWebSocket;
         private readonly TimeSpan _responseTimeout = TimeSpan.FromMinutes(1);
-        private CancellationTokenSource _globalCancellationTokenSource;
 
-        public WebSocketTextMessenger(string endpointUrl, ILog log)
+        public WebSocketTextMessenger(string endpointUrl, ILog log, CancellationToken cancellationToken)
         {
 
             _endpointUrl = endpointUrl;
             _log = log;
-
+            _cancellationToken = cancellationToken;
         }
 
         public void Dispose()
         {
             _clientWebSocket?.Dispose();
-            _globalCancellationTokenSource?.Dispose();
         }
 
-
-        public async Task Connect()
+        public async Task ConnectAsync()
         {
-            _globalCancellationTokenSource = new CancellationTokenSource();
-
-            await _log.WriteInfoAsync(nameof(Connect), "Connecting to WebSocket", $"Bitmex API {_endpointUrl}");
+            await _log.WriteInfoAsync(nameof(ConnectAsync), "Connecting to WebSocket", $"API endpoint {_endpointUrl}");
             var uri = new Uri(_endpointUrl);
 
-            const int attempts = 100;
+            const int attempts = 20;
             var retryPolicy = Policy
                 .Handle<Exception>()
                 .WaitAndRetryAsync(attempts, attempt => TimeSpan.FromSeconds(3));
             try
             {
+
                 await retryPolicy.ExecuteAsync(async () =>
                 {
-                    _clientWebSocket = new ClientWebSocket();
                     try
                     {
-                        await _clientWebSocket.ConnectAsync(uri, _globalCancellationTokenSource.Token);
+                        _clientWebSocket = new ClientWebSocket();
+                        await _clientWebSocket.ConnectAsync(uri, _cancellationToken);
+                        await _log.WriteInfoAsync(nameof(ConnectAsync), "Successfully connected to WebSocket", $"API endpoint {_endpointUrl}");
                     }
                     catch (Exception ex)
                     {
-                        await _log.WriteErrorAsync(nameof(Connect), $"Unable to connect to {_endpointUrl}", ex);
+                        await _log.WriteErrorAsync(nameof(ConnectAsync), $"Unable to connect to {_endpointUrl}", ex);
                         throw;
                     }
                 });
             }
             catch (Exception ex)
             {
-                await _log.WriteErrorAsync(nameof(Connect), $"Unable to connect to BitMex after {attempts} attempts", ex);
-                throw;
+                await _log.WriteErrorAsync(nameof(ConnectAsync), $"Unable to connect to {_endpointUrl} after {attempts} attempts", ex);
             }
+
         }
 
 
-        private static ArraySegment<byte> EncodeRequest(object request)
-        {
-            return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(request));
-        }
-
-        public async Task SendRequest(object request)
+        public async Task SendRequestAsync(object request)
         {
             try
             {
                 var msg = EncodeRequest(request);
-                await _clientWebSocket.SendAsync(msg, WebSocketMessageType.Text, true, _globalCancellationTokenSource.Token);
+                await _clientWebSocket.SendAsync(msg, WebSocketMessageType.Text, true, _cancellationToken);
             }
             catch (Exception ex)
             {
-                await _log.WriteErrorAsync(nameof(Connect), "An exception occurred while sending request", ex);
+                await _log.WriteErrorAsync(nameof(ConnectAsync), "An exception occurred while sending request", ex);
 
                 throw;
             }
         }
 
 
-        public async Task<string> GetResponse()
+        public async Task<string> GetResponseAsync()
         {
             using (var cts = new CancellationTokenSource(_responseTimeout))
-            using (var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, _globalCancellationTokenSource.Token))
+            using (var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, _cancellationToken))
             {
 
                 var buffer = new byte[10000];
@@ -110,17 +103,22 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         }
 
 
+
+        private static ArraySegment<byte> EncodeRequest(object request)
+        {
+            return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(request));
+        }
+
         private static string DecodeText(byte[] message)
         {
             return Encoding.UTF8.GetString(message);
         }
 
-        public async Task Stop()
+        public async Task StopAsync()
         {
             if (_clientWebSocket.State == WebSocketState.Open)
             {
-                await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Good bye", _globalCancellationTokenSource.Token);
-                _globalCancellationTokenSource.Cancel();
+                await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Good bye", _cancellationToken);
             }
         }
     }

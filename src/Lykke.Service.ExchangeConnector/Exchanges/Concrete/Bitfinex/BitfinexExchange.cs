@@ -22,17 +22,23 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
     internal class BitfinexExchange : Exchange
     {
         private readonly BitfinexExchangeConfiguration _configuration;
+        private readonly BitfinexOrderBooksHarvester _orderBooksHarvester;
         private readonly IBitfinexApi _exchangeApi;
-        public const string Bitfinex = "bitfinex";
+        public new const string Name = "bitfinex";
 
-        public BitfinexExchange(BitfinexExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository, ILog log) : base(Bitfinex, configuration, translatedSignalsRepository, log)
+        public BitfinexExchange(BitfinexExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository, BitfinexOrderBooksHarvester orderBooksHarvester, ILog log) : base(Name, configuration, translatedSignalsRepository, log)
         {
             _configuration = configuration;
+            _orderBooksHarvester = orderBooksHarvester;
             var credenitals = new BitfinexServiceClientCredentials(_configuration.ApiKey, _configuration.ApiSecret);
             _exchangeApi = new BitfinexApi(credenitals)
             {
                 BaseUri = new Uri(configuration.EndpointUrl)
             };
+            _orderBooksHarvester.AddHandler(CallOrderBookHandlers);
+            orderBooksHarvester.ExchangeName = Name;
+            orderBooksHarvester.MaxOrderBookRate = configuration.MaxOrderBookRate;
+
         }
 
         public override async Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
@@ -190,12 +196,13 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         protected override void StartImpl()
         {
+            _orderBooksHarvester.Start();
             OnConnected();
         }
 
         protected override void StopImpl()
         {
-
+            _orderBooksHarvester.Stop();
         }
 
         private string ConvertSymbolFromLykkeToExchange(string symbol)
@@ -214,7 +221,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             {
                 throw new ArgumentException($"Symbol {symbol} is not mapped to lykke value");
             }
-            return new Instrument(Bitfinex, result);
+            return new Instrument(Name, result);
         }
 
 

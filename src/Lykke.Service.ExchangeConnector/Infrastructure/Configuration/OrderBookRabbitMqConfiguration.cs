@@ -1,6 +1,6 @@
 ﻿namespace TradingBot.Infrastructure.Configuration
 {
-    public sealed class RabbitMqSingleExchangeConfiguration : RabbitMqConfigurationBase
+    public sealed class OrderBookRabbitMqConfiguration : RabbitMqConfigurationBase
     {
         public string Exchange { get; set; }
 

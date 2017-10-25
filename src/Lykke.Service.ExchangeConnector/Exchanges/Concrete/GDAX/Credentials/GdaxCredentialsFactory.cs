@@ -2,7 +2,6 @@
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
 using TradingBot.Helpers;
 
 namespace TradingBot.Exchanges.Concrete.GDAX.Credentials

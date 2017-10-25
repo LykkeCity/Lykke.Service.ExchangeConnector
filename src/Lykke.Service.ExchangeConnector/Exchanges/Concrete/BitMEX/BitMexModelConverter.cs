@@ -14,7 +14,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
     {
         private const decimal SatoshiRate = 100000000;
 
-        public static PositionModel ExchangePositionToModel(Position position, BitMexExchangeConfiguration configuration)
+        public static PositionModel ExchangePositionToModel(Position position, ICurrencyMappingProvider configuration)
         {
             return new PositionModel
             {
@@ -30,7 +30,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             };
         }
 
-        public static ExecutedTrade OrderToTrade(Order order, BitMexExchangeConfiguration configuration)
+        public static ExecutedTrade OrderToTrade(Order order, ICurrencyMappingProvider configuration)
         {
 
             var execTime = order.TransactTime ?? DateTime.UtcNow;
@@ -43,7 +43,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return new ExecutedTrade(instr, execTime, execPrice, execVolume, tradeType, order.OrderID, status) { Message = order.Text };
         }
 
-        public static string ConvertSymbolFromLykkeToBitMex(string symbol, BitMexExchangeConfiguration configuration)
+        public static string ConvertSymbolFromLykkeToBitMex(string symbol, ICurrencyMappingProvider configuration)
         {
             if (!configuration.CurrencyMapping.TryGetValue(symbol, out var result))
             {
@@ -52,7 +52,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return result;
         }
 
-        public static Instrument ConvertSymbolFromBitMexToLykke(string symbol, BitMexExchangeConfiguration configuration)
+        public static Instrument ConvertSymbolFromBitMexToLykke(string symbol, ICurrencyMappingProvider configuration)
         {
             var result = configuration.CurrencyMapping.FirstOrDefault(kv => kv.Value == symbol).Key;
             if (result == null)
@@ -123,7 +123,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             }
         }
 
-        public static TradeBalanceModel ExchangeBalanceToModel(Margin bitmexMargin, BitMexExchangeConfiguration configuration)
+        public static TradeBalanceModel ExchangeBalanceToModel(Margin bitmexMargin)
         {
             var model = new TradeBalanceModel
             {

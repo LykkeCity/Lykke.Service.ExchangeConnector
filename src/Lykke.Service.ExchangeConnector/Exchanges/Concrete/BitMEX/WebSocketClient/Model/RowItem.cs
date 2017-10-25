@@ -1,10 +1,16 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using TradingBot.Exchanges.Concrete.Shared;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model
 {
     public class RowItem
     {
+        private static readonly Func<OrderBookItem, OrderBookItem, bool> EqualsFunc = Equals;
+        private static readonly Func<OrderBookItem, int> GetHashCodeFunc = GetHashCode;
+
+
         [JsonProperty("price")]
         public decimal Price { get; set; }
 
@@ -21,26 +27,31 @@ namespace TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model
         [JsonProperty("symbol")]
         public string Symbol { get; set; }
 
-        protected bool Equals(RowItem other)
+        public OrderBookItem ToOrderBookItem()
         {
-            return Id == other.Id && Side == other.Side && string.Equals(Symbol, other.Symbol);
+            return new OrderBookItem(EqualsFunc, GetHashCodeFunc)
+            {
+                Id = Id,
+                IsBuy = Side == Side.Buy,
+                Price = Price,
+                Symbol = Symbol,
+                Size = Size
+            };
         }
 
-        public override bool Equals(object obj)
+
+        private static bool Equals(OrderBookItem @this, OrderBookItem other)
         {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != GetType()) return false;
-            return Equals((RowItem)obj);
+            return @this.Id == other.Id && @this.IsBuy == other.IsBuy && string.Equals(@this.Symbol, other.Symbol);
         }
 
-        public override int GetHashCode()
+        private static int GetHashCode(OrderBookItem @this)
         {
             unchecked
             {
-                var hashCode = Id.GetHashCode();
-                hashCode = (hashCode * 397) ^ (int)Side;
-                hashCode = (hashCode * 397) ^ (Symbol != null ? Symbol.GetHashCode() : 0);
+                var hashCode = @this.Id.GetHashCode();
+                hashCode = (hashCode * 397) ^ @this.IsBuy.GetHashCode();
+                hashCode = (hashCode * 397) ^ (@this.Symbol != null ? @this.Symbol.GetHashCode() : 0);
                 return hashCode;
             }
         }
