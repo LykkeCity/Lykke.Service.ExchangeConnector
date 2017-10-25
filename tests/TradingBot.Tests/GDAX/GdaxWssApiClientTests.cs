@@ -61,13 +61,7 @@ namespace TradingBot.Tests.GDAX
             {
                 var skipTask = _api.SubscribeToPrivateUpdatesAsync(new[] { _btcUsd }, cancellationToken);
 
-                await Task.Delay(5000);
-
                 // Raise some events
-                newOrder = await CreateAndCancelOrderAsync();
-
-                await Task.Delay(4000);
-
                 newOrder = await CreateAndCancelOrderAsync();
 
                 // Wait maximum 5 seconds the received and done events to be received

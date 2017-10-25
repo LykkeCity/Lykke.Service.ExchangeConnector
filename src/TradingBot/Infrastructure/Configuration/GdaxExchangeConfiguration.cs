@@ -4,6 +4,8 @@ namespace TradingBot.Infrastructure.Configuration
 {
     public sealed class GdaxExchangeConfiguration : IExchangeConfiguration
     {
+        public double InitialRating { get; set; }
+
         public bool Enabled { get; set; }
 
         public string[] Instruments { get; set; }
