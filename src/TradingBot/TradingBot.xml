@@ -107,6 +107,21 @@
             <response code="200">Active positions</response>
             <response code="500">Unexpected error</response>
         </member>
+        <member name="P:TradingBot.Exchanges.Abstractions.RestClient.RestApiClient.HttpClient">
+            <summary>
+            Gets the used HttpClient
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Abstractions.RestClient.RestApiClient.SerializationSettings">
+            <summary>
+            Gets or sets json serialization settings.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Abstractions.RestClient.RestApiClient.DeserializationSettings">
+            <summary>
+            Gets or sets json deserialization settings.
+            </summary>
+        </member>
         <member name="P:TradingBot.Exchanges.Concrete.Bitfinex.RestClient.BitfinexApi.SerializationSettings">
             <summary>
             Gets or sets json serialization settings.
@@ -9800,6 +9815,95 @@
             <exception cref="T:Microsoft.Rest.ValidationException">
             Thrown if validation fails
             </exception>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities.GdaxActiveOrdersPost.OrderId">
+            <summary>
+            This class can be used to send a cancel message in addition to 
+            retrieving the current status of an order.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.GdaxRestApi.BaseUri">
+            <summary>
+            Base GDAX Uri
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.GdaxRestApi.ConnectorUserAgent">
+            <summary>
+            User agent for identification
+            </summary>
+        </member>
+        <member name="E:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.Connected">
+            <summary>
+            Raised on established WebSocket connection with the server
+            </summary>
+        </member>
+        <member name="E:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.Disconnected">
+            <summary>
+            Raised when WebSocket connection is lost
+            </summary>
+        </member>
+        <member name="E:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.Subscribed">
+            <summary>
+            Raised on successful subscription
+            </summary>
+        </member>
+        <member name="E:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.OrderReceived">
+            <summary>
+            Raised when a valid order has been received and is now active. This message 
+            is emitted for every single valid order as soon as the matching engine receives 
+            it whether it fills immediately or not.
+            </summary>
+        </member>
+        <member name="E:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.OrderOpened">
+            <summary>
+            Raised when the order is now open on the order book. This message will only be 
+            sent for orders which are not fully filled immediately. RemainingSize will 
+            indicate how much of the order is unfilled and going on the book
+            </summary>
+        </member>
+        <member name="E:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.OrderDone">
+            <summary>
+            Raised when the order is no longer on the order book. Sent for all orders for which there 
+            was a received message. This message can result from an order being canceled or filled. 
+            There will be no more messages for this OrderId after a done message. RemainingSize indicates 
+            how much of the order went unfilled; this will be 0 for filled orders.
+            Market orders will not have a remaining_size or price field as they are never on the 
+            open order book at a given price.
+            </summary>
+        </member>
+        <member name="E:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.OrderMatched">
+            <summary>
+            Raised when a trade occurred between two orders. The aggressor or taker order is the one 
+            executing immediately after being received and the maker order is a resting order on the book. 
+            The side field indicates the maker order side. If the side is sell this indicates the maker 
+            was a sell order and the match is considered an up-tick. A buy side match is a down-tick.
+            </summary>
+        </member>
+        <member name="E:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.OrderChanged">
+            <summary>
+            Raised when an order has changed. This is the result of self-trade prevention adjusting the 
+            order size or available funds. Orders can only decrease in size or funds. Change messages are 
+            sent anytime an order changes in size; this includes resting orders (open) as well as received 
+            but not yet open. Change messages are also sent when a new market order goes through self trade 
+            prevention and the funds for the market order have changed.
+            </summary>
+        </member>
+        <member name="E:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.Ticker">
+            <summary>
+            The ticker provides real-time price updates every time a match happens. It batches updates 
+            in case of cascading matches, greatly reducing bandwidth requirements.
+            </summary>
+        </member>
+        <member name="E:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.Error">
+            <summary>
+            Most failure cases will cause an error message (a message with the type "error") to be emitted. 
+            This can be helpful for implementing a client or debugging issues.
+            </summary>
+        </member>
+        <member name="P:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.BaseUri">
+            <summary>
+            Base GDAX WebSockets Uri
+            </summary>
         </member>
         <member name="M:TradingBot.Exchanges.Concrete.HistoricalData.LineParsers.ParseMTLine(System.String)">
             <summary>

@@ -15,12 +15,14 @@ namespace TradingBot.Infrastructure.Exceptions
             StatusCode = statusCode;
         }
 
-        public StatusCodeException(HttpStatusCode statusCode, string message, Exception innerException) : base(message, innerException)
+        public StatusCodeException(HttpStatusCode statusCode, string message) : base(message)
         {
             StatusCode = statusCode;
         }
 
-
-
+        public StatusCodeException(HttpStatusCode statusCode, string message, Exception innerException) : base(message, innerException)
+        {
+            StatusCode = statusCode;
+        }
     }
 }

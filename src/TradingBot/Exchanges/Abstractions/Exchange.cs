@@ -71,7 +71,7 @@ namespace TradingBot.Exchanges.Abstractions
 
         public void Start()
         {
-            LykkeLog.WriteInfoAsync(nameof(Exchange), nameof(Start), Name, $"Starging exchange {Name}, current state is {State}").Wait();
+            LykkeLog.WriteInfoAsync(nameof(Exchange), nameof(Start), Name, $"Starting exchange {Name}, current state is {State}").Wait();
 
             if (State != ExchangeState.ErrorState && State != ExchangeState.Stopped && State != ExchangeState.Initializing)
                 return;

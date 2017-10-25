@@ -8,6 +8,7 @@ using TradingBot.Exchanges.Abstractions;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
+using TradingBot.Exchanges.Concrete.GDAX;
 
 namespace TradingBot.Exchanges
 {
