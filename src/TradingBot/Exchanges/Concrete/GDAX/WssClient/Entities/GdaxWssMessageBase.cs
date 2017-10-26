@@ -10,7 +10,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient.Entities
         public string ProductId { get; set; }
 
         [JsonProperty("type")]
-        public GdaxOrderType Type { get; set; }
+        public string Type { get; set; }
 
         [JsonProperty("sequence")]
         public long Sequence { get; set; }
