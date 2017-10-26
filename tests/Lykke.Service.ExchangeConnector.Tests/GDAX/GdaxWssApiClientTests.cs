@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient;
@@ -18,6 +19,8 @@ namespace TradingBot.Tests.GDAX
         private const string _apiSecret = "H/bVM/bBNcLDAToPmloL1IJe0KKW0XjLk4HA/UUrO/e/91tsx5Y56BsG6hgGaReV1MIShv1LDUNLCJ99wgDk0Q==";
         private const string _apiPassPhrase = "prulog9byo9";
         private const string _btcUsd = "BTC-USD";
+        private const string _orderDoneTypeName = "done";
+        private const string _orderCanceledReason = "canceled";
 
         public GdaxWssApiClientTests()
         {
@@ -47,28 +50,29 @@ namespace TradingBot.Tests.GDAX
         [Fact]
         public async Task SubscribeAndHandleEvents()
         {
-            const string cancelledTypeName = "cancelled";
             var cancellationToken = new CancellationTokenSource().Token;
 
             GdaxOrderResponse newOrder;
+            var tcsSubscribed = new TaskCompletionSource<string>();
             var tcsOrderReceived = new TaskCompletionSource<GdaxWssOrderReceived>();
             var tcsOrderMarkedAsDone = new TaskCompletionSource<GdaxWssOrderDone>();
-            _api.OrderReceived += (sender, order) => { tcsOrderReceived.TrySetResult(order); };
-            _api.OrderDone += (sender, order) => { tcsOrderMarkedAsDone.TrySetResult(order); };
+            _api.Subscribed += (sender, message) => { tcsSubscribed.SetResult(message); };
+            _api.OrderReceived += (sender, order) => { tcsOrderReceived.SetResult(order); };
+            _api.OrderDone += (sender, order) => { tcsOrderMarkedAsDone.SetResult(order); };
 
             // Connect and subscribe to web socket events
             await _api.ConnectAsync(cancellationToken);
             try
             {
+                // Subscribe
                 var skipTask = _api.SubscribeToPrivateUpdatesAsync(new[] { _btcUsd }, cancellationToken);
+                await WhenAllTaskAreDone(10000, tcsSubscribed.Task);  // Wait n seconds for subscription
 
                 // Raise some events
                 newOrder = await CreateAndCancelOrderAsync();
 
-                // Wait maximum 5 seconds the received and done events to be received
-                var ordersTask = Task.WhenAll(tcsOrderReceived.Task, tcsOrderMarkedAsDone.Task);
-                var delayTask = Task.Delay(5000);
-                await Task.WhenAny(ordersTask, delayTask);
+                // Wait maximum n seconds the received and done events to be received
+                await WhenAllTaskAreDone(5000, tcsOrderReceived.Task, tcsOrderMarkedAsDone.Task);
             }
             finally
             {
@@ -76,6 +80,8 @@ namespace TradingBot.Tests.GDAX
             }
 
             // Check if events were received successfuly
+            Assert.NotNull(tcsSubscribed);
+            Assert.True(tcsSubscribed.Task.IsCompletedSuccessfully);
             Assert.NotNull(tcsOrderReceived.Task);
             Assert.True(tcsOrderReceived.Task.IsCompletedSuccessfully);
             var orderReceived = tcsOrderReceived.Task.Result;
@@ -90,7 +96,8 @@ namespace TradingBot.Tests.GDAX
             var orderMarkedAsDone = tcsOrderMarkedAsDone.Task.Result;
             Assert.NotNull(orderMarkedAsDone);
             Assert.Equal(newOrder.Id, orderMarkedAsDone.OrderId);
-            Assert.Equal(cancelledTypeName, orderMarkedAsDone.Type);
+            Assert.Equal(_orderDoneTypeName, orderMarkedAsDone.Type);
+            Assert.Equal(_orderCanceledReason, orderMarkedAsDone.Reason);
         }
 
         private GdaxRestApi CreateRestApi()
@@ -108,6 +115,11 @@ namespace TradingBot.Tests.GDAX
             await restApiTests.CancelOrder(newOrder.Id);
 
             return newOrder;
+        }
+
+        private async Task WhenAllTaskAreDone(int timeoutMs, params Task[] tasks)
+        {
+            await Task.WhenAny(Task.Delay(timeoutMs), Task.WhenAll(tasks));
         }
     }
 }
