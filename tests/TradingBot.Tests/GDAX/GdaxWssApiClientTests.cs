@@ -47,6 +47,7 @@ namespace TradingBot.Tests.GDAX
         [Fact]
         public async Task SubscribeAndHandleEvents()
         {
+            const string cancelledTypeName = "cancelled";
             var cancellationToken = new CancellationTokenSource().Token;
 
             GdaxOrderResponse newOrder;
@@ -83,14 +84,13 @@ namespace TradingBot.Tests.GDAX
             Assert.Equal(newOrder.ProductId, orderReceived.ProductId);
             Assert.Equal(newOrder.Side, orderReceived.Side);
             Assert.Equal(newOrder.Size, orderReceived.Size);
-            Assert.Equal(newOrder.OrderType, orderReceived.Type);
 
             Assert.NotNull(tcsOrderMarkedAsDone.Task);
             Assert.True(tcsOrderMarkedAsDone.Task.IsCompletedSuccessfully);
             var orderMarkedAsDone = tcsOrderMarkedAsDone.Task.Result;
             Assert.NotNull(orderMarkedAsDone);
             Assert.Equal(newOrder.Id, orderMarkedAsDone.OrderId);
-            Assert.Equal(newOrder.Id, orderMarkedAsDone.OrderId);
+            Assert.Equal(cancelledTypeName, orderMarkedAsDone.Type);
         }
 
         private GdaxRestApi CreateRestApi()

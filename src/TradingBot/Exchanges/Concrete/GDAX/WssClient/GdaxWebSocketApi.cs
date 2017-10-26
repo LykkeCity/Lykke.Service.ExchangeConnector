@@ -128,8 +128,10 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
                 key = credentials.ApiKey,
                 passphrase = credentials.PassPhrase,
                 timestamp = credentials.UnixTimestampString,
-                product_ids = productIds, 
-                channels = new string[] { "ticker", "user" }
+                channels = new[] {
+                    new { name = "ticker", product_ids = productIds },
+                    new { name = "user", product_ids = productIds },
+                }
             });
 
             await _clientWebSocket.SendAsync(StringToArraySegment(requestString), WebSocketMessageType.Text, 
