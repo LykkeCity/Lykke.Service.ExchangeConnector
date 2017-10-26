@@ -1,5 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("TradingBot.Tests")]
+[assembly: InternalsVisibleTo("Lykke.Service.ExchangeConnector.Tests")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
 
