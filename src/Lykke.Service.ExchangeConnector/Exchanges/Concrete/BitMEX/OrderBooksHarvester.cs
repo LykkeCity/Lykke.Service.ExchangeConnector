@@ -199,8 +199,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                              group si by si.Symbol into g
                              let asks = g.Where(i => i.Side == Side.Sell).Select(i => new VolumePrice(i.Price, i.Size)).ToArray()
                              let bids = g.Where(i => i.Side == Side.Buy).Select(i => new VolumePrice(i.Price, i.Size)).ToArray()
-                             let assetPair = BitMexModelConverter.ConvertSymbolFromBitMexToLykke(g.Key, _configuration)
-                             select new OrderBook(BitMexExchange.Name, g.Key, asks, bids, DateTime.UtcNow);
+                             let assetPair = BitMexModelConverter.ConvertSymbolFromBitMexToLykke(g.Key, _configuration).Name
+                             select new OrderBook(BitMexExchange.Name, assetPair, asks, bids, DateTime.UtcNow);
             return orderBooks.ToArray();
         }
 

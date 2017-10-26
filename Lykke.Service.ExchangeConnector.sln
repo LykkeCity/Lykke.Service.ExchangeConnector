@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26730.3
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TradingBot", "src\TradingBot\TradingBot.csproj", "{88397BE8-8599-415B-ADDA-AB8957F21E23}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lykke.Service.ExchangeConnector", "src\Lykke.Service.ExchangeConnector\Lykke.Service.ExchangeConnector.csproj", "{88397BE8-8599-415B-ADDA-AB8957F21E23}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TradingBot.Tests", "tests\TradingBot.Tests\TradingBot.Tests.csproj", "{AFEA1A4B-9A43-4A08-AB42-82F76C949E4A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lykke.Service.ExchangeConnector.Tests", "tests\Lykke.Service.ExchangeConnector.Tests\Lykke.Service.ExchangeConnector.Tests.csproj", "{AFEA1A4B-9A43-4A08-AB42-82F76C949E4A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QuickFix.DotNetCore", "src\QuickFix.DotNetCore\QuickFix.DotNetCore.csproj", "{41CDE78A-3A88-45FF-AB67-C4EAF50C9856}"
 EndProject
