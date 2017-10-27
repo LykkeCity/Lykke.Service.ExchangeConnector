@@ -14,9 +14,9 @@ namespace TradingBot.Tests.GDAX
         private readonly Guid _orderId = Guid.NewGuid();
 
         private const string _userAgent = "LykkeTest";
-        private const string _apiKey = "143f281de7ab32f6269eb0dc9aa14aeb";
-        private const string _apiSecret = "H/bVM/bBNcLDAToPmloL1IJe0KKW0XjLk4HA/UUrO/e/91tsx5Y56BsG6hgGaReV1MIShv1LDUNLCJ99wgDk0Q==";
-        private const string _apiPassPhrase = "prulog9byo9";
+        private const string _apiKey = "";
+        private const string _apiSecret = "";
+        private const string _apiPassPhrase = "";
 
         public GdaxRestApiClientTests()
         {
