@@ -6,7 +6,7 @@ using TradingBot.Exchanges.Concrete.GDAX.RestClient;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
 using Xunit;
 
-namespace TradingBot.Tests.GDAX
+namespace Lykke.Service.ExchangeConnector.Tests.GDAX
 {
     public class GdaxRestApiClientTests
     {
