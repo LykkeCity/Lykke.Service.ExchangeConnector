@@ -1,0 +1,21 @@
+# Auto normalize line-endings
+
+* text eol=lf encoding=UTF-8
+
+# Always LF line-endings
+
+*.sh text eol=lf
+
+# Always CRLF line-endings
+
+*.sln text eol=crlf
+*.csproj text eol=crlf
+
+# Diff settings
+
+*.cs     diff=csharp text 
+*.vb     text
+*.ttf     -text diff
+*.eot     -text diff
+*.woff    -text diff
+*.woff2   -text diff

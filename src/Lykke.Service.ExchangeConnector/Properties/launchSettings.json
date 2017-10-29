@@ -1,0 +1,27 @@
+{
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:5000",
+      "sslPort": 0
+    }
+  },
+  "profiles": {
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "environmentVariables": {
+        "settingsUrl": "appsettings.Development.json",
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "TradingBot": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "settingsUrl": "appsettings.Development.json",
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "http://localhost:5000/"
+    }
+  }
+}

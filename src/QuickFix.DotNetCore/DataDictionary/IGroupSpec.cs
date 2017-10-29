@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace QuickFix.DataDictionary
+﻿namespace QuickFix.DataDictionary
 {
     public interface IGroupSpec : IFieldMapSpec
     {

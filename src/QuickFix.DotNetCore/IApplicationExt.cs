@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace QuickFix
+﻿namespace QuickFix
 {
     /// <summary>
     /// This is the optional extension interface for processing inbound messages,
