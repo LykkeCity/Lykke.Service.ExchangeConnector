@@ -60,7 +60,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 					    var currentPrices =
 						    Enumerable.Range(0, config.PricesPerInterval)
 							    .Select(x => Math.Round((decimal) gbms[instrument].GenerateNextValue(), 6))
-							    .Select(x => new TickPrice(DateTime.UtcNow, x))
+							    .Select(x => new TickPrice(instrument, DateTime.UtcNow, x))
 							    .ToArray();
 
 					    lock (syncRoot)
@@ -134,7 +134,10 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 					    }
 					    
 					    // TODO: deal with awaitable. I don't want to wait here for Azure and Rabbit connections
-					    await CallTickPricesHandlers(new InstrumentTickPrices(instrument, currentPrices));
+					    foreach (var currentPrice in currentPrices)
+					    {
+					        await CallTickPricesHandlers(currentPrice);
+					    }
 				        
 				        await Task.Delay(config.PricesIntervalInMilliseconds, ctSource.Token);
 				    }

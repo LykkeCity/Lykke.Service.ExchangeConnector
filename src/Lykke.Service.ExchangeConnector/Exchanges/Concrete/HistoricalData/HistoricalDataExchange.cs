@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Common.Log;
 using TradingBot.Communications;
@@ -48,7 +47,7 @@ namespace TradingBot.Exchanges.Concrete.HistoricalData
                 using (var enumerator = reader.GetEnumerator())
                     while (!stopRequested && enumerator.MoveNext())
                     {
-                        await CallTickPricesHandlers(new InstrumentTickPrices(Instruments.First(), new TickPrice[] { enumerator.Current }));
+                        await CallTickPricesHandlers(enumerator.Current);
                     }
             });
         }

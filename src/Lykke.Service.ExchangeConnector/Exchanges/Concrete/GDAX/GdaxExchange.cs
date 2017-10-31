@@ -229,9 +229,8 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 
         private void OnWebSocketTicker(object sender, GdaxWssTicker ticker)
         {
-            var tickPrice = new TickPrice(ticker.Time, ticker.BestAsk, ticker.BestBid);
-            CallTickPricesHandlers(new InstrumentTickPrices(
-                new Instrument(Name, ticker.ProductId), new[] { tickPrice }));
+            var tickPrice = new TickPrice(new Instrument(Name, ticker.ProductId), ticker.Time, ticker.BestAsk, ticker.BestBid);
+            CallTickPricesHandlers(tickPrice);
         }
 
         private void OnWebSocketOrderReceived(object sender, GdaxWssOrderReceived order)

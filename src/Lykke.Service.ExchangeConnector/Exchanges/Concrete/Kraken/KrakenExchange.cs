@@ -78,7 +78,8 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                                 }
 
                                 lasts[i] = result.Last;
-                                var prices = result.Data.Single().Value.Select(x => new TickPrice(x.Time, x.Ask, x.Bid)).ToArray();
+                                var i1 = i;
+                                var prices = result.Data.Single().Value.Select(x => new TickPrice(Instruments[i1], x.Time, x.Ask, x.Bid)).ToArray();
 
                                 if (prices.Any())
                                 {
@@ -88,7 +89,10 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                                     }
                                     else
                                     {
-                                        await CallTickPricesHandlers(new InstrumentTickPrices(Instruments[i], prices));
+                                        foreach (var tickPrice in prices)
+                                        {
+                                            await CallTickPricesHandlers(tickPrice);    
+                                        }
                                     }
                                 }
 

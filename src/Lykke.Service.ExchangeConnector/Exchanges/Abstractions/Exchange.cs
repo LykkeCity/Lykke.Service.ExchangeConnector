@@ -16,7 +16,7 @@ namespace TradingBot.Exchanges.Abstractions
     {
         protected readonly ILog LykkeLog;
 
-        private readonly List<Handler<InstrumentTickPrices>> tickPriceHandlers = new List<Handler<InstrumentTickPrices>>();
+        private readonly List<Handler<TickPrice>> tickPriceHandlers = new List<Handler<TickPrice>>();
 
         private readonly List<Handler<OrderBook>> _orderBookHandlers = new List<Handler<OrderBook>>();
 
@@ -49,7 +49,7 @@ namespace TradingBot.Exchanges.Abstractions
             Instruments = config.Instruments.Select(x => new Instrument(Name, x)).ToList();
         }
 
-        public void AddTickPriceHandler(Handler<InstrumentTickPrices> handler)
+        public void AddTickPriceHandler(Handler<TickPrice> handler)
         {
             tickPriceHandlers.Add(handler);
         }
@@ -105,9 +105,9 @@ namespace TradingBot.Exchanges.Abstractions
             Stopped?.Invoke();
         }
 
-        protected Task CallTickPricesHandlers(InstrumentTickPrices tickPrices)
+        protected Task CallTickPricesHandlers(TickPrice tickPrice)
         {
-            return Task.WhenAll(tickPriceHandlers.Select(x => x.Handle(tickPrices)));
+            return Task.WhenAll(tickPriceHandlers.Select(x => x.Handle(tickPrice)));
         }
 
         protected Task CallOrderBookHandlers(OrderBook orderBook)

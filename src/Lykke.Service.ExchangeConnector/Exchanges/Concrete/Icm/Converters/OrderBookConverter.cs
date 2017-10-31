@@ -6,10 +6,12 @@ namespace TradingBot.Exchanges.Concrete.Icm.Converters
 {
     public static class OrderBookConverter
     {
-        public static InstrumentTickPrices ToInstrumentTickPrices(this OrderBook orderBook)
+        public static TickPrice ToInstrumentTickPrices(this OrderBook orderBook)
         {
-            return new InstrumentTickPrices(new Instrument(IcmExchange.Name, orderBook.Asset), 
-                    orderBook.Asks.Zip(orderBook.Bids, (ask, bid) => new TickPrice(orderBook.Timestamp, ask.Price, bid.Price)).ToArray()
+            return new TickPrice(new Instrument(IcmExchange.Name, orderBook.Asset), 
+                    orderBook.Timestamp,
+                    orderBook.Asks.Select(x => x.Price).Min(),
+                    orderBook.Bids.Select(x => x.Price).Max()
                 );
         }
     }
