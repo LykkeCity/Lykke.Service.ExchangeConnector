@@ -101,19 +101,8 @@ namespace TradingBot.Handlers
 
                                     translatedSignal.Failure(result.FinalException);
                                 }
-                                
-                                            
-                                var ack = new Acknowledgement()
-                                {
-                                    Success = result.Outcome == OutcomeType.Successful,
-                                    Exchange = exchange.Name,
-                                    Instrument = instrumentName,
-                                    ClientOrderId = arrivedSignal.OrderId,
-                                    ExchangeOrderId = translatedSignal.ExternalId,
-                                    Message = translatedSignal.ErrorMessage
-                                };
 
-                                await exchange.CallAcknowledgementsHandlers(ack);
+                                await exchange.CallAcknowledgementsHandlers(CreateAcknowledgement(exchange, result, instrumentName, arrivedSignal, translatedSignal));
                             }
                             catch (Exception e)
                             {
@@ -184,6 +173,42 @@ namespace TradingBot.Handlers
                     translatedSignalsRepository.Save(translatedSignal);
                 }
             }
+        }
+
+        private static Acknowledgement CreateAcknowledgement(Exchange exchange, PolicyResult<bool> result, string instrumentName,
+            TradingSignal arrivedSignal, TranslatedSignalTableEntity translatedSignal)
+        {
+            var ack = new Acknowledgement()
+            {
+                Success = result.Outcome == OutcomeType.Successful,
+                Exchange = exchange.Name,
+                Instrument = instrumentName,
+                ClientOrderId = arrivedSignal.OrderId,
+                ExchangeOrderId = translatedSignal.ExternalId,
+                Message = translatedSignal.ErrorMessage
+            };
+
+            if (result.FinalException != null)
+            {
+                switch (result.FinalException)
+                {
+                    case InsufficientFundsException _:
+                        ack.FailureType = AcknowledgementFailureType.InsufficientFunds;
+                        break;
+                    case ApiException _:
+                        ack.FailureType = AcknowledgementFailureType.ExchangeError;
+                        break;
+                    default:
+                        ack.FailureType = AcknowledgementFailureType.ConnectorError;
+                        break;
+                }
+            }
+            else
+            {
+                ack.FailureType = AcknowledgementFailureType.None;
+            }
+            
+            return ack;
         }
     }
 }
