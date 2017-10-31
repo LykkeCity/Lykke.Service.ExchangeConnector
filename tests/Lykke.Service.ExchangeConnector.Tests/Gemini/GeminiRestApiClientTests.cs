@@ -16,11 +16,10 @@ namespace Lykke.Service.ExchangeConnector.Tests.Gemini
         private const string _userAgent = "LykkeTest";
         private const string _apiKey = "";
         private const string _apiSecret = "";
-        private const string _apiPassPhrase = "";
 
         public GeminiRestApiClientTests()
         {
-            _api = new GeminiRestApi(_apiKey, _apiSecret, _apiPassPhrase)
+            _api = new GeminiRestApi(_apiKey, _apiSecret)
             {
                 BaseUri = new Uri(GeminiRestApi.GeminiSandboxApiUrl),
                 ConnectorUserAgent = _userAgent

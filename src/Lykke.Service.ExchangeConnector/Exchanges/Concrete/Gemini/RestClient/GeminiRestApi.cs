@@ -21,8 +21,7 @@ namespace TradingBot.Exchanges.Concrete.Gemini.RestClient
         private const string _activeOrdersRequestUrl = @"/orders";
         
         private const string _defaultConnectorUserAgent = "Lykke";
-        
-        private readonly ServiceClientCredentials _credentials;
+
         private readonly RestApiClient _restClient;
 
         /// <summary>
@@ -30,8 +29,8 @@ namespace TradingBot.Exchanges.Concrete.Gemini.RestClient
         /// </summary>
         public Uri BaseUri
         {
-            get { return HttpClient.BaseAddress; }
-            set { HttpClient.BaseAddress = value; }
+            get => HttpClient.BaseAddress;
+            set => HttpClient.BaseAddress = value;
         }
         
         /// <summary>
@@ -39,7 +38,7 @@ namespace TradingBot.Exchanges.Concrete.Gemini.RestClient
         /// </summary>
         public string ConnectorUserAgent
         {
-            get { return HttpClient.DefaultRequestHeaders.UserAgent.ToString(); }
+            get => HttpClient.DefaultRequestHeaders.UserAgent.ToString();
             set
             {
                 HttpClient.DefaultRequestHeaders.UserAgent.Clear();
@@ -47,14 +46,14 @@ namespace TradingBot.Exchanges.Concrete.Gemini.RestClient
             }
         }
 
-        public GeminiRestApi(string apiKey, string apiSecret, string passPhrase)
+        public GeminiRestApi(string apiKey, string apiSecret)
         {
-            _credentials = new GeminiRestClientCredentials(apiKey, apiSecret, passPhrase);
+            var credentials = new GeminiRestClientCredentials(apiKey, apiSecret);
 
             BaseUri = new Uri(GeminiPublicApiUrl);
             ConnectorUserAgent = _defaultConnectorUserAgent;
 
-            _restClient = new RestApiClient(HttpClient, _credentials);
+            _restClient = new RestApiClient(HttpClient, credentials);
         }
 
         public async Task<GeminiOrderResponse> AddOrder(string productId, decimal amount, decimal price,

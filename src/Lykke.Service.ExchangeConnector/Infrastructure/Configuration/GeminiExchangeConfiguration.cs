@@ -14,8 +14,6 @@ namespace TradingBot.Infrastructure.Configuration
 
         public bool PubQuotesToRabbit { get; set; }
 
-        public string PassPhrase { get; set; }
-
         public string ApiKey { get; set; }
 
         public string ApiSecret { get; set; }

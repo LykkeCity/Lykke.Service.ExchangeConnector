@@ -4,22 +4,14 @@
     {
         public string ApiKey { get; private set; }
 
-        public string ApiSecret { get; private set; }
-
-        public string PassPhrase { get; private set; }
-
-
-        public string UnixTimestampString { get; private set; }
-
+        public string PayLoad { get; private set; }
+        
         public string Signature { get; private set; }
 
-        public GeminiCredentials(string apiKey, string apiSecret, string passPhrase, 
-            string unixTimestampString, string signature)
+        public GeminiCredentials(string apiKey, string payLoad, string signature)
         {
             ApiKey = apiKey;
-            ApiSecret = apiSecret;
-            PassPhrase = passPhrase;
-            UnixTimestampString = unixTimestampString;
+            PayLoad = payLoad;
             Signature = signature;
         }
     }

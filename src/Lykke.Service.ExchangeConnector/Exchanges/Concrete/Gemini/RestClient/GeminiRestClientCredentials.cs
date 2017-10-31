@@ -8,16 +8,15 @@ namespace TradingBot.Exchanges.Concrete.Gemini.RestClient
 {
     internal sealed class GeminiRestClientCredentials : ServiceClientCredentials
     {
-        private const string _accessKeyHeader = "CB-ACCESS-KEY";
-        private const string _accessSignatureHeader = "CB-ACCESS-SIGN";
-        private const string _timeStampHeader = "CB-ACCESS-TIMESTAMP";
-        private const string _passPhraseHeader = "CB-ACCESS-PASSPHRASE";
+        private const string _accessKeyHeader = "X-GEMINI-APIKEY";
+        private const string _accessPayload = "X-GEMINI-PAYLOAD";
+        private const string _accessSignatureHeader = "X-GEMINI-SIGNATURE";
 
         private readonly GeminiCredentialsFactory _credentialsFactory;
 
-        public GeminiRestClientCredentials(string apiKey, string apiSecret, string passPhrase)
+        public GeminiRestClientCredentials(string apiKey, string apiSecret)
         {
-            _credentialsFactory = new GeminiCredentialsFactory(apiKey, apiSecret, passPhrase);
+            _credentialsFactory = new GeminiCredentialsFactory(apiKey, apiSecret);
         }
 
         public override async Task ProcessHttpRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -28,8 +27,7 @@ namespace TradingBot.Exchanges.Concrete.Gemini.RestClient
 
             request.Headers.Add(_accessKeyHeader, credentials.ApiKey);
             request.Headers.Add(_accessSignatureHeader, credentials.Signature);
-            request.Headers.Add(_timeStampHeader, credentials.UnixTimestampString);
-            request.Headers.Add(_passPhraseHeader, credentials.PassPhrase);
+            request.Headers.Add(_accessPayload, credentials.PayLoad);
         }
 
         private static async Task<string> GetContent(HttpRequestMessage request, CancellationToken cancellationToken)

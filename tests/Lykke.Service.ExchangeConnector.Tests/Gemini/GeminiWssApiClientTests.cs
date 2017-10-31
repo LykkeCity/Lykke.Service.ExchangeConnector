@@ -12,7 +12,6 @@ namespace Lykke.Service.ExchangeConnector.Tests.Gemini
     public class GeminiWssApiClientTests
     {
         private readonly GeminiWebSocketApi _api;
-        private readonly Guid _orderId = Guid.NewGuid();
 
         private const string _apiKey = "";
         private const string _apiSecret = "";
@@ -23,7 +22,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Gemini
 
         public GeminiWssApiClientTests()
         {
-            _api = new GeminiWebSocketApi(_apiKey, _apiSecret, _apiPassPhrase)
+            _api = new GeminiWebSocketApi(_apiKey, _apiSecret)
             {
                 BaseUri = new Uri(GeminiWebSocketApi.GeminiSandboxWssApiUrl)
             };
@@ -155,7 +154,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Gemini
 
         private GeminiRestApi CreateRestApi()
         {
-            return new GeminiRestApi(_apiKey, _apiSecret, _apiPassPhrase)
+            return new GeminiRestApi(_apiKey, _apiSecret)
             {
                 BaseUri = new Uri(GeminiRestApi.GeminiSandboxApiUrl)
             };

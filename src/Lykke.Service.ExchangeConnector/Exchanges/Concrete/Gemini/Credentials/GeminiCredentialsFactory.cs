@@ -10,13 +10,11 @@ namespace TradingBot.Exchanges.Concrete.Gemini.Credentials
     {
         public string ApiKey { get; private set; }
         public string ApiSecret { get; private set; }
-        public string PassPhrase { get; private set; }
 
-        public GeminiCredentialsFactory(string apiKey, string apiSecret, string passPhrase)
+        public GeminiCredentialsFactory(string apiKey, string apiSecret)
         {
             ApiKey = apiKey;
             ApiSecret = apiSecret;
-            PassPhrase = passPhrase;
         }
 
         public GeminiCredentials GenerateCredentials(HttpMethod method, Uri requestUri, string content)
@@ -27,9 +25,11 @@ namespace TradingBot.Exchanges.Concrete.Gemini.Credentials
 
             var signature = GetGeminiHashedSignature(method, requestUri, content, unixTimestampString);
 
-            var credentials = new GeminiCredentials(apiKey: ApiKey, apiSecret: ApiSecret, passPhrase: PassPhrase, 
-                unixTimestampString: unixTimestampString, signature: signature);
-            return credentials;
+            //var credentials = new GeminiCredentials(apiKey: ApiKey, apiSecret: ApiSecret, passPhrase: PassPhrase, 
+            //    unixTimestampString: unixTimestampString, signature: signature);
+            //return credentials;
+
+            return null; // TODO
         }
 
         private string GetGeminiHashedSignature(HttpMethod method, Uri requestUri, string content, string timeStampString)

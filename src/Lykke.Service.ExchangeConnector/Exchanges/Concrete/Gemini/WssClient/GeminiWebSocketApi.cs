@@ -96,9 +96,9 @@ namespace TradingBot.Exchanges.Concrete.Gemini.WssClient
         /// </summary>
         public Uri BaseUri { get; set; }
 
-        public GeminiWebSocketApi(string apiKey, string apiSecret, string passPhrase)
+        public GeminiWebSocketApi(string apiKey, string apiSecret)
         {
-            _credentialsFactory = new GeminiCredentialsFactory(apiKey, apiSecret, passPhrase);
+            _credentialsFactory = new GeminiCredentialsFactory(apiKey, apiSecret);
 
             BaseUri = new Uri(GeminiPublicWssApiUrl);
         }
@@ -126,8 +126,7 @@ namespace TradingBot.Exchanges.Concrete.Gemini.WssClient
                 type = "subscribe",
                 signature = credentials.Signature,
                 key = credentials.ApiKey,
-                passphrase = credentials.PassPhrase,
-                timestamp = credentials.UnixTimestampString,
+                // TODO
                 channels = new[] {
                     new { name = "ticker", product_ids = productIds },
                     new { name = "user", product_ids = productIds },

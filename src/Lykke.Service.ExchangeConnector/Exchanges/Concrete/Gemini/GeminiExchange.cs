@@ -43,8 +43,7 @@ namespace TradingBot.Exchanges.Concrete.Gemini
 
         private GeminiRestApi CreateRestApiClient()
         {
-            return new GeminiRestApi(_configuration.ApiKey, _configuration.ApiSecret,
-                _configuration.PassPhrase)
+            return new GeminiRestApi(_configuration.ApiKey, _configuration.ApiSecret)
             {
                 BaseUri = new Uri(_configuration.RestEndpointUrl),
                 ConnectorUserAgent = _configuration.UserAgent
@@ -53,8 +52,7 @@ namespace TradingBot.Exchanges.Concrete.Gemini
 
         private GeminiWebSocketApi CreateWebSocketsApiClient()
         {
-            var websocketApi = new GeminiWebSocketApi(_configuration.ApiKey, _configuration.ApiSecret,
-                _configuration.PassPhrase)
+            var websocketApi = new GeminiWebSocketApi(_configuration.ApiKey, _configuration.ApiSecret)
             {
                 BaseUri = new Uri(_configuration.WssEndpointUrl)
             };
