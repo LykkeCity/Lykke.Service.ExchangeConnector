@@ -27,16 +27,6 @@ namespace TradingBot.Trading
 		    Mid = (ask + bid) / 2m;
 		}
 
-		public TickPrice(Instrument instrument, DateTime time, decimal ask, decimal bid, decimal mid)
-		{
-		    Instrument = instrument;
-		    
-			Time = time;
-			Ask = ask;
-			Bid = bid;
-			Mid = mid;
-		}
-
 	    public Instrument Instrument { get; }
 	    
 		public DateTime Time { get; }
@@ -50,7 +40,7 @@ namespace TradingBot.Trading
 
 		public override string ToString()
 		{
-			return $"[TickPrice: Time={Time}, Ask={Ask:C}, Bid={Bid:C}, Mid={Mid:C}]";
+			return $"TickPrice for {Instrument}: Time={Time}, Ask={Ask:C}, Bid={Bid:C}, Mid={Mid:C}";
 		}
 	}
 }

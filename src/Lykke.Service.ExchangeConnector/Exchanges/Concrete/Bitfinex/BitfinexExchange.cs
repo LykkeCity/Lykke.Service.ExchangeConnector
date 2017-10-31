@@ -41,9 +41,9 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         }
 
-        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            var symbol = ConvertSymbolFromLykkeToExchange(instrument.Name);
+            var symbol = ConvertSymbolFromLykkeToExchange(signal.Instrument.Name);
             var volume = signal.Volume;
             var orderType = ConvertOrderType(signal.OrderType);
             var side = ConvertTradeType(signal.TradeType);
@@ -62,7 +62,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             return trade;
         }
 
-        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
 
             var cts = new CancellationTokenSource(timeout);

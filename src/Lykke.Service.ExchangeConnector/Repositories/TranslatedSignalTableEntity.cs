@@ -70,14 +70,14 @@ namespace TradingBot.Repositories
         {
         }
 
-        public TranslatedSignalTableEntity(SignalSource signalSource, string exchange, string instrument, TradingSignal signal)
+        public TranslatedSignalTableEntity(SignalSource signalSource, TradingSignal signal)
         {
             ReceiveDateTime = DateTime.UtcNow;
             Status = TranslationStatus.Success;
 
             SignalSource = signalSource;
-            Exchange = exchange;
-            Instrument = instrument;
+            Exchange = signal.Instrument.Exchange;
+            Instrument = signal.Instrument.Name;
 
             SignalDateTime = signal.Time;
             OrderCommand = signal.Command;

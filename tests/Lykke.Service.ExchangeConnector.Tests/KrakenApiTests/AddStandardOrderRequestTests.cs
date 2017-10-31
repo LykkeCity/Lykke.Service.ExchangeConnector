@@ -11,8 +11,8 @@ namespace TradingBot.Tests.KrakenApiTests
         [Fact]
         public void AddOneZeroesToIntPrice()
         {
-            var request = new AddStandardOrderRequest(new Instrument("", ""),
-                new TradingSignal("", OrderCommand.Create, TradeType.Buy, 4000, 1, DateTime.UtcNow, OrderType.Limit));
+            var request = new AddStandardOrderRequest(
+                new TradingSignal(new Instrument("", ""),  "", OrderCommand.Create, TradeType.Buy, 4000, 1, DateTime.UtcNow, OrderType.Limit));
             
             Assert.Equal("4000.0", request.FormData.First(x => x.Key == "price").Value);
         }
@@ -21,8 +21,8 @@ namespace TradingBot.Tests.KrakenApiTests
         [Fact]
         public void PriceHasOneDecimals()
         {
-            var request = new AddStandardOrderRequest(new Instrument("", ""),
-                new TradingSignal("", OrderCommand.Create, TradeType.Buy, 4000.111m, 1, DateTime.UtcNow, OrderType.Limit));
+            var request = new AddStandardOrderRequest(
+                new TradingSignal(new Instrument("", ""),  "", OrderCommand.Create, TradeType.Buy, 4000.111m, 1, DateTime.UtcNow, OrderType.Limit));
             
             Assert.Equal("4000.1", request.FormData.First(x => x.Key == "price").Value);
         }

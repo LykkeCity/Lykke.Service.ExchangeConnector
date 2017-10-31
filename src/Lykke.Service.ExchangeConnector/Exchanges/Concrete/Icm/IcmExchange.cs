@@ -127,18 +127,18 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 .Start();
         }
         
-        protected override async Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        protected override async Task<bool> AddOrderImpl(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             await LykkeLog.WriteInfoAsync(
                 nameof(Icm),
                 nameof(IcmExchange),
                 nameof(AddOrderImpl),
-                $"About to place new order for instrument {instrument}: {signal}");
+                $"About to place new order for {signal}");
             
-            return connector.AddOrder(instrument, signal, translatedSignal);
+            return connector.AddOrder(signal, translatedSignal);
         }
 
-        protected override async Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        protected override async Task<bool> CancelOrderImpl(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             await LykkeLog.WriteInfoAsync(
                 nameof(Icm),
@@ -146,7 +146,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 nameof(AddOrderImpl),
                 $"Canceling order {signal}");
 
-            return connector.CancelOrder(instrument, signal, translatedSignal);
+            return connector.CancelOrder(signal, translatedSignal);
         }
 
         public override Task<ExecutedTrade> GetOrder(string orderId, Instrument instrument, TimeSpan timeout)
@@ -159,14 +159,14 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return connector.GetAllOrdersInfo(timeout);
         }
 
-        public override Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            return connector.AddOrderAndWaitResponse(instrument, signal, translatedSignal, timeout);
+            return connector.AddOrderAndWaitResponse(signal, translatedSignal, timeout);
         }
 
-        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            return connector.CancelOrderAndWaitResponse(instrument, signal, translatedSignal, timeout);
+            return connector.CancelOrderAndWaitResponse(signal, translatedSignal, timeout);
         }
     }
 }

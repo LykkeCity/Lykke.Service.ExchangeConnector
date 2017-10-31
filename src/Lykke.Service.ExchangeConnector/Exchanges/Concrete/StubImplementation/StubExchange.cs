@@ -62,7 +62,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 							    .Select(x => Math.Round((decimal) gbms[instrument].GenerateNextValue(), 6))
 							    .Select(x => new TickPrice(instrument, DateTime.UtcNow, x))
 							    .ToArray();
-
+				        
 					    lock (syncRoot)
 					    {
 						    decimal lowestAsk = currentPrices.Min(x => x.Ask);
@@ -129,15 +129,22 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 							    {
 							        LykkeLog.WriteInfoAsync(nameof(StubExchange), nameof(StartImpl), nameof(streamJob),
 							            $"Step {counter}, total PnL: {Positions[instrument.Name].GetPnL(currentPrice.Mid)}").Wait();
-							    }    
+							    }   
 						    }
 					    }
 					    
 					    // TODO: deal with awaitable. I don't want to wait here for Azure and Rabbit connections
-					    foreach (var currentPrice in currentPrices)
-					    {
-					        await CallTickPricesHandlers(currentPrice);
-					    }
+				        try
+				        {
+				            foreach (var currentPrice in currentPrices)
+				            {
+				                await CallTickPricesHandlers(currentPrice);
+				            }
+				        }
+				        catch (Exception e)
+				        {
+				            Console.WriteLine(e);
+				        }
 				        
 				        await Task.Delay(config.PricesIntervalInMilliseconds, ctSource.Token);
 				    }
@@ -155,16 +162,18 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 	        }
         }
 
-	    protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+	    protected override Task<bool> AddOrderImpl(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
 	    {
 	        translatedSignal.RequestSent("stub exchange don't send actual request");
-		    //SimulateException();
-	        
+//
+//	        SimulateWork();
+//	        SimulateException();
+//	        
 		    translatedSignal.ResponseReceived("stub exchange don't recevie actual response");
 	        lock (syncRoot)
 	        {
-	            var s = new TradingSignal(Guid.NewGuid().ToString(), signal.Command, signal.TradeType, signal.Price, signal.Volume, signal.Time, signal.OrderType, signal.TimeInForce);
-	            ActualSignals[instrument.Name].AddLast(s);
+	            var s = new TradingSignal(signal.Instrument, Guid.NewGuid().ToString(), signal.Command, signal.TradeType, signal.Price, signal.Volume, signal.Time, signal.OrderType, signal.TimeInForce);
+	            ActualSignals[signal.Instrument.Name].AddLast(s);
 	            translatedSignal.ExternalId = s.OrderId;
 	        }
 
@@ -180,19 +189,25 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 		    }
 	    }
 
-	    protected override Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        private void SimulateWork()
+        {
+            Thread.Sleep(TimeSpan.FromSeconds(Random.Next(1, 11)));
+        }
+
+	    protected override Task<bool> CancelOrderImpl(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
 	    {
 		    translatedSignal.RequestSent("stub exchange don't send actual request");
-		    //SimulateException();
+//	        SimulateWork();
+//	        SimulateException();
 		    translatedSignal.ResponseReceived("stub exchange don't recevie actual response");
 
 	        bool isCanceled = false;
 	        lock (syncRoot)
 	        {
-	            TradingSignal existing = ActualSignals[instrument.Name].FirstOrDefault(x => x.OrderId == signal.OrderId);
+	            TradingSignal existing = ActualSignals[signal.Instrument.Name].FirstOrDefault(x => x.OrderId == signal.OrderId);
 	            if (existing != null)
 	            {
-	                ActualSignals[instrument.Name].Remove(existing);
+	                ActualSignals[signal.Instrument.Name].Remove(existing);
 	                isCanceled = true;
 	            }
 	        }
@@ -200,12 +215,12 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 		    return Task.FromResult(isCanceled);
 	    }
 
-	    public override Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+	    public override Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
 	    {
 		    throw new NotImplementedException();
 	    }
 
-	    public override Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+	    public override Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
 	    {
 		    throw new NotImplementedException();
 	    }

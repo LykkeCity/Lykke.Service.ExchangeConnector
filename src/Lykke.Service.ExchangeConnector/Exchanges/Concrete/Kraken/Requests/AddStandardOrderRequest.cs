@@ -13,9 +13,9 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Requests
 
         }
 
-        public AddStandardOrderRequest(Instrument instrument, TradingSignal tradingSignal)
+        public AddStandardOrderRequest(TradingSignal tradingSignal)
         {
-            Pair = instrument.Name;
+            Pair = tradingSignal.Instrument.Name;
             Type = tradingSignal.TradeType;
             OrderType = tradingSignal.OrderType;
             Price = tradingSignal.Price ?? 0;

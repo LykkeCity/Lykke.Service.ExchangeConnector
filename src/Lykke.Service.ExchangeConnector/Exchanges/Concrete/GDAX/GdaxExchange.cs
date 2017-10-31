@@ -66,10 +66,10 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             return websocketApi;
         }
 
-        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, 
+        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, 
             TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            var symbol = _converters.LykkeSymbolToGdaxSymbol(instrument.Name);
+            var symbol = _converters.LykkeSymbolToGdaxSymbol(signal.Instrument.Name);
             var orderType = _converters.OrderTypeToGdaxOrderType(signal.OrderType);
             var side = _converters.TradeTypeToGdaxOrderSide(signal.TradeType);
             var volume = signal.Volume;
@@ -90,7 +90,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             }
         }
 
-        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, 
+        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution( 
             TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             if (!Guid.TryParse(signal.OrderId, out var id))

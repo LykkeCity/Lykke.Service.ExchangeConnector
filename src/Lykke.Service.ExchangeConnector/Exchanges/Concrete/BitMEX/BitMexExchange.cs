@@ -41,9 +41,9 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             orderBooksHarvester.MaxOrderBookRate = configuration.MaxOrderBookRate;
         }
 
-        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            var symbol = BitMexModelConverter.ConvertSymbolFromLykkeToBitMex(instrument.Name, _configuration);
+            var symbol = BitMexModelConverter.ConvertSymbolFromLykkeToBitMex(signal.Instrument.Name, _configuration);
             var volume = BitMexModelConverter.ConvertVolume(signal.Volume);
             var orderType = BitMexModelConverter.ConvertOrderType(signal.OrderType);
             var side = BitMexModelConverter.ConvertTradeType(signal.TradeType);
@@ -66,11 +66,11 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             var exceTime = order.TransactTime ?? DateTime.UtcNow;
             var execType = BitMexModelConverter.ConvertTradeType(order.Side);
 
-            return new ExecutedTrade(instrument, exceTime, execPrice, execVolume, execType, order.OrderID, execStatus) { Message = order.Text };
+            return new ExecutedTrade(signal.Instrument, exceTime, execPrice, execVolume, execType, order.OrderID, execStatus) { Message = order.Text };
         }
 
 
-        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
 
             var ct = new CancellationTokenSource(timeout);

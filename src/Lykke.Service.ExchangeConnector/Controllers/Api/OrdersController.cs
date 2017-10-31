@@ -116,12 +116,11 @@ namespace TradingBot.Controllers.Api
 
 
                 var instrument = new Instrument(orderModel.ExchangeName, orderModel.Instrument);
-                var tradingSignal = new TradingSignal(GetUniqueOrderId(orderModel), OrderCommand.Create, orderModel.TradeType,
+                var tradingSignal = new TradingSignal(instrument, GetUniqueOrderId(orderModel), OrderCommand.Create, orderModel.TradeType,
                     orderModel.Price, orderModel.Volume, DateTime.UtcNow,
                     orderModel.OrderType, orderModel.TimeInForce);
 
-                var translatedSignal = new TranslatedSignalTableEntity(SignalSource.RestApi, instrument.Exchange,
-                    instrument.Name, tradingSignal)
+                var translatedSignal = new TranslatedSignalTableEntity(SignalSource.RestApi, tradingSignal)
                 {
                     ClientIP = HttpContext.Connection.RemoteIpAddress.ToString()
                 };
@@ -129,7 +128,7 @@ namespace TradingBot.Controllers.Api
                 try
                 {
                     var result = await Application.GetExchange(orderModel.ExchangeName)
-                        .AddOrderAndWaitExecution(instrument, tradingSignal, translatedSignal, _timeout);
+                        .AddOrderAndWaitExecution(tradingSignal, translatedSignal, _timeout);
 
                     translatedSignal.SetExecutionResult(result);
 
@@ -185,9 +184,9 @@ namespace TradingBot.Controllers.Api
                 }
 
                 var instrument = new Instrument(exchangeName, string.Empty);
-                var tradingSignal = new TradingSignal(id, OrderCommand.Cancel, TradeType.Unknown, 0, 0, DateTime.UtcNow, OrderType.Unknown);
+                var tradingSignal = new TradingSignal(instrument, id, OrderCommand.Cancel, TradeType.Unknown, 0, 0, DateTime.UtcNow, OrderType.Unknown);
 
-                var translatedSignal = new TranslatedSignalTableEntity(SignalSource.RestApi, exchangeName, instrument.Name, tradingSignal)
+                var translatedSignal = new TranslatedSignalTableEntity(SignalSource.RestApi, tradingSignal)
                 {
                     ClientIP = HttpContext.Connection.RemoteIpAddress.ToString()
                 };
@@ -195,7 +194,7 @@ namespace TradingBot.Controllers.Api
                 try
                 {
                     var result = await Application.GetExchange(exchangeName)
-                        .CancelOrderAndWaitExecution(instrument, tradingSignal, translatedSignal, _timeout);
+                        .CancelOrderAndWaitExecution(tradingSignal, translatedSignal, _timeout);
 
                     if (result.Status == ExecutionStatus.Rejected)
                         throw new StatusCodeException(HttpStatusCode.BadRequest, $"Exchange return status: {result.Status}", null);
