@@ -1,0 +1,249 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net.Http;
+using System.Net.WebSockets;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using TradingBot.Infrastructure.Exceptions;
+using TradingBot.Exchanges.Concrete.Gemini.Credentials;
+using TradingBot.Exchanges.Concrete.Gemini.WssClient.Entities;
+
+namespace TradingBot.Exchanges.Concrete.Gemini.WssClient
+{
+    internal class GeminiWebSocketApi: IDisposable
+    {
+        public const string GeminiPublicWssApiUrl = @"wss://api.gemini.com";
+        public const string GeminiSandboxWssApiUrl = @"wss://api.sandbox.gemini.com";
+        private const string _selfVerifyUrl = @"/users/self/verify";
+
+        private readonly GeminiCredentialsFactory _credentialsFactory;
+        private ClientWebSocket _clientWebSocket;
+
+        /// <summary>
+        /// Raised on established WebSocket connection with the server
+        /// </summary>
+        public event EventHandler<Uri> Connected;
+
+        /// <summary>
+        /// Raised when WebSocket connection is lost
+        /// </summary>
+        public event EventHandler<Uri> Disconnected;
+
+        /// <summary>
+        /// Raised on successful subscription
+        /// </summary>
+        public event EventHandler<string> Subscribed;
+
+        /// <summary>
+        /// Raised when a valid order has been received and is now active. This message 
+        /// is emitted for every single valid order as soon as the matching engine receives 
+        /// it whether it fills immediately or not.
+        /// </summary>
+        public event EventHandler<GeminiWssOrderReceived> OrderReceived;
+
+        /// <summary>
+        /// Raised when the order is now open on the order book. This message will only be 
+        /// sent for orders which are not fully filled immediately. RemainingSize will 
+        /// indicate how much of the order is unfilled and going on the book
+        /// </summary>
+        public event EventHandler<GeminiWssOrderOpen> OrderOpened;
+
+        /// <summary>
+        /// Raised when the order is no longer on the order book. Sent for all orders for which there 
+        /// was a received message. This message can result from an order being canceled or filled. 
+        /// There will be no more messages for this OrderId after a done message. RemainingSize indicates 
+        /// how much of the order went unfilled; this will be 0 for filled orders.
+        /// Market orders will not have a remaining_size or price field as they are never on the 
+        /// open order book at a given price.
+        /// </summary>
+        public event EventHandler<GeminiWssOrderDone> OrderDone;
+
+        /// <summary>
+        /// Raised when a trade occurred between two orders. The aggressor or taker order is the one 
+        /// executing immediately after being received and the maker order is a resting order on the book. 
+        /// The side field indicates the maker order side. If the side is sell this indicates the maker 
+        /// was a sell order and the match is considered an up-tick. A buy side match is a down-tick.
+        /// </summary>
+        public event EventHandler<GeminiWssOrderMatch> OrderMatched;
+
+        /// <summary>
+        /// Raised when an order has changed. This is the result of self-trade prevention adjusting the 
+        /// order size or available funds. Orders can only decrease in size or funds. Change messages are 
+        /// sent anytime an order changes in size; this includes resting orders (open) as well as received 
+        /// but not yet open. Change messages are also sent when a new market order goes through self trade 
+        /// prevention and the funds for the market order have changed.
+        /// </summary>
+        public event EventHandler<GeminiWssOrderChange> OrderChanged;
+
+        /// <summary>
+        /// The ticker provides real-time price updates every time a match happens. It batches updates 
+        /// in case of cascading matches, greatly reducing bandwidth requirements.
+        /// </summary>
+        public event EventHandler<GeminiWssTicker> Ticker;
+
+        /// <summary>
+        /// Most failure cases will cause an error message (a message with the type "error") to be emitted. 
+        /// This can be helpful for implementing a client or debugging issues.
+        /// </summary>
+        public event EventHandler<GeminiWssError> Error;
+
+        /// <summary>
+        /// Base Gemini WebSockets Uri
+        /// </summary>
+        public Uri BaseUri { get; set; }
+
+        public GeminiWebSocketApi(string apiKey, string apiSecret, string passPhrase)
+        {
+            _credentialsFactory = new GeminiCredentialsFactory(apiKey, apiSecret, passPhrase);
+
+            BaseUri = new Uri(GeminiPublicWssApiUrl);
+        }
+
+        public async Task ConnectAsync(CancellationToken cancellationToken)
+        {
+            _clientWebSocket = new ClientWebSocket();
+            await _clientWebSocket.ConnectAsync(BaseUri, cancellationToken).ConfigureAwait(false);
+
+            if (_clientWebSocket.State != WebSocketState.Open)
+                throw new ApiException($"Could not establish WebSockets connection to {BaseUri}");
+
+            Connected?.Invoke(this, BaseUri);
+        }
+
+        public async Task SubscribeToPrivateUpdatesAsync(ICollection<string> productIds, CancellationToken cancellationToken)
+        {
+            if (_clientWebSocket == null || _clientWebSocket.State != WebSocketState.Open)
+                throw new ApiException($"Could not subscribe to {BaseUri} because no connection is established.");
+
+            var credentials = _credentialsFactory.GenerateCredentials(HttpMethod.Get, 
+                new Uri(BaseUri, _selfVerifyUrl), string.Empty);
+            var requestString = JsonConvert.SerializeObject(new
+            {
+                type = "subscribe",
+                signature = credentials.Signature,
+                key = credentials.ApiKey,
+                passphrase = credentials.PassPhrase,
+                timestamp = credentials.UnixTimestampString,
+                channels = new[] {
+                    new { name = "ticker", product_ids = productIds },
+                    new { name = "user", product_ids = productIds },
+                }
+            });
+
+            await _clientWebSocket.SendAsync(StringToArraySegment(requestString), WebSocketMessageType.Text, 
+                true, cancellationToken).ConfigureAwait(false);
+
+            Subscribed?.Invoke(this, requestString);
+
+            await ListenToMessagesAsync(_clientWebSocket, cancellationToken);
+        }
+
+        private async Task ListenToMessagesAsync(ClientWebSocket webSocket, CancellationToken cancellationToken)
+        {
+            while (webSocket.State == WebSocketState.Open)
+            {
+                using (var stream = new MemoryStream(1024))
+                {
+                    var receiveBuffer = new ArraySegment<byte>(new byte[1024 * 8]);
+                    WebSocketReceiveResult receiveResult;
+                    do
+                    {
+                        receiveResult = await webSocket.ReceiveAsync(receiveBuffer,
+                            cancellationToken).ConfigureAwait(false);
+                        await stream.WriteAsync(receiveBuffer.Array, receiveBuffer.Offset, receiveBuffer.Count);
+                    } while (!receiveResult.EndOfMessage);
+
+                    var messageBytes = stream.ToArray();
+                    var jsonMessage = Encoding.UTF8.GetString(messageBytes, 0, messageBytes.Length);
+                    HandleWebSocketMessage(jsonMessage);
+                }
+            }
+        }
+
+        public async Task CloseConnectionAsync(CancellationToken cancellationToken)
+        {
+            if (_clientWebSocket != null && _clientWebSocket.State == WebSocketState.Open)
+            {
+                await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal closure", cancellationToken);
+                Disconnected?.Invoke(this, BaseUri);
+            }
+        }
+
+        private ArraySegment<byte> StringToArraySegment(string message)
+        {
+            var messageBytes = UTF8Encoding.UTF8.GetBytes(message);
+            var messageArraySegment = new ArraySegment<byte>(messageBytes);
+            return messageArraySegment;
+        }
+
+        private void HandleWebSocketMessage(string jsonMessage)
+        {
+            var jToken = JToken.Parse(jsonMessage);
+            var type = jToken["type"]?.Value<string>();
+
+            switch (type)
+            {
+                case "received":
+                    var orderReceived = JsonConvert.DeserializeObject<GeminiWssOrderReceived>(jsonMessage);
+                    OrderReceived?.Invoke(this, orderReceived);
+                    break;
+                case "open":
+                    var orderOpen = JsonConvert.DeserializeObject<GeminiWssOrderOpen>(jsonMessage);
+                    OrderOpened?.Invoke(this, orderOpen);
+                    break;
+                case "done":
+                    var orderDone = JsonConvert.DeserializeObject<GeminiWssOrderDone>(jsonMessage);
+                    OrderDone?.Invoke(this, orderDone);
+                    break;
+                case "match":
+                    var orderMatch = JsonConvert.DeserializeObject<GeminiWssOrderMatch>(jsonMessage);
+                    OrderMatched?.Invoke(this, orderMatch);
+                    break;
+                case "change":
+                    var orderChange = JsonConvert.DeserializeObject<GeminiWssOrderChange>(jsonMessage);
+                    OrderChanged?.Invoke(this, orderChange);
+                    break;
+                case "ticker":
+                    var tickerDetails = JsonConvert.DeserializeObject<GeminiWssTicker>(jsonMessage);
+                    Ticker?.Invoke(this, tickerDetails);
+                    break;
+                case "error":
+                    var error = JsonConvert.DeserializeObject<GeminiWssError>(jsonMessage);
+                    Error.Invoke(this, error);
+                    break;
+                default:
+                    // Clients are expected to ignore messages they do not support.
+                    break;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        ~GeminiWebSocketApi()
+        {
+            Dispose(false);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Dispose managed resources
+                if (_clientWebSocket != null)
+                {
+                    _clientWebSocket.Abort();
+                    _clientWebSocket.Dispose();
+                    _clientWebSocket = null;
+                }
+            }
+        }
+    }
+}

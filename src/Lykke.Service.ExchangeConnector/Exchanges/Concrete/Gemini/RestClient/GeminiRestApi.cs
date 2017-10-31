@@ -6,21 +6,19 @@ using System.Threading.Tasks;
 using Microsoft.Rest;
 using TradingBot.Exchanges.Abstractions.Models;
 using TradingBot.Exchanges.Abstractions.RestClient;
-using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
+using TradingBot.Exchanges.Concrete.Gemini.RestClient.Entities;
 
-namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
+namespace TradingBot.Exchanges.Concrete.Gemini.RestClient
 {
-    internal sealed class GdaxRestApi : ServiceClient<GdaxRestApi>, IGdaxRestApi
+    internal sealed class GeminiRestApi : ServiceClient<GeminiRestApi>, IGeminiRestApi
     {
-        public const string GdaxPublicApiUrl = @"https://api.gdax.com";
-        public const string GdaxSandboxApiUrl = @"https://api-public.sandbox.gdax.com";
+        public const string GeminiPublicApiUrl = @"https://api.gemini.com";
+        public const string GeminiSandboxApiUrl = @"https://api.sandbox.gemini.com";
 
         private const string _balanceRequestUrl = @"/accounts";
         private const string _newOrderRequestUrl = @"/orders";
-        private const string _orderStatusRequestUrl = @"/orders/{0}&status=done&status=pending&status=open&status=cancelled";
         private const string _orderCancelRequestUrl = @"/orders/{0}";
         private const string _activeOrdersRequestUrl = @"/orders";
-        private const string _marginInfoRequstUrl = @"/v1/margin_infos";
         
         private const string _defaultConnectorUserAgent = "Lykke";
         
@@ -28,7 +26,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
         private readonly RestApiClient _restClient;
 
         /// <summary>
-        /// Base GDAX Uri
+        /// Base Gemini Uri
         /// </summary>
         public Uri BaseUri
         {
@@ -49,24 +47,24 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
             }
         }
 
-        public GdaxRestApi(string apiKey, string apiSecret, string passPhrase)
+        public GeminiRestApi(string apiKey, string apiSecret, string passPhrase)
         {
-            _credentials = new GdaxRestClientCredentials(apiKey, apiSecret, passPhrase);
+            _credentials = new GeminiRestClientCredentials(apiKey, apiSecret, passPhrase);
 
-            BaseUri = new Uri(GdaxPublicApiUrl);
+            BaseUri = new Uri(GeminiPublicApiUrl);
             ConnectorUserAgent = _defaultConnectorUserAgent;
 
             _restClient = new RestApiClient(HttpClient, _credentials);
         }
 
-        public async Task<GdaxOrderResponse> AddOrder(string productId, decimal amount, decimal price,
-            GdaxOrderSide side, GdaxOrderType type, CancellationToken cancellationToken = default,
+        public async Task<GeminiOrderResponse> AddOrder(string productId, decimal amount, decimal price,
+            GeminiOrderSide side, GeminiOrderType type, CancellationToken cancellationToken = default,
             EventHandler<SentHttpRequest> sentHttpRequestHandler = default,
             EventHandler<ReceivedHttpResponse> receivedHttpRequestHandler = default)
         {
-            var response = await _restClient.ExecuteRestMethod<GdaxOrderResponse>(
+            var response = await _restClient.ExecuteRestMethod<GeminiOrderResponse>(
                 HttpMethod.Post, _newOrderRequestUrl,
-                new GdaxNewOrderPost
+                new GeminiNewOrderPost
                 {
                     ProductId = productId,
                     Size = amount,
@@ -83,40 +81,40 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
             EventHandler<ReceivedHttpResponse> receivedHttpRequestHandler = default)
         {
             var response = await _restClient.ExecuteRestMethod<IReadOnlyCollection<Guid>>(HttpMethod.Delete, 
-                string.Format(_orderCancelRequestUrl, orderId), new GdaxPostContentBase(), cancellationToken, 
+                string.Format(_orderCancelRequestUrl, orderId), new GeminiPostContentBase(), cancellationToken, 
                 sentHttpRequestHandler, receivedHttpRequestHandler);
 
             return response;
         }
 
-        public async Task<IReadOnlyList<GdaxOrderResponse>> GetOpenOrders(CancellationToken cancellationToken = default,
+        public async Task<IReadOnlyList<GeminiOrderResponse>> GetOpenOrders(CancellationToken cancellationToken = default,
             EventHandler<SentHttpRequest> sentHttpRequestHandler = default,
             EventHandler<ReceivedHttpResponse> receivedHttpRequestHandler = default)
         {
-            var response = await _restClient.ExecuteRestMethod<IReadOnlyList<GdaxOrderResponse>>(HttpMethod.Get, 
-                _activeOrdersRequestUrl, new GdaxPostContentBase(), cancellationToken, sentHttpRequestHandler, 
+            var response = await _restClient.ExecuteRestMethod<IReadOnlyList<GeminiOrderResponse>>(HttpMethod.Get, 
+                _activeOrdersRequestUrl, new GeminiPostContentBase(), cancellationToken, sentHttpRequestHandler, 
                 receivedHttpRequestHandler);
 
             return response;
         }
 
-        public async Task<GdaxOrderResponse> GetOrderStatus(Guid orderId, CancellationToken cancellationToken = default,
+        public async Task<GeminiOrderResponse> GetOrderStatus(Guid orderId, CancellationToken cancellationToken = default,
             EventHandler<SentHttpRequest> sentHttpRequestHandler = default,
             EventHandler<ReceivedHttpResponse> receivedHttpRequestHandler = default)
         {
-            var response = await _restClient.ExecuteRestMethod<GdaxOrderResponse>(HttpMethod.Get,
-                string.Format(_orderCancelRequestUrl, orderId), new GdaxPostContentBase(), cancellationToken, 
+            var response = await _restClient.ExecuteRestMethod<GeminiOrderResponse>(HttpMethod.Get,
+                string.Format(_orderCancelRequestUrl, orderId), new GeminiPostContentBase(), cancellationToken, 
                 sentHttpRequestHandler, receivedHttpRequestHandler);
 
             return response;
         }
 
-        public async Task<IReadOnlyList<GdaxBalanceResponse>> GetBalances(CancellationToken cancellationToken = default,
+        public async Task<IReadOnlyList<GeminiBalanceResponse>> GetBalances(CancellationToken cancellationToken = default,
             EventHandler<SentHttpRequest> sentHttpRequestHandler = default,
             EventHandler<ReceivedHttpResponse> receivedHttpRequestHandler = default)
         {
-            var response = await _restClient.ExecuteRestMethod<IReadOnlyList<GdaxBalanceResponse>>(HttpMethod.Get, 
-                _balanceRequestUrl, new GdaxPostContentBase(), cancellationToken, sentHttpRequestHandler, receivedHttpRequestHandler);
+            var response = await _restClient.ExecuteRestMethod<IReadOnlyList<GeminiBalanceResponse>>(HttpMethod.Get, 
+                _balanceRequestUrl, new GeminiPostContentBase(), cancellationToken, sentHttpRequestHandler, receivedHttpRequestHandler);
 
             return response;
         }
