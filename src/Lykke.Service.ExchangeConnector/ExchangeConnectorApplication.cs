@@ -90,8 +90,7 @@ namespace TradingBot
             var subscriberSettings = new RabbitMqSubscriptionSettings()
             {
                 ConnectionString = rabbitConfig.GetConnectionString(),
-                ExchangeName = rabbitConfig.SignalsExchange,
-                QueueName = rabbitConfig.SignalsQueue
+                ExchangeName = rabbitConfig.Signals.Exchange
             };
             var errorStrategy = new DefaultErrorHandlingStrategy(_log, subscriberSettings);
             _signalSubscriber = new RabbitMqSubscriber<InstrumentTradingSignals>(subscriberSettings, errorStrategy)
