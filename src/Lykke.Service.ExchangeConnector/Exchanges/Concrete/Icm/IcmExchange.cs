@@ -116,7 +116,13 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 .Subscribe(async orderBook =>
                     {
                         if (Instruments.Any(x => x.Name == orderBook.Asset))
-                            await CallTickPricesHandlers(orderBook.ToInstrumentTickPrices());
+                        {
+                            var tickPrice = orderBook.ToTickPrice();
+                            if (tickPrice != null)
+                            {
+                                await CallTickPricesHandlers(tickPrice);
+                            }
+                        }
                     })
                 .Start();
         }
