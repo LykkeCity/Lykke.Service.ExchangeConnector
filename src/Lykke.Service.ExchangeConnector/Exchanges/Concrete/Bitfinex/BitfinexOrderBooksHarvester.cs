@@ -32,7 +32,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             {
                 await Messenger.ConnectAsync();
                 await Subscribe();
-                _heartBeatMonitoringTimer.Change(TimeSpan.FromSeconds(10), Timeout.InfiniteTimeSpan);
+                _heartBeatMonitoringTimer.Change(TimeSpan.FromSeconds(30), Timeout.InfiniteTimeSpan);
                 while (!CancellationToken.IsCancellationRequested)
                 {
                     var resp = await GetResponse();
@@ -113,7 +113,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         private async Task HandleResponse(HeartbeatResponse heartbeat)
         {
             _heartIsStoped = false;
-            _heartBeatMonitoringTimer.Change(TimeSpan.FromSeconds(10), Timeout.InfiniteTimeSpan);
+            _heartBeatMonitoringTimer.Change(TimeSpan.FromSeconds(30), Timeout.InfiniteTimeSpan);
             await Log.WriteInfoAsync(nameof(HandleResponse), $"Bitfinex channel {_channels[heartbeat.ChannelId].Pair} heartbeat", string.Empty);
         }
 
