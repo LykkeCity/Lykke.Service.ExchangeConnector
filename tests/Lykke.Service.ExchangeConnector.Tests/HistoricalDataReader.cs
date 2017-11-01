@@ -87,7 +87,7 @@ namespace TradingBot.Tests
             var time = DateTime.Parse($"{columns[0]} {columns[1]}");
             var price = decimal.Parse(columns[2], CultureInfo.InvariantCulture);
 
-            return new TickPrice(time, price);
+            return new TickPrice(new Instrument("", ""), time, price);
         }
 
         /// <summary>
@@ -100,7 +100,7 @@ namespace TradingBot.Tests
             var time = DateTime.ParseExact(columns[0], "yyyyMMdd HHmmss", CultureInfo.InvariantCulture);
             var price = decimal.Parse(columns[1], CultureInfo.InvariantCulture);
 
-            return new TickPrice(time, price);
+            return new TickPrice(new Instrument("", ""), time, price);
         }
 
         /// <summary>
@@ -119,7 +119,7 @@ namespace TradingBot.Tests
             var ask = decimal.Parse(columns[1], CultureInfo.InvariantCulture);
             //var bid = decimal.Parse(columns[2], CultureInfo.InvariantCulture);
 
-            return new TickPrice(time, ask /*, bid*/);
+            return new TickPrice(new Instrument("", ""), time, ask /*, bid*/);
         }
     }
 }

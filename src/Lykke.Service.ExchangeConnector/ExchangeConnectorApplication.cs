@@ -21,7 +21,7 @@ namespace TradingBot
         private readonly Timer _timer;
         private readonly Dictionary<string, Exchange> _exchanges;
         private readonly AppSettings _config;
-        private RabbitMqSubscriber<InstrumentTradingSignals> _signalSubscriber;
+        private RabbitMqSubscriber<TradingSignal> _signalSubscriber;
 
 
         public TranslatedSignalsRepository TranslatedSignalsRepository { get; }
@@ -90,12 +90,11 @@ namespace TradingBot
             var subscriberSettings = new RabbitMqSubscriptionSettings()
             {
                 ConnectionString = rabbitConfig.GetConnectionString(),
-                ExchangeName = rabbitConfig.SignalsExchange,
-                QueueName = rabbitConfig.SignalsQueue
+                ExchangeName = rabbitConfig.Signals.Exchange
             };
             var errorStrategy = new DefaultErrorHandlingStrategy(_log, subscriberSettings);
-            _signalSubscriber = new RabbitMqSubscriber<InstrumentTradingSignals>(subscriberSettings, errorStrategy)
-                .SetMessageDeserializer(new GenericRabbitModelConverter<InstrumentTradingSignals>())
+            _signalSubscriber = new RabbitMqSubscriber<TradingSignal>(subscriberSettings, errorStrategy)
+                .SetMessageDeserializer(new GenericRabbitModelConverter<TradingSignal>())
                 .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
                 .SetConsole(new LogToConsole())
                 .SetLogger(new LogToConsole())

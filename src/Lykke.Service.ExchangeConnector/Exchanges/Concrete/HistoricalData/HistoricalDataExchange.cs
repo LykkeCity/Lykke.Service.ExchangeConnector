@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Common.Log;
 using TradingBot.Communications;
@@ -48,7 +47,7 @@ namespace TradingBot.Exchanges.Concrete.HistoricalData
                 using (var enumerator = reader.GetEnumerator())
                     while (!stopRequested && enumerator.MoveNext())
                     {
-                        await CallTickPricesHandlers(new InstrumentTickPrices(Instruments.First(), new TickPrice[] { enumerator.Current }));
+                        await CallTickPricesHandlers(enumerator.Current);
                     }
             });
         }
@@ -59,22 +58,22 @@ namespace TradingBot.Exchanges.Concrete.HistoricalData
             reader?.Dispose();
         }
 
-        protected override Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        protected override Task<bool> AddOrderImpl(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             throw new NotImplementedException();
         }
 
-        protected override Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        protected override Task<bool> CancelOrderImpl(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             throw new NotImplementedException();
         }
 
-        public override Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             throw new NotImplementedException();
         }
 
-        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             throw new NotImplementedException();
         }

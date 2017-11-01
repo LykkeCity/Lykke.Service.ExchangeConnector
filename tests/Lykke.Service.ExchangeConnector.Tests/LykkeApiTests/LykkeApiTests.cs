@@ -33,7 +33,7 @@ namespace TradingBot.Tests.LykkeApiTests
         public async Task OpenAndClosePrices()
         {
             var exchange = Exchange;
-            var listForPrices = new List<InstrumentTickPrices>();
+            var listForPrices = new List<TickPrice>();
             exchange.AddTickPriceHandler(new TickPriceHandler(listForPrices));
             
             exchange.Start();
@@ -43,16 +43,16 @@ namespace TradingBot.Tests.LykkeApiTests
             Assert.True(listForPrices.Any());
         }
 
-        class TickPriceHandler : Handler<InstrumentTickPrices>
+        class TickPriceHandler : Handler<TickPrice>
         {
-            private readonly List<InstrumentTickPrices> list;
+            private readonly List<TickPrice> list;
 
-            public TickPriceHandler(List<InstrumentTickPrices> list)
+            public TickPriceHandler(List<TickPrice> list)
             {
                 this.list = list;
             }
             
-            public override Task Handle(InstrumentTickPrices message)
+            public override Task Handle(TickPrice message)
             {
                 list.Add(message);
                 return Task.FromResult(0);

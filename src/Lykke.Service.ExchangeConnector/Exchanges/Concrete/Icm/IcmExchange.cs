@@ -52,7 +52,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             else
             {
                 _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartImpl), string.Empty,
-                    "Socket connection is desibled");
+                    "Socket connection is disabled");
             }
 
             if (config.RabbitMq.Enabled && (config.PubQuotesToRabbit || config.SaveQuotesToAzure))
@@ -105,7 +105,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             var rabbitSettings = new RabbitMqSubscriptionSettings()
             {
                 ConnectionString = config.RabbitMq.GetConnectionString(),
-                ExchangeName = config.RabbitMq.RatesExchange
+                ExchangeName = config.RabbitMq.Exchange
             };
             var errorStrategy = new DefaultErrorHandlingStrategy(_log, rabbitSettings);
             rabbit = new RabbitMqSubscriber<OrderBook>(rabbitSettings, errorStrategy)
@@ -116,23 +116,29 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 .Subscribe(async orderBook =>
                     {
                         if (Instruments.Any(x => x.Name == orderBook.Asset))
-                            await CallTickPricesHandlers(orderBook.ToInstrumentTickPrices());
+                        {
+                            var tickPrice = orderBook.ToTickPrice();
+                            if (tickPrice != null)
+                            {
+                                await CallTickPricesHandlers(tickPrice);
+                            }
+                        }
                     })
                 .Start();
         }
         
-        protected override async Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        protected override async Task<bool> AddOrderImpl(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             await LykkeLog.WriteInfoAsync(
                 nameof(Icm),
                 nameof(IcmExchange),
                 nameof(AddOrderImpl),
-                $"About to place new order for instrument {instrument}: {signal}");
+                $"About to place new order for {signal}");
             
-            return connector.AddOrder(instrument, signal, translatedSignal);
+            return connector.AddOrder(signal, translatedSignal);
         }
 
-        protected override async Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        protected override async Task<bool> CancelOrderImpl(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             await LykkeLog.WriteInfoAsync(
                 nameof(Icm),
@@ -140,7 +146,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 nameof(AddOrderImpl),
                 $"Canceling order {signal}");
 
-            return connector.CancelOrder(instrument, signal, translatedSignal);
+            return connector.CancelOrder(signal, translatedSignal);
         }
 
         public override Task<ExecutedTrade> GetOrder(string orderId, Instrument instrument, TimeSpan timeout)
@@ -153,14 +159,14 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return connector.GetAllOrdersInfo(timeout);
         }
 
-        public override Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            return connector.AddOrderAndWaitResponse(instrument, signal, translatedSignal, timeout);
+            return connector.AddOrderAndWaitResponse(signal, translatedSignal, timeout);
         }
 
-        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            return connector.CancelOrderAndWaitResponse(instrument, signal, translatedSignal, timeout);
+            return connector.CancelOrderAndWaitResponse(signal, translatedSignal, timeout);
         }
     }
 }

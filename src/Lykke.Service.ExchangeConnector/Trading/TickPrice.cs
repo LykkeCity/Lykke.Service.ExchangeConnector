@@ -5,31 +5,30 @@ namespace TradingBot.Trading
 {
 	public class TickPrice
 	{
-        public TickPrice(DateTime time, decimal mid)
+        public TickPrice(Instrument instrument, DateTime time, decimal mid)
 		{
+		    Instrument = instrument;
+		    
 			Time = time;
 			Ask = mid;
-			Bid = mid;
+		    Bid = mid;
 			Mid = mid;
 		}
 
 		[JsonConstructor]
-		public TickPrice(DateTime time, decimal ask, decimal bid)
+		public TickPrice(Instrument instrument, DateTime time, decimal ask, decimal bid)
 		{
+		    Instrument = instrument;
+		    
 			Time = time;
 			Ask = ask;
 			Bid = bid;
-			Mid = (ask + bid) / 2m;
+		    
+		    Mid = (ask + bid) / 2m;
 		}
 
-		public TickPrice(DateTime time, decimal ask, decimal bid, decimal mid)
-		{
-			Time = time;
-			Ask = ask;
-			Bid = bid;
-			Mid = mid;
-		}
-
+	    public Instrument Instrument { get; }
+	    
 		public DateTime Time { get; }
 
 		public decimal Ask { get; }
@@ -41,7 +40,7 @@ namespace TradingBot.Trading
 
 		public override string ToString()
 		{
-			return string.Format("[TickPrice: Time={0}, Ask={1:C}, Bid={2:C}, Mid={3:C}]", Time, Ask, Bid, Mid);
+			return $"TickPrice for {Instrument}: Time={Time}, Ask={Ask:C}, Bid={Bid:C}, Mid={Mid:C}";
 		}
 	}
 }

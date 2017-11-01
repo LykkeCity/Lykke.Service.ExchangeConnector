@@ -1,6 +1,5 @@
 ﻿using Autofac;
 using Autofac.Extras.DynamicProxy;
-using Castle.DynamicProxy;
 using TradingBot.Communications;
 using TradingBot.Exchanges;
 using TradingBot.Exchanges.Abstractions;
@@ -48,7 +47,10 @@ namespace TradingBot.Modules
                 .As<IApplicationFacade>()
                 .SingleInstance();
 
-            builder.RegisterType<OrderBooksHarvester>()
+            builder.RegisterType<BitMexOrderBooksHarvester>()
+                .SingleInstance();
+
+            builder.RegisterType<BitfinexOrderBooksHarvester>()
                 .SingleInstance();
 
             builder.RegisterInstance(_config.Icm)

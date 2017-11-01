@@ -2,7 +2,7 @@
 
 namespace TradingBot.Infrastructure.Configuration
 {
-    public sealed class BitMexExchangeConfiguration : IExchangeConfiguration
+    public sealed class BitMexExchangeConfiguration : IExchangeConfiguration, ICurrencyMappingProvider
     {
         public bool Enabled { get; set; }
 
@@ -22,6 +22,8 @@ namespace TradingBot.Infrastructure.Configuration
 
         public string WebSocketEndpointUrl { get; set; }
 
-        public Dictionary<string, string> CurrencyMapping { get; set; }
+        public int MaxOrderBookRate { get; set; }
+
+        public IDictionary<string, string> CurrencyMapping { get; set; }
     }
 }

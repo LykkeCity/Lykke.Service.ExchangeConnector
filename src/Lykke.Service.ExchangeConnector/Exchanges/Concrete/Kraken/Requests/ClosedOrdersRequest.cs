@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using TradingBot.Exchanges.Concrete.Kraken.Entities;
 
 namespace TradingBot.Exchanges.Concrete.Kraken.Requests

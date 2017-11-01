@@ -2,7 +2,7 @@
 
 namespace TradingBot.Infrastructure.Configuration
 {
-    public sealed class BitfinexExchangeConfiguration : IExchangeConfiguration
+    public sealed class BitfinexExchangeConfiguration : IExchangeConfiguration, ICurrencyMappingProvider
     {
         public bool Enabled { get; set; }
 
@@ -20,6 +20,10 @@ namespace TradingBot.Infrastructure.Configuration
 
         public string EndpointUrl { get; set; }
 
-        public Dictionary<string, string> CurrencyMapping { get; set; }
+        public string WebSocketEndpointUrl { get; set; }
+
+        public int MaxOrderBookRate { get; set; }
+
+        public IDictionary<string, string> CurrencyMapping { get; set; }
     }
 }

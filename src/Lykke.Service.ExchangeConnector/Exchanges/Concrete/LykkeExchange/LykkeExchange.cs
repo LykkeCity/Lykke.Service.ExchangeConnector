@@ -68,15 +68,13 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     {
                         var orderBook = await apiClient.MakeGetRequestAsync<List<OrderBook>>($"{Config.EndpointUrl}/api/OrderBooks/{instrument.Name}", ctSource.Token);
                         var tickPrices = orderBook.GroupBy(x => x.AssetPair)
-                            .Select(g => new InstrumentTickPrices(
+                            .Select(g => new TickPrice(
                                 new Instrument(Name, g.Key),
-                                new[]
-                                {
-                                    new TickPrice(g.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow,
-                                        g.FirstOrDefault(ob => !ob.IsBuy)?.Prices.Select(x => x.Price).DefaultIfEmpty(0).Min() ?? 0,
-                                        g.FirstOrDefault(ob => ob.IsBuy)?.Prices.Select(x => x.Price).DefaultIfEmpty(0).Max() ?? 0)
-                                }))
-                            .Where(x => x.TickPrices.First().Ask > 0 && x.TickPrices.First().Bid > 0);
+                                g.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow,
+                                g.FirstOrDefault(ob => !ob.IsBuy)?.Prices.Select(x => x.Price).DefaultIfEmpty(0).Min() ?? 0,
+                                g.FirstOrDefault(ob => ob.IsBuy)?.Prices.Select(x => x.Price).DefaultIfEmpty(0).Max() ?? 0)
+                                )
+                            .Where(x => x.Ask > 0 && x.Bid > 0);
 
                         foreach (var tickPrice in tickPrices)
                         {
@@ -105,7 +103,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             ctSource?.Cancel();
         }
         
-        protected override async Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        protected override async Task<bool> AddOrderImpl(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             switch (signal.OrderType)
             {
@@ -115,7 +113,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                         $"{Config.EndpointUrl}/api/Orders/market", 
                         CreateHttpContent(new MarketOrderRequest()
                         {
-                            AssetPairId = instrument.Name,
+                            AssetPairId = signal.Instrument.Name,
                             OrderAction = signal.TradeType,
                             Volume = signal.Volume
                         }),
@@ -130,7 +128,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                         $"{Config.EndpointUrl}/api/Orders/limit", 
                         CreateHttpContent(new LimitOrderRequest()
                         {
-                            AssetPairId = instrument.Name,
+                            AssetPairId = signal.Instrument.Name,
                             OrderAction = signal.TradeType,
                             Volume = signal.Volume,
                             Price = signal.Price ?? 0
@@ -161,7 +159,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             return content;
         }
 
-        protected override async Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal)
+        protected override async Task<bool> CancelOrderImpl(TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal)
         {
              await apiClient.MakePostRequestAsync<string>(
                 $"{Config.EndpointUrl}/api/Orders/{signal.OrderId}/Cancel", 
@@ -204,32 +202,32 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                 CancellationToken.None);
         }
 
-        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal,
+        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal,
             TimeSpan timeout)
         {
-            if (await AddOrder(instrument, signal, translatedSignal))
+            if (await AddOrder(signal, translatedSignal))
             {
-                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
+                return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
                     signal.OrderId, ExecutionStatus.New);
             }
             else
             {
-                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
+                return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
                     signal.OrderId, ExecutionStatus.Rejected);
             }
         }
 
-        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal,
+        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            if (await CancelOrder(instrument, signal, translatedSignal))
+            if (await CancelOrder(signal, translatedSignal))
             {
-                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
+                return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
                     signal.OrderId, ExecutionStatus.Cancelled);
             }
             else
             {
-                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
+                return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
                     signal.OrderId, ExecutionStatus.Rejected);
             }
         }

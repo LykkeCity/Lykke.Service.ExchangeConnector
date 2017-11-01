@@ -16,7 +16,7 @@ namespace TradingBot.Exchanges.Abstractions
     {
         protected readonly ILog LykkeLog;
 
-        private readonly List<Handler<InstrumentTickPrices>> tickPriceHandlers = new List<Handler<InstrumentTickPrices>>();
+        private readonly List<Handler<TickPrice>> tickPriceHandlers = new List<Handler<TickPrice>>();
 
         private readonly List<Handler<OrderBook>> _orderBookHandlers = new List<Handler<OrderBook>>();
 
@@ -49,7 +49,7 @@ namespace TradingBot.Exchanges.Abstractions
             Instruments = config.Instruments.Select(x => new Instrument(Name, x)).ToList();
         }
 
-        public void AddTickPriceHandler(Handler<InstrumentTickPrices> handler)
+        public void AddTickPriceHandler(Handler<TickPrice> handler)
         {
             tickPriceHandlers.Add(handler);
         }
@@ -105,9 +105,9 @@ namespace TradingBot.Exchanges.Abstractions
             Stopped?.Invoke();
         }
 
-        protected Task CallTickPricesHandlers(InstrumentTickPrices tickPrices)
+        protected Task CallTickPricesHandlers(TickPrice tickPrice)
         {
-            return Task.WhenAll(tickPriceHandlers.Select(x => x.Handle(tickPrices)));
+            return Task.WhenAll(tickPriceHandlers.Select(x => x.Handle(tickPrice)));
         }
 
         protected Task CallOrderBookHandlers(OrderBook orderBook)
@@ -125,19 +125,19 @@ namespace TradingBot.Exchanges.Abstractions
             return Task.WhenAll(acknowledgementsHandlers.Select(x => x.Handle(ack)));
         }
 
-        internal async Task<bool> AddOrder(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        internal async Task<bool> AddOrder(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
-            bool added = await AddOrderImpl(instrument, signal, translatedSignal);
+            bool added = await AddOrderImpl(signal, translatedSignal);
 
             await LykkeLog.WriteInfoAsync(nameof(Exchange), nameof(AddOrder), "", $"Signal {signal} added with result {added}");
 
             return added;
         }
 
-        protected virtual async Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal,
+        protected virtual async Task<bool> AddOrderImpl(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal)
         {
-            ExecutedTrade trade = await AddOrderAndWaitExecution(instrument, signal, translatedSignal, defaultTimeOut);
+            ExecutedTrade trade = await AddOrderAndWaitExecution(signal, translatedSignal, defaultTimeOut);
 
             return trade != null && (
                        trade.Status == ExecutionStatus.New ||
@@ -146,24 +146,24 @@ namespace TradingBot.Exchanges.Abstractions
                        trade.Status == ExecutionStatus.Pending);
         }
 
-        internal Task<bool> CancelOrder(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        internal Task<bool> CancelOrder(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
-            return CancelOrderImpl(instrument, signal, translatedSignal);
+            return CancelOrderImpl(signal, translatedSignal);
         }
 
-        protected virtual async Task<bool> CancelOrderImpl(Instrument instrument, TradingSignal signal,
+        protected virtual async Task<bool> CancelOrderImpl(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal)
         {
-            ExecutedTrade trade = await CancelOrderAndWaitExecution(instrument, signal, translatedSignal, defaultTimeOut);
+            ExecutedTrade trade = await CancelOrderAndWaitExecution(signal, translatedSignal, defaultTimeOut);
 
             return trade != null && trade.Status == ExecutionStatus.Cancelled;
         }
 
-        public abstract Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal,
+        public abstract Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal,
             TimeSpan timeout);
 
-        public abstract Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal,
+        public abstract Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal,
             TimeSpan timeout);
 

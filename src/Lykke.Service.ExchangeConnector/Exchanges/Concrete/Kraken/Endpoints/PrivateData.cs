@@ -67,9 +67,9 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
             return MakePostRequestAsync<ClosedOrdersResponse>("ClosedOrders", new ClosedOrdersRequest() { Start = DateTimeUtils.ToUnix(start)}, null, cancellationToken);
         }
 
-        public Task<AddStandardOrderResponse> AddOrder(Instrument instrument, TradingSignal tradingSignal, TranslatedSignalTableEntity translatedSignal, CancellationToken cancellationToken)
+        public Task<AddStandardOrderResponse> AddOrder(TradingSignal tradingSignal, TranslatedSignalTableEntity translatedSignal, CancellationToken cancellationToken)
         {
-            var request = new AddStandardOrderRequest(instrument, tradingSignal);
+            var request = new AddStandardOrderRequest(tradingSignal);
 
             return MakePostRequestAsync<AddStandardOrderResponse>("AddOrder", request, translatedSignal, cancellationToken);
         }

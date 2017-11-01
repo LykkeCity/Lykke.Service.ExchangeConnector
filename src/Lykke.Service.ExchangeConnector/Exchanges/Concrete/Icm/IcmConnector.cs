@@ -565,16 +565,16 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return Session.SendToTarget(request);
         }
 
-        public bool AddOrder(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        public bool AddOrder(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             if (!orderSignals.TryAdd(signal.OrderId, signal))
                 throw new InvalidOperationException($"Order with ID {signal.OrderId} was sent already");
 
-            logger.WriteInfoAsync(nameof(IcmConnector), nameof(AddOrder), string.Empty, $"Generating request for sending order for instrument {instrument}").Wait();
+            logger.WriteInfoAsync(nameof(IcmConnector), nameof(AddOrder), string.Empty, $"Generating request for sending order for instrument {signal.Instrument}").Wait();
 
             var request = new NewOrderSingle(
                 new ClOrdID(signal.OrderId),
-                new Symbol(symbolsMap[instrument.Name]),
+                new Symbol(symbolsMap[signal.Instrument.Name]),
                 ConvertSide(signal.TradeType),
                 new TransactTime(signal.Time),
                 ConvertType(signal.OrderType));
@@ -601,7 +601,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
 
 
-        public async Task<ExecutedTrade> AddOrderAndWaitResponse(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public async Task<ExecutedTrade> AddOrderAndWaitResponse(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var id = signal.OrderId;
             var tcs = new TaskCompletionSource<ExecutedTrade>();
@@ -618,10 +618,10 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 }
             }
 
-            var signalSended = AddOrder(instrument, signal, translatedSignal);
+            var signalSended = AddOrder(signal, translatedSignal);
 
             if (!signalSended)
-                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, ExecutionStatus.Rejected);
+                return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, ExecutionStatus.Rejected);
 
             var sw = Stopwatch.StartNew();
             var task = tcs.Task;
@@ -664,7 +664,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
                     {
                         if (signal.TimeInForce == TimeInForce.FillOrKill)
                         {
-                            result = await CancelOrderAndWaitResponse(instrument, signal, translatedSignal, timeout);
+                            result = await CancelOrderAndWaitResponse(signal, translatedSignal, timeout);
                         }
                     }
                 }
@@ -675,21 +675,21 @@ namespace TradingBot.Exchanges.Concrete.Icm
             {
                 if (signal.TimeInForce == TimeInForce.FillOrKill)
                 {
-                    result = await CancelOrderAndWaitResponse(instrument, signal, translatedSignal, timeout);
+                    result = await CancelOrderAndWaitResponse(signal, translatedSignal, timeout);
                 }
             }
 
             return result;
         }
 
-        public bool CancelOrder(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        public bool CancelOrder(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
-            logger.WriteInfoAsync(nameof(IcmConnector), nameof(CancelOrder), string.Empty, $"Generating request for cancelling order {signal.OrderId} for {instrument}").Wait();
+            logger.WriteInfoAsync(nameof(IcmConnector), nameof(CancelOrder), string.Empty, $"Generating request for cancelling order {signal.OrderId} for {signal.Instrument.Name}").Wait();
 
             var request = new OrderCancelRequest(
                 new OrigClOrdID(signal.OrderId.ToString()),
                 new ClOrdID(signal.OrderId + "cancel"),
-                new Symbol(symbolsMap[instrument.Name]),
+                new Symbol(symbolsMap[signal.Instrument.Name]),
                 ConvertSide(signal.TradeType),
                 new TransactTime(signal.Time));
 
@@ -705,7 +705,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return SendRequest(request);
         }
 
-        public async Task<ExecutedTrade> CancelOrderAndWaitResponse(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public async Task<ExecutedTrade> CancelOrderAndWaitResponse(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var id = signal.OrderId;
             var tcs = new TaskCompletionSource<ExecutedTrade>();
@@ -722,10 +722,10 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 }
             }
 
-            var signalSended = CancelOrder(instrument, signal, translatedSignal);
+            var signalSended = CancelOrder(signal, translatedSignal);
 
             if (!signalSended)
-                return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, ExecutionStatus.Rejected);
+                return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, ExecutionStatus.Rejected);
 
             await Task.WhenAny(tcs.Task, Task.Delay(timeout)).ConfigureAwait(false);
 

@@ -14,11 +14,12 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
     {
         private const decimal SatoshiRate = 100000000;
 
-        public static PositionModel ExchangePositionToModel(Position position, BitMexExchangeConfiguration configuration)
+        public static PositionModel ExchangePositionToModel(Position position, ICurrencyMappingProvider configuration)
         {
             return new PositionModel
             {
-                Symbol = ConvertSymbolFromBitMexToLykke(position.Symbol, configuration).Name,
+                // Symbol = ConvertSymbolFromBitMexToLykke(position.Symbol, configuration).Name,
+                Symbol = "USDBTC", //HACK Hard code!
                 PositionVolume = Convert.ToDecimal(position.CurrentQty),
                 MaintMarginUsed = Convert.ToDecimal(position.MaintMargin) / SatoshiRate,
                 RealisedPnL = Convert.ToDecimal(position.RealisedPnl) / SatoshiRate,
@@ -30,7 +31,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             };
         }
 
-        public static ExecutedTrade OrderToTrade(Order order, BitMexExchangeConfiguration configuration)
+        public static ExecutedTrade OrderToTrade(Order order, ICurrencyMappingProvider configuration)
         {
 
             var execTime = order.TransactTime ?? DateTime.UtcNow;
@@ -38,12 +39,13 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             var execVolume = (decimal)(order.OrderQty ?? 0);
             var tradeType = ConvertTradeType(order.Side);
             var status = ConvertExecutionStatus(order.OrdStatus);
-            var instr = ConvertSymbolFromBitMexToLykke(order.Symbol, configuration);
+            //  var instr = ConvertSymbolFromBitMexToLykke(order.Symbol, configuration);
+            var instr = new Instrument(BitMexExchange.Name, "USDBTC"); //HACK Hard code!
 
             return new ExecutedTrade(instr, execTime, execPrice, execVolume, tradeType, order.OrderID, status) { Message = order.Text };
         }
 
-        public static string ConvertSymbolFromLykkeToBitMex(string symbol, BitMexExchangeConfiguration configuration)
+        public static string ConvertSymbolFromLykkeToBitMex(string symbol, ICurrencyMappingProvider configuration)
         {
             if (!configuration.CurrencyMapping.TryGetValue(symbol, out var result))
             {
@@ -52,7 +54,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return result;
         }
 
-        public static Instrument ConvertSymbolFromBitMexToLykke(string symbol, BitMexExchangeConfiguration configuration)
+        public static Instrument ConvertSymbolFromBitMexToLykke(string symbol, ICurrencyMappingProvider configuration)
         {
             var result = configuration.CurrencyMapping.FirstOrDefault(kv => kv.Value == symbol).Key;
             if (result == null)
@@ -123,7 +125,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             }
         }
 
-        public static TradeBalanceModel ExchangeBalanceToModel(Margin bitmexMargin, BitMexExchangeConfiguration configuration)
+        public static TradeBalanceModel ExchangeBalanceToModel(Margin bitmexMargin)
         {
             var model = new TradeBalanceModel
             {

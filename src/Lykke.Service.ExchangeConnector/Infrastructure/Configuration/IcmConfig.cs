@@ -20,7 +20,7 @@ namespace TradingBot.Infrastructure.Configuration
 
         public bool SocketConnection { get; set; }
 
-        public RabbitMqMultyExchangeConfiguration RabbitMq { get; set; }
+        public IcmRabbitMqConfiguration RabbitMq { get; set; }
         
         public string[] FixConfiguration { get; set; }
 

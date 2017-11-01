@@ -10,14 +10,13 @@ namespace TradingBot.Tests
         [Fact]
         public void SerializeAndDeserializeTradingSignal()
         {
-            var converter = new GenericRabbitModelConverter<InstrumentTradingSignals>();
-            var signal = new TradingSignal("", OrderCommand.Create, TradeType.Buy, 100.2m, 10.1m, DateTime.Now, OrderType.Limit);
-            var instrumentSignals = new InstrumentTradingSignals(new Instrument("Exchange", "EURUSD"), new [] { signal });
+            var converter = new GenericRabbitModelConverter<TradingSignal>();
+            var signal = new TradingSignal(new Instrument("Exchange", "EURUSD"),  "", OrderCommand.Create, TradeType.Buy, 100.2m, 10.1m, DateTime.Now, OrderType.Limit);
 
-            var serialized = converter.Serialize(instrumentSignals);
+            var serialized = converter.Serialize(signal);
             Assert.NotNull(serialized);
 
-            var deserialized = converter.Deserialize(serialized).TradingSignals[0];
+            var deserialized = converter.Deserialize(serialized);
 
             Assert.Equal(signal.TradeType, deserialized.TradeType);
             Assert.Equal(signal.Volume, deserialized.Volume);
@@ -30,12 +29,12 @@ namespace TradingBot.Tests
         [Fact]
         public void TradingSignal_IsTimeInThreshold()
         {
-            var signal = new TradingSignal("", OrderCommand.Create, TradeType.Buy, 100m, 100m, DateTime.UtcNow.AddMinutes(-5));
+            var signal = new TradingSignal(null, "", OrderCommand.Create, TradeType.Buy, 100m, 100m, DateTime.UtcNow.AddMinutes(-5));
             
             Assert.True(signal.IsTimeInThreshold(TimeSpan.FromMinutes(6)));
             Assert.False(signal.IsTimeInThreshold(TimeSpan.FromMinutes(4)));
             
-            var signalInFuture = new TradingSignal("", OrderCommand.Create, TradeType.Buy, 100m, 100m, DateTime.UtcNow.AddMinutes(5));
+            var signalInFuture = new TradingSignal(null, "", OrderCommand.Create, TradeType.Buy, 100m, 100m, DateTime.UtcNow.AddMinutes(5));
             
             Assert.True(signalInFuture.IsTimeInThreshold(TimeSpan.FromMinutes(6)));
             Assert.False(signalInFuture.IsTimeInThreshold(TimeSpan.FromMinutes(4)));

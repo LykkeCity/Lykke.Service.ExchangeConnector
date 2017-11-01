@@ -20,7 +20,7 @@ using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.GDAX
 {
-    internal sealed class GdaxExchange : Exchange
+    internal class GdaxExchange : Exchange
     {
         public new static readonly string Name = "GDAX";
         private static readonly string _gdaxExchangeTypeName = nameof(GdaxExchange);
@@ -66,10 +66,10 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             return websocketApi;
         }
 
-        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal, 
+        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, 
             TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            var symbol = _converters.LykkeSymbolToGdaxSymbol(instrument.Name);
+            var symbol = _converters.LykkeSymbolToGdaxSymbol(signal.Instrument.Name);
             var orderType = _converters.OrderTypeToGdaxOrderType(signal.OrderType);
             var side = _converters.TradeTypeToGdaxOrderSide(signal.TradeType);
             var volume = signal.Volume;
@@ -90,7 +90,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             }
         }
 
-        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, 
+        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution( 
             TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             if (!Guid.TryParse(signal.OrderId, out var id))
@@ -229,9 +229,8 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 
         private void OnWebSocketTicker(object sender, GdaxWssTicker ticker)
         {
-            var tickPrice = new TickPrice(ticker.Time, ticker.BestAsk, ticker.BestBid);
-            CallTickPricesHandlers(new InstrumentTickPrices(
-                new Instrument(Name, ticker.ProductId), new[] { tickPrice }));
+            var tickPrice = new TickPrice(new Instrument(Name, ticker.ProductId), ticker.Time, ticker.BestAsk, ticker.BestBid);
+            CallTickPricesHandlers(tickPrice);
         }
 
         private void OnWebSocketOrderReceived(object sender, GdaxWssOrderReceived order)

@@ -13,6 +13,8 @@
         public string Exchange { get; set; }
         
         public string Instrument { get; set; }
+        
+        public AcknowledgementFailureType FailureType { get; set; }
 
         public override string ToString()
         {

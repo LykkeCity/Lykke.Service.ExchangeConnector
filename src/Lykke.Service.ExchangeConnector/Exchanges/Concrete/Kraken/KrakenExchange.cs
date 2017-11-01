@@ -78,7 +78,8 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                                 }
 
                                 lasts[i] = result.Last;
-                                var prices = result.Data.Single().Value.Select(x => new TickPrice(x.Time, x.Ask, x.Bid)).ToArray();
+                                var i1 = i;
+                                var prices = result.Data.Single().Value.Select(x => new TickPrice(Instruments[i1], x.Time, x.Ask, x.Bid)).ToArray();
 
                                 if (prices.Any())
                                 {
@@ -88,7 +89,10 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                                     }
                                     else
                                     {
-                                        await CallTickPricesHandlers(new InstrumentTickPrices(Instruments[i], prices));
+                                        foreach (var tickPrice in prices)
+                                        {
+                                            await CallTickPricesHandlers(tickPrice);    
+                                        }
                                     }
                                 }
 
@@ -159,9 +163,9 @@ namespace TradingBot.Exchanges.Concrete.Kraken
         }
 
 
-        protected override async Task<bool> AddOrderImpl(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        protected override async Task<bool> AddOrderImpl(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
-            var executedTrade = await AddOrderAndWaitExecution(instrument, signal, translatedSignal, TimeSpan.FromSeconds(30));
+            var executedTrade = await AddOrderAndWaitExecution(signal, translatedSignal, TimeSpan.FromSeconds(30));
 
             if (executedTrade == null) return false;
 
@@ -170,23 +174,23 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             return true;
         }
 
-        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(Instrument instrument, TradingSignal signal,
+        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var cts = new CancellationTokenSource(timeout);
 
-            var orderInfo = await privateData.AddOrder(instrument, signal, translatedSignal, cts.Token);
+            var orderInfo = await privateData.AddOrder(signal, translatedSignal, cts.Token);
             string txId = orderInfo.TxId.FirstOrDefault();
             translatedSignal.ExternalId = txId;
 
-            return new ExecutedTrade(instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, ExecutionStatus.New);
+            return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, ExecutionStatus.New);
         }
 
-        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(Instrument instrument, TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var result = await privateData.CancelOrder(signal.OrderId, translatedSignal);
 
-            var executedTrade = new ExecutedTrade(instrument,
+            var executedTrade = new ExecutedTrade(signal.Instrument,
                 DateTime.UtcNow,
                 signal.Price ?? 0,
                 signal.Volume,

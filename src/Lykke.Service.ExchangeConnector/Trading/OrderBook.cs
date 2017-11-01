@@ -36,8 +36,8 @@ namespace TradingBot.Trading
     {
         public VolumePrice(decimal price, decimal volume)
         {
-            Price = price;
-            Volume = volume;
+            Price =  price;
+            Volume = Math.Abs(volume);
         }
 
         [JsonProperty("price")]
