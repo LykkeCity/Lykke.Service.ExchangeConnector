@@ -18,7 +18,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         {
             return new PositionModel
             {
-                Symbol = ConvertSymbolFromBitMexToLykke(position.Symbol, configuration).Name,
+                // Symbol = ConvertSymbolFromBitMexToLykke(position.Symbol, configuration).Name,
+                Symbol = "USDBTC", //HACK Hard code!
                 PositionVolume = Convert.ToDecimal(position.CurrentQty),
                 MaintMarginUsed = Convert.ToDecimal(position.MaintMargin) / SatoshiRate,
                 RealisedPnL = Convert.ToDecimal(position.RealisedPnl) / SatoshiRate,
@@ -38,7 +39,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             var execVolume = (decimal)(order.OrderQty ?? 0);
             var tradeType = ConvertTradeType(order.Side);
             var status = ConvertExecutionStatus(order.OrdStatus);
-            var instr = ConvertSymbolFromBitMexToLykke(order.Symbol, configuration);
+            //  var instr = ConvertSymbolFromBitMexToLykke(order.Symbol, configuration);
+            var instr = new Instrument(BitMexExchange.Name, "USDBTC"); //HACK Hard code!
 
             return new ExecutedTrade(instr, execTime, execPrice, execVolume, tradeType, order.OrderID, status) { Message = order.Text };
         }

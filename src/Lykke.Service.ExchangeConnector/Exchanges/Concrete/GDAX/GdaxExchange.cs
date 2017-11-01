@@ -20,7 +20,7 @@ using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.GDAX
 {
-    internal sealed class GdaxExchange : Exchange
+    internal class GdaxExchange : Exchange
     {
         public new static readonly string Name = "GDAX";
         private static readonly string _gdaxExchangeTypeName = nameof(GdaxExchange);

@@ -43,7 +43,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
         public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            var symbol = BitMexModelConverter.ConvertSymbolFromLykkeToBitMex(signal.Instrument.Name, _configuration);
+          //  var symbol = BitMexModelConverter.ConvertSymbolFromLykkeToBitMex(instrument.Name, _configuration);
+            var symbol = "XBTUSD"; //HACK Hard code!
             var volume = BitMexModelConverter.ConvertVolume(signal.Volume);
             var orderType = BitMexModelConverter.ConvertOrderType(signal.OrderType);
             var side = BitMexModelConverter.ConvertTradeType(signal.TradeType);

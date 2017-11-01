@@ -52,7 +52,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             else
             {
                 _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartImpl), string.Empty,
-                    "Socket connection is desibled");
+                    "Socket connection is disabled");
             }
 
             if (config.RabbitMq.Enabled && (config.PubQuotesToRabbit || config.SaveQuotesToAzure))

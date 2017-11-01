@@ -114,6 +114,10 @@ namespace TradingBot.Exchanges.Concrete.Shared
         private bool NeedThrottle()
         {
             var result = false;
+            if (MaxOrderBookRate == 0)
+            {
+                return true;
+            }
             if (_currentPublicationsNum >= MaxOrderBookRate)
             {
                 var now = DateTime.UtcNow;
