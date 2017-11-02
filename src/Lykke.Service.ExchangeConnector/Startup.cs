@@ -23,7 +23,7 @@ using TradingBot.Modules;
 
 namespace TradingBot
 {
-    public sealed class Startup
+    internal sealed class Startup
     {
         public IConfigurationRoot Configuration { get; }
         public IContainer ApplicationContainer { get; private set; }

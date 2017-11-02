@@ -116,7 +116,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         public async Task StopAsync()
         {
-            if (_clientWebSocket.State == WebSocketState.Open)
+            if (_clientWebSocket != null && _clientWebSocket.State == WebSocketState.Open)
             {
                 await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Good bye", _cancellationToken);
             }

@@ -19,32 +19,53 @@ namespace TradingBot.Exchanges.Concrete.Shared
         private Task _messageLoopTask;
         private Func<OrderBook, Task> _newOrderBookHandler;
         protected ICurrencyMappingProvider CurrencyMappingProvider { get; }
-        private readonly CancellationTokenSource _cancellationTokenSource;
+        private CancellationTokenSource _cancellationTokenSource;
         protected CancellationToken CancellationToken;
         private DateTime _lastPublishTime = DateTime.UtcNow;
         private long _lastSecPublicationsNum;
         private int _currentPublicationsNum;
         private long _currentPublicationsNumPerfCounter;
+        private readonly Timer _heartBeatMonitoringTimer;
+        private readonly TimeSpan _heartBeatPeriod = TimeSpan.FromSeconds(10);
+        private Task _measureTask;
 
         protected OrderBooksHarvesterBase(ICurrencyMappingProvider currencyMappingProvider, string uri, ILog log)
         {
             Log = log.CreateComponentScope(GetType().Name);
-            _cancellationTokenSource = new CancellationTokenSource();
-            CancellationToken = _cancellationTokenSource.Token;
             Messenger = new WebSocketTextMessenger(uri, Log, CancellationToken);
             OrderBookSnapshot = new HashSet<OrderBookItem>();
             CurrencyMappingProvider = currencyMappingProvider;
-            new Task(Measure).Start();
+            _heartBeatMonitoringTimer = new Timer(ForceStopMessenger);
         }
 
-        private async void Measure()
+        private async void ForceStopMessenger(object state)
+        {
+            await Log.WriteWarningAsync(nameof(ForceStopMessenger), "Monitoring heartbeat", $"Heart stopped. Restarting {GetType().Name}");
+            Stop();
+            try
+            {
+                await _messageLoopTask;
+            }
+            catch (OperationCanceledException)
+            {
+
+            }
+            Start();
+        }
+
+        protected void RechargeHeartbeat()
+        {
+            _heartBeatMonitoringTimer.Change(_heartBeatPeriod, Timeout.InfiniteTimeSpan);
+        }
+
+        private async Task Measure()
         {
             while (true)
             {
                 var msgInSec = (_currentPublicationsNumPerfCounter - _lastSecPublicationsNum) / 10d;
                 await Log.WriteInfoAsync(nameof(OrderBooksHarvesterBase), $"Order books received from {ExchangeName} in 1 sec", msgInSec.ToString());
                 _lastSecPublicationsNum = _currentPublicationsNumPerfCounter;
-                await Task.Delay(TimeSpan.FromSeconds(10));
+                await Task.Delay(TimeSpan.FromSeconds(10), CancellationToken);
             }
         }
 
@@ -59,16 +80,22 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         public void Start()
         {
-            _messageLoopTask = new Task(MessageLoop);
-            _messageLoopTask.Start();
+            Log.WriteInfoAsync(nameof(Start), "Starting", $"Starting {GetType().Name}").Wait();
+
+            _cancellationTokenSource = new CancellationTokenSource();
+            CancellationToken = _cancellationTokenSource.Token;
+            _messageLoopTask = MessageLoop();
+            _measureTask = Measure();
         }
 
         public void Stop()
         {
-            _cancellationTokenSource.Cancel();
+            Log.WriteInfoAsync(nameof(Stop), "Stopping", $"Stopping {GetType().Name}").Wait();
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
         }
 
-        private async void MessageLoop()
+        private async Task MessageLoop()
         {
             const int smallTimeout = 5;
             var retryPolicy = Policy
@@ -76,19 +103,18 @@ namespace TradingBot.Exchanges.Concrete.Shared
                 .WaitAndRetryForeverAsync(attempt => attempt % 60 == 0 ? TimeSpan.FromMinutes(5) : TimeSpan.FromSeconds(smallTimeout)); // After every 60 attempts wait 5min 
 
             await retryPolicy.ExecuteAsync(async () =>
-            {
-                await Log.WriteInfoAsync(nameof(MessageLoopImpl), "Starting message loop", "");
-                try
-                {
-                    await MessageLoopImpl();
-                }
-                catch (Exception ex)
-                {
-                    await Log.WriteErrorAsync(nameof(MessageLoopImpl), $"An exception occurred while working with WebSocket. Reconnect in {smallTimeout} sec", ex);
-                    throw;
-                }
-            });
-
+             {
+                 await Log.WriteInfoAsync(nameof(MessageLoopImpl), "Starting message loop", "");
+                 try
+                 {
+                     await MessageLoopImpl();
+                 }
+                 catch (Exception ex)
+                 {
+                     await Log.WriteErrorAsync(nameof(MessageLoopImpl), $"An exception occurred while working with WebSocket. Reconnect in {smallTimeout} sec", ex);
+                     throw;
+                 }
+             });
         }
 
         protected async Task PublishOrderBookSnapshotAsync()
@@ -137,12 +163,16 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         protected abstract Task MessageLoopImpl();
 
-        public void Dispose()
+        public virtual void Dispose()
         {
             Stop();
             Messenger?.Dispose();
             _messageLoopTask?.Dispose();
             _cancellationTokenSource?.Dispose();
+            _heartBeatMonitoringTimer?.Dispose();
+            _measureTask?.Dispose();
         }
+
+
     }
 }

@@ -34,6 +34,7 @@ namespace TradingBot.Controllers.Api
         [ProducesResponseType(typeof(IEnumerable<PositionModel>), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
         [ProducesResponseType(400)]
+        [Produces("application/json")]
         public async Task<IActionResult> Index([FromQuery, Required] string exchangeName)
         {
             try
