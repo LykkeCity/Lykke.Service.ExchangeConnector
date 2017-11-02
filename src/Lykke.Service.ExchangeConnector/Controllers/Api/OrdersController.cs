@@ -39,6 +39,7 @@ namespace TradingBot.Controllers.Api
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<ExecutedTrade>), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
+        [Produces("application/json")]
         private async Task<IEnumerable<ExecutedTrade>> Index([FromQuery, Required] string exchangeName) // Intentionally disabled
         {
             try
@@ -63,6 +64,7 @@ namespace TradingBot.Controllers.Api
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(ExecutedTrade), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
+        [Produces("application/json")]
         public async Task<ExecutedTrade> GetOrder(string id, [FromQuery, Required] string exchangeName, [FromQuery, Required] string instrument)
         {
             try
@@ -89,6 +91,7 @@ namespace TradingBot.Controllers.Api
         [ProducesResponseType(typeof(ExecutedTrade), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 400)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
+        [Produces("application/json")]
         public async Task<IActionResult> Post([FromBody] OrderModel orderModel)
         {
             try
@@ -174,6 +177,7 @@ namespace TradingBot.Controllers.Api
         [ProducesResponseType(typeof(ExecutedTrade), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 400)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
+        [Produces("application/json")]
         public async Task<IActionResult> CancelOrder(string id, [FromQuery, Required]string exchangeName)
         {
             try

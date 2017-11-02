@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.Exchanges.Concrete.Bitfinex;
 using TradingBot.Exchanges.Concrete.Bitfinex.RestClient;
@@ -59,5 +61,7 @@ namespace TradingBot.Tests.Bitfinex
             var result = await _api.GetMarginInformation();
             Assert.NotNull(result);
         }
+
+
     }
 }

@@ -36,6 +36,7 @@ namespace TradingBot.Controllers.Api
         /// <response code="400">Bad request response is returned in case of specifying name of unavailable exchange</response>
         [HttpGet("{exchangeName}")]
         [ProducesResponseType(typeof(ExchangeInformationModel), 200)]
+        [Produces("application/json")]
         public IActionResult Index(string exchangeName)
         {
             var exchange = Application.GetExchange(exchangeName);
@@ -61,6 +62,7 @@ namespace TradingBot.Controllers.Api
         [HttpGet("rating")]
         [ProducesResponseType(typeof(IEnumerable<ExchangeRatingModel>), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
+        [Produces("application/json")]
         public IActionResult GetRating()
         {
             return Ok(_ratingValuer.Rating);

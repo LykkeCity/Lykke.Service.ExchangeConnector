@@ -79,12 +79,12 @@ namespace TradingBot.Tests.BitMex
             var dt = DateTime.UtcNow;
             var dts = JsonConvert.SerializeObject(dt, new JsonSerializerSettings()
             {
-              //  DateFormatHandling = DateFormatHandling.IsoDateFormat,
-               // DateTimeZoneHandling = DateTimeZoneHandling.Utc
+                //  DateFormatHandling = DateFormatHandling.IsoDateFormat,
+                // DateTimeZoneHandling = DateTimeZoneHandling.Utc
                 // DateFormatString = "yyyy-MM-ddTHH:mm:ss.fffzzz"
             });
 
-               
+
             var dd = JsonConvert.DeserializeObject<DateTime>("\"2017-10-25T10:23:17.000+0000\"");
             var dd2 = JsonConvert.DeserializeObject<DateTime>("\"2017-10-25T10:23:17.000+00:00\"");
 
