@@ -40,7 +40,7 @@ namespace TradingBot.Trading
 
 		public override string ToString()
 		{
-			return $"TickPrice for {Instrument}: Time={Time}, Ask={Ask:C}, Bid={Bid:C}, Mid={Mid:C}";
+			return $"TickPrice for {Instrument}: Time={Time}, Ask={Ask}, Bid={Bid}, Mid={Mid}";
 		}
 	}
 }

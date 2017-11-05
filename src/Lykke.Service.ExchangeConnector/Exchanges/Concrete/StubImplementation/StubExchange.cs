@@ -57,29 +57,24 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 			    {
 				    foreach (var instrument in Instruments)
 				    {       
-					    var currentPrices =
-						    Enumerable.Range(0, config.PricesPerInterval)
-							    .Select(x => Math.Round((decimal) gbms[instrument].GenerateNextValue(), 6))
-							    .Select(x => new TickPrice(instrument, DateTime.UtcNow, x))
-							    .ToArray();
+				        try
+				        {
+                            var currentTickPrice = new TickPrice(instrument, DateTime.UtcNow, Math.Round((decimal) gbms[instrument].GenerateNextValue(), 6));
 				        
 					    lock (syncRoot)
 					    {
-						    decimal lowestAsk = currentPrices.Min(x => x.Ask);
-						    decimal highestBid = currentPrices.Max(x => x.Bid);
-						    
 						    var trades = new List<ExecutedTrade>();
 						    var executedOrders = new List<TradingSignal>();
 					    
 						    foreach (var tradingSignal in ActualSignals[instrument.Name].Where(x => x.Volume > 0))
 						    {
 							    if (tradingSignal.TradeType == TradeType.Buy
-							        && lowestAsk <= tradingSignal.Price)
+                                        && currentTickPrice.Ask <= tradingSignal.Price)
 							    {
 								    var trade = new ExecutedTrade(
 									    instrument,
 									    DateTime.UtcNow, 
-									    lowestAsk,
+                                            tradingSignal.Price.Value,
 									    tradingSignal.Volume,
 									    TradeType.Buy,
 									    tradingSignal.OrderId,
@@ -92,11 +87,11 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 							            $"EXECUTION of order {tradingSignal} by price {trade.Price}").Wait();
 							    }
 							    else if (tradingSignal.TradeType == TradeType.Sell
-							             && highestBid >= tradingSignal.Price)
+                                             && currentTickPrice.Bid >= tradingSignal.Price)
 							    {
 								    var trade = new ExecutedTrade(instrument,
 									    DateTime.UtcNow,
-									    highestBid,
+                                            tradingSignal.Price.Value,
 									    tradingSignal.Volume,
 									    TradeType.Sell,
 									    tradingSignal.OrderId,
@@ -105,7 +100,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 								    trades.Add(trade);
 								    executedOrders.Add(tradingSignal);
 								    
-							        LykkeLog.WriteInfoAsync(nameof(StubExchange), nameof(StartImpl), nameof(streamJob),
+                                        LykkeLog.WriteInfoAsync(nameof(StubExchange), nameof(streamJob), trade.ToString(),
 							            $"EXECUTION of order {tradingSignal} by price {trade.Price}").Wait();
 							    }
 						    }
@@ -120,26 +115,27 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 							trades.ForEach(async x =>
 							    {
 								    Positions[instrument.Name].AddTrade(x);
+                                        try
+                                        {
 								    await CallExecutedTradeHandlers(x);
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            Console.WriteLine(e);
+                                        }
 							    });
 						    
-						    foreach (var currentPrice in currentPrices)
-						    {
+                                
 							    if (++counter % 100 == 0)
 							    {
 							        LykkeLog.WriteInfoAsync(nameof(StubExchange), nameof(StartImpl), nameof(streamJob),
-							            $"Step {counter}, total PnL: {Positions[instrument.Name].GetPnL(currentPrice.Mid)}").Wait();
-							    }   
+                                        $"Step {counter}, total PnL: {Positions[instrument.Name].GetPnL(currentTickPrice.Mid)}").Wait();
 						    }
+                                
 					    }
 					    
 					    // TODO: deal with awaitable. I don't want to wait here for Azure and Rabbit connections
-				        try
-				        {
-				            foreach (var currentPrice in currentPrices)
-				            {
-				                await CallTickPricesHandlers(currentPrice);
-				            }
+                            await CallTickPricesHandlers(currentTickPrice);
 				        }
 				        catch (Exception e)
 				        {
