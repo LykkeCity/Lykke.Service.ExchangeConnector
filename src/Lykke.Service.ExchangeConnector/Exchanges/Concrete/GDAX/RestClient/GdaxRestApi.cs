@@ -15,7 +15,6 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
         public const string GdaxPublicApiUrl = @"https://api.gdax.com";
         public const string GdaxSandboxApiUrl = @"https://api-public.sandbox.gdax.com";
 
-        private const string _userAgentHeaderName = "User-Agent";
         private const string _balanceRequestUrl = @"/accounts";
         private const string _newOrderRequestUrl = @"/orders";
         private const string _orderStatusRequestUrl = @"/orders/{0}&status=done&status=pending&status=open&status=cancelled";
@@ -24,9 +23,8 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
         private const string _marginInfoRequstUrl = @"/v1/margin_infos";
         
         private const string _defaultConnectorUserAgent = "Lykke";
-        
-        private readonly ServiceClientCredentials _credentials;
-        private RestApiClient _restClient;
+
+        private readonly RestApiClient _restClient;
 
         /// <summary>
         /// Base GDAX Uri
@@ -52,12 +50,12 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
 
         public GdaxRestApi(string apiKey, string apiSecret, string passPhrase)
         {
-            _credentials = new GdaxRestClientCredentials(apiKey, apiSecret, passPhrase);
+            var credentials = new GdaxRestClientCredentials(apiKey, apiSecret, passPhrase);
 
             BaseUri = new Uri(GdaxPublicApiUrl);
             ConnectorUserAgent = _defaultConnectorUserAgent;
 
-            _restClient = new RestApiClient(HttpClient, _credentials);
+            _restClient = new RestApiClient(HttpClient, credentials);
         }
 
         public async Task<GdaxOrderResponse> AddOrder(string productId, decimal amount, decimal price,

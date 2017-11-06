@@ -235,28 +235,28 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 
         private void OnWebSocketOrderReceived(object sender, GdaxWssOrderReceived order)
         {
-            new ExecutedTrade(new Instrument(Name, order.ProductId),
+            CallExecutedTradeHandlers(new ExecutedTrade(new Instrument(Name, order.ProductId),
                 order.Time, order.Price ?? 0, order.Size,
                 order.Side == GdaxOrderSide.Buy ? TradeType.Buy : TradeType.Sell,
-                order.OrderId.ToString(), ExecutionStatus.New);
+                order.OrderId.ToString(), ExecutionStatus.New));
         }
 
         private void OnOrderChanged(object sender, GdaxWssOrderChange order)
         {
-            new ExecutedTrade(new Instrument(Name, order.ProductId),
+            CallExecutedTradeHandlers(new ExecutedTrade(new Instrument(Name, order.ProductId),
                 order.Time, order.Price ?? 0, order.NewSize,
                 order.Side == GdaxOrderSide.Buy ? TradeType.Buy : TradeType.Sell,
                 order.OrderId.ToString(),
-                ExecutionStatus.PartialFill);
+                ExecutionStatus.PartialFill));
         }
 
         private void OnWebSocketOrderDone(object sender, GdaxWssOrderDone order)
         {
-            new ExecutedTrade(new Instrument(Name, order.ProductId),
+            CallExecutedTradeHandlers(new ExecutedTrade(new Instrument(Name, order.ProductId),
                 order.Time, order.Price ?? 0, order.RemainingSize,
                 order.Side == GdaxOrderSide.Buy ? TradeType.Buy : TradeType.Sell,
                 order.OrderId.ToString(), 
-                order.Reason == "cancelled" ? ExecutionStatus.Cancelled : ExecutionStatus.Fill);
+                order.Reason == "cancelled" ? ExecutionStatus.Cancelled : ExecutionStatus.Fill));
         }
 
         private async Task LogAsync(string message, [CallerMemberName]string context = null)
