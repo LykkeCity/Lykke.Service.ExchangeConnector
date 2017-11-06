@@ -8,6 +8,8 @@ using TradingBot.Exchanges.Concrete.BitMEX;
 using TradingBot.Exchanges.Concrete.GDAX;
 using TradingBot.Exchanges.Concrete.HistoricalData;
 using TradingBot.Exchanges.Concrete.Icm;
+using TradingBot.Exchanges.Concrete.Jfd;
+using TradingBot.Exchanges.Concrete.Jfd.FixClient;
 using TradingBot.Exchanges.Concrete.Kraken;
 using TradingBot.Exchanges.Concrete.LykkeExchange;
 using TradingBot.Exchanges.Concrete.StubImplementation;
@@ -57,22 +59,20 @@ namespace TradingBot.Modules
             builder.RegisterType<BitfinexOrderBooksHarvester>()
                 .SingleInstance();
 
-            builder.RegisterInstance(_config.Icm)
-                .AsSelf();
-            builder.RegisterInstance(_config.Kraken)
-                .AsSelf();
-            builder.RegisterInstance(_config.Stub)
-                .AsSelf();
-            builder.RegisterInstance(_config.HistoricalData)
-                .AsSelf();
-            builder.RegisterInstance(_config.Lykke)
-                .AsSelf();
-            builder.RegisterInstance(_config.BitMex)
-                .AsSelf();
-            builder.RegisterInstance(_config.Bitfinex)
-                .AsSelf();
-            builder.RegisterInstance(_config.Gdax)
-               .AsSelf();
+            builder.RegisterType<JfdOrderBooksHarvester>()
+                .SingleInstance();
+
+            builder.RegisterType<JfdTradeSessionConnector>()
+                .SingleInstance();
+
+            builder.RegisterType<JfdModelConverter>()
+                .SingleInstance();
+
+            foreach (var cfg in _config)
+            {
+                builder.RegisterInstance(cfg)
+                    .As(cfg.GetType());
+            }
 
             RegisterExchange<IcmExchange>(builder, _config.Icm.Enabled);
             RegisterExchange<KrakenExchange>(builder, _config.Kraken.Enabled);
@@ -82,6 +82,7 @@ namespace TradingBot.Modules
             RegisterExchange<BitMexExchange>(builder, _config.BitMex.Enabled);
             RegisterExchange<BitfinexExchange>(builder, _config.Bitfinex.Enabled);
             RegisterExchange<GdaxExchange>(builder, _config.Gdax.Enabled);
+            RegisterExchange<JfdExchange>(builder, _config.Jfd.Enabled);
         }
 
         private static void RegisterExchange<T>(ContainerBuilder container, bool enabled)
@@ -93,6 +94,7 @@ namespace TradingBot.Modules
                     .As<Exchange>()
                     .SingleInstance()
                     .EnableClassInterceptors()
+                    .SingleInstance()
                     .InterceptedBy(typeof(ExchangeCallsInterceptor));
             }
 

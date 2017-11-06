@@ -4,15 +4,15 @@ using TradingBot.Infrastructure.Configuration;
 
 namespace TradingBot.Exchanges.Concrete.Shared
 {
-    internal abstract class OrderBooksWebSocketHarvester : OrderBooksHarvesterBase
+    internal abstract class OrderBooksWebSocketHarvester<TRequest, TResponse> : OrderBooksHarvesterBase
     {
-        protected WebSocketTextMessenger Messenger;
+        protected IMessenger<TRequest, TResponse> Messenger;
 
-        protected OrderBooksWebSocketHarvester(IExchangeConfiguration exchangeConfiguration, string uri, ILog log,
+        protected OrderBooksWebSocketHarvester(IExchangeConfiguration exchangeConfiguration, IMessenger<TRequest, TResponse> messanger, ILog log,
             OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
             : base(exchangeConfiguration, log, orderBookSnapshotsRepository, orderBookEventsRepository)
         {
-            Messenger = new WebSocketTextMessenger(uri, log, CancellationToken);
+            Messenger = messanger;
         }
 
         protected override void Dispose(bool disposing)

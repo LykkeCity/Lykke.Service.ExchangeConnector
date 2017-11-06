@@ -7,19 +7,16 @@ using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Repositories;
 using Action = TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.Action;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
-    internal sealed class BitMexOrderBooksHarvester : OrderBooksWebSocketHarvester
+    internal sealed class BitMexOrderBooksHarvester : OrderBooksWebSocketHarvester<object, string>
     {
         private readonly IExchangeConfiguration _configuration;
 
-        public BitMexOrderBooksHarvester(BitMexExchangeConfiguration configuration, ILog log,
-            OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
-            : base(configuration, configuration.WebSocketEndpointUrl, log,
-                orderBookSnapshotsRepository, orderBookEventsRepository)
+        public BitMexOrderBooksHarvester(BitMexExchangeConfiguration configuration, ILog log, OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository) :
+            base(configuration, new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookSnapshotsRepository, orderBookEventsRepository)
         {
             _configuration = configuration;
 
@@ -29,7 +26,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         {
             try
             {
-                await Messenger.ConnectAsync();
+                await Messenger.ConnectAsync(CancellationToken);
                 await Subscribe();
                 RechargeHeartbeat();
 
@@ -51,7 +48,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             {
                 try
                 {
-                    await Messenger.StopAsync();
+                    await Messenger.StopAsync(CancellationToken);
                 }
                 catch (Exception)
                 {
@@ -62,7 +59,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
         private async Task<object> ReadResponse()
         {
-            var rs = await Messenger.GetResponseAsync();
+            var rs = await Messenger.GetResponseAsync(CancellationToken);
             var response = JObject.Parse(rs);
             var firstNodeName = response.First.Path;
             if (firstNodeName == ErrorResponse.Token)
@@ -137,7 +134,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 .Select(i => new Tuple<string, string>("orderBookL2",
                     i.ExchangeSymbol)).ToArray();
             var request = SubscribeRequest.BuildRequest(filter);
-            await Messenger.SendRequestAsync(request);
+            await Messenger.SendRequestAsync(request, CancellationToken);
         }
     }
 }

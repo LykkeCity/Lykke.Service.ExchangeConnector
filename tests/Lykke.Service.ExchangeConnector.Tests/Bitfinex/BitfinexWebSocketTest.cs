@@ -20,16 +20,16 @@ namespace TradingBot.Tests.BitMex
         public BitfinexWebSocketTest(ITestOutputHelper output)
         {
             _output = output;
-            _clientWebSocket = new WebSocketTextMessenger(ApiUrl, new LogToConsole(), CancellationToken.None);
+            _clientWebSocket = new WebSocketTextMessenger(ApiUrl, new LogToConsole());
 
         }
 
         [Fact]
         public async Task Connect()
         {
-            await _clientWebSocket.ConnectAsync();
+            await _clientWebSocket.ConnectAsync(CancellationToken.None);
 
-            var r = await _clientWebSocket.GetResponseAsync();
+            var r = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
 
             var respose = JsonConvert.DeserializeObject<InfoResponse>(r);
             Assert.NotNull(respose);
@@ -40,8 +40,8 @@ namespace TradingBot.Tests.BitMex
         [Fact]
         public async Task ReceiveOrderBook()
         {
-            await _clientWebSocket.ConnectAsync();
-            var info = await _clientWebSocket.GetResponseAsync();
+            await _clientWebSocket.ConnectAsync(CancellationToken.None);
+            var info = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
 
             Assert.NotNull(info);
 
@@ -52,18 +52,18 @@ namespace TradingBot.Tests.BitMex
                 Pair = "BTCUSD",
                 Prec = "R0"
             };
-            await _clientWebSocket.SendRequestAsync(request);
+            await _clientWebSocket.SendRequestAsync(request, CancellationToken.None);
 
-            var successfull = await _clientWebSocket.GetResponseAsync();
+            var successfull = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
 
             var respose = JsonConvert.DeserializeObject<SubscribedResponse>(successfull);
 
-            var snapshot = await _clientWebSocket.GetResponseAsync();
+            var snapshot = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
 
             var obsh = OrderBookSnapshotResponse.Parse(snapshot);
 
 
-            var update = await _clientWebSocket.GetResponseAsync();
+            var update = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
 
             var upd = OrderBookUpdateResponse.Parse(update);
 
