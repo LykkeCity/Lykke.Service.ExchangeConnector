@@ -71,7 +71,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
                 };
                 await Messenger.SendRequestAsync(request);
                 var response = await GetResponse();
-                HandleResponse(response);
+                await HandleResponse(response);
             }
 
         }

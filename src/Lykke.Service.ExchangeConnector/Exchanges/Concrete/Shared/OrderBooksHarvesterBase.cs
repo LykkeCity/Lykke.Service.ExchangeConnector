@@ -25,7 +25,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
         private long _lastSecPublicationsNum;
         private int _orderBooksReceivedInLastTimeFrame;
         private readonly Timer _heartBeatMonitoringTimer;
-        private readonly TimeSpan _heartBeatPeriod = TimeSpan.FromSeconds(10);
+        private readonly TimeSpan _heartBeatPeriod = TimeSpan.FromSeconds(30);
         private Task _measureTask;
         private long _publishedToRabbit;
 
@@ -87,8 +87,8 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
             _cancellationTokenSource = new CancellationTokenSource();
             CancellationToken = _cancellationTokenSource.Token;
-            _messageLoopTask = MessageLoop();
-            _measureTask = Measure();
+            _messageLoopTask = Task.Run(async () => await MessageLoop());
+            _measureTask = Task.Run(async () => await Measure());
         }
 
         public void Stop()
@@ -133,11 +133,10 @@ namespace TradingBot.Exchanges.Concrete.Shared
                              let bids = g.Where(i => i.IsBuy).Select(i => new VolumePrice(i.Price, i.Size)).ToArray()
                              let assetPair = BitMexModelConverter.ConvertSymbolFromBitMexToLykke(g.Key, CurrencyMappingProvider).Name
                              select new OrderBook(ExchangeName, assetPair, asks, bids, DateTime.UtcNow);
-
+            _publishedToRabbit++;
             foreach (var orderBook in orderBooks)
             {
                 await _newOrderBookHandler(orderBook);
-                _publishedToRabbit++;
             }
         }
 

@@ -52,9 +52,9 @@ namespace TradingBot.Exchanges
 
             if (_config.OrderBooksRabbitMq.Enabled)
             {
-                var orderBookHandler = new RabbitMqHandler<OrderBook>(_config.OrderBooksRabbitMq.GetConnectionString(), _config.OrderBooksRabbitMq.Exchange, _config.OrderBooksRabbitMq.Durable);
                 foreach (var exchange in _implementations)
                 {
+                    var orderBookHandler = new RabbitMqHandler<OrderBook>(_config.OrderBooksRabbitMq.GetConnectionString(), _config.OrderBooksRabbitMq.Exchange, _config.OrderBooksRabbitMq.Durable);
                     exchange.AddOrderBookHandler(orderBookHandler);
                 }
             }
