@@ -82,19 +82,19 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             switch (table.Action)
             {
                 case Action.Partial:
-                    OrderBookSnapshot.Clear();
+                    //TODO OrderBookSnapshot.Clear();
                     goto case Action.Update;
                 case Action.Update:
                 case Action.Insert:
                     foreach (var item in table.Data)
                     {
-                        OrderBookSnapshot.Add(item.ToOrderBookItem());
+                        //TODO OrderBookSnapshot.Add(item.ToOrderBookItem());
                     }
                     break;
                 case Action.Delete:
                     foreach (var item in table.Data)
                     {
-                        OrderBookSnapshot.Remove(item.ToOrderBookItem());
+                        //TODO OrderBookSnapshot.Remove(item.ToOrderBookItem());
                     }
                     break;
                 default:

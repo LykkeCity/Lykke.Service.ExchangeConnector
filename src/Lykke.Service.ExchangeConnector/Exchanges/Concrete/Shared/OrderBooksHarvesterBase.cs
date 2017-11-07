@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -15,12 +16,13 @@ namespace TradingBot.Exchanges.Concrete.Shared
     {
         protected readonly ILog Log;
         protected readonly WebSocketTextMessenger Messenger;
-        protected readonly ISet<OrderBookItem> OrderBookSnapshot;
+        protected readonly IDictionary<string, ConcurrentBag<OrderBookSnapshot>> OrderBookSnapshots;
+        protected CancellationToken CancellationToken;
+
         private Task _messageLoopTask;
         private Func<OrderBook, Task> _newOrderBookHandler;
         protected ICurrencyMappingProvider CurrencyMappingProvider { get; }
         private readonly CancellationTokenSource _cancellationTokenSource;
-        protected CancellationToken CancellationToken;
         private DateTime _lastPublishTime = DateTime.UtcNow;
         private long _lastSecPublicationsNum;
         private int _currentPublicationsNum;
@@ -32,7 +34,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
             _cancellationTokenSource = new CancellationTokenSource();
             CancellationToken = _cancellationTokenSource.Token;
             Messenger = new WebSocketTextMessenger(uri, Log, CancellationToken);
-            OrderBookSnapshot = new HashSet<OrderBookItem>();
+            OrderBookSnapshots = new ConcurrentDictionary<string, ConcurrentBag<OrderBookSnapshot>>();
             CurrencyMappingProvider = currencyMappingProvider;
             new Task(Measure).Start();
         }
@@ -98,12 +100,16 @@ namespace TradingBot.Exchanges.Concrete.Shared
             {
                 return;
             }
-            var orderBooks = from si in OrderBookSnapshot
-                             group si by si.Symbol into g
-                             let asks = g.Where(i => !i.IsBuy).Select(i => new VolumePrice(i.Price, i.Size)).ToArray()
-                             let bids = g.Where(i => i.IsBuy).Select(i => new VolumePrice(i.Price, i.Size)).ToArray()
-                             let assetPair = BitMexModelConverter.ConvertSymbolFromBitMexToLykke(g.Key, CurrencyMappingProvider).Name
-                             select new OrderBook(ExchangeName, assetPair, asks, bids, DateTime.UtcNow);
+
+            var orderBooks = OrderBookSnapshots.Values
+                .SelectMany(x => x)
+                .Select(obs => new OrderBook(
+                    ExchangeName,
+                    BitMexModelConverter.ConvertSymbolFromBitMexToLykke(obs.AssetPairId, CurrencyMappingProvider).Name,
+                    obs.Asks.Where(i => !i.IsBuy).Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
+                    obs.Bids.Where(i => i.IsBuy).Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
+                    DateTime.UtcNow
+                    ));
 
             foreach (var orderBook in orderBooks)
             {

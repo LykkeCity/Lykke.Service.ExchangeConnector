@@ -5,7 +5,6 @@ using AzureStorage;
 using Common;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using TradingBot.Handlers;
 using TradingBot.Helpers;
 using TradingBot.Infrastructure.Logging;
 using TradingBot.Repositories;
@@ -15,13 +14,14 @@ namespace TradingBot.Communications
 {
     public class OrderBookRepository
     {
-		private readonly ILogger _logger = Logging.CreateLogger<OrderBookRepository>();
+        private const string _azureConflictExceptionReason = "Conflict";
+
+        private readonly ILogger _logger = Logging.CreateLogger<OrderBookRepository>();
 	    private readonly string _tableName;
         private readonly INoSQLTableStorage<OrderBookEntity> _tableStorage;
         private readonly Queue<OrderBook> _orderBooks = new Queue<OrderBook>();
         private readonly Queue<OrderBookEntity> _orderBookEntities = new Queue<OrderBookEntity>();
         private DateTime _currentPriceMinute;
-        private const string _azureConflictExceptionReason = "Conflict";
 
         private readonly JsonSerializerSettings _serializerSettings = new JsonSerializerSettings
         {
@@ -76,7 +76,7 @@ namespace TradingBot.Communications
                 {
                     _orderBookEntities.Enqueue(entity);
                     _logger.LogError(0, ex,
-                        $"Can't write to Azure Table Storage, will try later. Now in queue: {_orderBookEntities.Count}");
+                        $"Can't write to Azure Table {_tableName}, will try later. Now in queue: {_orderBookEntities.Count}");
                 }
             }
             else

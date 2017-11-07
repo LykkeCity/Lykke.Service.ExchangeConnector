@@ -119,12 +119,13 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         private async Task HandleResponse(OrderBookSnapshotResponse snapshot)
         {
-            OrderBookSnapshot.Clear();
+            OrderBookSnapshots.Clear();
             var pair = _channels[snapshot.ChannelId].Pair;
             foreach (var order in snapshot.Orders)
             {
                 order.Pair = pair;
-                OrderBookSnapshot.Add(order.ToOrderBookItem());
+                //OrderBookSnapshots[] // TODO
+                //OrderBookSnapshot.Add(order.ToOrderBookItem());
             }
 
             await PublishOrderBookSnapshotAsync();
@@ -134,13 +135,13 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         {
             if (response.Price == 0)
             {
-                OrderBookSnapshot.Remove(response.ToOrderBookItem());
+                //TODO OrderBookSnapshot.Remove(response.ToOrderBookItem());
             }
             else
             {
                 var pair = _channels[response.ChannelId].Pair;
                 response.Pair = pair;
-                OrderBookSnapshot.Add(response.ToOrderBookItem());
+                //TODO OrderBookSnapshot.Add(response.ToOrderBookItem());
             }
             await PublishOrderBookSnapshotAsync();
         }
