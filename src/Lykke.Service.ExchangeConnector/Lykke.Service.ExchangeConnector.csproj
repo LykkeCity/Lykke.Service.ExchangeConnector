@@ -21,6 +21,11 @@
     <PackageReference Include="Lykke.Logs" Version="3.2.2" />
     <PackageReference Include="Lykke.SettingsReader" Version="1.0.42" />
     <PackageReference Include="Lykke.SlackNotification.AzureQueue" Version="1.0.5" />
+    <PackageReference Include="Lykke.WampSharp" Version="1.0.2" />
+    <PackageReference Include="Lykke.WampSharp.Default.Client" Version="1.0.2" />
+    <PackageReference Include="Lykke.WampSharp.NewtonsoftJson" Version="1.0.2" />
+    <PackageReference Include="Lykke.WampSharp.WebSocket4Net" Version="1.0.2" />
+    <PackageReference Include="Lykke.WampSharp.WebSockets" Version="1.0.2" />
     <PackageReference Include="Microsoft.AspNetCore" Version="2.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.0.0" />
@@ -46,6 +51,14 @@
   <ItemGroup>
     <ProjectReference Include="..\PusherClient.DotNetCore\PusherClient.DotNetCore.csproj" />
     <ProjectReference Include="..\QuickFix.DotNetCore\QuickFix.DotNetCore.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Update="appsettings.Development.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <None Update="Dockerfile">
