@@ -21,6 +21,11 @@
     <PackageReference Include="Lykke.Logs" Version="3.2.2" />
     <PackageReference Include="Lykke.SettingsReader" Version="1.0.42" />
     <PackageReference Include="Lykke.SlackNotification.AzureQueue" Version="1.0.6" />
+    <PackageReference Include="Lykke.WampSharp" Version="1.0.2" />
+    <PackageReference Include="Lykke.WampSharp.Default.Client" Version="1.0.2" />
+    <PackageReference Include="Lykke.WampSharp.NewtonsoftJson" Version="1.0.2" />
+    <PackageReference Include="Lykke.WampSharp.WebSocket4Net" Version="1.0.2" />
+    <PackageReference Include="Lykke.WampSharp.WebSockets" Version="1.0.2" />
     <PackageReference Include="Microsoft.AspNetCore" Version="2.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.ApplicationInsights.HostingStartup" Version="2.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.0.0" />

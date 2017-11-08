@@ -11,6 +11,7 @@ using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.LykkeExchange.Entities;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Infrastructure.Wamp;
 using TradingBot.Repositories;
 using TradingBot.Trading;
 using OrderBook = TradingBot.Exchanges.Concrete.LykkeExchange.Entities.OrderBook;
@@ -20,16 +21,20 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
     internal class LykkeExchange : Exchange
     {
         public new static readonly string Name = "lykke";
+        private static readonly Object _sync = new Object();
         private new LykkeExchangeConfiguration Config => (LykkeExchangeConfiguration) base.Config;
         private readonly ApiClient apiClient;
         private CancellationTokenSource ctSource;
         private Task getPricesTask;
-        
+        private WampSubscriber<Candle> wampSubscriber = null;
+        private AppSettings appConfig;
+
         private readonly LinkedList<Guid> ordersToCheckExecution = new LinkedList<Guid>();
 
-        public LykkeExchange(LykkeExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log) 
+        public LykkeExchange(AppSettings appConfig, LykkeExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log) 
             : base(Name, config, translatedSignalsRepository, log)
         {
+            this.appConfig = appConfig;
             var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Add("api-key", Config.ApiKey);
             apiClient = new ApiClient(httpClient, log);
@@ -54,36 +59,60 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             
             ctSource = new CancellationTokenSource();
 
-            getPricesTask = GetPricesCycle();
+            getPricesTask = CheckExecutedOrdersCycle();
+
+            StartWampConnection();
         }
 
-        private async Task GetPricesCycle()
+        private void StartWampConnection()
+        {
+            var wampSettings = new WampSubscriberSettings()
+            {
+                Address = appConfig.WampEndpoint.Url,
+                Realm = appConfig.WampEndpoint.PricesRealm,
+                Topics = Instruments.SelectMany(i => new string[] {
+                    String.Format(appConfig.WampEndpoint.PricesTopic, i.Name.ToLowerInvariant(), "ask", "sec"),
+                    String.Format(appConfig.WampEndpoint.PricesTopic, i.Name.ToLowerInvariant(), "bid", "sec") }).ToArray()
+            };
+
+            this.wampSubscriber = new WampSubscriber<Candle>(wampSettings)
+                .SetLogger(this.LykkeLog)
+                .Subscribe(HandlePrice);
+
+            this.wampSubscriber.Start();
+        }
+
+        /// <summary>
+        /// Called on incoming prices
+        /// </summary>
+        /// <param name="candle">Incoming candlestick</param>
+        /// <remarks>Can be called simultaneously from multiple threads</remarks>
+        private void HandlePrice(Candle candle)
+        {
+            var instrument = Instruments.FirstOrDefault(i => string.Equals(i.Name, candle.Asset, StringComparison.InvariantCultureIgnoreCase));
+            if (instrument != null)
+            {
+                var tickPrice = new TickPrice(
+                    instrument,
+                    candle.Timestamp,
+                    ask: candle.L,
+                    bid: candle.H);
+
+                lock (_sync)
+                {
+                    CallTickPricesHandlers(tickPrice).Wait();
+                }
+            }
+        }
+
+        private async Task CheckExecutedOrdersCycle()
         {
             OnConnected();
             while (!ctSource.IsCancellationRequested)
             {
                 try
                 {
-                    foreach (var instrument in Instruments)
-                    {
-                        var orderBook = await apiClient.MakeGetRequestAsync<List<OrderBook>>($"{Config.EndpointUrl}/api/OrderBooks/{instrument.Name}", ctSource.Token);
-                        var tickPrices = orderBook.GroupBy(x => x.AssetPair)
-                            .Select(g => new TickPrice(
-                                new Instrument(Name, g.Key),
-                                g.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow,
-                                g.FirstOrDefault(ob => !ob.IsBuy)?.Prices.Select(x => x.Price).DefaultIfEmpty(0).Min() ?? 0,
-                                g.FirstOrDefault(ob => ob.IsBuy)?.Prices.Select(x => x.Price).DefaultIfEmpty(0).Max() ?? 0)
-                                )
-                            .Where(x => x.Ask > 0 && x.Bid > 0);
-
-                        foreach (var tickPrice in tickPrices)
-                        {
-                            await CallTickPricesHandlers(tickPrice);    
-                        }
-                    }
-
                     await CheckExecutedOrders();
-                
                     await Task.Delay(TimeSpan.FromSeconds(1));
                 }
                 catch (Exception e)
@@ -91,7 +120,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     await LykkeLog.WriteErrorAsync(
                         nameof(LykkeExchange),
                         nameof(LykkeExchange),
-                        nameof(GetPricesCycle), 
+                        nameof(CheckExecutedOrdersCycle), 
                         e);
                 }
             }
@@ -100,6 +129,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
 
         protected override void StopImpl()
         {
+            this.wampSubscriber?.Stop();
             ctSource?.Cancel();
         }
         

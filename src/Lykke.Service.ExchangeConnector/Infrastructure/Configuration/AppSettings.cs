@@ -13,6 +13,8 @@ namespace TradingBot.Infrastructure.Configuration
         public OrderBookRabbitMqConfiguration OrderBooksRabbitMq { get; set; }
 
         public AzureTableConfiguration AzureStorage { get; set; }
+
+        public WampEndpointConfiguration WampEndpoint { get; set; }
     }
 
     public class TradingBotSettings
@@ -25,5 +27,12 @@ namespace TradingBot.Infrastructure.Configuration
     public class SlackNotificationSettings
     {
         public AzureQueueSettings AzureQueue { get; set; }
+    }
+
+    public class WampEndpointConfiguration
+    {
+        public string Url { get; set; }
+        public string PricesRealm { get; set; }
+        public string PricesTopic { get; set; }
     }
 }

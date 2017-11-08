@@ -14,6 +14,8 @@ namespace TradingBot.Tests.LykkeApiTests
 {
     public class LykkeApiTests
     {
+        private readonly AppSettings appSettings = new AppSettings() { WampEndpoint = new WampEndpointConfiguration() };
+
         private readonly LykkeExchangeConfiguration config = new LykkeExchangeConfiguration()
             {
                 Instruments = new [] { "BTCUSD" },
@@ -21,7 +23,7 @@ namespace TradingBot.Tests.LykkeApiTests
                 ApiKey = ""
             };
 
-        private LykkeExchange Exchange => new LykkeExchange(config, null, new LogToConsole());
+        private LykkeExchange Exchange => new LykkeExchange(appSettings, config, null, new LogToConsole());
 
         [Fact]
         public async Task GetPairsTest()
