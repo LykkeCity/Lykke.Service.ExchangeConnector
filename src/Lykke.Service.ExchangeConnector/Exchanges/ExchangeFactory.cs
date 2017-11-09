@@ -16,12 +16,14 @@ namespace TradingBot.Exchanges
         private readonly AppSettings _config;
         private readonly IReloadingManager<TradingBotSettings> _settingsManager;
         private readonly IReadOnlyCollection<Exchange> _implementations;
+        private readonly ILog _log;
 
-        public ExchangeFactory(AppSettings config, IReloadingManager<TradingBotSettings> settingsManager, IReadOnlyCollection<Exchange> implementations)
+        public ExchangeFactory(AppSettings config, IReloadingManager<TradingBotSettings> settingsManager, IReadOnlyCollection<Exchange> implementations, ILog log)
         {
             _config = config;
             _settingsManager = settingsManager;
             _implementations = implementations;
+            _log = log;
         }
 
         public IReadOnlyCollection<Exchange> CreateExchanges()
@@ -54,7 +56,7 @@ namespace TradingBot.Exchanges
             {
                 foreach (var exchange in _implementations)
                 {
-                    var orderBookHandler = new RabbitMqHandler<OrderBook>(_config.OrderBooksRabbitMq.GetConnectionString(), _config.OrderBooksRabbitMq.Exchange, _config.OrderBooksRabbitMq.Durable);
+                    var orderBookHandler = new RabbitMqHandler<OrderBook>(_config.OrderBooksRabbitMq.GetConnectionString(), _config.OrderBooksRabbitMq.Exchange, _config.OrderBooksRabbitMq.Durable, _log);
                     exchange.AddOrderBookHandler(orderBookHandler);
                 }
             }

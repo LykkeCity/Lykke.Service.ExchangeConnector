@@ -8,10 +8,12 @@ namespace TradingBot.Handlers
 {
     public class RabbitMqHandler<T> : Handler<T>
     {
+        private readonly ILog _log;
         private readonly RabbitMqPublisher<T> _rabbitPublisher;
 
-        public RabbitMqHandler(string connectionString, string exchangeName, bool durable = false)
+        public RabbitMqHandler(string connectionString, string exchangeName, bool durable = false, ILog log = null)
         {
+            _log = log;
             var publisherSettings = new RabbitMqSubscriptionSettings()
             {
                 ConnectionString = connectionString,
@@ -31,6 +33,10 @@ namespace TradingBot.Handlers
 
         public override Task Handle(T message)
         {
+            if (message is OrderBook ob)
+            {
+                _log?.WriteInfoAsync(GetType().Name, nameof(Handle), "Sending order books to the rabbit mq server", $"{ob.Timestamp.ToString()} asks count {ob.Asks.Count}").GetAwaiter().GetResult();
+            }
             return _rabbitPublisher.ProduceAsync(message);
         }
     }
