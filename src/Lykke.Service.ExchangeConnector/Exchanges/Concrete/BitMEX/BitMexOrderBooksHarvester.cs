@@ -42,10 +42,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                     RechargeHeartbeat();
                 }
             }
-            catch (Exception ex)
-            {
-
-            }
             finally
             {
                 try

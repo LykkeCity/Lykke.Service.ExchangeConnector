@@ -35,10 +35,12 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
             if (!initiated)
             {
                 initiated = true;
-            } else 
+            } 
+            else 
             {
                 prevValue += prevValue * (mu * deltaT + sigma * Math.Sqrt(deltaT) * random.NextGaussian());
             }
+            
             return prevValue;
         }
     }
