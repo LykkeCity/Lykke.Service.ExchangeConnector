@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
+using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.Bitfinex.WebSocketClient.Model;
 using TradingBot.Exchanges.Concrete.BitMEX;
 using TradingBot.Exchanges.Concrete.Shared;
@@ -20,7 +21,10 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         private readonly Timer _heartBeatMonitoringTimer;
         private bool _heartIsStoped;
 
-        public BitfinexOrderBooksHarvester(BitfinexExchangeConfiguration configuration, ILog log) : base(configuration, configuration.WebSocketEndpointUrl, log)
+        public BitfinexOrderBooksHarvester(BitfinexExchangeConfiguration configuration, ILog log,
+            OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository) : 
+            base(configuration, configuration.WebSocketEndpointUrl, log, 
+                orderBookSnapshotsRepository, orderBookEventsRepository)
         {
             _configuration = configuration;
             _channels = new Dictionary<long, Channel>();
@@ -143,7 +147,6 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
                 await HandleOrdersEventsAsync(response.Pair,
                     OrderBookEventType.Add, new[] { orderBookItem });
             }
-            await PublishOrderBookSnapshotAsync();
         }
 
         private class Channel

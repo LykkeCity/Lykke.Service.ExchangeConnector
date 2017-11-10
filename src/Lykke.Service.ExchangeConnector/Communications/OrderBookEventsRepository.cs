@@ -1,0 +1,92 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using AzureStorage;
+using Common;
+using Microsoft.Extensions.Logging;
+using TradingBot.Exchanges.Concrete.Shared;
+using TradingBot.Helpers;
+using TradingBot.Infrastructure.Logging;
+using TradingBot.Repositories;
+
+namespace TradingBot.Communications
+{
+    public class OrderBookEventsRepository
+    {
+        private const string _azureConflictExceptionReason = "Conflict";
+
+        private readonly ILogger _logger = Logging.CreateLogger<OrderBookEventsRepository>();
+        private readonly INoSQLTableStorage<OrderBookEventEntity> _tableStorage;
+        private readonly Queue<OrderBookEvent> _orderBookEvents = new Queue<OrderBookEvent>();
+        private readonly Queue<OrderBookEventEntity> _orderBookEventEntities = new Queue<OrderBookEventEntity>();
+        private DateTime _currentMinute;
+
+        /// <summary>
+        /// One AzureTable field must be 64k or less. 
+        /// Strings are stored in UTF16 encoding, so maximum number of characters is 32K.
+        /// One serialized entry has size no more then 100 characters.
+        /// </summary>
+        private const int MaxQueueCount = 10;
+
+        public OrderBookEventsRepository(INoSQLTableStorage<OrderBookEventEntity> tableStorage)
+        {
+            _tableStorage = tableStorage;
+        }
+
+		public async Task SaveAsync(OrderBookEvent orderBookEvent)
+		{
+			if (_currentMinute == default)
+                _currentMinute = orderBookEvent.InternalTimestamp.TruncSeconds();
+
+            var timeMunite = orderBookEvent.InternalTimestamp.TruncSeconds();
+
+            bool nextMinute = timeMunite > _currentMinute;
+            bool fieldOverflow = _orderBookEvents.Count >= MaxQueueCount;
+
+		    // Save on certain amount of time or items count
+            if (!nextMinute && !fieldOverflow)  
+		    {
+		        _orderBookEvents.Enqueue(orderBookEvent);
+		        return;
+		    }
+
+		    var tableEntities = orderBookEvent.OrderItems.Select(oi =>
+		        new OrderBookEventEntity(orderBookEvent.SnapshotId,
+		            orderBookEvent.OrderEventTimestamp, oi.Id)
+		        {
+		            OrderId = oi.Id,
+		            IsBuy = oi.IsBuy,
+		            Symbol = oi.Symbol,
+		            EventType = (int) orderBookEvent.EventType,
+		            Price = oi.Price,
+		            Size = oi.Size
+		        })
+                .ToList();
+
+            _orderBookEvents.Clear();
+            _orderBookEvents.Enqueue(orderBookEvent);
+            _currentMinute = fieldOverflow ? orderBookEvent.InternalTimestamp.TruncMiliseconds() : timeMunite;
+
+            try
+            {
+                // TODO: Create the table
+                await _tableStorage.InsertOrReplaceBatchAsync(tableEntities);
+                _logger.LogDebug($"{tableEntities.Count} order events for orderbook with snapshot {orderBookEvent.SnapshotId} were " + 
+                    $"published to Azure table {_tableStorage.Name}.");
+            }
+            catch (Microsoft.WindowsAzure.Storage.StorageException ex)
+                when (ex.Message == _azureConflictExceptionReason)
+            {
+                _logger.LogError(ex, $"Conflict on writing. Skip chunk for {_currentMinute}");
+            }
+            catch (Exception ex)
+            {
+                foreach (var entity in tableEntities)
+                    _orderBookEventEntities.Enqueue(entity);
+                _logger.LogError(0, ex,
+                    $"Can't write to Azure Table {_tableStorage.Name}, will try later. Now in queue: {_orderBookEventEntities.Count}");
+            }
+		}
+    }
+}

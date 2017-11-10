@@ -31,6 +31,10 @@ namespace TradingBot.Modules
 
             builder.RegisterType<TranslatedSignalsRepository>();
 
+            builder.RegisterType<OrderBookEventsRepository>();
+
+            builder.RegisterType<OrderBookSnapshotsRepository>();
+
             builder.RegisterType<ExchangeFactory>();
 
             builder.RegisterType<ExchangeCallsInterceptor>()

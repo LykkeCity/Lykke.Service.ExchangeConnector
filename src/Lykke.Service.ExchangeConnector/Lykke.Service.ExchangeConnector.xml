@@ -17,7 +17,14 @@
             https://docs.microsoft.com/en-us/rest/api/storageservices/Understanding-the-Table-Service-Data-Model
             </summary>
         </member>
-        <member name="F:TradingBot.Communications.OrderBookRepository.MaxQueueCount">
+        <member name="F:TradingBot.Communications.OrderBookEventsRepository.MaxQueueCount">
+            <summary>
+            One AzureTable field must be 64k or less. 
+            Strings are stored in UTF16 encoding, so maximum number of characters is 32K.
+            One serialized entry has size no more then 100 characters.
+            </summary>
+        </member>
+        <member name="F:TradingBot.Communications.OrderBookSnapshotsRepository.MaxQueueCount">
             <summary>
             One AzureTable field must be 64k or less. 
             Strings are stored in UTF16 encoding, so maximum number of characters is 32K.

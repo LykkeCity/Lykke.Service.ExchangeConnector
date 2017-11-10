@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Common.Log;
 using Newtonsoft.Json.Linq;
+using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
@@ -15,7 +16,10 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
     {
         private readonly IExchangeConfiguration _configuration;
 
-        public BitMexOrderBooksHarvester(BitMexExchangeConfiguration configuration, ILog log) : base(configuration, configuration.WebSocketEndpointUrl, log)
+        public BitMexOrderBooksHarvester(BitMexExchangeConfiguration configuration, ILog log,
+            OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
+            : base(configuration, configuration.WebSocketEndpointUrl, log,
+                orderBookSnapshotsRepository, orderBookEventsRepository)
         {
             _configuration = configuration;
 
@@ -80,7 +84,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
         private async Task HandleTableResponse(TableResponse table)
         {
-            var orderBookItems = table.Data.Select(o => o.ToOrderBookItem());
+            var orderBookItems = table.Data.Select(o => o.ToOrderBookItem()).ToList();
             switch (table.Action)
             {
                 case Action.Partial:
@@ -99,8 +103,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                         $"Unknown table action {table.Action}");
                     break;
             }
-
-            await PublishOrderBookSnapshotAsync();
         }
 
         private OrderBookEventType ActionToOrderBookEventType(

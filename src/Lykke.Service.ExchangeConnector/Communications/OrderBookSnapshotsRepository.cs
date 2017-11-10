@@ -15,18 +15,17 @@ using TradingBot.Repositories;
 
 namespace TradingBot.Communications
 {
-    public class OrderBookRepository
+    public class OrderBookSnapshotsRepository
     {
         private const string _azureConflictExceptionReason = "Conflict";
         private const string _dateTimeFormatString = "yyyy-MM-ddTHH:mm:ss.fff";
         private const string _dateTimeBlobNameFormatString = "yyyy-MM-ddTHH-mm-ss.fff";
 
-        private readonly string _blobContainer;
-        private readonly ILogger _logger = Logging.CreateLogger<OrderBookRepository>();
-	    private readonly string _tableName;
-        private readonly INoSQLTableStorage<OrderBookEntity> _tableStorage;
+        private const string _blobContainer = "orderbookssnapshots";
+        private readonly ILogger _logger = Logging.CreateLogger<OrderBookSnapshotsRepository>();
+        private readonly INoSQLTableStorage<OrderBookSnapshotEntity> _tableStorage;
         private readonly Queue<OrderBookSnapshot> _orderBooks = new Queue<OrderBookSnapshot>();
-        private readonly Queue<OrderBookEntity> _orderBookEntities = new Queue<OrderBookEntity>();
+        private readonly Queue<OrderBookSnapshotEntity> _orderBookEntities = new Queue<OrderBookSnapshotEntity>();
         private readonly AzureBlobStorage _blobStorage;
         private DateTime _currentPriceMinute;
 
@@ -42,21 +41,19 @@ namespace TradingBot.Communications
         /// </summary>
         private const int MaxQueueCount = 100;
 
-        public OrderBookRepository(INoSQLTableStorage<OrderBookEntity> tableStorage, string tableName,
-           AzureBlobStorage blobStorage, string blobContainer)
-        {
+        public OrderBookSnapshotsRepository(INoSQLTableStorage<OrderBookSnapshotEntity> tableStorage, 
+           AzureBlobStorage blobStorage)
+        { 
             _tableStorage = tableStorage;
-            _tableName = tableName;
             _blobStorage = blobStorage;
-            _blobContainer = blobContainer;
         }
 
 		public async Task SaveAsync(OrderBookSnapshot orderBook)
 		{
 			if (_currentPriceMinute == default)
-                _currentPriceMinute = orderBook.Timestamp.TruncSeconds();
+                _currentPriceMinute = orderBook.InternalTimestamp.TruncSeconds();
 
-            var timeMunite = orderBook.Timestamp.TruncSeconds();
+            var timeMunite = orderBook.InternalTimestamp.TruncSeconds();
 
             bool nextMinute = timeMunite > _currentPriceMinute;
             bool fieldOverflow = _orderBooks.Count >= MaxQueueCount;
@@ -64,12 +61,12 @@ namespace TradingBot.Communications
             if (nextMinute || fieldOverflow)
             {
                 var orders = orderBook.Asks.Values.Union(orderBook.Bids.Values);
-                var tableEntity = new OrderBookEntity(orderBook.Source, orderBook.AssetPair, orderBook.Timestamp);
+                var tableEntity = new OrderBookSnapshotEntity(orderBook.Source, orderBook.AssetPair, orderBook.OrderBookTimestamp);
                 var serializedOrders = JsonSerializeVolumePriceList(orders);
                 
                 _orderBooks.Clear();
                 _orderBooks.Enqueue(orderBook);
-                _currentPriceMinute = fieldOverflow ? orderBook.Timestamp.TruncMiliseconds() : timeMunite;
+                _currentPriceMinute = fieldOverflow ? orderBook.InternalTimestamp.TruncMiliseconds() : timeMunite;
 
                 var blobName = GetBlobName(orderBook);
                 try
@@ -79,8 +76,10 @@ namespace TradingBot.Communications
                     await _blobStorage.SaveBlobAsync(_blobContainer, blobName, 
                         Encoding.UTF8.GetBytes(serializedOrders));
                     _logger.LogDebug($"Orderbook for {orderBook.Source} and asset pair {orderBook.AssetPair} " + 
-                        $"published to Azure table {_tableName}. Orders published to blob container {_blobContainer} and " +
+                        $"published to Azure table {_tableStorage.Name}. Orders published to blob container {_blobContainer} and " +
                         $"blob {blobName}");
+
+                    orderBook.GeneratedId = tableEntity.UniqueId;
                 }
                 catch (Microsoft.WindowsAzure.Storage.StorageException ex)
                     when (ex.Message == _azureConflictExceptionReason)
@@ -94,16 +93,16 @@ namespace TradingBot.Communications
                     catch (Exception delException)
                     {
                         _logger.LogError(delException, 
-                            $"Could not delete row with Source {tableEntity.Source}, " +
+                            $"Could not delete row with Source {tableEntity.Exchange}, " +
                             $"Pair {tableEntity.AssetPair} and Dnapshot date " + 
-                            $"{tableEntity.SnapshotDateTime} in table {_tableName}.");
+                            $"{tableEntity.SnapshotDateTime} in table {_tableStorage.Name}.");
                     }
                 }
                 catch (Exception ex)
                 {
                     _orderBookEntities.Enqueue(tableEntity);
                     _logger.LogError(0, ex,
-                        $"Can't write to Azure Table {_tableName}, will try later. Now in queue: {_orderBookEntities.Count}");
+                        $"Can't write to Azure Table {_tableStorage.Name}, will try later. Now in queue: {_orderBookEntities.Count}");
                 }
             }
             else
@@ -114,13 +113,9 @@ namespace TradingBot.Communications
 
         private string GetBlobName(OrderBookSnapshot orderBook)
         {
-            return $"{orderBook.Source}_{RemoveSpecialCharacters(orderBook.AssetPair)}_" + 
-                $"{orderBook.Timestamp.Date.ToString(_dateTimeBlobNameFormatString)}";
-        }
-
-        public static string RemoveSpecialCharacters(string str)
-        {
-            return new string(str.Where(c => char.IsLetter(c) || char.IsDigit(c)).ToArray());
+            return $"{orderBook.Source}_{orderBook.AssetPair}_" + 
+                $"{orderBook.OrderBookTimestamp.Date.ToString(_dateTimeBlobNameFormatString)}"
+                .RemoveSpecialCharacters();
         }
 
         private string JsonSerializeVolumePriceList(IEnumerable<OrderBookItem> orderItems)

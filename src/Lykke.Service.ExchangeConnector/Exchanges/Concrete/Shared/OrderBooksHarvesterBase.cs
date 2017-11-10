@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
 using Polly;
+using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.BitMEX;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
@@ -20,6 +21,8 @@ namespace TradingBot.Exchanges.Concrete.Shared
         protected readonly WebSocketTextMessenger Messenger;
         protected readonly ConcurrentDictionary<string, OrderBookSnapshot> OrderBookSnapshots;
         protected CancellationToken CancellationToken;
+        protected readonly OrderBookSnapshotsRepository _orderBookSnapshotsRepository;
+        protected readonly OrderBookEventsRepository _orderBookEventsRepository;
 
         private Task _messageLoopTask;
         private Func<OrderBook, Task> _newOrderBookHandler;
@@ -35,9 +38,13 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         public int MaxOrderBookRate { get; set; }
 
-        protected OrderBooksHarvesterBase(ICurrencyMappingProvider currencyMappingProvider, string uri, ILog log)
+        protected OrderBooksHarvesterBase(ICurrencyMappingProvider currencyMappingProvider, string uri, ILog log,
+            OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
         {
             CurrencyMappingProvider = currencyMappingProvider;
+            _orderBookSnapshotsRepository = orderBookSnapshotsRepository;
+            _orderBookEventsRepository = orderBookEventsRepository;
+
             Log = log.CreateComponentScope(GetType().Name);
 
             OrderBookSnapshots = new ConcurrentDictionary<string, OrderBookSnapshot>();
@@ -154,14 +161,25 @@ namespace TradingBot.Exchanges.Concrete.Shared
             var orderBookSnapshot = new OrderBookSnapshot(ExchangeName, pair, timeStamp);
             AddOrUpdateOrders(orderBookSnapshot, orders);
 
+            await _orderBookSnapshotsRepository.SaveAsync(orderBookSnapshot);
+
             await PublishOrderBookSnapshotAsync();
         }
 
         protected async Task HandleOrdersEventsAsync(string pair, 
             OrderBookEventType orderEventType,
-            IEnumerable<OrderBookItem> orders)
+            ICollection<OrderBookItem> orders)
         {
             var orderBookSnapshot = await GetOrderBookSnapshot(pair);
+
+            await _orderBookEventsRepository.SaveAsync(new OrderBookEvent
+            {
+                SnapshotId = orderBookSnapshot.GeneratedId,
+                EventType = orderEventType,
+                OrderEventTimestamp = DateTime.UtcNow,
+                OrderItems = orders
+            });
+
             switch (orderEventType)
             {
                 case OrderBookEventType.Add:

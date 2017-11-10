@@ -13,6 +13,7 @@ using Lykke.Logs;
 using Lykke.SettingsReader;
 using Lykke.SlackNotification.AzureQueue;
 using AzureStorage;
+using AzureStorage.Blob;
 using AzureStorage.Tables;
 using TradingBot.Communications;
 using TradingBot.Repositories;
@@ -105,9 +106,6 @@ namespace TradingBot
                     .SingleInstance();
 
 
-
-
-
                 if (settings.AzureStorage.Enabled)
                 {
                     var slackService = services.UseSlackNotificationsSenderViaAzureQueue(topSettings.SlackNotifications.AzureQueue, log);
@@ -154,8 +152,17 @@ namespace TradingBot
                     settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "translatedSignals", new LogToConsole());
                 builder.RegisterInstance(signalsStorage).As<INoSQLTableStorage<TranslatedSignalTableEntity>>().SingleInstance();
 
+                var orderBookSnapshotStorage = AzureTableStorage<OrderBookSnapshotEntity>.Create(
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "orderBookSnapshots", new LogToConsole());
+                builder.RegisterInstance(orderBookSnapshotStorage).As<INoSQLTableStorage<OrderBookSnapshotEntity>>().SingleInstance();
 
+                var orderBookEventsStorage = AzureTableStorage<OrderBookEventEntity>.Create(
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "orderBookEvents", new LogToConsole());
+                builder.RegisterInstance(orderBookEventsStorage).As<INoSQLTableStorage<OrderBookEventEntity>>().SingleInstance();
 
+                var azureBlobStorage = AzureBlobStorage.Create(
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString));
+                builder.RegisterInstance(azureBlobStorage).As<AzureBlobStorage>().SingleInstance();
 
                 builder.RegisterModule(new ServiceModule(settings.Exchanges));
 
