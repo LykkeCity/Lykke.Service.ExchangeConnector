@@ -17,111 +17,141 @@ using TradingBot.Infrastructure.Configuration;
 
 namespace TradingBot.Infrastructure.Wamp
 {
-    public class WampSubscriber<T> : IStartable, IStopable where T : class
+    public class WampSubscriber<T> : ProducerConsumer<T>, IStartable, IStopable where T : class
     {
         private IWampChannel channel = null;
         private List<IDisposable> subscriptions = new List<IDisposable>();
         private ILog log = null;
         private WampSubscriberSettings settings;
-        private Thread thread = null;
-        private CancellationTokenSource cancelToken = null;
-        private bool isDisposed = false;
-        private Action<T> handlers;
+        private Func<T, Task> handlers;
         private static readonly object _sync = new object();
+        private bool isStarted = false;
         private bool isConnected = false;
+        private bool isDisposed = false;
+        private Task thread = null;
+        private TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
+        private CancellationTokenSource cancelToken = new CancellationTokenSource();
 
-        public WampSubscriber(WampSubscriberSettings settings)
+        public WampSubscriber(WampSubscriberSettings settings, ILog log)
+            : base(log)
         {
             if (settings == null) { throw new ArgumentNullException(nameof(settings)); }
             this.settings = settings;
+            this.log = log;
         }
 
-        public virtual void Start()
-        {
-            ValidateInstance();
-            if (this.thread != null) { return; }
-
-            this.cancelToken = new CancellationTokenSource();
-            this.thread = new Thread(ReadThread);
-            this.thread.Start();
-        }
-
-        public virtual void Stop()
+        public override void Start()
         {
             ValidateInstance();
 
-            var t = this.thread;
-            var ct = this.cancelToken;
-            if (t == null)
+            if (this.isStarted)
                 return;
 
-            this.thread = null;
-            ct?.Cancel();
-            t.Join();
-            ct?.Dispose();
+            lock (_sync)
+            {
+                if (this.isStarted)
+                    return;
+
+                this.isStarted = true;
+            }
+
+            base.Start();
+
+            this.cancelToken = new CancellationTokenSource();
+            this.thread = this.OpenConnectionAndSub();
         }
 
-        public virtual WampSubscriber<T> Subscribe(Action<T> callback)
+        public override void Stop()
+        {
+            ValidateInstance();
+
+            if (!this.isStarted)
+                return;
+
+            lock (_sync)
+            {
+                if (!this.isStarted)
+                    return;
+                this.isStarted = false;
+            }
+
+            base.Stop();
+
+            this.cancelToken.Cancel();
+            this.tcs?.SetResult(0);
+            this.thread.Wait();
+        }
+
+        public virtual WampSubscriber<T> Subscribe(Func<T, Task> callback)
         {
             ValidateInstance();
             this.handlers += callback;
             return this;
         }
 
-        public virtual WampSubscriber<T> SetLogger(ILog log)
+        private async Task OpenConnectionAndSub()
         {
-            ValidateInstance();
-            this.log = log;
-            return this;
-        }
-
-        private void OpenConnectionAndSub()
-        {
-            // 1. Connect
-            // 
-
-            var binding = new JTokenJsonBinding();
-            Func<IControlledWampConnection<JToken>> connectionFactory =
-                    () => new ControlledTextWebSocketConnection<JToken>(new Uri(this.settings.Address), binding);
-
-            this.channel = new WampChannelFactory().CreateChannel(this.settings.Realm, connectionFactory, binding);
-
-            var monitor = this.channel.RealmProxy.Monitor;
-            monitor.ConnectionBroken += OnConnectionBroken;
-            monitor.ConnectionError += OnConnectionError;
-
-            while (!monitor.IsConnected)
+            await Task.Run(async () =>
             {
-                if (this.cancelToken.IsCancellationRequested)
-                {
-                    this.log?.WriteInfoAsync(nameof(WampSubscriber<T>), nameof(Start), string.Empty, $"Finishing connecting to server.");
-                    return;
-                }
+                // Connect
+                // Subscribe
+                // Await
+                // Unsub
 
-                try
+                while (!this.cancelToken.IsCancellationRequested)
                 {
-                    this.log?.WriteInfoAsync(nameof(WampSubscriber<T>), nameof(Start), string.Empty, $"Trying to connect to server: {this.settings.Address} realm: {this.settings.Realm}");
-                    this.channel.Open().Wait();
-                }
-                catch (Exception ex)
-                {
-                    this.log?.WriteErrorAsync(nameof(WampSubscriber<T>), nameof(Start), string.Empty, ex);
-                    this.log?.WriteInfoAsync(nameof(WampSubscriber<T>), nameof(Start), string.Empty, "Retrying to connect in 5 sec...");
-                    Thread.Sleep(5000);
-                }
-            }
-            this.log?.WriteInfoAsync(nameof(WampSubscriber<T>), nameof(Start), string.Empty, $"Connected to server {this.settings.Address}");
+                    this.tcs = new TaskCompletionSource<int>();
+                    this.isConnected = false;
 
-            // 2. Subscribe to topic
-            //
-            foreach (var topic in this.settings.Topics)
-            {
-                var subj = this.channel.RealmProxy.Services.GetSubject<T>(topic);
-                this.subscriptions.Add(subj.Subscribe(this.OnNext, this.OnError, this.OnCompleted));
-                this.log?.WriteInfoAsync(nameof(WampSubscriber<T>), nameof(Start), string.Empty, $"Subscribed to topic '${topic}'.");
-            }
+                    // Connect
+                    // 
+                    var binding = new JTokenJsonBinding();
+                    Func<IControlledWampConnection<JToken>> connectionFactory =
+                            () => new ControlledTextWebSocketConnection<JToken>(new Uri(this.settings.Address), binding);
 
-            this.isConnected = true;
+                    this.channel = new WampChannelFactory().CreateChannel(this.settings.Realm, connectionFactory, binding);
+
+                    var monitor = this.channel.RealmProxy.Monitor;
+                    monitor.ConnectionBroken += OnConnectionBroken;
+                    monitor.ConnectionError += OnConnectionError;
+
+                    while (!monitor.IsConnected && !this.cancelToken.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            this.log?.WriteInfoAsync(nameof(WampSubscriber<T>), nameof(Start), string.Empty, $"Trying to connect to server: {this.settings.Address} realm: {this.settings.Realm}");
+                            await this.channel.Open();
+                        }
+                        catch (Exception ex)
+                        {
+                            this.log?.WriteErrorAsync(nameof(WampSubscriber<T>), nameof(Start), string.Empty, ex);
+                            this.log?.WriteInfoAsync(nameof(WampSubscriber<T>), nameof(Start), string.Empty, "Retrying to connect in 5 sec...");
+                            await Task.Delay(5000);
+                        }
+                    }
+
+                    // Subscribe to topics
+                    //
+                    if (!this.cancelToken.IsCancellationRequested)
+                    {
+                        this.log?.WriteInfoAsync(nameof(WampSubscriber<T>), nameof(Start), string.Empty, $"Connected to server {this.settings.Address}");
+
+                        foreach (var topic in this.settings.Topics)
+                        {
+                            var subj = this.channel.RealmProxy.Services.GetSubject<T>(topic);
+                            this.subscriptions.Add(subj.Subscribe(this.OnNext, this.OnError, this.OnCompleted));
+                            this.log?.WriteInfoAsync(nameof(WampSubscriber<T>), nameof(Start), string.Empty, $"Subscribed to topic '${topic}'.");
+                        }
+
+                        this.isConnected = true;
+
+                        await tcs.Task;
+                    }
+
+                    // Unsub
+                    CloseConnection();
+                }
+            });
         }
 
         private void OnConnectionError(object sender, WampConnectionErrorEventArgs e)
@@ -146,9 +176,7 @@ namespace TradingBot.Infrastructure.Wamp
                     if (this.isConnected)
                     {
                         this.isConnected = false;
-
-                        CloseConnection();
-                        OpenConnectionAndSub();
+                        this.tcs.SetResult(0);
                     }
                 }
             }
@@ -156,17 +184,7 @@ namespace TradingBot.Infrastructure.Wamp
 
         protected virtual void OnNext(T item)
         {
-            foreach (Action<T> handler in this.handlers.GetInvocationList())
-            {
-                try
-                {
-                    handler(item);
-                }
-                catch (Exception ex)
-                {
-                    this.log?.WriteErrorAsync(nameof(WampSubscriber<T>), nameof(OnError), "Message handler executed with exception.", ex);
-                }
-            }
+            this.Produce(item);
         }
 
         protected virtual void OnError(Exception ex)
@@ -179,7 +197,7 @@ namespace TradingBot.Infrastructure.Wamp
             this.log?.WriteWarningAsync(nameof(WampSubscriber<T>), nameof(OnCompleted), string.Empty, "Subscription is completed.");
         }
 
-        public void Dispose()
+        public new void Dispose()
         {
             this.Dispose(true);
         }
@@ -198,19 +216,8 @@ namespace TradingBot.Infrastructure.Wamp
             if (this.isDisposed) { throw new InvalidOperationException("Calling disposed instance."); }
         }
 
-        private void ReadThread()
-        {
-            OpenConnectionAndSub();
-
-            this.cancelToken.Token.WaitHandle.WaitOne();
-
-            CloseConnection();
-        }
-
         private void CloseConnection()
         {
-            this.log?.WriteInfoAsync(nameof(WampSubscriber<T>), nameof(CloseConnection), string.Empty, $"Closing connection.");
-
             this.subscriptions.ForEach(i => i.Dispose());
             this.subscriptions.Clear();
 
@@ -222,6 +229,21 @@ namespace TradingBot.Infrastructure.Wamp
 
                 this.channel.Close();
                 this.channel = null;
+            }
+        }
+
+        protected override async Task Consume(T item)
+        {
+            foreach (Func<T, Task> handler in this.handlers.GetInvocationList())
+            {
+                try
+                {
+                    await handler(item);
+                }
+                catch (Exception ex)
+                {
+                    this.log?.WriteErrorAsync(nameof(WampSubscriber<T>), nameof(OnError), "Message handler executed with exception.", ex);
+                }
             }
         }
     }
