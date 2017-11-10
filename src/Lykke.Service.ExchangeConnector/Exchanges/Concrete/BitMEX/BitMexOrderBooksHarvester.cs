@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Repositories;
 using Action = TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.Action;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
@@ -79,36 +80,52 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
         private async Task HandleTableResponse(TableResponse table)
         {
+            var orderBookItems = table.Data.Select(o => o.ToOrderBookItem());
             switch (table.Action)
             {
                 case Action.Partial:
-                    //TODO OrderBookSnapshot.Clear();
-                    goto case Action.Update;
+                    await HandleOrdebookSnapshotAsync(table.Attributes.Symbol,
+                        DateTime.UtcNow, // TODO: Use server's date
+                        orderBookItems);
+                    break;
                 case Action.Update:
                 case Action.Insert:
-                    foreach (var item in table.Data)
-                    {
-                        //TODO OrderBookSnapshot.Add(item.ToOrderBookItem());
-                    }
-                    break;
                 case Action.Delete:
-                    foreach (var item in table.Data)
-                    {
-                        //TODO OrderBookSnapshot.Remove(item.ToOrderBookItem());
-                    }
+                    await HandleOrdersEventsAsync(table.Attributes.Symbol,
+                        ActionToOrderBookEventType(table.Action), orderBookItems);
                     break;
                 default:
-                    await Log.WriteWarningAsync(nameof(HandleTableResponse), "Parsing table response", $"Unknown table action {table.Action}");
+                    await Log.WriteWarningAsync(nameof(HandleTableResponse), "Parsing table response", 
+                        $"Unknown table action {table.Action}");
                     break;
             }
 
             await PublishOrderBookSnapshotAsync();
         }
 
+        private OrderBookEventType ActionToOrderBookEventType(
+            TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.Action action)
+        {
+            switch (action)
+            {
+                case Action.Update:
+                    return OrderBookEventType.Update;
+                case Action.Insert:
+                    return OrderBookEventType.Add;
+                case Action.Delete:
+                    return OrderBookEventType.Delete;
+                case Action.Unknown:
+                case Action.Partial:
+                    throw new NotSupportedException($"Order action {action} cannot be converted to OrderBookEventType");
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(action), action, null);
+            }
+        }
 
         private async Task Subscribe()
         {
-            var filter = _configuration.Instruments.Select(i => new Tuple<string, string>("orderBookL2", BitMexModelConverter.ConvertSymbolFromLykkeToBitMex(i, CurrencyMappingProvider))).ToArray();
+            var filter = _configuration.Instruments.Select(i => new Tuple<string, string>("orderBookL2", 
+                BitMexModelConverter.ConvertSymbolFromLykkeToBitMex(i, CurrencyMappingProvider))).ToArray();
             var request = SubscribeRequest.BuildRequest(filter);
             await Messenger.SendRequestAsync(request);
         }

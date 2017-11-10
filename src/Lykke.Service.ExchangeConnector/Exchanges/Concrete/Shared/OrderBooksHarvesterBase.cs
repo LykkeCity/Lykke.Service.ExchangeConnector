@@ -8,6 +8,8 @@ using Common.Log;
 using Polly;
 using TradingBot.Exchanges.Concrete.BitMEX;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Infrastructure.Exceptions;
+using TradingBot.Repositories;
 using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.Shared
@@ -16,43 +18,48 @@ namespace TradingBot.Exchanges.Concrete.Shared
     {
         protected readonly ILog Log;
         protected readonly WebSocketTextMessenger Messenger;
-        protected readonly IDictionary<string, ConcurrentBag<OrderBookSnapshot>> OrderBookSnapshots;
+        protected readonly ConcurrentDictionary<string, OrderBookSnapshot> OrderBookSnapshots;
         protected CancellationToken CancellationToken;
 
         private Task _messageLoopTask;
         private Func<OrderBook, Task> _newOrderBookHandler;
-        protected ICurrencyMappingProvider CurrencyMappingProvider { get; }
         private readonly CancellationTokenSource _cancellationTokenSource;
         private DateTime _lastPublishTime = DateTime.UtcNow;
         private long _lastSecPublicationsNum;
         private int _currentPublicationsNum;
         private long _currentPublicationsNumPerfCounter;
 
-        protected OrderBooksHarvesterBase(ICurrencyMappingProvider currencyMappingProvider, string uri, ILog log)
-        {
-            Log = log.CreateComponentScope(GetType().Name);
-            _cancellationTokenSource = new CancellationTokenSource();
-            CancellationToken = _cancellationTokenSource.Token;
-            Messenger = new WebSocketTextMessenger(uri, Log, CancellationToken);
-            OrderBookSnapshots = new ConcurrentDictionary<string, ConcurrentBag<OrderBookSnapshot>>();
-            CurrencyMappingProvider = currencyMappingProvider;
-            new Task(Measure).Start();
-        }
-
-        private async void Measure()
-        {
-            while (true)
-            {
-                var msgInSec = (_currentPublicationsNumPerfCounter - _lastSecPublicationsNum) / 10d;
-                await Log.WriteInfoAsync(nameof(OrderBooksHarvesterBase), $"Order books received from {ExchangeName} in 1 sec", msgInSec.ToString());
-                _lastSecPublicationsNum = _currentPublicationsNumPerfCounter;
-                await Task.Delay(TimeSpan.FromSeconds(10));
-            }
-        }
+        protected ICurrencyMappingProvider CurrencyMappingProvider { get; }
 
         public string ExchangeName { get; set; }
 
         public int MaxOrderBookRate { get; set; }
+
+        protected OrderBooksHarvesterBase(ICurrencyMappingProvider currencyMappingProvider, string uri, ILog log)
+        {
+            CurrencyMappingProvider = currencyMappingProvider;
+            Log = log.CreateComponentScope(GetType().Name);
+
+            OrderBookSnapshots = new ConcurrentDictionary<string, OrderBookSnapshot>();
+            _cancellationTokenSource = new CancellationTokenSource();
+            CancellationToken = _cancellationTokenSource.Token;
+            Messenger = new WebSocketTextMessenger(uri, Log, CancellationToken);
+
+            new Task(ct => Measure((CancellationToken)ct), CancellationToken)
+                .Start();
+        }
+
+        private async void Measure(CancellationToken cancellationToken)
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var msgInSec = (_currentPublicationsNumPerfCounter - _lastSecPublicationsNum) / 10d;
+                await Log.WriteInfoAsync(nameof(OrderBooksHarvesterBase), 
+                    $"Order books received from {ExchangeName} in 1 sec", msgInSec.ToString());
+                _lastSecPublicationsNum = _currentPublicationsNumPerfCounter;
+                await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+            }
+        }
 
         public void AddHandler(Func<OrderBook, Task> handler)
         {
@@ -75,7 +82,9 @@ namespace TradingBot.Exchanges.Concrete.Shared
             const int smallTimeout = 5;
             var retryPolicy = Policy
                 .Handle<Exception>(ex => !(ex is OperationCanceledException))
-                .WaitAndRetryForeverAsync(attempt => attempt % 60 == 0 ? TimeSpan.FromMinutes(5) : TimeSpan.FromSeconds(smallTimeout)); // After every 60 attempts wait 5min 
+                .WaitAndRetryForeverAsync(attempt => attempt % 60 == 0 
+                    ? TimeSpan.FromMinutes(5) 
+                    : TimeSpan.FromSeconds(smallTimeout)); // After every 60 attempts wait 5min 
 
             await retryPolicy.ExecuteAsync(async () =>
             {
@@ -86,11 +95,11 @@ namespace TradingBot.Exchanges.Concrete.Shared
                 }
                 catch (Exception ex)
                 {
-                    await Log.WriteErrorAsync(nameof(MessageLoopImpl), $"An exception occurred while working with WebSocket. Reconnect in {smallTimeout} sec", ex);
+                    await Log.WriteErrorAsync(nameof(MessageLoopImpl), 
+                        $"An exception occurred while working with WebSocket. Reconnect in {smallTimeout} sec", ex);
                     throw;
                 }
             });
-
         }
 
         protected async Task PublishOrderBookSnapshotAsync()
@@ -102,20 +111,89 @@ namespace TradingBot.Exchanges.Concrete.Shared
             }
 
             var orderBooks = OrderBookSnapshots.Values
-                .SelectMany(x => x)
                 .Select(obs => new OrderBook(
                     ExchangeName,
-                    BitMexModelConverter.ConvertSymbolFromBitMexToLykke(obs.AssetPairId, CurrencyMappingProvider).Name,
-                    obs.Asks.Where(i => !i.IsBuy).Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
-                    obs.Bids.Where(i => i.IsBuy).Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
-                    DateTime.UtcNow
-                    ));
+                    BitMexModelConverter.ConvertSymbolFromBitMexToLykke(obs.AssetPair, CurrencyMappingProvider).Name,
+                    obs.Asks.Values.Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
+                    obs.Bids.Values.Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
+                    DateTime.UtcNow));
 
             foreach (var orderBook in orderBooks)
             {
                 await _newOrderBookHandler(orderBook);
             }
         }
+
+        protected abstract Task MessageLoopImpl();
+
+        protected async Task<OrderBookSnapshot> GetOrderBookSnapshot(string pair)
+        {
+            OrderBookSnapshot orderBook;
+            if (!OrderBookSnapshots.TryGetValue(pair, out orderBook))
+            {
+                var message = "Trying to retrieve a non-existing pair order book snapshot " +
+                              $"for exchange {ExchangeName} and pair {pair}";
+                await Log.WriteInfoAsync(nameof(MessageLoopImpl), nameof(MessageLoopImpl), message);
+                throw new OrderBookInconsistencyException(message);
+            }
+
+            return orderBook;
+        }
+
+        protected async Task<ConcurrentDictionary<string, OrderBookItem>> GetOrdersList(string pair, bool isBuy)
+        {
+            var orderBookSnapshot = await GetOrderBookSnapshot(pair);
+            return isBuy
+                ? orderBookSnapshot.Bids
+                : orderBookSnapshot.Asks;
+        }
+
+        protected async Task HandleOrdebookSnapshotAsync(string pair, DateTime timeStamp, 
+            IEnumerable<OrderBookItem> orders)
+        {
+            var orderBookSnapshot = new OrderBookSnapshot(ExchangeName, pair, timeStamp);
+            AddOrUpdateOrders(orderBookSnapshot, orders);
+
+            await PublishOrderBookSnapshotAsync();
+        }
+
+        protected async Task HandleOrdersEventsAsync(string pair, 
+            OrderBookEventType orderEventType,
+            IEnumerable<OrderBookItem> orders)
+        {
+            var orderBookSnapshot = await GetOrderBookSnapshot(pair);
+            switch (orderEventType)
+            {
+                case OrderBookEventType.Add:
+                case OrderBookEventType.Update:
+                    AddOrUpdateOrders(orderBookSnapshot, orders);
+                    break;
+                case OrderBookEventType.Delete:
+                    foreach (var order in orders)
+                    {
+                        if (order.IsBuy)
+                            orderBookSnapshot.Bids.TryRemove(order.Id, out var _);
+                        else
+                            orderBookSnapshot.Asks.TryRemove(order.Id, out var _);
+                    }
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(orderEventType), orderEventType, null);
+            }
+        }
+
+        private static void AddOrUpdateOrders(OrderBookSnapshot orderBookSnapshot,
+            IEnumerable<OrderBookItem> newOrders)
+        {
+            foreach (var order in newOrders)
+            {
+                if (order.IsBuy)
+                    orderBookSnapshot.Bids[order.Id] = order;
+                else
+                    orderBookSnapshot.Asks[order.Id] = order;
+            }
+        }
+
 
         private bool NeedThrottle()
         {
@@ -140,8 +218,6 @@ namespace TradingBot.Exchanges.Concrete.Shared
             _currentPublicationsNum++;
             return result;
         }
-
-        protected abstract Task MessageLoopImpl();
 
         public void Dispose()
         {

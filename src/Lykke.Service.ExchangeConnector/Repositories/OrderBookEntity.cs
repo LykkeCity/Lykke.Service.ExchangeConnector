@@ -11,22 +11,15 @@ namespace TradingBot.Repositories
 
         public string AssetPair { get; }
 
-        public string Asks { get; }
-
-        public string Bids { get; }
-
         public OrderBookEntity()
         {
         }
 
-        public OrderBookEntity(string source, string assetPair,
-            DateTime snapShotTimestamp, string asks, string bids)
+        public OrderBookEntity(string source, string assetPair, DateTime snapShotTimestamp)
         {
             SnapshotDateTime = snapShotTimestamp;
             Source = source;
             AssetPair = assetPair;
-            Asks = asks;
-            Bids = bids;
 
             PartitionKey = source + assetPair;
             RowKey = snapShotTimestamp.ToString("yyyy-MM-ddTHH:mm:ss.fff");

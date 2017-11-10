@@ -17,7 +17,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         public decimal Size { get; set; }
 
-        public long Id { get; set; }
+        public string Id { get; set; }
 
         public bool IsBuy { get; set; }
 

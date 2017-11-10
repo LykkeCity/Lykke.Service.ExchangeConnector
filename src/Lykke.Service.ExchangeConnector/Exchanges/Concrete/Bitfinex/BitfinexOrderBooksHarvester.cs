@@ -8,6 +8,7 @@ using TradingBot.Exchanges.Concrete.Bitfinex.WebSocketClient.Model;
 using TradingBot.Exchanges.Concrete.BitMEX;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Repositories;
 using SubscribeRequest = TradingBot.Exchanges.Concrete.Bitfinex.WebSocketClient.Model.SubscribeRequest;
 
 namespace TradingBot.Exchanges.Concrete.Bitfinex
@@ -119,29 +120,28 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         private async Task HandleResponse(OrderBookSnapshotResponse snapshot)
         {
-            OrderBookSnapshots.Clear();
             var pair = _channels[snapshot.ChannelId].Pair;
-            foreach (var order in snapshot.Orders)
-            {
-                order.Pair = pair;
-                //OrderBookSnapshots[] // TODO
-                //OrderBookSnapshot.Add(order.ToOrderBookItem());
-            }
 
-            await PublishOrderBookSnapshotAsync();
+            await HandleOrdebookSnapshotAsync(pair,
+                DateTime.UtcNow, // TODO: Get this from the server
+                snapshot.Orders.Select(o => o.ToOrderBookItem()));
         }
 
         private async Task HandleResponse(OrderBookUpdateResponse response)
         {
+            var orderBookItem = response.ToOrderBookItem();
+            var pair = _channels[response.ChannelId].Pair;
+            response.Pair = pair;
+
             if (response.Price == 0)
             {
-                //TODO OrderBookSnapshot.Remove(response.ToOrderBookItem());
+                await HandleOrdersEventsAsync(response.Pair, 
+                    OrderBookEventType.Delete, new[] {orderBookItem});
             }
             else
             {
-                var pair = _channels[response.ChannelId].Pair;
-                response.Pair = pair;
-                //TODO OrderBookSnapshot.Add(response.ToOrderBookItem());
+                await HandleOrdersEventsAsync(response.Pair,
+                    OrderBookEventType.Add, new[] { orderBookItem });
             }
             await PublishOrderBookSnapshotAsync();
         }

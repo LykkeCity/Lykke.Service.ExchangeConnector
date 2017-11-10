@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using TradingBot.Exchanges.Concrete.Shared;
@@ -31,7 +32,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model
         {
             return new OrderBookItem(EqualsFunc, GetHashCodeFunc)
             {
-                Id = Id,
+                Id = Id.ToString(CultureInfo.InvariantCulture),
                 IsBuy = Side == Side.Buy,
                 Price = Price,
                 Symbol = Symbol,
