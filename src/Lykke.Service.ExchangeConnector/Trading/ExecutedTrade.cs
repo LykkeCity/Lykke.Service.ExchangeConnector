@@ -32,6 +32,7 @@ namespace TradingBot.Trading
         
         public Instrument Instrument { get; }
 
+        [JsonConverter(typeof(StringEnumConverter))]
         public TradeType Type { get; }
         
         public DateTime Time { get; }
@@ -44,6 +45,7 @@ namespace TradingBot.Trading
         
         public string OrderId { get; }
 
+        [JsonConverter(typeof(StringEnumConverter))]
         public ExecutionStatus Status { get; }
         
         public string Message { get; set; }
