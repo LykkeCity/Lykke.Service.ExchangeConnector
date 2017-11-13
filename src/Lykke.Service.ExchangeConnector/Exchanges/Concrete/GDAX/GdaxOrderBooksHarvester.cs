@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
 using TradingBot.Communications;
+using TradingBot.Exchanges.Concrete.GDAX.RestClient;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
 using TradingBot.Exchanges.Concrete.GDAX.WssClient;
 using TradingBot.Exchanges.Concrete.GDAX.WssClient.Entities;
@@ -16,6 +18,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
     {
         private readonly GdaxExchangeConfiguration _configuration;
         private readonly GdaxWebSocketApi _websocketApi;
+        private readonly GdaxRestApi _restApi;
 
         public GdaxOrderBooksHarvester(GdaxExchangeConfiguration configuration, ILog log,
             OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
@@ -23,6 +26,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
         {
             _configuration = configuration;
             _websocketApi = CreateWebSocketsApiClient();
+            _restApi = CreateRestApiClient();
         }
 
         protected override async Task MessageLoopImpl()
@@ -30,6 +34,9 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             try
             {
                 await _websocketApi.ConnectAsync(CancellationToken);
+                // TODO: First subscribe with websockets and ignore the events before the GetOpenOrders execution
+                await HandleOpenedOrders(await _restApi.GetOpenOrders(CancellationToken)); // Send symbol 
+
                 await _websocketApi.SubscribeToFullUpdatesAsync(
                     _configuration.Instruments.Select(ConvertSymbolFromLykkeToExchange).ToArray(),
                     CancellationToken);
@@ -55,6 +62,26 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             }
         }
 
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            if (disposing)
+            {
+                _websocketApi?.Dispose();
+                _restApi?.Dispose();
+            }
+        }
+
+        private GdaxRestApi CreateRestApiClient()
+        {
+            return new GdaxRestApi(_configuration.ApiKey, _configuration.ApiSecret,
+                _configuration.PassPhrase)
+            {
+                BaseUri = new Uri(_configuration.RestEndpointUrl),
+                ConnectorUserAgent = _configuration.UserAgent
+            };
+        }
+
         private GdaxWebSocketApi CreateWebSocketsApiClient()
         {
             var websocketApi = new GdaxWebSocketApi(_configuration.ApiKey, _configuration.ApiSecret,
@@ -70,12 +97,31 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             return websocketApi;
         }
 
+        private async Task HandleOpenedOrders(IReadOnlyList<GdaxOrderResponse> orders)
+        {
+            var groupedOrders = from order in orders
+                                group order by order.ProductId into gr
+                                select gr;
+
+            foreach (var orderGroup in groupedOrders)
+            {
+                await HandleOrdebookSnapshotAsync(orderGroup.Key,
+                    DateTime.UtcNow,
+                    orderGroup.Select(order =>
+                        new OrderBookItem
+                        {
+                            Id = order.Id.ToString(),
+                            IsBuy = order.Side == GdaxOrderSide.Buy,
+                            Symbol = order.ProductId,
+                            Price = order.Price,
+                            Size = order.Size
+                        }));
+            }
+        }
+
         private void OnWebSocketTicker(object sender, GdaxWssTicker ticker)
         {
-            // TODO
-            // await HandleOrdebookSnapshotAsync(table.Attributes.Symbol,
-            //DateTime.UtcNow, // TODO: Use server's date
-            //orderBookItems);
+            // TODO Handle order book changes for sanity check
         }
 
         private async void OnWebSocketOrderReceived(object sender, GdaxWssOrderReceived order)
