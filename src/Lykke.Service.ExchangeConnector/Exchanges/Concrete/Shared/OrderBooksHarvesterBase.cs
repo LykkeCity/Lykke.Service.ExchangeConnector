@@ -21,17 +21,15 @@ namespace TradingBot.Exchanges.Concrete.Shared
         protected CancellationToken CancellationToken;
         protected readonly OrderBookSnapshotsRepository OrderBookSnapshotsRepository;
         protected readonly OrderBookEventsRepository OrderBookEventsRepository;
-        protected ICurrencyMappingProvider CurrencyMappingProvider { get; }
 
-        private Task _messageLoopTask;
-        private Func<OrderBook, Task> _newOrderBookHandler;
-        private readonly CancellationTokenSource _cancellationTokenSource;
-        private DateTime _lastPublishTime = DateTime.MinValue;
-        private DateTime _lastPublishTime = DateTime.UtcNow;
-        private long _lastSecPublicationsNum;
-        private int _orderBooksReceivedInLastTimeFrame;
+        private CancellationTokenSource _cancellationTokenSource;
         private readonly Timer _heartBeatMonitoringTimer;
         private readonly TimeSpan _heartBeatPeriod = TimeSpan.FromSeconds(30);
+        private Task _messageLoopTask;
+        private Func<OrderBook, Task> _newOrderBookHandler;
+        private DateTime _lastPublishTime = DateTime.MinValue;
+        private long _lastSecPublicationsNum;
+        private int _orderBooksReceivedInLastTimeFrame;
         private Task _measureTask;
         private long _publishedToRabbit;
 
@@ -54,15 +52,13 @@ namespace TradingBot.Exchanges.Concrete.Shared
             _cancellationTokenSource = new CancellationTokenSource();
             CancellationToken = _cancellationTokenSource.Token;
 
-            new Task(ct => Measure((CancellationToken)ct), CancellationToken)
-                .Start();
-
             _heartBeatMonitoringTimer = new Timer(ForceStopMessenger);
         }
 
         private async void ForceStopMessenger(object state)
         {
-            await Log.WriteWarningAsync(nameof(ForceStopMessenger), "Monitoring heartbeat", $"Heart stopped. Restarting {GetType().Name}");
+            await Log.WriteWarningAsync(nameof(ForceStopMessenger), "Monitoring heartbeat", 
+                $"Heart stopped. Restarting {GetType().Name}");
             Stop();
             try
             {
@@ -305,7 +301,6 @@ namespace TradingBot.Exchanges.Concrete.Shared
                 // Dispose managed resources
                 Stop();
                 _messageLoopTask?.Dispose();
-                _cancellationTokenSource?.Dispose();
                 _heartBeatMonitoringTimer?.Dispose();
                 _measureTask?.Dispose();
             }
