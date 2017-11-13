@@ -91,6 +91,7 @@ namespace TradingBot.Modules
             {
                 container.RegisterType<T>()
                     .As<Exchange>()
+                    .SingleInstance()
                     .EnableClassInterceptors()
                     .InterceptedBy(typeof(ExchangeCallsInterceptor));
             }

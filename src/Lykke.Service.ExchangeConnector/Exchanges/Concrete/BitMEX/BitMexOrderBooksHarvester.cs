@@ -31,6 +31,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             {
                 await Messenger.ConnectAsync();
                 await Subscribe();
+                RechargeHeartbeat();
 
                 var response = await ReadResponse();
 
@@ -43,6 +44,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 {
                     await HandleTableResponse((TableResponse)response);
                     response = await ReadResponse();
+                    RechargeHeartbeat();
                 }
             }
             finally

@@ -9973,6 +9973,13 @@
             average execution price
             </summary>
         </member>
+        <member name="M:TradingBot.Exchanges.Concrete.LykkeExchange.LykkeExchange.HandlePrice(TradingBot.Exchanges.Concrete.LykkeExchange.Entities.Candle)">
+            <summary>
+            Called on incoming prices
+            </summary>
+            <param name="candle">Incoming candlestick</param>
+            <remarks>Can be called simultaneously from multiple threads</remarks>
+        </member>
         <member name="T:TradingBot.Exchanges.Concrete.Oanda.Entities.Accounts.AccountInstrumentsResponse">
             <summary>
             The list of tradeable instruments for the Account has been provided.

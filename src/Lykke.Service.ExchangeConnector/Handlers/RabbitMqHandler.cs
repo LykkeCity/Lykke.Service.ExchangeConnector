@@ -10,9 +10,9 @@ namespace TradingBot.Handlers
     {
         private readonly RabbitMqPublisher<T> _rabbitPublisher;
 
-        public RabbitMqHandler(string connectionString, string exchangeName, bool durable = false)
+        public RabbitMqHandler(string connectionString, string exchangeName, bool durable = false, ILog log = null)
         {
-            var publisherSettings = new RabbitMqSubscriptionSettings()
+            var publisherSettings = new RabbitMqSubscriptionSettings
             {
                 ConnectionString = connectionString,
                 ExchangeName = exchangeName,
@@ -22,7 +22,7 @@ namespace TradingBot.Handlers
             _rabbitPublisher = new RabbitMqPublisher<T>(publisherSettings)
                 .DisableInMemoryQueuePersistence()
                 .SetSerializer(new GenericRabbitModelConverter<T>())
-                .SetLogger(new LogToConsole())
+                .SetLogger(log ?? new LogToConsole())
                 .SetPublishStrategy(new DefaultFanoutPublishStrategy(publisherSettings))
                 .SetConsole(new LogToConsole())
                 .PublishSynchronously()

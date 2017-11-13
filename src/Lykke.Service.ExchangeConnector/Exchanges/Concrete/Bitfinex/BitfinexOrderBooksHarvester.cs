@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
 using TradingBot.Communications;
@@ -18,8 +17,6 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
     {
         private readonly BitfinexExchangeConfiguration _configuration;
         private readonly Dictionary<long, Channel> _channels;
-        private readonly Timer _heartBeatMonitoringTimer;
-        private bool _heartIsStoped;
 
         public BitfinexOrderBooksHarvester(BitfinexExchangeConfiguration configuration, ILog log,
             OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository) : 
@@ -28,7 +25,6 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         {
             _configuration = configuration;
             _channels = new Dictionary<long, Channel>();
-            _heartBeatMonitoringTimer = new Timer(state => _heartIsStoped = true);
         }
 
         protected override async Task MessageLoopImpl()
@@ -37,15 +33,11 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             {
                 await Messenger.ConnectAsync();
                 await Subscribe();
-                _heartBeatMonitoringTimer.Change(TimeSpan.FromSeconds(30), Timeout.InfiniteTimeSpan);
+                RechargeHeartbeat();
                 while (!CancellationToken.IsCancellationRequested)
                 {
                     var resp = await GetResponse();
                     await HandleResponse(resp);
-                    if (_heartIsStoped)
-                    {
-                        throw new InvalidOperationException("Did not received heart beat from bitfinex within 10 sec.");
-                    }
                 }
             }
             finally
@@ -84,7 +76,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
                 };
                 await Messenger.SendRequestAsync(request);
                 var response = await GetResponse();
-                HandleResponse(response);
+                await HandleResponse(response);
             }
 
         }
@@ -117,8 +109,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         private async Task HandleResponse(HeartbeatResponse heartbeat)
         {
-            _heartIsStoped = false;
-            _heartBeatMonitoringTimer.Change(TimeSpan.FromSeconds(30), Timeout.InfiniteTimeSpan);
+            RechargeHeartbeat();
             await Log.WriteInfoAsync(nameof(HandleResponse), $"Bitfinex channel {_channels[heartbeat.ChannelId].Pair} heartbeat", string.Empty);
         }
 

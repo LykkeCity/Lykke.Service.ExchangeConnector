@@ -14,5 +14,14 @@
         public string ApiKey { get; set; }
         
         public string EndpointUrl { get; set; }
+
+        public WampEndpointConfiguration WampEndpoint { get; set; }
+    }
+
+    public class WampEndpointConfiguration
+    {
+        public string Url { get; set; }
+        public string PricesRealm { get; set; }
+        public string PricesTopic { get; set; }
     }
 }

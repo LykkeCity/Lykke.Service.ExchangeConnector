@@ -21,14 +21,19 @@ namespace TradingBot.Exchanges.Concrete.Shared
         protected CancellationToken CancellationToken;
         protected readonly OrderBookSnapshotsRepository OrderBookSnapshotsRepository;
         protected readonly OrderBookEventsRepository OrderBookEventsRepository;
+        protected ICurrencyMappingProvider CurrencyMappingProvider { get; }
 
         private Task _messageLoopTask;
         private Func<OrderBook, Task> _newOrderBookHandler;
         private readonly CancellationTokenSource _cancellationTokenSource;
+        private DateTime _lastPublishTime = DateTime.MinValue;
         private DateTime _lastPublishTime = DateTime.UtcNow;
         private long _lastSecPublicationsNum;
-        private int _currentPublicationsNum;
-        private long _currentPublicationsNumPerfCounter;
+        private int _orderBooksReceivedInLastTimeFrame;
+        private readonly Timer _heartBeatMonitoringTimer;
+        private readonly TimeSpan _heartBeatPeriod = TimeSpan.FromSeconds(30);
+        private Task _measureTask;
+        private long _publishedToRabbit;
 
         protected ICurrencyMappingProvider CurrencyMappingProvider { get; }
 
@@ -51,17 +56,41 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
             new Task(ct => Measure((CancellationToken)ct), CancellationToken)
                 .Start();
+
+            _heartBeatMonitoringTimer = new Timer(ForceStopMessenger);
         }
 
-        private async void Measure(CancellationToken cancellationToken)
+        private async void ForceStopMessenger(object state)
         {
-            while (!cancellationToken.IsCancellationRequested)
+            await Log.WriteWarningAsync(nameof(ForceStopMessenger), "Monitoring heartbeat", $"Heart stopped. Restarting {GetType().Name}");
+            Stop();
+            try
             {
-                var msgInSec = (_currentPublicationsNumPerfCounter - _lastSecPublicationsNum) / 10d;
-                await Log.WriteInfoAsync(nameof(OrderBooksHarvesterBase), 
-                    $"Order books received from {ExchangeName} in 1 sec", msgInSec.ToString());
-                _lastSecPublicationsNum = _currentPublicationsNumPerfCounter;
-                await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+                await _messageLoopTask;
+            }
+            catch (OperationCanceledException)
+            {
+
+            }
+            Start();
+        }
+
+        protected void RechargeHeartbeat()
+        {
+            _heartBeatMonitoringTimer.Change(_heartBeatPeriod, Timeout.InfiniteTimeSpan);
+        }
+
+        private async Task Measure()
+        {
+            const double period = 60;
+            while (true)
+            {
+                var msgInSec = _lastSecPublicationsNum / period;
+                var pubInSec = _publishedToRabbit / period;
+                await Log.WriteInfoAsync(nameof(OrderBooksHarvesterBase), $"Receive rate from {ExchangeName} {msgInSec} per second, publish rate to RabbitMq {pubInSec} per second", string.Empty);
+                _lastSecPublicationsNum = 0;
+                _publishedToRabbit = 0;
+                await Task.Delay(TimeSpan.FromSeconds(period), CancellationToken);
             }
         }
 
@@ -72,16 +101,22 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         public void Start()
         {
-            _messageLoopTask = new Task(MessageLoop);
-            _messageLoopTask.Start();
+            Log.WriteInfoAsync(nameof(Start), "Starting", $"Starting {GetType().Name}").Wait();
+
+            _cancellationTokenSource = new CancellationTokenSource();
+            CancellationToken = _cancellationTokenSource.Token;
+            _messageLoopTask = Task.Run(async () => await MessageLoop());
+            _measureTask = Task.Run(async () => await Measure());
         }
 
         public void Stop()
         {
-            _cancellationTokenSource.Cancel();
+            Log.WriteInfoAsync(nameof(Stop), "Stopping", $"Stopping {GetType().Name}").Wait();
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
         }
 
-        private async void MessageLoop()
+        private async Task MessageLoop()
         {
             const int smallTimeout = 5;
             var retryPolicy = Policy
@@ -91,29 +126,28 @@ namespace TradingBot.Exchanges.Concrete.Shared
                     : TimeSpan.FromSeconds(smallTimeout)); // After every 60 attempts wait 5min 
 
             await retryPolicy.ExecuteAsync(async () =>
-            {
-                await Log.WriteInfoAsync(nameof(MessageLoopImpl), "Starting message loop", "");
-                try
-                {
-                    await MessageLoopImpl();
-                }
-                catch (Exception ex)
-                {
-                    await Log.WriteErrorAsync(nameof(MessageLoopImpl), 
-                        $"An exception occurred while working with WebSocket. Reconnect in {smallTimeout} sec", ex);
-                    throw;
-                }
-            });
+             {
+                 await Log.WriteInfoAsync(nameof(MessageLoopImpl), "Starting message loop", "");
+                 try
+                 {
+                     await MessageLoopImpl();
+                 }
+                 catch (Exception ex)
+                 {
+                     await Log.WriteErrorAsync(nameof(MessageLoopImpl), 
+                         $"An exception occurred while working with WebSocket. Reconnect in {smallTimeout} sec", ex);
+                     throw;
+                 }
+             });
         }
 
         protected async Task PublishOrderBookSnapshotAsync()
         {
-            _currentPublicationsNumPerfCounter++;
+            _lastSecPublicationsNum++;
             if (NeedThrottle())
             {
                 return;
             }
-
             var orderBooks = OrderBookSnapshots.Values
                 .Select(obs => new OrderBook(
                     ExchangeName,
@@ -121,7 +155,8 @@ namespace TradingBot.Exchanges.Concrete.Shared
                     obs.Asks.Values.Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
                     obs.Bids.Values.Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
                     DateTime.UtcNow));
-
+            _publishedToRabbit++;
+            
             foreach (var orderBook in orderBooks)
             {
                 await _newOrderBookHandler(orderBook);
@@ -235,12 +270,12 @@ namespace TradingBot.Exchanges.Concrete.Shared
             {
                 return true;
             }
-            if (_currentPublicationsNum >= MaxOrderBookRate)
+            if (_orderBooksReceivedInLastTimeFrame >= MaxOrderBookRate)
             {
                 var now = DateTime.UtcNow;
-                if ((now - _lastPublishTime).TotalSeconds > 1)
+                if ((now - _lastPublishTime).TotalSeconds >= 1)
                 {
-                    _currentPublicationsNum = 0;
+                    _orderBooksReceivedInLastTimeFrame = 0;
                     _lastPublishTime = now;
                 }
                 else
@@ -248,7 +283,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
                     result = true;
                 }
             }
-            _currentPublicationsNum++;
+            _orderBooksReceivedInLastTimeFrame++;
             return result;
         }
 
@@ -271,6 +306,8 @@ namespace TradingBot.Exchanges.Concrete.Shared
                 Stop();
                 _messageLoopTask?.Dispose();
                 _cancellationTokenSource?.Dispose();
+                _heartBeatMonitoringTimer?.Dispose();
+                _measureTask?.Dispose();
             }
         }
     }

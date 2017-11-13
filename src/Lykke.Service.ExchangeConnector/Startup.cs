@@ -24,12 +24,12 @@ using TradingBot.Modules;
 
 namespace TradingBot
 {
-    public sealed class Startup
+    internal sealed class Startup
     {
-        public IConfigurationRoot Configuration { get; }
-        public IContainer ApplicationContainer { get; private set; }
+        private IConfigurationRoot Configuration { get; }
+        private IContainer ApplicationContainer { get; set; }
+        private ILog _log;
 
-        private readonly Lazy<IApplicationFacade> _app;
 
         private INoSQLTableStorage<PriceTableEntity> _pricesStorage;
 
@@ -41,7 +41,6 @@ namespace TradingBot
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
                 .AddEnvironmentVariables();
             Configuration = builder.Build();
-            _app = new Lazy<IApplicationFacade>(() => ApplicationContainer.Resolve<IApplicationFacade>());
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime appLifetime)
@@ -171,7 +170,7 @@ namespace TradingBot
 
                 ApplicationContainer = builder.Build();
 
-
+                _log = log;
                 // Create the IServiceProvider based on the container.
                 return new AutofacServiceProvider(ApplicationContainer);
             }
@@ -190,12 +189,25 @@ namespace TradingBot
 
         private void StartHandler()
         {
-            _app.Value.Start().Wait();
+            ApplicationContainer.Resolve<IApplicationFacade>().Start().GetAwaiter().GetResult();
+            _log.WriteMonitorAsync("", "", "Started").GetAwaiter().GetResult();
+
         }
 
         private void ShutDownHandler()
         {
-            _app.Value.Stop();
+            _log?.WriteMonitorAsync("", "", "Terminating").GetAwaiter().GetResult();
+            try
+            {
+                // NOTE: Service can't recieve and process requests here, so you can destroy all resources
+
+                ApplicationContainer.Resolve<IApplicationFacade>().Stop();
+            }
+            catch (Exception ex)
+            {
+                _log?.WriteFatalErrorAsync(nameof(Startup), nameof(ShutDownHandler), "", ex);
+                throw;
+            }
         }
     }
 }
