@@ -14,7 +14,7 @@ using SubscribeRequest = TradingBot.Exchanges.Concrete.Bitfinex.WebSocketClient.
 
 namespace TradingBot.Exchanges.Concrete.Bitfinex
 {
-    internal sealed class BitfinexOrderBooksHarvester : OrderBooksHarvesterBase
+    internal sealed class BitfinexOrderBooksHarvester : OrderBooksWebSocketHarvester
     {
         private readonly BitfinexExchangeConfiguration _configuration;
         private readonly Dictionary<long, Channel> _channels;
@@ -70,7 +70,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         private async Task Subscribe()
         {
-            var instruments = _configuration.Instruments.Select(i => BitMexModelConverter.ConvertSymbolFromLykkeToBitMex(i, _configuration));
+            var instruments = _configuration.Instruments.Select(i => ConvertSymbolFromLykkeToExchange(i));
 
             foreach (var instrument in instruments)
             {

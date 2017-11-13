@@ -7,6 +7,12 @@ namespace TradingBot.Exchanges.Concrete.Shared
         private readonly Func<OrderBookItem, OrderBookItem, bool> _equalFunc;
         private readonly Func<OrderBookItem, int> _hashCodeFunc;
 
+        public OrderBookItem()
+        {
+            _equalFunc = StandardEquals;
+            _hashCodeFunc = StandardGetHashCode;
+        }
+
         public OrderBookItem(Func<OrderBookItem, OrderBookItem, bool> equalFunc, Func<OrderBookItem, int> hashCodeFunc)
         {
             _equalFunc = equalFunc;
@@ -22,6 +28,22 @@ namespace TradingBot.Exchanges.Concrete.Shared
         public bool IsBuy { get; set; }
 
         public string Symbol { get; set; }
+
+        private static bool StandardEquals(OrderBookItem @this, OrderBookItem other)
+        {
+            return @this.Id == other.Id && @this.IsBuy == other.IsBuy && string.Equals(@this.Symbol, other.Symbol);
+        }
+
+        private static int StandardGetHashCode(OrderBookItem @this)
+        {
+            unchecked
+            {
+                var hashCode = @this.Id.GetHashCode();
+                hashCode = (hashCode * 397) ^ @this.IsBuy.GetHashCode();
+                hashCode = (hashCode * 397) ^ (@this.Symbol != null ? @this.Symbol.GetHashCode() : 0);
+                return hashCode;
+            }
+        }
 
         public bool Equals(OrderBookItem other)
         {

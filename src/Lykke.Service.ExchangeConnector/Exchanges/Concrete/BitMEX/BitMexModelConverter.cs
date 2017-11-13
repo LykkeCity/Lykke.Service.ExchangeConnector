@@ -45,25 +45,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return new ExecutedTrade(instr, execTime, execPrice, execVolume, tradeType, order.OrderID, status) { Message = order.Text };
         }
 
-        public static string ConvertSymbolFromLykkeToBitMex(string symbol, ICurrencyMappingProvider configuration)
-        {
-            if (!configuration.CurrencyMapping.TryGetValue(symbol, out var result))
-            {
-                throw new ArgumentException($"Symbol {symbol} is not mapped to BitMex value");
-            }
-            return result;
-        }
-
-        public static Instrument ConvertSymbolFromBitMexToLykke(string symbol, ICurrencyMappingProvider configuration)
-        {
-            var result = configuration.CurrencyMapping.FirstOrDefault(kv => kv.Value == symbol).Key;
-            if (result == null)
-            {
-                throw new ArgumentException($"Symbol {symbol} is not mapped to lykke value");
-            }
-            return new Instrument(BitMexExchange.Name, result);
-        }
-
         public static string ConvertOrderType(OrderType type)
         {
             switch (type)

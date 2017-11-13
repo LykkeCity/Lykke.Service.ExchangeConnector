@@ -173,7 +173,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
 
         private async Task WhenAllTaskAreDone(int timeoutMs, params Task[] tasks)
         {
-            await Task.WhenAny(Task.Delay(timeoutMs), Task.WhenAll(tasks));
+            await Task.WhenAll(tasks).AwaitWithTimeout(timeoutMs);
         }
     }
 }

@@ -2,7 +2,7 @@
 
 namespace TradingBot.Infrastructure.Configuration
 {
-    public sealed class GdaxExchangeConfiguration : IExchangeConfiguration
+    public sealed class GdaxExchangeConfiguration : IExchangeConfiguration, ICurrencyMappingProvider
     {
         public double InitialRating { get; set; }
 
@@ -26,6 +26,6 @@ namespace TradingBot.Infrastructure.Configuration
 
         public string UserAgent { get; set; }
 
-        public Dictionary<string, string> CurrencyMapping { get; set; }
+        public IDictionary<string, string> CurrencyMapping { get; set; }
     }
 }

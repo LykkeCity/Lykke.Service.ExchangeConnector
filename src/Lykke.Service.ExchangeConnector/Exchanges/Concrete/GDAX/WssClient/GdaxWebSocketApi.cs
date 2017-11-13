@@ -134,7 +134,35 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
                 }
             });
 
-            await _clientWebSocket.SendAsync(StringToArraySegment(requestString), WebSocketMessageType.Text, 
+            await SubscribeImplAsync(cancellationToken, requestString);
+        }
+
+        public async Task SubscribeToFullUpdatesAsync(ICollection<string> productIds, CancellationToken cancellationToken)
+        {
+            if (_clientWebSocket == null || _clientWebSocket.State != WebSocketState.Open)
+                throw new ApiException($"Could not subscribe to {BaseUri} because no connection is established.");
+
+            var credentials = _credentialsFactory.GenerateCredentials(HttpMethod.Get,
+                new Uri(BaseUri, _selfVerifyUrl), string.Empty);
+            var requestString = JsonConvert.SerializeObject(new
+            {
+                type = "subscribe",
+                signature = credentials.Signature,
+                key = credentials.ApiKey,
+                passphrase = credentials.PassPhrase,
+                timestamp = credentials.UnixTimestampString,
+                channels = new[] {
+                    new { name = "ticker", product_ids = productIds },
+                    new { name = "full", product_ids = productIds },
+                }
+            });
+
+            await SubscribeImplAsync(cancellationToken, requestString);
+        }
+
+        private async Task SubscribeImplAsync(CancellationToken cancellationToken, string requestString)
+        {
+            await _clientWebSocket.SendAsync(StringToArraySegment(requestString), WebSocketMessageType.Text,
                 true, cancellationToken).ConfigureAwait(false);
 
             Subscribed?.Invoke(this, requestString);

@@ -10,7 +10,6 @@ using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.BitMEX;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
-using TradingBot.Repositories;
 using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.Shared
@@ -18,11 +17,10 @@ namespace TradingBot.Exchanges.Concrete.Shared
     internal abstract class OrderBooksHarvesterBase : IDisposable
     {
         protected readonly ILog Log;
-        protected readonly WebSocketTextMessenger Messenger;
         protected readonly ConcurrentDictionary<string, OrderBookSnapshot> OrderBookSnapshots;
         protected CancellationToken CancellationToken;
-        protected readonly OrderBookSnapshotsRepository _orderBookSnapshotsRepository;
-        protected readonly OrderBookEventsRepository _orderBookEventsRepository;
+        protected readonly OrderBookSnapshotsRepository OrderBookSnapshotsRepository;
+        protected readonly OrderBookEventsRepository OrderBookEventsRepository;
 
         private Task _messageLoopTask;
         private Func<OrderBook, Task> _newOrderBookHandler;
@@ -38,19 +36,18 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         public int MaxOrderBookRate { get; set; }
 
-        protected OrderBooksHarvesterBase(ICurrencyMappingProvider currencyMappingProvider, string uri, ILog log,
+        protected OrderBooksHarvesterBase(ICurrencyMappingProvider currencyMappingProvider, ILog log,
             OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
         {
             CurrencyMappingProvider = currencyMappingProvider;
-            _orderBookSnapshotsRepository = orderBookSnapshotsRepository;
-            _orderBookEventsRepository = orderBookEventsRepository;
+            OrderBookSnapshotsRepository = orderBookSnapshotsRepository;
+            OrderBookEventsRepository = orderBookEventsRepository;
 
             Log = log.CreateComponentScope(GetType().Name);
 
             OrderBookSnapshots = new ConcurrentDictionary<string, OrderBookSnapshot>();
             _cancellationTokenSource = new CancellationTokenSource();
             CancellationToken = _cancellationTokenSource.Token;
-            Messenger = new WebSocketTextMessenger(uri, Log, CancellationToken);
 
             new Task(ct => Measure((CancellationToken)ct), CancellationToken)
                 .Start();
@@ -120,7 +117,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
             var orderBooks = OrderBookSnapshots.Values
                 .Select(obs => new OrderBook(
                     ExchangeName,
-                    BitMexModelConverter.ConvertSymbolFromBitMexToLykke(obs.AssetPair, CurrencyMappingProvider).Name,
+                    ConvertSymbolFromExchangeToLykke(obs.AssetPair).Name,
                     obs.Asks.Values.Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
                     obs.Bids.Values.Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
                     DateTime.UtcNow));
@@ -135,8 +132,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         protected async Task<OrderBookSnapshot> GetOrderBookSnapshot(string pair)
         {
-            OrderBookSnapshot orderBook;
-            if (!OrderBookSnapshots.TryGetValue(pair, out orderBook))
+            if (!OrderBookSnapshots.TryGetValue(pair, out var orderBook))
             {
                 var message = "Trying to retrieve a non-existing pair order book snapshot " +
                               $"for exchange {ExchangeName} and pair {pair}";
@@ -161,7 +157,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
             var orderBookSnapshot = new OrderBookSnapshot(ExchangeName, pair, timeStamp);
             AddOrUpdateOrders(orderBookSnapshot, orders);
 
-            await _orderBookSnapshotsRepository.SaveAsync(orderBookSnapshot);
+            await OrderBookSnapshotsRepository.SaveAsync(orderBookSnapshot);
 
             await PublishOrderBookSnapshotAsync();
         }
@@ -172,7 +168,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
         {
             var orderBookSnapshot = await GetOrderBookSnapshot(pair);
 
-            await _orderBookEventsRepository.SaveAsync(new OrderBookEvent
+            await OrderBookEventsRepository.SaveAsync(new OrderBookEvent
             {
                 SnapshotId = orderBookSnapshot.GeneratedId,
                 EventType = orderEventType,
@@ -198,6 +194,25 @@ namespace TradingBot.Exchanges.Concrete.Shared
                 default:
                     throw new ArgumentOutOfRangeException(nameof(orderEventType), orderEventType, null);
             }
+        }
+
+        protected string ConvertSymbolFromLykkeToExchange(string symbol)
+        {
+            if (!CurrencyMappingProvider.CurrencyMapping.TryGetValue(symbol, out var result))
+            {
+                throw new ArgumentException($"Symbol {symbol} is not mapped to BitMex value");
+            }
+            return result;
+        }
+
+        protected Instrument ConvertSymbolFromExchangeToLykke(string symbol)
+        {
+            var result = CurrencyMappingProvider.CurrencyMapping.FirstOrDefault(kv => kv.Value == symbol).Key;
+            if (result == null)
+            {
+                throw new ArgumentException($"Symbol {symbol} is not mapped to lykke value");
+            }
+            return new Instrument(ExchangeName, result);
         }
 
         private static void AddOrUpdateOrders(OrderBookSnapshot orderBookSnapshot,
@@ -239,10 +254,24 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         public void Dispose()
         {
-            Stop();
-            Messenger?.Dispose();
-            _messageLoopTask?.Dispose();
-            _cancellationTokenSource?.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        ~OrderBooksHarvesterBase()
+        {
+            Dispose(false);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Dispose managed resources
+                Stop();
+                _messageLoopTask?.Dispose();
+                _cancellationTokenSource?.Dispose();
+            }
         }
     }
 }

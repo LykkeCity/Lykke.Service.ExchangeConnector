@@ -12,7 +12,7 @@ using Action = TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.Action
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
-    internal sealed class BitMexOrderBooksHarvester : OrderBooksHarvesterBase
+    internal sealed class BitMexOrderBooksHarvester : OrderBooksWebSocketHarvester
     {
         private readonly IExchangeConfiguration _configuration;
 
@@ -127,7 +127,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         private async Task Subscribe()
         {
             var filter = _configuration.Instruments.Select(i => new Tuple<string, string>("orderBookL2", 
-                BitMexModelConverter.ConvertSymbolFromLykkeToBitMex(i, CurrencyMappingProvider))).ToArray();
+                ConvertSymbolFromLykkeToExchange(i))).ToArray();
             var request = SubscribeRequest.BuildRequest(filter);
             await Messenger.SendRequestAsync(request);
         }
