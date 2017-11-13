@@ -27,14 +27,12 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         private CancellationTokenSource ctSource;
         private Task getPricesTask;
         private WampSubscriber<Candle> wampSubscriber = null;
-        private AppSettings appConfig;
 
         private readonly LinkedList<Guid> ordersToCheckExecution = new LinkedList<Guid>();
 
-        public LykkeExchange(AppSettings appConfig, LykkeExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log)
+        public LykkeExchange(LykkeExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log)
             : base(Name, config, translatedSignalsRepository, log)
         {
-            this.appConfig = appConfig;
             var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Add("api-key", Config.ApiKey);
             apiClient = new ApiClient(httpClient, log);
@@ -68,11 +66,11 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         {
             var wampSettings = new WampSubscriberSettings()
             {
-                Address = appConfig.WampEndpoint.Url,
-                Realm = appConfig.WampEndpoint.PricesRealm,
+                Address = Config.WampEndpoint.Url,
+                Realm = Config.WampEndpoint.PricesRealm,
                 Topics = Instruments.SelectMany(i => new string[] {
-                    String.Format(appConfig.WampEndpoint.PricesTopic, i.Name.ToLowerInvariant(), "ask", "sec"),
-                    String.Format(appConfig.WampEndpoint.PricesTopic, i.Name.ToLowerInvariant(), "bid", "sec") }).ToArray()
+                    String.Format(Config.WampEndpoint.PricesTopic, i.Name.ToLowerInvariant(), "ask", "sec"),
+                    String.Format(Config.WampEndpoint.PricesTopic, i.Name.ToLowerInvariant(), "bid", "sec") }).ToArray()
             };
 
             this.wampSubscriber = new WampSubscriber<Candle>(wampSettings, this.LykkeLog)
