@@ -2,7 +2,7 @@
 
 namespace TradingBot.Infrastructure.Exceptions
 {
-    public class OrderBookInconsistencyException : ApiException
+    internal class OrderBookInconsistencyException : ApiException
     {
         public OrderBookInconsistencyException(string message) : base(message)
         {

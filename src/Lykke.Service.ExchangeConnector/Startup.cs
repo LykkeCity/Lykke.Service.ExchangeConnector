@@ -148,15 +148,15 @@ namespace TradingBot
                 builder.RegisterInstance(javaEventsStorage).As<INoSQLTableStorage<JavaIntrinsicEventEntity>>().SingleInstance();
 
                 var signalsStorage = AzureTableStorage<TranslatedSignalTableEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "translatedSignals", new LogToConsole());
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "translatedSignals", log);
                 builder.RegisterInstance(signalsStorage).As<INoSQLTableStorage<TranslatedSignalTableEntity>>().SingleInstance();
 
                 var orderBookSnapshotStorage = AzureTableStorage<OrderBookSnapshotEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "orderBookSnapshots", new LogToConsole());
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "orderBookSnapshots", log);
                 builder.RegisterInstance(orderBookSnapshotStorage).As<INoSQLTableStorage<OrderBookSnapshotEntity>>().SingleInstance();
 
                 var orderBookEventsStorage = AzureTableStorage<OrderBookEventEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "orderBookEvents", new LogToConsole());
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "orderBookEvents", log);
                 builder.RegisterInstance(orderBookEventsStorage).As<INoSQLTableStorage<OrderBookEventEntity>>().SingleInstance();
 
                 var azureBlobStorage = AzureBlobStorage.Create(

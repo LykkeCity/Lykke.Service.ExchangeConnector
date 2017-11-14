@@ -44,9 +44,11 @@ namespace TradingBot.Exchanges.Concrete.Shared
                 return hashCode;
             }
         }
-
+        
         public bool Equals(OrderBookItem other)
         {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
             return _equalFunc(this, other);
         }
 

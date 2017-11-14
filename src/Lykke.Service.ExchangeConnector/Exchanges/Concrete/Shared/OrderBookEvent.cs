@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace TradingBot.Exchanges.Concrete.Shared
 {
-    public class OrderBookEvent
+    internal class OrderBookEvent
     {
         public string SnapshotId { get; set; }
 

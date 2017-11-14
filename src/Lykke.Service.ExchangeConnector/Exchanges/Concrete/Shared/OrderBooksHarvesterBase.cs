@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Common.Log;
 using Polly;
 using TradingBot.Communications;
-using TradingBot.Exchanges.Concrete.BitMEX;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Trading;
@@ -22,9 +21,9 @@ namespace TradingBot.Exchanges.Concrete.Shared
         protected readonly OrderBookSnapshotsRepository OrderBookSnapshotsRepository;
         protected readonly OrderBookEventsRepository OrderBookEventsRepository;
 
-        private CancellationTokenSource _cancellationTokenSource;
         private readonly Timer _heartBeatMonitoringTimer;
         private readonly TimeSpan _heartBeatPeriod = TimeSpan.FromSeconds(30);
+        private CancellationTokenSource _cancellationTokenSource;
         private Task _messageLoopTask;
         private Func<OrderBook, Task> _newOrderBookHandler;
         private DateTime _lastPublishTime = DateTime.MinValue;
@@ -231,7 +230,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
         {
             if (!CurrencyMappingProvider.CurrencyMapping.TryGetValue(symbol, out var result))
             {
-                throw new ArgumentException($"Symbol {symbol} is not mapped to BitMex value");
+                throw new ArgumentException($"Symbol {symbol} is not mapped to {ExchangeName} value");
             }
             return result;
         }

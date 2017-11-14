@@ -1,6 +1,6 @@
 ﻿namespace TradingBot.Exchanges.Concrete.Shared
 {
-    public enum OrderAction
+    internal enum OrderAction
     {
         Unknown,
         Partial,

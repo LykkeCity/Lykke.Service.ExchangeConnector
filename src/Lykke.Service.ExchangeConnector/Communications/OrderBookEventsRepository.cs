@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AzureStorage;
 using Common;
+using Common.Log;
 using Microsoft.Extensions.Logging;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Helpers;
@@ -12,14 +13,15 @@ using TradingBot.Repositories;
 
 namespace TradingBot.Communications
 {
-    public class OrderBookEventsRepository
+    internal class OrderBookEventsRepository
     {
         private const string _azureConflictExceptionReason = "Conflict";
 
-        private readonly ILogger _logger = Logging.CreateLogger<OrderBookEventsRepository>();
+        private readonly ILog _log;
         private readonly INoSQLTableStorage<OrderBookEventEntity> _tableStorage;
         private readonly Queue<OrderBookEvent> _orderBookEvents = new Queue<OrderBookEvent>();
         private readonly Queue<OrderBookEventEntity> _orderBookEventEntities = new Queue<OrderBookEventEntity>();
+        private static readonly string _className = nameof(OrderBookSnapshotsRepository);
         private DateTime _currentMinute;
 
         /// <summary>
@@ -29,9 +31,11 @@ namespace TradingBot.Communications
         /// </summary>
         private const int MaxQueueCount = 10;
 
-        public OrderBookEventsRepository(INoSQLTableStorage<OrderBookEventEntity> tableStorage)
+        public OrderBookEventsRepository(INoSQLTableStorage<OrderBookEventEntity> tableStorage, 
+            ILog log)
         {
             _tableStorage = tableStorage;
+            _log = log;
         }
 
 		public async Task SaveAsync(OrderBookEvent orderBookEvent)
@@ -72,20 +76,23 @@ namespace TradingBot.Communications
             {
                 // TODO: Create the table
                 await _tableStorage.InsertOrReplaceBatchAsync(tableEntities);
-                _logger.LogDebug($"{tableEntities.Count} order events for orderbook with snapshot {orderBookEvent.SnapshotId} were " + 
+                await _log.WriteInfoAsync(_className, _className,
+                    $"{tableEntities.Count} order events for orderbook with snapshot {orderBookEvent.SnapshotId} were " + 
                     $"published to Azure table {_tableStorage.Name}.");
             }
             catch (Microsoft.WindowsAzure.Storage.StorageException ex)
                 when (ex.Message == _azureConflictExceptionReason)
             {
-                _logger.LogError(ex, $"Conflict on writing. Skip chunk for {_currentMinute}");
+                await _log.WriteErrorAsync(_className, 
+                    $"Conflict on writing. Skip chunk for {_currentMinute}", ex);
             }
             catch (Exception ex)
             {
                 foreach (var entity in tableEntities)
                     _orderBookEventEntities.Enqueue(entity);
-                _logger.LogError(0, ex,
-                    $"Can't write to Azure Table {_tableStorage.Name}, will try later. Now in queue: {_orderBookEventEntities.Count}");
+                await _log.WriteErrorAsync(_className,
+                    $"Can't write to Azure Table {_tableStorage.Name}, will try later. Now in queue: " + 
+                    $"{_orderBookEventEntities.Count}", ex);
             }
 		}
     }

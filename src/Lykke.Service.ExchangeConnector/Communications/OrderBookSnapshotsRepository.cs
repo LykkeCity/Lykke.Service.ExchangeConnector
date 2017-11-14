@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AzureStorage;
 using AzureStorage.Blob;
 using Common;
+using Common.Log;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using TradingBot.Exchanges.Concrete.Shared;
@@ -15,14 +16,15 @@ using TradingBot.Repositories;
 
 namespace TradingBot.Communications
 {
-    public class OrderBookSnapshotsRepository
+    internal class OrderBookSnapshotsRepository
     {
         private const string _azureConflictExceptionReason = "Conflict";
         private const string _dateTimeFormatString = "yyyy-MM-ddTHH:mm:ss.fff";
         private const string _dateTimeBlobNameFormatString = "yyyy-MM-ddTHH-mm-ss.fff";
+        private static readonly string _className = nameof(OrderBookSnapshotsRepository);
 
         private const string _blobContainer = "orderbookssnapshots";
-        private readonly ILogger _logger = Logging.CreateLogger<OrderBookSnapshotsRepository>();
+        private readonly ILog _log;
         private readonly INoSQLTableStorage<OrderBookSnapshotEntity> _tableStorage;
         private readonly Queue<OrderBookSnapshot> _orderBooks = new Queue<OrderBookSnapshot>();
         private readonly Queue<OrderBookSnapshotEntity> _orderBookEntities = new Queue<OrderBookSnapshotEntity>();
@@ -42,10 +44,11 @@ namespace TradingBot.Communications
         private const int MaxQueueCount = 100;
 
         public OrderBookSnapshotsRepository(INoSQLTableStorage<OrderBookSnapshotEntity> tableStorage, 
-           AzureBlobStorage blobStorage)
+           AzureBlobStorage blobStorage, ILog log)
         { 
             _tableStorage = tableStorage;
             _blobStorage = blobStorage;
+            _log = log;
         }
 
 		public async Task SaveAsync(OrderBookSnapshot orderBook)
@@ -66,7 +69,9 @@ namespace TradingBot.Communications
                 
                 _orderBooks.Clear();
                 _orderBooks.Enqueue(orderBook);
-                _currentPriceMinute = fieldOverflow ? orderBook.InternalTimestamp.TruncMiliseconds() : timeMunite;
+                _currentPriceMinute = fieldOverflow 
+                    ? orderBook.InternalTimestamp.TruncMiliseconds() 
+                    : timeMunite;
 
                 var blobName = GetBlobName(orderBook);
                 try
@@ -75,7 +80,8 @@ namespace TradingBot.Communications
                     await _tableStorage.InsertAsync(tableEntity);
                     await _blobStorage.SaveBlobAsync(_blobContainer, blobName, 
                         Encoding.UTF8.GetBytes(serializedOrders));
-                    _logger.LogDebug($"Orderbook for {orderBook.Source} and asset pair {orderBook.AssetPair} " + 
+                    await _log.WriteInfoAsync(_className, _className,
+                        $"Orderbook for {orderBook.Source} and asset pair {orderBook.AssetPair} " + 
                         $"published to Azure table {_tableStorage.Name}. Orders published to blob container {_blobContainer} and " +
                         $"blob {blobName}");
 
@@ -84,7 +90,8 @@ namespace TradingBot.Communications
                 catch (Microsoft.WindowsAzure.Storage.StorageException ex)
                     when (ex.Message == _azureConflictExceptionReason)
                 {
-                    _logger.LogError(ex, $"Conflict on writing. Skip chunk for {_currentPriceMinute}");
+                    await _log.WriteErrorAsync(_className,
+                        $"Conflict on writing. Skip chunk for {_currentPriceMinute}", ex);
                     try
                     {
                         await _tableStorage.DeleteIfExistAsync(tableEntity.PartitionKey,
@@ -92,17 +99,18 @@ namespace TradingBot.Communications
                     }
                     catch (Exception delException)
                     {
-                        _logger.LogError(delException, 
+                        await _log.WriteErrorAsync(_className,
                             $"Could not delete row with Source {tableEntity.Exchange}, " +
                             $"Pair {tableEntity.AssetPair} and Dnapshot date " + 
-                            $"{tableEntity.SnapshotDateTime} in table {_tableStorage.Name}.");
+                            $"{tableEntity.SnapshotDateTime} in table {_tableStorage.Name}.", delException);
                     }
                 }
                 catch (Exception ex)
                 {
                     _orderBookEntities.Enqueue(tableEntity);
-                    _logger.LogError(0, ex,
-                        $"Can't write to Azure Table {_tableStorage.Name}, will try later. Now in queue: {_orderBookEntities.Count}");
+                    await _log.WriteErrorAsync(_className,
+                        $"Can't write to Azure Table {_tableStorage.Name}, will try later. " + 
+                        $"Now in queue: {_orderBookEntities.Count}", ex);
                 }
             }
             else

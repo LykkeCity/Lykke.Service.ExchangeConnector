@@ -45,19 +45,15 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             {
                 try
                 {
-                    using (var cts = new CancellationTokenSource())
+                    using (var cts = new CancellationTokenSource(5000))
                     {
-                        var operationSucceeded = await _websocketApi
-                            .CloseConnectionAsync(cts.Token)
-                            .AwaitWithTimeout(5000);
-                        if (!operationSucceeded)
-                            cts.Cancel();
+                        await _websocketApi.CloseConnectionAsync(cts.Token);
                     }
                 }
                 catch (Exception ex)
                 {
                     await Log.WriteErrorAsync(nameof(GdaxOrderBooksHarvester), 
-                        "Could not close web sockets connection", ex);
+                        "Could not close web sockets connection properly", ex);
                 }
             }
         }
