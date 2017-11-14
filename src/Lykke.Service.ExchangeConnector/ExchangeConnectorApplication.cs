@@ -86,12 +86,14 @@ namespace TradingBot
         {
             var handler = new TradingSignalsHandler(_exchanges, _log, TranslatedSignalsRepository);
 
-
             var subscriberSettings = new RabbitMqSubscriptionSettings()
             {
                 ConnectionString = rabbitConfig.GetConnectionString(),
-                ExchangeName = rabbitConfig.Signals.Exchange
+                ExchangeName = rabbitConfig.Signals.Exchange,
+                QueueName = rabbitConfig.Signals.Queue,
+                IsDurable = false
             };
+            
             var errorStrategy = new DefaultErrorHandlingStrategy(_log, subscriberSettings);
             _signalSubscriber = new RabbitMqSubscriber<TradingSignal>(subscriberSettings, errorStrategy)
                 .SetMessageDeserializer(new GenericRabbitModelConverter<TradingSignal>())
