@@ -157,10 +157,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
 
         private GdaxRestApi CreateRestApi()
         {
-            return new GdaxRestApi(_apiKey, _apiSecret, _apiPassPhrase)
-            {
-                BaseUri = new Uri(GdaxRestApi.GdaxSandboxApiUrl)
-            };
+            return new GdaxRestApi(_apiKey, _apiSecret, _apiPassPhrase, GdaxRestApi.GdaxSandboxApiUrl);
         }
 
         private async Task<GdaxOrderResponse> CreateAndCancelOrderAsync()

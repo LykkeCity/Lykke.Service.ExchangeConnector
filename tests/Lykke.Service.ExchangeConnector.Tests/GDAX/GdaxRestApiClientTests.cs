@@ -20,11 +20,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
 
         public GdaxRestApiClientTests()
         {
-            _api = new GdaxRestApi(_apiKey, _apiSecret, _apiPassPhrase)
-            {
-                BaseUri = new Uri(GdaxRestApi.GdaxSandboxApiUrl),
-                ConnectorUserAgent = _userAgent
-            };
+            _api = new GdaxRestApi(_apiKey, _apiSecret, _apiPassPhrase, GdaxRestApi.GdaxSandboxApiUrl, _userAgent);
         }
 
         [Fact]

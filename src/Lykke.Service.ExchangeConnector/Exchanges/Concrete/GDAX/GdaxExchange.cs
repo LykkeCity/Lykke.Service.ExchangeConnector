@@ -45,11 +45,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
         private GdaxRestApi CreateRestApiClient()
         {
             return new GdaxRestApi(_configuration.ApiKey, _configuration.ApiSecret,
-                _configuration.PassPhrase)
-            {
-                BaseUri = new Uri(_configuration.RestEndpointUrl),
-                ConnectorUserAgent = _configuration.UserAgent
-            };
+                _configuration.PassPhrase, _configuration.RestEndpointUrl, _configuration.UserAgent);
         }
 
         private GdaxWebSocketApi CreateWebSocketsApiClient()
