@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Common.Log;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
 using TradingBot.Exchanges.Concrete.GDAX.WssClient;
@@ -24,7 +25,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
 
         public GdaxWssApiClientTests()
         {
-            _api = new GdaxWebSocketApi(_apiKey, _apiSecret, _apiPassPhrase)
+            _api = new GdaxWebSocketApi(new LogToConsole(), _apiKey, _apiSecret, _apiPassPhrase)
             {
                 BaseUri = new Uri(GdaxWebSocketApi.GdaxSandboxWssApiUrl)
             };

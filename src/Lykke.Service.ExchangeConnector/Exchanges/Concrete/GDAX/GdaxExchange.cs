@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
+using Polly;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Abstractions.Models;
@@ -53,7 +54,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 
         private GdaxWebSocketApi CreateWebSocketsApiClient()
         {
-            var websocketApi = new GdaxWebSocketApi(_configuration.ApiKey, _configuration.ApiSecret,
+            var websocketApi = new GdaxWebSocketApi(LykkeLog, _configuration.ApiKey, _configuration.ApiSecret,
                 _configuration.PassPhrase)
             {
                 BaseUri = new Uri(_configuration.WssEndpointUrl)
@@ -175,10 +176,16 @@ namespace TradingBot.Exchanges.Concrete.GDAX
         protected override async void StartImpl()
         {
             _webSocketCtSource = new CancellationTokenSource();
-
+            
+            var retryPolicy = Policy
+                .Handle<Exception>(ex => !(ex is OperationCanceledException))
+                .WaitAndRetryAsync(5, attempt => TimeSpan.FromSeconds(attempt), 
+                    (exception, span, attempt, context) => LogAsync(exception, $"Connection attemp #{attempt}"));
+            
             try
             {
-                await _websocketApi.ConnectAsync(_webSocketCtSource.Token);
+                await retryPolicy.ExecuteAsync(token => _websocketApi.ConnectAsync(token), _webSocketCtSource.Token);
+                
                 OnConnected();
 
                 await _websocketApi.SubscribeToPrivateUpdatesAsync(Instruments.Select(i => i.Name).ToList(), 
@@ -194,8 +201,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
         {
             try
             {
-                if (_webSocketCtSource != null)
-                _webSocketCtSource.Cancel();
+                _webSocketCtSource?.Cancel();
 
                 await _websocketApi.CloseConnectionAsync(CancellationToken.None);
                 OnStopped();

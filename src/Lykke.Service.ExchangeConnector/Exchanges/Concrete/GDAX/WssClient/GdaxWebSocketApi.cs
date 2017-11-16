@@ -6,6 +6,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Common.Log;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using TradingBot.Exchanges.Concrete.GDAX.Credentials;
@@ -19,6 +20,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
         public const string GdaxPublicWssApiUrl = @"wss://ws-feed.gdax.com";
         public const string GdaxSandboxWssApiUrl = @"wss://ws-feed-public.sandbox.gdax.com";
         private const string _selfVerifyUrl = @"/users/self/verify";
+        private readonly ILog _logger;
 
         private readonly GdaxCredentialsFactory _credentialsFactory;
         private ClientWebSocket _clientWebSocket;
@@ -96,8 +98,9 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
         /// </summary>
         public Uri BaseUri { get; set; }
 
-        public GdaxWebSocketApi(string apiKey, string apiSecret, string passPhrase)
+        public GdaxWebSocketApi(ILog logger, string apiKey, string apiSecret, string passPhrase)
         {
+            _logger = logger;
             _credentialsFactory = new GdaxCredentialsFactory(apiKey, apiSecret, passPhrase);
 
             BaseUri = new Uri(GdaxPublicWssApiUrl);
@@ -105,6 +108,9 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
 
         public async Task ConnectAsync(CancellationToken cancellationToken)
         {
+            await _logger.WriteInfoAsync(nameof(GdaxWebSocketApi), nameof(ConnectAsync), BaseUri.ToString(),
+                "Attempt to establish a socket connection");
+            
             _clientWebSocket = new ClientWebSocket();
             await _clientWebSocket.ConnectAsync(BaseUri, cancellationToken).ConfigureAwait(false);
 
@@ -213,7 +219,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
                     break;
                 case "error":
                     var error = JsonConvert.DeserializeObject<GdaxWssError>(jsonMessage);
-                    Error.Invoke(this, error);
+                    Error?.Invoke(this, error);
                     break;
                 default:
                     // Clients are expected to ignore messages they do not support.
