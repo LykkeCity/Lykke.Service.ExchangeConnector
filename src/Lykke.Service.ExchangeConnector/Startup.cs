@@ -104,9 +104,6 @@ namespace TradingBot
                     .SingleInstance();
 
 
-
-
-
                 if (settings.AzureStorage.Enabled)
                 {
                     var slackService = services.UseSlackNotificationsSenderViaAzureQueue(topSettings.SlackNotifications.AzureQueue, log);
@@ -135,7 +132,7 @@ namespace TradingBot
 
 
                 _pricesStorage = AzureTableStorage<PriceTableEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "kraken", log);
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "tickPrices", log);
 
                 var fixMessagesStorage = AzureTableStorage<FixMessageTableEntity>.Create(
                     settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "fixMessages", log);
