@@ -1,4 +1,4 @@
-﻿@model IEnumerable<TradingBot.Repositories.TranslatedSignalTableEntity>
+﻿@model System.Collections.Generic.IEnumerable<TradingBot.Repositories.TranslatedSignalTableEntity>
 
 @{
     ViewData["Title"] = "Translated signals";
@@ -7,10 +7,8 @@
 
 <p>
     <a asp-controller="Logs" asp-action="Index">Exchange Connector Logs</a> | 
-    <a asp-controller="Logs" asp-action="AlphaEngine">Alpha Engine Logs</a> |
     <a asp-controller="Logs" asp-action="FIX">FIX</a> |
-    Translated Signals |
-    <a asp-controller="Logs" asp-action="IntrinsicEvents">Intrinsic Events</a>
+    Translated Signals
 </p>
 
 <table>

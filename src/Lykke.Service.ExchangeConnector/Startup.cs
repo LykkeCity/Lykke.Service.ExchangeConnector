@@ -141,19 +141,9 @@ namespace TradingBot
                     settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "fixMessages", log);
                 builder.RegisterInstance(fixMessagesStorage).As<INoSQLTableStorage<FixMessageTableEntity>>().SingleInstance();
 
-                var javaLogsStorage = AzureTableStorage<JavaLogEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "logsAlphaEngine", log);
-                builder.RegisterInstance(javaLogsStorage).As<INoSQLTableStorage<JavaLogEntity>>().SingleInstance();
-
-                var javaEventsStorage = AzureTableStorage<JavaIntrinsicEventEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "intrinsicEvents", log);
-                builder.RegisterInstance(javaEventsStorage).As<INoSQLTableStorage<JavaIntrinsicEventEntity>>().SingleInstance();
-
                 var signalsStorage = AzureTableStorage<TranslatedSignalTableEntity>.Create(
                     settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "translatedSignals", new LogToConsole());
                 builder.RegisterInstance(signalsStorage).As<INoSQLTableStorage<TranslatedSignalTableEntity>>().SingleInstance();
-
-
 
 
                 builder.RegisterModule(new ServiceModule(settings.Exchanges));
