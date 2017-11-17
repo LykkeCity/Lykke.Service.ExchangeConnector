@@ -71,8 +71,8 @@ namespace TradingBot.Handlers
                             {
                                 await logger.WriteInfoAsync(nameof(TradingSignalsHandler),
                                     nameof(HandleTradingSignals),
-                                    nameof(HandleTradingSignals),
-                                    $"Skipping old signal {signal}");
+                                    signal.ToString(),
+                                    "Skipping old signal");
 
                                 translatedSignal.Failure("The signal is too old");
                                 break;
@@ -85,14 +85,14 @@ namespace TradingBot.Handlers
                             {
                                 await logger.WriteInfoAsync(nameof(TradingSignalsHandler),
                                     nameof(HandleTradingSignals),
-                                    string.Empty,
-                                    $"Created new order {signal}");
+                                    signal.ToString(),
+                                    "Created new order");
                             }
                             else
                             {
                                 await logger.WriteErrorAsync(nameof(TradingSignalsHandler),
                                     nameof(HandleTradingSignals),
-                                    string.Empty,
+                                    signal.ToString(),
                                     result.FinalException);
 
                                 translatedSignal.Failure(result.FinalException);
@@ -104,7 +104,7 @@ namespace TradingBot.Handlers
                         {
                             await logger.WriteErrorAsync(nameof(TradingSignalsHandler),
                                 nameof(HandleTradingSignals),
-                                string.Empty,
+                                signal.ToString(),
                                 e);
                             
                             translatedSignal.Failure(e);
@@ -125,8 +125,8 @@ namespace TradingBot.Handlers
                             {
                                 logger.WriteInfoAsync(nameof(TradingSignalsHandler),
                                     nameof(HandleTradingSignals),
-                                    string.Empty,
-                                    $"Canceled order {signal}").Wait();
+                                    signal.ToString(),
+                                    "Canceled order").Wait();
 
                                 if (result.Result)
                                 {
@@ -151,7 +151,7 @@ namespace TradingBot.Handlers
                             translatedSignal.Failure(e);
                             await logger.WriteErrorAsync(nameof(TradingSignalsHandler),
                                 nameof(HandleTradingSignals),
-                                string.Empty,
+                                signal.ToString(),
                                 e);
                         }
 

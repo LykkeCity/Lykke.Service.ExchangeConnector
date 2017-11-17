@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AzureStorage;
@@ -28,9 +29,28 @@ namespace TradingBot.Communications
 		private readonly Queue<TickPrice> pricesQueue = new Queue<TickPrice>();
 		private readonly Queue<PriceTableEntity> tablePricesQueue = new Queue<PriceTableEntity>();
 		private DateTime currentPriceMinute;
+        private readonly ConcurrentDictionary<string, TickPrice> lastTickPrices = new ConcurrentDictionary<string, TickPrice>();
 
 		public override async Task Handle(TickPrice tickPrice)
 		{
+		    if (lastTickPrices.TryGetValue(tickPrice.Instrument.Name, out var lastTickPrice))
+		    {
+		        if (lastTickPrice != null &&
+		            lastTickPrice.Ask == tickPrice.Ask && lastTickPrice.Bid == tickPrice.Bid)
+		        {
+		            return; // skip the same tickPrice, we not going to save it to the database
+		        }
+		        else
+		        {
+		            lastTickPrices.TryUpdate(tickPrice.Instrument.Name, newValue: tickPrice, comparisonValue: lastTickPrice);
+		        }
+		    }
+		    else
+		    {
+		        lastTickPrices.TryAdd(tickPrice.Instrument.Name, tickPrice);
+		    }
+		    
+		    
 			if (currentPriceMinute == default)
                 currentPriceMinute = tickPrice.Time.TruncSeconds();
 

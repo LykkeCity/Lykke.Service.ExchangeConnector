@@ -133,19 +133,11 @@ namespace TradingBot
 
 
                 _pricesStorage = AzureTableStorage<PriceTableEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "kraken", log);
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "tickPrices", log);
 
                 var fixMessagesStorage = AzureTableStorage<FixMessageTableEntity>.Create(
                     settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "fixMessages", log);
                 builder.RegisterInstance(fixMessagesStorage).As<INoSQLTableStorage<FixMessageTableEntity>>().SingleInstance();
-
-                var javaLogsStorage = AzureTableStorage<JavaLogEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "logsAlphaEngine", log);
-                builder.RegisterInstance(javaLogsStorage).As<INoSQLTableStorage<JavaLogEntity>>().SingleInstance();
-
-                var javaEventsStorage = AzureTableStorage<JavaIntrinsicEventEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "intrinsicEvents", log);
-                builder.RegisterInstance(javaEventsStorage).As<INoSQLTableStorage<JavaIntrinsicEventEntity>>().SingleInstance();
 
                 var signalsStorage = AzureTableStorage<TranslatedSignalTableEntity>.Create(
                     settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "translatedSignals", log);

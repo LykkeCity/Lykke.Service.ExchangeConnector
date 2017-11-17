@@ -38,7 +38,7 @@ namespace TradingBot.Exchanges
                 }
             }
 
-            if (_config.RabbitMq.Enabled)
+            if (_config.RabbitMq.Enabled && _implementations.Any(x => x.Config.PubQuotesToRabbit))
             {
                 var pricesHandler = new RabbitMqHandler<TickPrice>(_config.RabbitMq.GetConnectionString(), _config.RabbitMq.TickPrices.Exchange);
                 var tradesHandler = new RabbitMqHandler<ExecutedTrade>(_config.RabbitMq.GetConnectionString(), _config.RabbitMq.Trades.Exchange);

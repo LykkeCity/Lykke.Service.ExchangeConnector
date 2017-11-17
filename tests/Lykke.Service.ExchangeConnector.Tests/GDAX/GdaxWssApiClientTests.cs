@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Common.Log;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
 using TradingBot.Exchanges.Concrete.GDAX.WssClient;
@@ -24,7 +25,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
         public GdaxWssApiClientTests()
         {
             _configuration = GdaxHelpers.GetGdaxConfiguration();
-            _api = new GdaxWebSocketApi(_configuration.ApiKey, _configuration.ApiSecret, _configuration.PassPhrase)
+            _api = new GdaxWebSocketApi(new LogToConsole(), _configuration.ApiKey, 
+                _configuration.ApiSecret, _configuration.PassPhrase)
             {
                 BaseUri = new Uri(_configuration.WssEndpointUrl)
             };
@@ -171,11 +173,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
 
         private GdaxRestApi CreateRestApi()
         {
-            return new GdaxRestApi(_configuration.ApiKey, _configuration.ApiSecret, _configuration.PassPhrase)
-            {
-                BaseUri = new Uri(_configuration.RestEndpointUrl),
-                ConnectorUserAgent = _configuration.UserAgent
-            };
+            return new GdaxRestApi(_configuration.ApiKey, _configuration.ApiSecret, _configuration.PassPhrase,
+                new Uri(_configuration.RestEndpointUrl), _configuration.UserAgent);
         }
 
         private async Task<GdaxOrderResponse> CreateAndCancelOrderAsync()

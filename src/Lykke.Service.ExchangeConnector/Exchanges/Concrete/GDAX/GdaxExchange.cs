@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
+using Polly;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Abstractions.Models;
@@ -50,16 +51,12 @@ namespace TradingBot.Exchanges.Concrete.GDAX
         private GdaxRestApi CreateRestApiClient()
         {
             return new GdaxRestApi(_configuration.ApiKey, _configuration.ApiSecret,
-                _configuration.PassPhrase)
-            {
-                BaseUri = new Uri(_configuration.RestEndpointUrl),
-                ConnectorUserAgent = _configuration.UserAgent
-            };
+                _configuration.PassPhrase, _configuration.RestEndpointUrl, _configuration.UserAgent);
         }
 
         private GdaxWebSocketApi CreateWebSocketsApiClient()
         {
-            var websocketApi = new GdaxWebSocketApi(_configuration.ApiKey, _configuration.ApiSecret,
+            var websocketApi = new GdaxWebSocketApi(LykkeLog, _configuration.ApiKey, _configuration.ApiSecret,
                 _configuration.PassPhrase)
             {
                 BaseUri = new Uri(_configuration.WssEndpointUrl)
@@ -181,11 +178,16 @@ namespace TradingBot.Exchanges.Concrete.GDAX
         protected override async void StartImpl()
         {
             _webSocketCtSource = new CancellationTokenSource();
+            
+           
             try
             {
                 _orderBooksHarvester.Start();
 
-                await _websocketApi.ConnectAsync(_webSocketCtSource.Token);
+                var retryPolicy = Policy
+                    .Handle<Exception>(ex => !(ex is OperationCanceledException))
+                    .WaitAndRetryAsync(5, attempt => TimeSpan.FromSeconds(attempt),
+                        (exception, span, attempt, context) => LogAsync(exception, $"Connection attemp #{attempt}"));
                 OnConnected();
 
                 await _websocketApi.SubscribeToPrivateUpdatesAsync(Instruments.Select(i => i.Name).ToList(), 
@@ -203,8 +205,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             {
                 _orderBooksHarvester.Stop();
 
-                if (_webSocketCtSource != null)
-                _webSocketCtSource.Cancel();
+                _webSocketCtSource?.Cancel();
 
                 await _websocketApi.CloseConnectionAsync(CancellationToken.None);
                 OnStopped();
