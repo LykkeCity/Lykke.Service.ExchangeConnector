@@ -13,7 +13,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
             GdaxOrderType type, CancellationToken cancellationToken = default,
             EventHandler<SentHttpRequest> sentHttpRequestHandler = default,
             EventHandler<ReceivedHttpResponse> receivedHttpRequestHandler = default);
-        Task<IReadOnlyCollection<Guid>> CancelOrder(Guid orderId, CancellationToken cancellationToken = default,
+        Task<bool> CancelOrder(Guid orderId, CancellationToken cancellationToken = default,
             EventHandler<SentHttpRequest> sentHttpRequestHandler = default,
             EventHandler<ReceivedHttpResponse> receivedHttpRequestHandler = default);
         Task<IReadOnlyList<GdaxOrderResponse>> GetOpenOrders(CancellationToken cancellationToken = default,

@@ -13,17 +13,13 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
         private readonly GdaxRestApi _api;
         private readonly Guid _orderId = Guid.NewGuid();
 
-        private const string _userAgent = "LykkeTest";
-        private const string _apiKey = "";
-        private const string _apiSecret = "";
-        private const string _apiPassPhrase = "";
-
         public GdaxRestApiClientTests()
         {
-            _api = new GdaxRestApi(_apiKey, _apiSecret, _apiPassPhrase)
+            var configuration = GdaxHelpers.GetGdaxConfiguration();
+            _api = new GdaxRestApi(configuration.ApiKey, configuration.ApiSecret, configuration.PassPhrase)
             {
-                BaseUri = new Uri(GdaxRestApi.GdaxSandboxApiUrl),
-                ConnectorUserAgent = _userAgent
+                BaseUri = new Uri(configuration.RestEndpointUrl),
+                ConnectorUserAgent = configuration.UserAgent
             };
         }
 
@@ -79,19 +75,11 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
         [Fact]
         public async Task AddAndCancelOrder()
         {
-            var newOrder = await _api.AddOrder("BTC-USD", 5, 0.01m, GdaxOrderSide.Buy, GdaxOrderType.Limit);
+            var newOrder = await _api.AddOrder("BTC-USD", 5, 100.01m, GdaxOrderSide.Buy, GdaxOrderType.Limit);
 
             var result = await _api.CancelOrder(newOrder.Id);
             
-            Assert.NotNull(result);
-            Assert.Equal(1, result.Count);
-            var cancelledId = result.First();
-            Assert.Equal(cancelledId, newOrder.Id);
-
-            //var order = await _api.GetOrderStatus(newOrder.Id);
-            //Assert.NotNull(order);
-            //Assert.Equal(cancelledId, order.Id);
-            //Assert.Equal("cancelled", order.Status);
+            Assert.True(result);
         }
 
         /// <summary>

@@ -1,12 +1,9 @@
-﻿using System;
-using System.IO;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using AzureStorage;
 using AzureStorage.Blob;
 using AzureStorage.Tables;
 using Common.Log;
 using Lykke.SettingsReader;
-using Microsoft.Extensions.Configuration;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.GDAX;
 using TradingBot.Infrastructure.Configuration;
@@ -25,15 +22,12 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
         private readonly OrderBookEventsRepository _eventsRepository;
         private readonly GdaxExchangeConfiguration _gdaxConfiguration;
 
-        private static string _configFilePath = Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory, "testsettings.Gdax.json");
-        
-        private const string _btcUsd = "BTCUSD";
         private const string _tableStorageEndpoint = "UseDevelopmentStorage=true";
         private const string _snapshotsTable = "orderBookSnapshots";
         private const string _orderBookEventsTable = "orderBookEvents";
         private const string _blobStorageEndpoint = "UseDevelopmentStorage=true";
 
+        private const string _btcUsd = "BTCUSD";
         private const string _orderDoneTypeName = "done";
         private const string _orderCanceledReason = "canceled";
 
@@ -41,14 +35,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
         {
             _log = new LogToConsole();
 
-            var configBuilder = new ConfigurationBuilder();
-            configBuilder.AddJsonFile(_configFilePath, optional: false, reloadOnChange: true);
-            var configuration = configBuilder.Build();
-
-            configuration["SettingsUrl"] = _configFilePath;
-            var settingsManager = configuration.LoadSettings<GdaxExchangeConfiguration>("SettingsUrl");
-
-            _gdaxConfiguration = settingsManager.CurrentValue;
+            var settingsManager = GdaxHelpers.GetGdaxSettingsMenager();
+             _gdaxConfiguration = settingsManager.CurrentValue;
 
             _orderBookEventsStorage = AzureTableStorage<OrderBookEventEntity>.Create(
                 settingsManager.ConnectionString(i => _tableStorageEndpoint), _orderBookEventsTable, _log);

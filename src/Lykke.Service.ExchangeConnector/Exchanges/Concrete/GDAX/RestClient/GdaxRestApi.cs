@@ -80,15 +80,17 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
             return response;
         }
 
-        public async Task<IReadOnlyCollection<Guid>> CancelOrder(Guid orderId, CancellationToken cancellationToken = default,
+        public async Task<bool> CancelOrder(Guid orderId, CancellationToken cancellationToken = default,
             EventHandler<SentHttpRequest> sentHttpRequestHandler = default,
             EventHandler<ReceivedHttpResponse> receivedHttpRequestHandler = default)
         {
-            var response = await _restClient.ExecuteRestMethod<IReadOnlyCollection<Guid>>(HttpMethod.Delete, 
+            var response = await _restClient.ExecuteRestMethod<IReadOnlyList<GdaxError>>(HttpMethod.Delete, 
                 string.Format(_orderCancelRequestUrl, orderId), new GdaxPostContentBase(), cancellationToken, 
                 sentHttpRequestHandler, receivedHttpRequestHandler);
+            if (response[0] == null)
+                return true;
 
-            return response;
+            return false;
         }
 
         public async Task<IReadOnlyList<GdaxOrderResponse>> GetOpenOrders(CancellationToken cancellationToken = default,

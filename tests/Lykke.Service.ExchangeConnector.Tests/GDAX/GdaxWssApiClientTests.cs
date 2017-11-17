@@ -6,27 +6,27 @@ using TradingBot.Exchanges.Concrete.GDAX.RestClient;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
 using TradingBot.Exchanges.Concrete.GDAX.WssClient;
 using TradingBot.Exchanges.Concrete.GDAX.WssClient.Entities;
+using TradingBot.Infrastructure.Configuration;
 using Xunit;
 
 namespace Lykke.Service.ExchangeConnector.Tests.GDAX
 {
     public class GdaxWssApiClientTests
     {
+        private readonly GdaxExchangeConfiguration _configuration;
         private readonly GdaxWebSocketApi _api;
         private readonly Guid _orderId = Guid.NewGuid();
 
-        private const string _apiKey = "";
-        private const string _apiSecret = "";
-        private const string _apiPassPhrase = "";
         private const string _btcUsd = "BTC-USD";
         private const string _orderDoneTypeName = "done";
         private const string _orderCanceledReason = "canceled";
 
         public GdaxWssApiClientTests()
         {
-            _api = new GdaxWebSocketApi(_apiKey, _apiSecret, _apiPassPhrase)
+            _configuration = GdaxHelpers.GetGdaxConfiguration();
+            _api = new GdaxWebSocketApi(_configuration.ApiKey, _configuration.ApiSecret, _configuration.PassPhrase)
             {
-                BaseUri = new Uri(GdaxWebSocketApi.GdaxSandboxWssApiUrl)
+                BaseUri = new Uri(_configuration.WssEndpointUrl)
             };
         }
 
@@ -171,9 +171,10 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
 
         private GdaxRestApi CreateRestApi()
         {
-            return new GdaxRestApi(_apiKey, _apiSecret, _apiPassPhrase)
+            return new GdaxRestApi(_configuration.ApiKey, _configuration.ApiSecret, _configuration.PassPhrase)
             {
-                BaseUri = new Uri(GdaxRestApi.GdaxSandboxApiUrl)
+                BaseUri = new Uri(_configuration.RestEndpointUrl),
+                ConnectorUserAgent = _configuration.UserAgent
             };
         }
 

@@ -108,10 +108,10 @@ namespace TradingBot.Exchanges.Concrete.GDAX
                 var response = await _restApi.CancelOrder(id, cts.Token,
                     (sender, httpRequest) => OnSentHttpRequest(sender, httpRequest, translatedSignal),
                     (sender, httpResponse) => OnReceivedHttpRequest(sender, httpResponse, translatedSignal));
-                if (response == null || response.Count == 0)
+                if (!response) 
                     return null;
 
-                return null;  // TODO: Here we should just return the ID of the cancelled order 
+                return null;  // TODO: Here we should just return boolean result
             }
             catch (StatusCodeException ex)
             {
