@@ -25,11 +25,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
         public GdaxWssApiClientTests()
         {
             _configuration = GdaxHelpers.GetGdaxConfiguration();
-            _api = new GdaxWebSocketApi(new LogToConsole(), _configuration.ApiKey, 
-                _configuration.ApiSecret, _configuration.PassPhrase)
-            {
-                BaseUri = new Uri(_configuration.WssEndpointUrl)
-            };
+            _api = new GdaxWebSocketApi(new LogToConsole(), _configuration.ApiKey,
+                _configuration.ApiSecret, _configuration.PassPhrase, _configuration.WssEndpointUrl);
         }
 
         [Fact]
@@ -174,7 +171,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
         private GdaxRestApi CreateRestApi()
         {
             return new GdaxRestApi(_configuration.ApiKey, _configuration.ApiSecret, _configuration.PassPhrase,
-                new Uri(_configuration.RestEndpointUrl), _configuration.UserAgent);
+                _configuration.RestEndpointUrl, _configuration.UserAgent);
         }
 
         private async Task<GdaxOrderResponse> CreateAndCancelOrderAsync()

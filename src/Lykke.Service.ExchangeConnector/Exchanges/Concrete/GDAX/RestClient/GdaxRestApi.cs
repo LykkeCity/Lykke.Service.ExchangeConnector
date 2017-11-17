@@ -29,15 +29,19 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
 
         private readonly RestApiClient _restClient;
 
-        public GdaxRestApi(string apiKey, string apiSecret, string passPhrase, string publicApiUrl = null, string userAgent = null)
+        public GdaxRestApi(string apiKey, string apiSecret, string passPhrase) :
+            this (apiKey, apiSecret, passPhrase, GdaxPublicApiUrl, _defaultConnectorUserAgent)
+        { }
+
+        public GdaxRestApi(string apiKey, string apiSecret, string passPhrase, 
+            string publicApiUrl, string userAgent)
         {
             var credentials = new GdaxRestClientCredentials(apiKey, apiSecret, passPhrase);
 
-            HttpClient.BaseAddress = new Uri(string.IsNullOrEmpty(publicApiUrl) ? GdaxPublicApiUrl : publicApiUrl);
+            HttpClient.BaseAddress = new Uri(publicApiUrl);
             
             HttpClient.DefaultRequestHeaders.UserAgent.Clear();
-            HttpClient.DefaultRequestHeaders.UserAgent.ParseAdd(
-                string.IsNullOrEmpty(userAgent) ? _defaultConnectorUserAgent : userAgent);
+            HttpClient.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent);
 
             _restClient = new RestApiClient(HttpClient, credentials);
         }

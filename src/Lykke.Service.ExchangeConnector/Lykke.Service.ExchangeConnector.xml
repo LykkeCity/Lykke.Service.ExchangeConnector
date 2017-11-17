@@ -9829,16 +9829,6 @@
             retrieving the current status of an order.
             </summary>
         </member>
-        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.GdaxRestApi.BaseUri">
-            <summary>
-            Base GDAX Uri
-            </summary>
-        </member>
-        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.GdaxRestApi.ConnectorUserAgent">
-            <summary>
-            User agent for identification
-            </summary>
-        </member>
         <member name="F:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.Connected">
             <summary>
             Raised on established WebSocket connection with the server

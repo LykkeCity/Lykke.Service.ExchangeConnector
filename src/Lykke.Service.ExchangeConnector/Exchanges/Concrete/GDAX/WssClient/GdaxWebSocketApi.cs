@@ -99,12 +99,17 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
         /// </summary>
         public Uri BaseUri { get; set; }
 
-        public GdaxWebSocketApi(ILog logger, string apiKey, string apiSecret, string passPhrase)
+        public GdaxWebSocketApi(ILog logger, string apiKey, string apiSecret, string passPhrase) :
+             this(logger, apiKey, apiSecret, passPhrase, GdaxPublicWssApiUrl)
+        { }
+
+        public GdaxWebSocketApi(ILog logger, string apiKey, string apiSecret, string passPhrase,
+            string publicApiUrl)
         {
             _logger = logger;
             _credentialsFactory = new GdaxCredentialsFactory(apiKey, apiSecret, passPhrase);
 
-            BaseUri = new Uri(GdaxPublicWssApiUrl);
+            BaseUri = new Uri(publicApiUrl);
         }
 
         public async Task ConnectAsync(CancellationToken cancellationToken)

@@ -17,7 +17,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
         {
             var configuration = GdaxHelpers.GetGdaxConfiguration();
             _api = new GdaxRestApi(configuration.ApiKey, configuration.ApiSecret, configuration.PassPhrase,
-                new Uri(configuration.RestEndpointUrl), configuration.UserAgent);
+                configuration.RestEndpointUrl, configuration.UserAgent);
         }
 
         [Fact]

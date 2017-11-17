@@ -56,11 +56,8 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 
         private GdaxWebSocketApi CreateWebSocketsApiClient()
         {
-            var websocketApi = new GdaxWebSocketApi(LykkeLog, _configuration.ApiKey, _configuration.ApiSecret,
-                _configuration.PassPhrase)
-            {
-                BaseUri = new Uri(_configuration.WssEndpointUrl)
-            };
+            var websocketApi = new GdaxWebSocketApi(LykkeLog, _configuration.ApiKey, 
+                _configuration.ApiSecret, _configuration.PassPhrase, _configuration.WssEndpointUrl);
             websocketApi.Ticker += OnWebSocketTickerAsync;
             websocketApi.OrderReceived += OnWebSocketOrderReceivedAsync;
             websocketApi.OrderChanged += OnOrderChangedAsync;
