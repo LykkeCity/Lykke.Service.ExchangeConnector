@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,6 +22,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
         private const string _orderStatusRequestUrl = @"/orders/{0}&status=done&status=pending&status=open&status=cancelled";
         private const string _orderCancelRequestUrl = @"/orders/{0}";
         private const string _activeOrdersRequestUrl = @"/orders";
+        private const string _orderBookRequestUrl = @"/products/{0}/book?level=3";
         private const string _marginInfoRequstUrl = @"/v1/margin_infos";
         
         private const string _defaultConnectorUserAgent = "Lykke";
@@ -118,6 +121,35 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
                 _balanceRequestUrl, new GdaxPostContentBase(), cancellationToken, sentHttpRequestHandler, receivedHttpRequestHandler);
 
             return response;
+        }
+
+        public async Task<GdaxOrderBook> GetFullOrderBook(string pair, 
+            CancellationToken cancellationToken = default,
+            EventHandler<SentHttpRequest> sentHttpRequestHandler = default,
+            EventHandler<ReceivedHttpResponse> receivedHttpRequestHandler = default)
+        {
+            var response = await _restClient.ExecuteRestMethod<GdaxOrderBookRawResponse>(HttpMethod.Get,
+                string.Format(_orderBookRequestUrl, pair), new GdaxPostContentBase(), cancellationToken, sentHttpRequestHandler,
+                receivedHttpRequestHandler);
+
+            var orderBook = new GdaxOrderBook
+            {
+                Sequence = response.Sequence,
+                Asks = response.Asks.Select(ask => new GdaxOrderBookEntityRow
+                {
+                    Price = decimal.Parse(ask[0], CultureInfo.InvariantCulture),
+                    Size = decimal.Parse(ask[1], CultureInfo.InvariantCulture),
+                    OrderId = Guid.Parse(ask[2])
+                }).ToList(),
+                Bids = response.Bids.Select(bid => new GdaxOrderBookEntityRow
+                {
+                    Price = decimal.Parse(bid[0], CultureInfo.InvariantCulture),
+                    Size = decimal.Parse(bid[1], CultureInfo.InvariantCulture),
+                    OrderId = Guid.Parse(bid[2])
+                }).ToList()
+            };
+
+            return orderBook;
         }
     }
 }

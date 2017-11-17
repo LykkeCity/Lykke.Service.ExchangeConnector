@@ -31,7 +31,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         private static bool StandardEquals(OrderBookItem @this, OrderBookItem other)
         {
-            return @this.Id == other.Id && @this.IsBuy == other.IsBuy && string.Equals(@this.Symbol, other.Symbol);
+            return @this.Id == other.Id && string.Equals(@this.Symbol, other.Symbol);
         }
 
         private static int StandardGetHashCode(OrderBookItem @this)
@@ -39,7 +39,6 @@ namespace TradingBot.Exchanges.Concrete.Shared
             unchecked
             {
                 var hashCode = @this.Id.GetHashCode();
-                hashCode = (hashCode * 397) ^ @this.IsBuy.GetHashCode();
                 hashCode = (hashCode * 397) ^ (@this.Symbol != null ? @this.Symbol.GetHashCode() : 0);
                 return hashCode;
             }

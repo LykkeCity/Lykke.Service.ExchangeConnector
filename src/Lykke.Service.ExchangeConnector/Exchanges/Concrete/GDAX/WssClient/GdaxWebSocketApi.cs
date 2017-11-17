@@ -10,6 +10,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using TradingBot.Exchanges.Concrete.GDAX.Credentials;
 using TradingBot.Exchanges.Concrete.GDAX.WssClient.Entities;
+using TradingBot.Helpers;
 using TradingBot.Infrastructure.Exceptions;
 
 namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
@@ -26,31 +27,31 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
         /// <summary>
         /// Raised on established WebSocket connection with the server
         /// </summary>
-        public event EventHandler<Uri> Connected;
+        public AsyncEvent<Uri> Connected;
 
         /// <summary>
         /// Raised when WebSocket connection is lost
         /// </summary>
-        public event EventHandler<Uri> Disconnected;
+        public AsyncEvent<Uri> Disconnected;
 
         /// <summary>
         /// Raised on successful subscription
         /// </summary>
-        public event EventHandler<string> Subscribed;
+        public AsyncEvent<string> Subscribed;
 
         /// <summary>
         /// Raised when a valid order has been received and is now active. This message 
         /// is emitted for every single valid order as soon as the matching engine receives 
         /// it whether it fills immediately or not.
         /// </summary>
-        public event EventHandler<GdaxWssOrderReceived> OrderReceived;
+        public AsyncEvent<GdaxWssOrderReceived> OrderReceived;
 
         /// <summary>
         /// Raised when the order is now open on the order book. This message will only be 
         /// sent for orders which are not fully filled immediately. RemainingSize will 
         /// indicate how much of the order is unfilled and going on the book
         /// </summary>
-        public event EventHandler<GdaxWssOrderOpen> OrderOpened;
+        public AsyncEvent<GdaxWssOrderOpen> OrderOpened;
 
         /// <summary>
         /// Raised when the order is no longer on the order book. Sent for all orders for which there 
@@ -60,7 +61,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
         /// Market orders will not have a remaining_size or price field as they are never on the 
         /// open order book at a given price.
         /// </summary>
-        public event EventHandler<GdaxWssOrderDone> OrderDone;
+        public AsyncEvent<GdaxWssOrderDone> OrderDone;
 
         /// <summary>
         /// Raised when a trade occurred between two orders. The aggressor or taker order is the one 
@@ -68,7 +69,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
         /// The side field indicates the maker order side. If the side is sell this indicates the maker 
         /// was a sell order and the match is considered an up-tick. A buy side match is a down-tick.
         /// </summary>
-        public event EventHandler<GdaxWssOrderMatch> OrderMatched;
+        public AsyncEvent<GdaxWssOrderMatch> OrderMatched;
 
         /// <summary>
         /// Raised when an order has changed. This is the result of self-trade prevention adjusting the 
@@ -77,19 +78,19 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
         /// but not yet open. Change messages are also sent when a new market order goes through self trade 
         /// prevention and the funds for the market order have changed.
         /// </summary>
-        public event EventHandler<GdaxWssOrderChange> OrderChanged;
+        public AsyncEvent<GdaxWssOrderChange> OrderChanged;
 
         /// <summary>
         /// The ticker provides real-time price updates every time a match happens. It batches updates 
         /// in case of cascading matches, greatly reducing bandwidth requirements.
         /// </summary>
-        public event EventHandler<GdaxWssTicker> Ticker;
+        public AsyncEvent<GdaxWssTicker> Ticker;
 
         /// <summary>
         /// Most failure cases will cause an error message (a message with the type "error") to be emitted. 
         /// This can be helpful for implementing a client or debugging issues.
         /// </summary>
-        public event EventHandler<GdaxWssError> Error;
+        public AsyncEvent<GdaxWssError> Error;
 
         /// <summary>
         /// Base GDAX WebSockets Uri
@@ -111,10 +112,10 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
             if (_clientWebSocket.State != WebSocketState.Open)
                 throw new ApiException($"Could not establish WebSockets connection to {BaseUri}");
 
-            Connected?.Invoke(this, BaseUri);
+            await Connected.NullableInvokeAsync(this, BaseUri);
         }
 
-        public async Task SubscribeToPrivateUpdatesAsync(ICollection<string> productIds, CancellationToken cancellationToken)
+        public async Task SubscribeToPrivateUpdatesAsync(IReadOnlyCollection<string> productIds, CancellationToken cancellationToken)
         {
             if (_clientWebSocket == null || _clientWebSocket.State != WebSocketState.Open)
                 throw new ApiException($"Could not subscribe to {BaseUri} because no connection is established.");
@@ -137,7 +138,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
             await SubscribeImplAsync(cancellationToken, requestString);
         }
 
-        public async Task SubscribeToFullUpdatesAsync(ICollection<string> productIds, CancellationToken cancellationToken)
+        public async Task SubscribeToFullUpdatesAsync(IReadOnlyCollection<string> productIds, CancellationToken cancellationToken)
         {
             if (_clientWebSocket == null || _clientWebSocket.State != WebSocketState.Open)
                 throw new ApiException($"Could not subscribe to {BaseUri} because no connection is established.");
@@ -165,7 +166,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
             await _clientWebSocket.SendAsync(StringToArraySegment(requestString), WebSocketMessageType.Text,
                 true, cancellationToken).ConfigureAwait(false);
 
-            Subscribed?.Invoke(this, requestString);
+            await Subscribed.NullableInvokeAsync(this, requestString);
 
             await ListenToMessagesAsync(_clientWebSocket, cancellationToken);
         }
@@ -182,12 +183,13 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
                     {
                         receiveResult = await webSocket.ReceiveAsync(receiveBuffer,
                             cancellationToken).ConfigureAwait(false);
-                        await stream.WriteAsync(receiveBuffer.Array, receiveBuffer.Offset, receiveBuffer.Count);
+                        await stream.WriteAsync(receiveBuffer.Array, receiveBuffer.Offset, receiveBuffer.Count, 
+                            cancellationToken);
                     } while (!receiveResult.EndOfMessage);
 
                     var messageBytes = stream.ToArray();
                     var jsonMessage = Encoding.UTF8.GetString(messageBytes, 0, messageBytes.Length);
-                    HandleWebSocketMessage(jsonMessage);
+                    await HandleWebSocketMessageAsync(jsonMessage);
                 }
             }
         }
@@ -197,7 +199,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
             if (_clientWebSocket != null && _clientWebSocket.State == WebSocketState.Open)
             {
                 await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal closure", cancellationToken);
-                Disconnected?.Invoke(this, BaseUri);
+                await Disconnected.NullableInvokeAsync(this, BaseUri);
             }
         }
 
@@ -208,7 +210,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
             return messageArraySegment;
         }
 
-        private void HandleWebSocketMessage(string jsonMessage)
+        private async Task HandleWebSocketMessageAsync(string jsonMessage)
         {
             var jToken = JToken.Parse(jsonMessage);
             var type = jToken["type"]?.Value<string>();
@@ -217,31 +219,31 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
             {
                 case "received":
                     var orderReceived = JsonConvert.DeserializeObject<GdaxWssOrderReceived>(jsonMessage);
-                    OrderReceived?.Invoke(this, orderReceived);
+                    await OrderReceived.NullableInvokeAsync(this, orderReceived);
                     break;
                 case "open":
                     var orderOpen = JsonConvert.DeserializeObject<GdaxWssOrderOpen>(jsonMessage);
-                    OrderOpened?.Invoke(this, orderOpen);
+                    await OrderOpened.NullableInvokeAsync(this, orderOpen);
                     break;
                 case "done":
                     var orderDone = JsonConvert.DeserializeObject<GdaxWssOrderDone>(jsonMessage);
-                    OrderDone?.Invoke(this, orderDone);
+                    await OrderDone.NullableInvokeAsync(this, orderDone);
                     break;
                 case "match":
                     var orderMatch = JsonConvert.DeserializeObject<GdaxWssOrderMatch>(jsonMessage);
-                    OrderMatched?.Invoke(this, orderMatch);
+                    await OrderMatched.NullableInvokeAsync(this, orderMatch);
                     break;
                 case "change":
                     var orderChange = JsonConvert.DeserializeObject<GdaxWssOrderChange>(jsonMessage);
-                    OrderChanged?.Invoke(this, orderChange);
+                    await OrderChanged.NullableInvokeAsync(this, orderChange);
                     break;
                 case "ticker":
                     var tickerDetails = JsonConvert.DeserializeObject<GdaxWssTicker>(jsonMessage);
-                    Ticker?.Invoke(this, tickerDetails);
+                    await Ticker.NullableInvokeAsync(this, tickerDetails);
                     break;
                 case "error":
                     var error = JsonConvert.DeserializeObject<GdaxWssError>(jsonMessage);
-                    Error.Invoke(this, error);
+                    await Error.InvokeAsync(this, error);
                     break;
                 default:
                     // Clients are expected to ignore messages they do not support.

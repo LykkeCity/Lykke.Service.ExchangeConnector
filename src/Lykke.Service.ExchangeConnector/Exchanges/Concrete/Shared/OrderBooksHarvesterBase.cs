@@ -16,11 +16,12 @@ namespace TradingBot.Exchanges.Concrete.Shared
     internal abstract class OrderBooksHarvesterBase : IDisposable
     {
         protected readonly ILog Log;
-        protected readonly ConcurrentDictionary<string, OrderBookSnapshot> OrderBookSnapshots;
-        protected CancellationToken CancellationToken;
         protected readonly OrderBookSnapshotsRepository OrderBookSnapshotsRepository;
         protected readonly OrderBookEventsRepository OrderBookEventsRepository;
+        protected CancellationToken CancellationToken;
 
+        private readonly ConcurrentDictionary<string, OrderBookSnapshot> _orderBookSnapshots;
+        private ExchangeConverters _converters;
         private readonly Timer _heartBeatMonitoringTimer;
         private readonly TimeSpan _heartBeatPeriod = TimeSpan.FromSeconds(30);
         private CancellationTokenSource _cancellationTokenSource;
@@ -32,22 +33,36 @@ namespace TradingBot.Exchanges.Concrete.Shared
         private Task _measureTask;
         private long _publishedToRabbit;
 
-        protected ICurrencyMappingProvider CurrencyMappingProvider { get; }
+        protected IExchangeConfiguration ExchangeConfiguration { get; }
 
-        public string ExchangeName { get; set; }
+        private string _exchangeName;
+        public string ExchangeName
+        {
+            get => _exchangeName;
+            set
+            {
+                _exchangeName = value;
+                _converters = new ExchangeConverters(
+                    ExchangeConfiguration.SupportedCurrencySymbols,
+                    string.Empty);
+            }
+        }
 
         public int MaxOrderBookRate { get; set; }
 
-        protected OrderBooksHarvesterBase(ICurrencyMappingProvider currencyMappingProvider, ILog log,
+        protected OrderBooksHarvesterBase(IExchangeConfiguration exchangeConfiguration, ILog log,
             OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
         {
-            CurrencyMappingProvider = currencyMappingProvider;
+            ExchangeConfiguration = exchangeConfiguration;
             OrderBookSnapshotsRepository = orderBookSnapshotsRepository;
             OrderBookEventsRepository = orderBookEventsRepository;
 
             Log = log.CreateComponentScope(GetType().Name);
 
-            OrderBookSnapshots = new ConcurrentDictionary<string, OrderBookSnapshot>();
+            _converters = new ExchangeConverters(exchangeConfiguration.SupportedCurrencySymbols,
+                string.Empty);
+
+            _orderBookSnapshots = new ConcurrentDictionary<string, OrderBookSnapshot>();
             _cancellationTokenSource = new CancellationTokenSource();
             CancellationToken = _cancellationTokenSource.Token;
 
@@ -82,7 +97,9 @@ namespace TradingBot.Exchanges.Concrete.Shared
             {
                 var msgInSec = _lastSecPublicationsNum / period;
                 var pubInSec = _publishedToRabbit / period;
-                await Log.WriteInfoAsync(nameof(OrderBooksHarvesterBase), $"Receive rate from {ExchangeName} {msgInSec} per second, publish rate to RabbitMq {pubInSec} per second", string.Empty);
+                await Log.WriteInfoAsync(nameof(OrderBooksHarvesterBase), 
+                    $"Receive rate from {ExchangeName} {msgInSec} per second, publish rate to " + 
+                    $"RabbitMq {pubInSec} per second", string.Empty);
                 _lastSecPublicationsNum = 0;
                 _publishedToRabbit = 0;
                 await Task.Delay(TimeSpan.FromSeconds(period), CancellationToken);
@@ -143,10 +160,10 @@ namespace TradingBot.Exchanges.Concrete.Shared
             {
                 return;
             }
-            var orderBooks = OrderBookSnapshots.Values
+            var orderBooks = _orderBookSnapshots.Values
                 .Select(obs => new OrderBook(
                     ExchangeName,
-                    ConvertSymbolFromExchangeToLykke(obs.AssetPair).Name,
+                    _converters.ExchangeSymbolToLykkeInstrument(obs.AssetPair).Name,
                     obs.Asks.Values.Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
                     obs.Bids.Values.Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
                     DateTime.UtcNow));
@@ -162,101 +179,63 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         protected async Task<OrderBookSnapshot> GetOrderBookSnapshot(string pair)
         {
-            if (!OrderBookSnapshots.TryGetValue(pair, out var orderBook))
+            if (!_orderBookSnapshots.TryGetValue(pair, out var orderBook))
             {
                 var message = "Trying to retrieve a non-existing pair order book snapshot " +
                               $"for exchange {ExchangeName} and pair {pair}";
-                await Log.WriteInfoAsync(nameof(MessageLoopImpl), nameof(MessageLoopImpl), message);
+                await Log.WriteErrorAsync(nameof(MessageLoopImpl), nameof(MessageLoopImpl), 
+                    new OrderBookInconsistencyException(message));
                 throw new OrderBookInconsistencyException(message);
             }
 
             return orderBook;
         }
 
-        protected async Task<ConcurrentDictionary<string, OrderBookItem>> GetOrdersList(string pair, bool isBuy)
-        {
-            var orderBookSnapshot = await GetOrderBookSnapshot(pair);
-            return isBuy
-                ? orderBookSnapshot.Bids
-                : orderBookSnapshot.Asks;
-        }
-
         protected async Task HandleOrdebookSnapshotAsync(string pair, DateTime timeStamp, 
             IEnumerable<OrderBookItem> orders)
         {
             var orderBookSnapshot = new OrderBookSnapshot(ExchangeName, pair, timeStamp);
-            AddOrUpdateOrders(orderBookSnapshot, orders);
+            orderBookSnapshot.AddOrUpdateOrders(orders);
+            _orderBookSnapshots[pair] = orderBookSnapshot;
 
-            await OrderBookSnapshotsRepository.SaveAsync(orderBookSnapshot);
+            if (ExchangeConfiguration.SaveOrderBooksToAzure)
+                await OrderBookSnapshotsRepository.SaveAsync(orderBookSnapshot);
 
             await PublishOrderBookSnapshotAsync();
         }
 
         protected async Task HandleOrdersEventsAsync(string pair, 
             OrderBookEventType orderEventType,
-            ICollection<OrderBookItem> orders)
+            IReadOnlyCollection<OrderBookItem> orders)
         {
             var orderBookSnapshot = await GetOrderBookSnapshot(pair);
 
-            await OrderBookEventsRepository.SaveAsync(new OrderBookEvent
+            if (ExchangeConfiguration.SaveOrderBooksToAzure)
             {
-                SnapshotId = orderBookSnapshot.GeneratedId,
-                EventType = orderEventType,
-                OrderEventTimestamp = DateTime.UtcNow,
-                OrderItems = orders
-            });
+                await OrderBookEventsRepository.SaveAsync(new OrderBookEvent
+                {
+                    SnapshotId = orderBookSnapshot.GeneratedId,
+                    EventType = orderEventType,
+                    OrderEventTimestamp = DateTime.UtcNow,
+                    OrderItems = orders
+                });
+            }
 
             switch (orderEventType)
             {
                 case OrderBookEventType.Add:
                 case OrderBookEventType.Update:
-                    AddOrUpdateOrders(orderBookSnapshot, orders);
+                    orderBookSnapshot.AddOrUpdateOrders(orders);
                     break;
                 case OrderBookEventType.Delete:
-                    foreach (var order in orders)
-                    {
-                        if (order.IsBuy)
-                            orderBookSnapshot.Bids.TryRemove(order.Id, out var _);
-                        else
-                            orderBookSnapshot.Asks.TryRemove(order.Id, out var _);
-                    }
+                    orderBookSnapshot.DeleteOrders(orders);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(orderEventType), orderEventType, null);
             }
-        }
 
-        protected string ConvertSymbolFromLykkeToExchange(string symbol)
-        {
-            if (!CurrencyMappingProvider.CurrencyMapping.TryGetValue(symbol, out var result))
-            {
-                throw new ArgumentException($"Symbol {symbol} is not mapped to {ExchangeName} value");
-            }
-            return result;
+            await PublishOrderBookSnapshotAsync();
         }
-
-        protected Instrument ConvertSymbolFromExchangeToLykke(string symbol)
-        {
-            var result = CurrencyMappingProvider.CurrencyMapping.FirstOrDefault(kv => kv.Value == symbol).Key;
-            if (result == null)
-            {
-                throw new ArgumentException($"Symbol {symbol} is not mapped to lykke value");
-            }
-            return new Instrument(ExchangeName, result);
-        }
-
-        private static void AddOrUpdateOrders(OrderBookSnapshot orderBookSnapshot,
-            IEnumerable<OrderBookItem> newOrders)
-        {
-            foreach (var order in newOrders)
-            {
-                if (order.IsBuy)
-                    orderBookSnapshot.Bids[order.Id] = order;
-                else
-                    orderBookSnapshot.Asks[order.Id] = order;
-            }
-        }
-
 
         private bool NeedThrottle()
         {

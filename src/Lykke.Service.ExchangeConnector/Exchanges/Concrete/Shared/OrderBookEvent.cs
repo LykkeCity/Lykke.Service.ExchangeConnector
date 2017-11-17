@@ -13,7 +13,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         public OrderBookEventType EventType { get; set; }
 
-        public ICollection<OrderBookItem> OrderItems { get; set; }
+        public IReadOnlyCollection<OrderBookItem> OrderItems { get; set; }
 
         public OrderBookEvent()
         {

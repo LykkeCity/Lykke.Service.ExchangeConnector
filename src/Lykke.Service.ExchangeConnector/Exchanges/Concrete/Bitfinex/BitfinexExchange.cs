@@ -8,6 +8,7 @@ using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Bitfinex.RestClient;
 using TradingBot.Exchanges.Concrete.Bitfinex.RestClient.Model;
+using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Models.Api;
@@ -24,6 +25,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         private readonly BitfinexExchangeConfiguration _configuration;
         private readonly BitfinexOrderBooksHarvester _orderBooksHarvester;
         private readonly IBitfinexApi _exchangeApi;
+        private readonly ExchangeConverters _converters;
         public new const string Name = "bitfinex";
 
         public BitfinexExchange(BitfinexExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository, BitfinexOrderBooksHarvester orderBooksHarvester, ILog log) : base(Name, configuration, translatedSignalsRepository, log)
@@ -35,6 +37,10 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             {
                 BaseUri = new Uri(configuration.EndpointUrl)
             };
+
+            _converters = new ExchangeConverters(configuration.SupportedCurrencySymbols,
+                Name);
+
             _orderBooksHarvester.AddHandler(CallOrderBookHandlers);
             orderBooksHarvester.ExchangeName = Name;
             orderBooksHarvester.MaxOrderBookRate = configuration.MaxOrderBookRate;
@@ -43,13 +49,12 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            var symbol = ConvertSymbolFromLykkeToExchange(signal.Instrument.Name);
+            var symbol = _converters.LykkeSymbolToExchangeSymbol(signal.Instrument.Name);
             var volume = signal.Volume;
             var orderType = ConvertOrderType(signal.OrderType);
             var side = ConvertTradeType(signal.TradeType);
             var price = signal.Price == 0 ? 1 : signal.Price ?? 1;
             var cts = new CancellationTokenSource(timeout);
-
 
             var response = await _exchangeApi.AddOrder(symbol, volume, price, side, orderType, cts.Token);
 
@@ -121,13 +126,13 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             return positions;
         }
 
-        private static IReadOnlyCollection<PositionModel> ExchangePositionsToPositionModel(IEnumerable<Position> response, IReadOnlyList<MarginInfo> marginInfo, BitfinexExchangeConfiguration configuration)
+        private IReadOnlyCollection<PositionModel> ExchangePositionsToPositionModel(IEnumerable<Position> response, IReadOnlyList<MarginInfo> marginInfo, BitfinexExchangeConfiguration configuration)
         {
             var marginByCurrency = marginInfo[0].MarginLimits.ToDictionary(ml => ml.OnPair, ml => ml, StringComparer.InvariantCultureIgnoreCase);
             var result = response.Select(r =>
                 new PositionModel
                 {
-                    Symbol = ConvertSymbolFromExchangeToLykke(r.Symbol, configuration).Name,
+                    Symbol = _converters.ExchangeSymbolToLykkeInstrument(r.Symbol).Name,
                     PositionVolume = r.Amount,
                     MaintMarginUsed = r.Amount * r.Base * marginByCurrency[r.Symbol].MarginRequirement / 100m,
                     RealisedPnL = 0, //TODO no specification,
@@ -181,7 +186,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             return new[] { balance };
         }
 
-        private static ExecutedTrade OrderToTrade(Order order, BitfinexExchangeConfiguration configuration)
+        private ExecutedTrade OrderToTrade(Order order, BitfinexExchangeConfiguration configuration)
         {
             var id = order.Id;
             var execTime = order.Timestamp;
@@ -189,7 +194,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             var execVolume = order.ExecutedAmount;
             var tradeType = ConvertTradeType(order.Side);
             var status = ConvertExecutionStatus(order);
-            var instr = ConvertSymbolFromExchangeToLykke(order.Symbol, configuration);
+            var instr = _converters.ExchangeSymbolToLykkeInstrument(order.Symbol);
 
             return new ExecutedTrade(instr, execTime, execPrice, execVolume, tradeType, id, status);
         }
@@ -204,26 +209,6 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         {
             _orderBooksHarvester.Stop();
         }
-
-        private string ConvertSymbolFromLykkeToExchange(string symbol)
-        {
-            if (!_configuration.CurrencyMapping.TryGetValue(symbol, out var result))
-            {
-                throw new ArgumentException($"Symbol {symbol} is not mapped to Bitfinex value");
-            }
-            return result;
-        }
-
-        private static Instrument ConvertSymbolFromExchangeToLykke(string symbol, BitfinexExchangeConfiguration configuration)
-        {
-            var result = configuration.CurrencyMapping.FirstOrDefault(kv => string.Equals(kv.Value, symbol, StringComparison.InvariantCultureIgnoreCase)).Key;
-            if (result == null)
-            {
-                throw new ArgumentException($"Symbol {symbol} is not mapped to lykke value");
-            }
-            return new Instrument(Name, result);
-        }
-
 
         private string ConvertOrderType(OrderType type)
         {

@@ -1,0 +1,77 @@
+﻿using System;
+using System.IO;
+using System.Threading.Tasks;
+using AzureStorage;
+using AzureStorage.Blob;
+using AzureStorage.Tables;
+using Common.Log;
+using Lykke.SettingsReader;
+using Microsoft.Extensions.Configuration;
+using TradingBot.Communications;
+using TradingBot.Exchanges.Concrete.GDAX;
+using TradingBot.Infrastructure.Configuration;
+using TradingBot.Repositories;
+using Xunit;
+
+namespace Lykke.Service.ExchangeConnector.Tests.GDAX
+{
+    public class GdaxOrderBookTests
+    {
+        private readonly ILog _log;
+        private readonly INoSQLTableStorage<OrderBookEventEntity> _orderBookEventsStorage;
+        private readonly INoSQLTableStorage<OrderBookSnapshotEntity> _orderBookSnapshotStorage;
+        private readonly IBlobStorage _azureBlobStorage;
+        private readonly OrderBookSnapshotsRepository _snapshotsRepository;
+        private readonly OrderBookEventsRepository _eventsRepository;
+        private readonly GdaxExchangeConfiguration _gdaxConfiguration;
+
+        private static string _configFilePath = Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory, "testsettings.Gdax.json");
+        
+        private const string _btcUsd = "BTCUSD";
+        private const string _tableStorageEndpoint = "UseDevelopmentStorage=true";
+        private const string _snapshotsTable = "orderBookSnapshots";
+        private const string _orderBookEventsTable = "orderBookEvents";
+        private const string _blobStorageEndpoint = "UseDevelopmentStorage=true";
+
+        private const string _orderDoneTypeName = "done";
+        private const string _orderCanceledReason = "canceled";
+
+        public GdaxOrderBookTests()
+        {
+            _log = new LogToConsole();
+
+            var configBuilder = new ConfigurationBuilder();
+            configBuilder.AddJsonFile(_configFilePath, optional: false, reloadOnChange: true);
+            var configuration = configBuilder.Build();
+
+            configuration["SettingsUrl"] = _configFilePath;
+            var settingsManager = configuration.LoadSettings<GdaxExchangeConfiguration>("SettingsUrl");
+
+            _gdaxConfiguration = settingsManager.CurrentValue;
+
+            _orderBookEventsStorage = AzureTableStorage<OrderBookEventEntity>.Create(
+                settingsManager.ConnectionString(i => _tableStorageEndpoint), _orderBookEventsTable, _log);
+            _orderBookSnapshotStorage = AzureTableStorage<OrderBookSnapshotEntity>.Create(
+                settingsManager.ConnectionString(i => _tableStorageEndpoint), _snapshotsTable, _log);
+            _azureBlobStorage = AzureBlobStorage.Create(
+                settingsManager.ConnectionString(i => _blobStorageEndpoint));
+
+            _snapshotsRepository = new OrderBookSnapshotsRepository(_orderBookSnapshotStorage, _azureBlobStorage, _log);
+            _eventsRepository = new OrderBookEventsRepository(_orderBookEventsStorage, _log);
+        }
+
+        [Fact]
+        public async Task HarvestAndPersist()
+        {
+            var orderBookHarvester = new GdaxOrderBooksHarvester(_gdaxConfiguration, _log,
+                _snapshotsRepository, _eventsRepository);
+            orderBookHarvester.ExchangeName = "Gdax";
+            orderBookHarvester.Start();
+
+            await Task.Delay(100000);
+
+            orderBookHarvester.Stop();
+        }
+    }
+}

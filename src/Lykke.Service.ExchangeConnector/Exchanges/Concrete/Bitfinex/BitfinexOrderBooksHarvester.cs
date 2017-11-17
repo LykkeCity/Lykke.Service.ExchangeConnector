@@ -5,10 +5,8 @@ using System.Threading.Tasks;
 using Common.Log;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.Bitfinex.WebSocketClient.Model;
-using TradingBot.Exchanges.Concrete.BitMEX;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Repositories;
 using SubscribeRequest = TradingBot.Exchanges.Concrete.Bitfinex.WebSocketClient.Model.SubscribeRequest;
 
 namespace TradingBot.Exchanges.Concrete.Bitfinex
@@ -62,7 +60,8 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         private async Task Subscribe()
         {
-            var instruments = _configuration.Instruments.Select(i => ConvertSymbolFromLykkeToExchange(i));
+            var instruments = _configuration.SupportedCurrencySymbols
+                .Select(s => s.ExchangeSymbol);
 
             foreach (var instrument in instruments)
             {

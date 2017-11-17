@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace TradingBot.Exchanges.Concrete.Shared
 {
-    public sealed class OrderBookSnapshot
+    internal sealed class OrderBookSnapshot
     {
         public string Source { get; }
 
@@ -15,9 +15,9 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         public DateTime OrderBookTimestamp { get; }
 
-        public ConcurrentDictionary<string, OrderBookItem> Asks { get; }
+        public IDictionary<string, OrderBookItem> Asks { get; }
 
-        public ConcurrentDictionary<string, OrderBookItem> Bids { get; }
+        public IDictionary<string, OrderBookItem> Bids { get; }
 
         public string GeneratedId { get; internal set; }
 
@@ -26,8 +26,8 @@ namespace TradingBot.Exchanges.Concrete.Shared
             InternalTimestamp = DateTime.UtcNow;
             Source = source;
             AssetPair = assetPair;
-            Asks = new ConcurrentDictionary<string, OrderBookItem>();
-            Bids = new ConcurrentDictionary<string, OrderBookItem>();
+            Asks = new Dictionary<string, OrderBookItem>();
+            Bids = new Dictionary<string, OrderBookItem>();
             OrderBookTimestamp = orderBookTimestamp;
         }
 
@@ -40,6 +40,28 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
             foreach (var bid in bids)
                 Bids[bid.Id] = bid;
+        }
+
+        public void AddOrUpdateOrders(IEnumerable<OrderBookItem> newOrders)
+        {
+            foreach (var order in newOrders)
+            {
+                if (order.IsBuy)
+                    Bids[order.Id] = order;
+                else
+                    Asks[order.Id] = order;
+            }
+        }
+
+        public void DeleteOrders(IReadOnlyCollection<OrderBookItem> orders)
+        {
+            foreach (var order in orders)
+            {
+                if (order.IsBuy)
+                    Bids.Remove(order.Id, out var _);
+                else
+                    Asks.Remove(order.Id, out var _);
+            }
         }
     }
 }

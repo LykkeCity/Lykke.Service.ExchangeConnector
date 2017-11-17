@@ -1,12 +1,11 @@
 ﻿using System;
-using Microsoft.WindowsAzure.Storage.Table;
 using TradingBot.Helpers;
 
 namespace TradingBot.Repositories
 {
-    public sealed class OrderBookSnapshotEntity: TableEntity
+    public sealed class OrderBookSnapshotEntity: BaseEntity
     {
-        public string UniqueId => PartitionKey + RowKey;
+        public string UniqueId => $"{PartitionKey}_{RowKey}";
 
         public string Exchange { get; }
 
@@ -24,8 +23,8 @@ namespace TradingBot.Repositories
             Exchange = exchange;
             AssetPair = assetPair;
 
-            PartitionKey = (exchange + assetPair).RemoveSpecialCharacters('-', '_', '.');
-            RowKey = snapShotTimestamp.ToString("yyyy-MM-dd_HH-mm-ss.fff");
+            PartitionKey = $"{exchange}_{assetPair}".RemoveSpecialCharacters('-', '_', '.');
+            RowKey = snapShotTimestamp.ToString("yyyyMMddTHHmmss.fff");
         }
     }
 }

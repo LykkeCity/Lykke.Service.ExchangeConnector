@@ -161,7 +161,7 @@ namespace TradingBot
 
                 var azureBlobStorage = AzureBlobStorage.Create(
                     settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString));
-                builder.RegisterInstance(azureBlobStorage).As<AzureBlobStorage>().SingleInstance();
+                builder.RegisterInstance(azureBlobStorage).As<IBlobStorage>().SingleInstance();
 
                 builder.RegisterModule(new ServiceModule(settings.Exchanges));
 

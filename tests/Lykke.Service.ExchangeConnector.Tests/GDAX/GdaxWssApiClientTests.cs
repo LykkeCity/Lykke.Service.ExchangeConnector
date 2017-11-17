@@ -56,9 +56,18 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
             var tcsOrderReceived = new TaskCompletionSource<GdaxWssOrderReceived>();
             var tcsOrderOpened = new TaskCompletionSource<GdaxWssOrderOpen>();
             var tcsOrderMarkedAsDone = new TaskCompletionSource<GdaxWssOrderDone>();
-            _api.OrderReceived += (sender, order) => { tcsOrderReceived.SetResult(order); };
-            _api.OrderOpened += (sender, order) => { tcsOrderOpened.SetResult(order); };
-            _api.OrderDone += (sender, order) => { tcsOrderMarkedAsDone.SetResult(order); };
+            _api.OrderReceived += (sender, order) => {
+                tcsOrderReceived.SetResult(order);
+                return tcsOrderReceived.Task;
+            };
+            _api.OrderOpened += (sender, order) => {
+                tcsOrderOpened.SetResult(order);
+                return tcsOrderOpened.Task;
+            };
+            _api.OrderDone += (sender, order) => {
+                tcsOrderMarkedAsDone.SetResult(order);
+                return tcsOrderMarkedAsDone.Task;
+            };
 
             // Connect and subscribe to web socket events
             await _api.ConnectAsync(cancellationToken);
@@ -116,7 +125,10 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
             var cancellationToken = new CancellationTokenSource().Token;
 
             var tcsTicker = new TaskCompletionSource<GdaxWssTicker>();
-            _api.Ticker += (sender, ticker) => { tcsTicker.SetResult(ticker); };
+            _api.Ticker += (sender, ticker) => {
+                tcsTicker.SetResult(ticker);
+                return tcsTicker.Task;
+            };
 
             // Connect and subscribe to web socket events
             await _api.ConnectAsync(cancellationToken);
@@ -145,7 +157,10 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
         private async Task<bool> SubscribeAsync(int timeoutMs, CancellationToken cancellationToken)
         {
             var tcsSubscribed = new TaskCompletionSource<string>();
-            _api.Subscribed += (sender, message) => { tcsSubscribed.SetResult(message); };
+            _api.Subscribed += (sender, message) => {
+                tcsSubscribed.SetResult(message);
+                return tcsSubscribed.Task;
+            };
 
             // Subscribe
             var skipTask = _api.SubscribeToPrivateUpdatesAsync(new[] { _btcUsd }, cancellationToken);

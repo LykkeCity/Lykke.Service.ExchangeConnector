@@ -16,7 +16,12 @@ namespace TradingBot.Tests.LykkeApiTests
     {
         private readonly LykkeExchangeConfiguration config = new LykkeExchangeConfiguration()
             {
-                Instruments = new [] { "BTCUSD" },
+                SupportedCurrencySymbols = new[] {
+                    new CurrencySymbol
+                    {
+                        LykkeSymbol = "BTCUSD",
+                        ExchangeSymbol = "BTCUSD",
+                    }},
                 EndpointUrl = "",
                 ApiKey = ""
             };

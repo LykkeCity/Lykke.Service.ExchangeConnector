@@ -8,9 +8,9 @@ namespace TradingBot.Exchanges.Concrete.Shared
     {
         protected WebSocketTextMessenger Messenger;
 
-        protected OrderBooksWebSocketHarvester(ICurrencyMappingProvider currencyMappingProvider, string uri, ILog log,
+        protected OrderBooksWebSocketHarvester(IExchangeConfiguration exchangeConfiguration, string uri, ILog log,
             OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
-            : base(currencyMappingProvider, log, orderBookSnapshotsRepository, orderBookEventsRepository)
+            : base(exchangeConfiguration, log, orderBookSnapshotsRepository, orderBookEventsRepository)
         {
             Messenger = new WebSocketTextMessenger(uri, log, CancellationToken);
         }

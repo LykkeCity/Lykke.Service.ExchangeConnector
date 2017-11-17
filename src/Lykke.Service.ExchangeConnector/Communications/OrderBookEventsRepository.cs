@@ -5,10 +5,8 @@ using System.Threading.Tasks;
 using AzureStorage;
 using Common;
 using Common.Log;
-using Microsoft.Extensions.Logging;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Helpers;
-using TradingBot.Infrastructure.Logging;
 using TradingBot.Repositories;
 
 namespace TradingBot.Communications
@@ -29,7 +27,7 @@ namespace TradingBot.Communications
         /// Strings are stored in UTF16 encoding, so maximum number of characters is 32K.
         /// One serialized entry has size no more then 100 characters.
         /// </summary>
-        private const int MaxQueueCount = 10;
+        private const int MaxQueueCount = 1;
 
         public OrderBookEventsRepository(INoSQLTableStorage<OrderBookEventEntity> tableStorage, 
             ILog log)
@@ -74,7 +72,6 @@ namespace TradingBot.Communications
 
             try
             {
-                // TODO: Create the table
                 await _tableStorage.InsertOrReplaceBatchAsync(tableEntities);
                 await _log.WriteInfoAsync(_className, _className,
                     $"{tableEntities.Count} order events for orderbook with snapshot {orderBookEvent.SnapshotId} were " + 

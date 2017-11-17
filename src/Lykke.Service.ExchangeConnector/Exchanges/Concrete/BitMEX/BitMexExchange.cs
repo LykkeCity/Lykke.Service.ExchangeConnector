@@ -9,6 +9,7 @@ using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.AutorestClient;
 using TradingBot.Exchanges.Concrete.AutorestClient.Models;
+using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Models.Api;
@@ -36,6 +37,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             {
                 BaseUri = new Uri(configuration.EndpointUrl)
             };
+
             orderBooksHarvester.AddHandler(CallOrderBookHandlers);
             orderBooksHarvester.ExchangeName = Name;
             orderBooksHarvester.MaxOrderBookRate = configuration.MaxOrderBookRate;
@@ -83,7 +85,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 throw new ApiException(error.ErrorProperty.Message);
             }
             var res = EnsureCorrectResponse(id, response);
-            return BitMexModelConverter.OrderToTrade(res[0], _configuration);
+            return BitMexModelConverter.OrderToTrade(res[0]);
         }
 
         public override async Task<ExecutedTrade> GetOrder(string id, Instrument instrument, TimeSpan timeout)
@@ -93,7 +95,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             var cts = new CancellationTokenSource(timeout);
             var response = await _exchangeApi.OrdergetOrdersAsync(filter: filterArg, cancellationToken: cts.Token);
             var res = EnsureCorrectResponse(id, response);
-            return BitMexModelConverter.OrderToTrade(res[0], _configuration);
+            return BitMexModelConverter.OrderToTrade(res[0]);
         }
 
         public override async Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout)
@@ -106,7 +108,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 throw new ApiException(error.ErrorProperty.Message);
             }
 
-            var trades = ((IReadOnlyCollection<Order>)response).Select(r => BitMexModelConverter.OrderToTrade(r, _configuration));
+            var trades = ((IReadOnlyCollection<Order>)response).Select( 
+                BitMexModelConverter.OrderToTrade);
             return trades;
         }
 
@@ -133,7 +136,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 throw new ApiException(error.ErrorProperty.Message);
             }
 
-            var model = ((IReadOnlyCollection<Position>)response).Select(r => BitMexModelConverter.ExchangePositionToModel(r, _configuration)).ToArray();
+            var model = ((IReadOnlyCollection<Position>)response).Select(r => 
+                BitMexModelConverter.ExchangePositionToModel(r)).ToArray();
             return model;
         }
 

@@ -128,8 +128,9 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
         private async Task Subscribe()
         {
-            var filter = _configuration.Instruments.Select(i => new Tuple<string, string>("orderBookL2", 
-                ConvertSymbolFromLykkeToExchange(i))).ToArray();
+            var filter = _configuration.SupportedCurrencySymbols
+                .Select(i => new Tuple<string, string>("orderBookL2", 
+                    i.ExchangeSymbol)).ToArray();
             var request = SubscribeRequest.BuildRequest(filter);
             await Messenger.SendRequestAsync(request);
         }

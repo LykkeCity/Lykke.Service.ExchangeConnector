@@ -1,10 +1,9 @@
 ﻿using System;
-using Microsoft.WindowsAzure.Storage.Table;
 using TradingBot.Helpers;
 
 namespace TradingBot.Repositories
 {
-    public class OrderBookEventEntity: TableEntity
+    public class OrderBookEventEntity: BaseEntity
     {
         public string OrderBookSnapshotId { get; set; }
 

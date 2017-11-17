@@ -1,0 +1,19 @@
+﻿{
+  "enabled": true,
+  "InitialRating": 5,
+  "apiKey": "",
+  "apiSecret": "",
+  "passPhrase": "",
+  "userAgent": "Lykke",
+  "saveQuotesToAzure": false,
+  "pubQuotesToRabbit": false,
+  "saveOrderBooksToAzure": true,
+  "restEndpointUrl": "https://api-public.sandbox.gdax.com",
+  "wssEndpointUrl": "wss://ws-feed-public.sandbox.gdax.com",
+  "supportedCurrencySymbols": [
+    {
+      "LykkeSymbol": "BTCUSD",
+      "ExchangeSymbol": "BTC-USD"
+    }
+  ]
+}
