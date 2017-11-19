@@ -87,21 +87,26 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         private async Task HandleTableResponse(TableResponse table)
         {
             var orderBookItems = table.Data.Select(o => o.ToOrderBookItem()).ToList();
+            var groupByPair = orderBookItems.GroupBy(ob => ob.Symbol);
+
             switch (table.Action)
             {
                 case Action.Partial:
-                    await HandleOrdebookSnapshotAsync(table.Attributes.Symbol,
-                        DateTime.UtcNow, // TODO: Use server's date
-                        orderBookItems);
+                    foreach (var symbolGroup in groupByPair)
+                    {
+                        await HandleOrdebookSnapshotAsync(symbolGroup.Key, DateTime.UtcNow, orderBookItems);
+                    }
                     break;
                 case Action.Update:
                 case Action.Insert:
                 case Action.Delete:
-                    await HandleOrdersEventsAsync(table.Attributes.Symbol,
-                        ActionToOrderBookEventType(table.Action), orderBookItems);
+                    foreach (var symbolGroup in groupByPair)
+                    {
+                        await HandleOrdersEventsAsync(symbolGroup.Key, ActionToOrderBookEventType(table.Action), orderBookItems);
+                    }
                     break;
                 default:
-                    await Log.WriteWarningAsync(nameof(HandleTableResponse), "Parsing table response", 
+                    await Log.WriteWarningAsync(nameof(HandleTableResponse), "Parsing table response",
                         $"Unknown table action {table.Action}");
                     break;
             }
@@ -129,7 +134,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         private async Task Subscribe()
         {
             var filter = _configuration.SupportedCurrencySymbols
-                .Select(i => new Tuple<string, string>("orderBookL2", 
+                .Select(i => new Tuple<string, string>("orderBookL2",
                     i.ExchangeSymbol)).ToArray();
             var request = SubscribeRequest.BuildRequest(filter);
             await Messenger.SendRequestAsync(request);

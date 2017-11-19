@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace TradingBot.Exchanges.Concrete.Shared
 {
@@ -31,36 +29,37 @@ namespace TradingBot.Exchanges.Concrete.Shared
             OrderBookTimestamp = orderBookTimestamp;
         }
 
-        public OrderBookSnapshot(string source, string assetPair, DateTime orderBookTimestamp,
-            IEnumerable<OrderBookItem> asks, IEnumerable<OrderBookItem> bids) 
-            : this(source, assetPair, orderBookTimestamp)
-        {
-            foreach (var ask in asks)
-                Asks[ask.Id] = ask;
-
-            foreach (var bid in bids)
-                Bids[bid.Id] = bid;
-        }
-
         public void AddOrUpdateOrders(IEnumerable<OrderBookItem> newOrders)
         {
             foreach (var order in newOrders)
             {
                 if (order.IsBuy)
+                {
+                    if (Bids.TryGetValue(order.Id, out var storedOrder) && order.Price == 0) // Updates from some exchanges don't have price
+                    {
+                        order.Price = storedOrder.Price;
+                    }
                     Bids[order.Id] = order;
+                }
                 else
+                {
+                    if (Asks.TryGetValue(order.Id, out var storedOrder) && order.Price == 0) // Updates from some exchanges don't have price
+                    {
+                        order.Price = storedOrder.Price;
+                    }
                     Asks[order.Id] = order;
+                }
             }
         }
 
-        public void DeleteOrders(IReadOnlyCollection<OrderBookItem> orders)
+        public void DeleteOrders(IEnumerable<OrderBookItem> orders)
         {
             foreach (var order in orders)
             {
                 if (order.IsBuy)
-                    Bids.Remove(order.Id, out var _);
+                    Bids.Remove(order.Id);
                 else
-                    Asks.Remove(order.Id, out var _);
+                    Asks.Remove(order.Id);
             }
         }
     }

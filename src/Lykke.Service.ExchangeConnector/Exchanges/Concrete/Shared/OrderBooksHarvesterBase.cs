@@ -71,7 +71,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         private async void ForceStopMessenger(object state)
         {
-            await Log.WriteWarningAsync(nameof(ForceStopMessenger), "Monitoring heartbeat", 
+            await Log.WriteWarningAsync(nameof(ForceStopMessenger), "Monitoring heartbeat",
                 $"Heart stopped. Restarting {GetType().Name}");
             Stop();
             try
@@ -97,8 +97,8 @@ namespace TradingBot.Exchanges.Concrete.Shared
             {
                 var msgInSec = _lastSecPublicationsNum / period;
                 var pubInSec = _publishedToRabbit / period;
-                await Log.WriteInfoAsync(nameof(OrderBooksHarvesterBase), 
-                    $"Receive rate from {ExchangeName} {msgInSec} per second, publish rate to " + 
+                await Log.WriteInfoAsync(nameof(OrderBooksHarvesterBase),
+                    $"Receive rate from {ExchangeName} {msgInSec} per second, publish rate to " +
                     $"RabbitMq {pubInSec} per second", string.Empty);
                 _lastSecPublicationsNum = 0;
                 _publishedToRabbit = 0;
@@ -133,8 +133,8 @@ namespace TradingBot.Exchanges.Concrete.Shared
             const int smallTimeout = 5;
             var retryPolicy = Policy
                 .Handle<Exception>(ex => !(ex is OperationCanceledException))
-                .WaitAndRetryForeverAsync(attempt => attempt % 60 == 0 
-                    ? TimeSpan.FromMinutes(5) 
+                .WaitAndRetryForeverAsync(attempt => attempt % 60 == 0
+                    ? TimeSpan.FromMinutes(5)
                     : TimeSpan.FromSeconds(smallTimeout)); // After every 60 attempts wait 5min 
 
             await retryPolicy.ExecuteAsync(async () =>
@@ -146,7 +146,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
                  }
                  catch (Exception ex)
                  {
-                     await Log.WriteErrorAsync(nameof(MessageLoopImpl), 
+                     await Log.WriteErrorAsync(nameof(MessageLoopImpl),
                          $"An exception occurred while working with WebSocket. Reconnect in {smallTimeout} sec", ex);
                      throw;
                  }
@@ -168,7 +168,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
                     obs.Bids.Values.Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
                     DateTime.UtcNow));
             _publishedToRabbit++;
-            
+
             foreach (var orderBook in orderBooks)
             {
                 await _newOrderBookHandler(orderBook);
@@ -183,7 +183,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
             {
                 var message = "Trying to retrieve a non-existing pair order book snapshot " +
                               $"for exchange {ExchangeName} and pair {pair}";
-                await Log.WriteErrorAsync(nameof(MessageLoopImpl), nameof(MessageLoopImpl), 
+                await Log.WriteErrorAsync(nameof(MessageLoopImpl), nameof(MessageLoopImpl),
                     new OrderBookInconsistencyException(message));
                 throw new OrderBookInconsistencyException(message);
             }
@@ -191,8 +191,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
             return orderBook;
         }
 
-        protected async Task HandleOrdebookSnapshotAsync(string pair, DateTime timeStamp, 
-            IEnumerable<OrderBookItem> orders)
+        protected async Task HandleOrdebookSnapshotAsync(string pair, DateTime timeStamp, IEnumerable<OrderBookItem> orders)
         {
             var orderBookSnapshot = new OrderBookSnapshot(ExchangeName, pair, timeStamp);
             orderBookSnapshot.AddOrUpdateOrders(orders);
@@ -204,22 +203,13 @@ namespace TradingBot.Exchanges.Concrete.Shared
             await PublishOrderBookSnapshotAsync();
         }
 
-        protected async Task HandleOrdersEventsAsync(string pair, 
+        protected async Task HandleOrdersEventsAsync(string pair,
             OrderBookEventType orderEventType,
             IReadOnlyCollection<OrderBookItem> orders)
         {
             var orderBookSnapshot = await GetOrderBookSnapshot(pair);
 
-            if (ExchangeConfiguration.SaveOrderBooksToAzure)
-            {
-                await OrderBookEventsRepository.SaveAsync(new OrderBookEvent
-                {
-                    SnapshotId = orderBookSnapshot.GeneratedId,
-                    EventType = orderEventType,
-                    OrderEventTimestamp = DateTime.UtcNow,
-                    OrderItems = orders
-                });
-            }
+
 
             switch (orderEventType)
             {
@@ -232,6 +222,17 @@ namespace TradingBot.Exchanges.Concrete.Shared
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(orderEventType), orderEventType, null);
+            }
+
+            if (ExchangeConfiguration.SaveOrderBooksToAzure)
+            {
+                await OrderBookEventsRepository.SaveAsync(new OrderBookEvent
+                {
+                    SnapshotId = orderBookSnapshot.GeneratedId,
+                    EventType = orderEventType,
+                    OrderEventTimestamp = DateTime.UtcNow,
+                    OrderItems = orders
+                });
             }
 
             await PublishOrderBookSnapshotAsync();
