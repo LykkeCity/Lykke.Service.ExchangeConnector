@@ -3,20 +3,23 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Common.Log;
+using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.Bitfinex.WebSocketClient.Model;
-using TradingBot.Exchanges.Concrete.BitMEX;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using SubscribeRequest = TradingBot.Exchanges.Concrete.Bitfinex.WebSocketClient.Model.SubscribeRequest;
 
 namespace TradingBot.Exchanges.Concrete.Bitfinex
 {
-    internal sealed class BitfinexOrderBooksHarvester : OrderBooksHarvesterBase
+    internal sealed class BitfinexOrderBooksHarvester : OrderBooksWebSocketHarvester
     {
         private readonly BitfinexExchangeConfiguration _configuration;
         private readonly Dictionary<long, Channel> _channels;
 
-        public BitfinexOrderBooksHarvester(BitfinexExchangeConfiguration configuration, ILog log) : base(configuration, configuration.WebSocketEndpointUrl, log)
+        public BitfinexOrderBooksHarvester(string exchangeName, BitfinexExchangeConfiguration configuration, ILog log,
+            OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository) : 
+            base(exchangeName, configuration, configuration.WebSocketEndpointUrl, log, 
+                orderBookSnapshotsRepository, orderBookEventsRepository)
         {
             _configuration = configuration;
             _channels = new Dictionary<long, Channel>();
@@ -57,7 +60,8 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         private async Task Subscribe()
         {
-            var instruments = _configuration.Instruments.Select(i => BitMexModelConverter.ConvertSymbolFromLykkeToBitMex(i, _configuration));
+            var instruments = _configuration.SupportedCurrencySymbols
+                .Select(s => s.ExchangeSymbol);
 
             foreach (var instrument in instruments)
             {
@@ -110,30 +114,29 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         private async Task HandleResponse(OrderBookSnapshotResponse snapshot)
         {
-            OrderBookSnapshot.Clear();
             var pair = _channels[snapshot.ChannelId].Pair;
-            foreach (var order in snapshot.Orders)
-            {
-                order.Pair = pair;
-                OrderBookSnapshot.Add(order.ToOrderBookItem());
-            }
 
-            await PublishOrderBookSnapshotAsync();
+            await HandleOrdebookSnapshotAsync(pair,
+                DateTime.UtcNow, // TODO: Get this from the server
+                snapshot.Orders.Select(o => o.ToOrderBookItem()));
         }
 
         private async Task HandleResponse(OrderBookUpdateResponse response)
         {
+            var orderBookItem = response.ToOrderBookItem();
+            var pair = _channels[response.ChannelId].Pair;
+            response.Pair = pair;
+
             if (response.Price == 0)
             {
-                OrderBookSnapshot.Remove(response.ToOrderBookItem());
+                await HandleOrdersEventsAsync(response.Pair, 
+                    OrderBookEventType.Delete, new[] {orderBookItem});
             }
             else
             {
-                var pair = _channels[response.ChannelId].Pair;
-                response.Pair = pair;
-                OrderBookSnapshot.Add(response.ToOrderBookItem());
+                await HandleOrdersEventsAsync(response.Pair,
+                    OrderBookEventType.Add, new[] { orderBookItem });
             }
-            await PublishOrderBookSnapshotAsync();
         }
 
         private class Channel

@@ -13,6 +13,7 @@ using Lykke.Logs;
 using Lykke.SettingsReader;
 using Lykke.SlackNotification.AzureQueue;
 using AzureStorage;
+using AzureStorage.Blob;
 using AzureStorage.Tables;
 using TradingBot.Communications;
 using TradingBot.Repositories;
@@ -130,7 +131,6 @@ namespace TradingBot
 
                 builder.RegisterInstance(log).As<ILog>().SingleInstance();
 
-
                 _pricesStorage = AzureTableStorage<PriceTableEntity>.Create(
                     settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "tickPrices", log);
 
@@ -139,9 +139,20 @@ namespace TradingBot
                 builder.RegisterInstance(fixMessagesStorage).As<INoSQLTableStorage<FixMessageTableEntity>>().SingleInstance();
 
                 var signalsStorage = AzureTableStorage<TranslatedSignalTableEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "translatedSignals", new LogToConsole());
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "translatedSignals", log);
                 builder.RegisterInstance(signalsStorage).As<INoSQLTableStorage<TranslatedSignalTableEntity>>().SingleInstance();
 
+                var orderBookSnapshotStorage = AzureTableStorage<OrderBookSnapshotEntity>.Create(
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "orderBookSnapshots", log);
+                builder.RegisterInstance(orderBookSnapshotStorage).As<INoSQLTableStorage<OrderBookSnapshotEntity>>().SingleInstance();
+
+                var orderBookEventsStorage = AzureTableStorage<OrderBookEventEntity>.Create(
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "orderBookEvents", log);
+                builder.RegisterInstance(orderBookEventsStorage).As<INoSQLTableStorage<OrderBookEventEntity>>().SingleInstance();
+
+                var azureBlobStorage = AzureBlobStorage.Create(
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString));
+                builder.RegisterInstance(azureBlobStorage).As<IBlobStorage>().SingleInstance();
 
                 builder.RegisterModule(new ServiceModule(settings.Exchanges));
 

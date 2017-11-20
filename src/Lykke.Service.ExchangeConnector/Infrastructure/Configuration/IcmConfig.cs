@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 
 namespace TradingBot.Infrastructure.Configuration
 {
@@ -10,10 +11,10 @@ namespace TradingBot.Infrastructure.Configuration
 
         public string Password { get; set; }
 
-        public string[] Instruments { get; set; }
-        
         public bool SaveQuotesToAzure { get; set; }
-        
+
+        public bool SaveOrderBooksToAzure { get; set; }
+
         public bool PubQuotesToRabbit { get; set; }
 
         public double InitialRating { get; set; }
@@ -23,6 +24,8 @@ namespace TradingBot.Infrastructure.Configuration
         public IcmRabbitMqConfiguration RabbitMq { get; set; }
         
         public string[] FixConfiguration { get; set; }
+
+        public IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; set; }
 
         public TextReader GetFixConfigAsReader()
         {

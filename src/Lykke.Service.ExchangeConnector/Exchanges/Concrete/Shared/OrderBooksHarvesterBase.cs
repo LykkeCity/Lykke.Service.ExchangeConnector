@@ -1,12 +1,14 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
 using Polly;
-using TradingBot.Exchanges.Concrete.BitMEX;
+using TradingBot.Communications;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.Shared
@@ -14,33 +16,53 @@ namespace TradingBot.Exchanges.Concrete.Shared
     internal abstract class OrderBooksHarvesterBase : IDisposable
     {
         protected readonly ILog Log;
-        protected readonly WebSocketTextMessenger Messenger;
-        protected readonly ISet<OrderBookItem> OrderBookSnapshot;
+        protected readonly OrderBookSnapshotsRepository OrderBookSnapshotsRepository;
+        protected readonly OrderBookEventsRepository OrderBookEventsRepository;
+        protected CancellationToken CancellationToken;
+
+        private readonly ConcurrentDictionary<string, OrderBookSnapshot> _orderBookSnapshots;
+        private ExchangeConverters _converters;
+        private readonly Timer _heartBeatMonitoringTimer;
+        private readonly TimeSpan _heartBeatPeriod = TimeSpan.FromSeconds(30);
+        private CancellationTokenSource _cancellationTokenSource;
         private Task _messageLoopTask;
         private Func<OrderBook, Task> _newOrderBookHandler;
-        protected ICurrencyMappingProvider CurrencyMappingProvider { get; }
-        private CancellationTokenSource _cancellationTokenSource;
-        protected CancellationToken CancellationToken;
         private DateTime _lastPublishTime = DateTime.MinValue;
         private long _lastSecPublicationsNum;
         private int _orderBooksReceivedInLastTimeFrame;
-        private readonly Timer _heartBeatMonitoringTimer;
-        private readonly TimeSpan _heartBeatPeriod = TimeSpan.FromSeconds(30);
         private Task _measureTask;
         private long _publishedToRabbit;
 
-        protected OrderBooksHarvesterBase(ICurrencyMappingProvider currencyMappingProvider, string uri, ILog log)
+        protected IExchangeConfiguration ExchangeConfiguration { get; }
+
+        public string ExchangeName { get; }
+
+        public int MaxOrderBookRate { get; set; }
+
+        protected OrderBooksHarvesterBase(string exchangeName, IExchangeConfiguration exchangeConfiguration, ILog log,
+            OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
         {
+            ExchangeConfiguration = exchangeConfiguration;
+            OrderBookSnapshotsRepository = orderBookSnapshotsRepository;
+            OrderBookEventsRepository = orderBookEventsRepository;
+            ExchangeName = exchangeName;
+
             Log = log.CreateComponentScope(GetType().Name);
-            Messenger = new WebSocketTextMessenger(uri, Log, CancellationToken);
-            OrderBookSnapshot = new HashSet<OrderBookItem>();
-            CurrencyMappingProvider = currencyMappingProvider;
+
+            _converters = new ExchangeConverters(exchangeConfiguration.SupportedCurrencySymbols,
+                string.Empty);
+
+            _orderBookSnapshots = new ConcurrentDictionary<string, OrderBookSnapshot>();
+            _cancellationTokenSource = new CancellationTokenSource();
+            CancellationToken = _cancellationTokenSource.Token;
+
             _heartBeatMonitoringTimer = new Timer(ForceStopMessenger);
         }
 
         private async void ForceStopMessenger(object state)
         {
-            await Log.WriteWarningAsync(nameof(ForceStopMessenger), "Monitoring heartbeat", $"Heart stopped. Restarting {GetType().Name}");
+            await Log.WriteWarningAsync(nameof(ForceStopMessenger), "Monitoring heartbeat",
+                $"Heart stopped. Restarting {GetType().Name}");
             Stop();
             try
             {
@@ -65,16 +87,14 @@ namespace TradingBot.Exchanges.Concrete.Shared
             {
                 var msgInSec = _lastSecPublicationsNum / period;
                 var pubInSec = _publishedToRabbit / period;
-                await Log.WriteInfoAsync(nameof(OrderBooksHarvesterBase), $"Receive rate from {ExchangeName} {msgInSec} per second, publish rate to RabbitMq {pubInSec} per second", string.Empty);
+                await Log.WriteInfoAsync(nameof(OrderBooksHarvesterBase),
+                    $"Receive rate from {ExchangeName} {msgInSec} per second, publish rate to " +
+                    $"RabbitMq {pubInSec} per second", string.Empty);
                 _lastSecPublicationsNum = 0;
                 _publishedToRabbit = 0;
                 await Task.Delay(TimeSpan.FromSeconds(period), CancellationToken);
             }
         }
-
-        public string ExchangeName { get; set; }
-
-        public int MaxOrderBookRate { get; set; }
 
         public void AddHandler(Func<OrderBook, Task> handler)
         {
@@ -103,7 +123,9 @@ namespace TradingBot.Exchanges.Concrete.Shared
             const int smallTimeout = 5;
             var retryPolicy = Policy
                 .Handle<Exception>(ex => !(ex is OperationCanceledException))
-                .WaitAndRetryForeverAsync(attempt => attempt % 60 == 0 ? TimeSpan.FromMinutes(5) : TimeSpan.FromSeconds(smallTimeout)); // After every 60 attempts wait 5min 
+                .WaitAndRetryForeverAsync(attempt => attempt % 60 == 0
+                    ? TimeSpan.FromMinutes(5)
+                    : TimeSpan.FromSeconds(smallTimeout)); // After every 60 attempts wait 5min 
 
             await retryPolicy.ExecuteAsync(async () =>
              {
@@ -114,7 +136,8 @@ namespace TradingBot.Exchanges.Concrete.Shared
                  }
                  catch (Exception ex)
                  {
-                     await Log.WriteErrorAsync(nameof(MessageLoopImpl), $"An exception occurred while working with WebSocket. Reconnect in {smallTimeout} sec", ex);
+                     await Log.WriteErrorAsync(nameof(MessageLoopImpl),
+                         $"An exception occurred while working with WebSocket. Reconnect in {smallTimeout} sec", ex);
                      throw;
                  }
              });
@@ -127,17 +150,82 @@ namespace TradingBot.Exchanges.Concrete.Shared
             {
                 return;
             }
-            var orderBooks = from si in OrderBookSnapshot
-                             group si by si.Symbol into g
-                             let asks = g.Where(i => !i.IsBuy).Select(i => new VolumePrice(i.Price, i.Size)).ToArray()
-                             let bids = g.Where(i => i.IsBuy).Select(i => new VolumePrice(i.Price, i.Size)).ToArray()
-                             let assetPair = BitMexModelConverter.ConvertSymbolFromBitMexToLykke(g.Key, CurrencyMappingProvider).Name
-                             select new OrderBook(ExchangeName, assetPair, asks, bids, DateTime.UtcNow);
+            var orderBooks = _orderBookSnapshots.Values
+                .Select(obs => new OrderBook(
+                    ExchangeName,
+                    _converters.ExchangeSymbolToLykkeInstrument(obs.AssetPair).Name,
+                    obs.Asks.Values.Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
+                    obs.Bids.Values.Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
+                    DateTime.UtcNow));
             _publishedToRabbit++;
+
             foreach (var orderBook in orderBooks)
             {
                 await _newOrderBookHandler(orderBook);
             }
+        }
+
+        protected abstract Task MessageLoopImpl();
+
+        protected async Task<OrderBookSnapshot> GetOrderBookSnapshot(string pair)
+        {
+            if (!_orderBookSnapshots.TryGetValue(pair, out var orderBook))
+            {
+                var message = "Trying to retrieve a non-existing pair order book snapshot " +
+                              $"for exchange {ExchangeName} and pair {pair}";
+                await Log.WriteErrorAsync(nameof(MessageLoopImpl), nameof(MessageLoopImpl),
+                    new OrderBookInconsistencyException(message));
+                throw new OrderBookInconsistencyException(message);
+            }
+
+            return orderBook;
+        }
+
+        protected async Task HandleOrdebookSnapshotAsync(string pair, DateTime timeStamp, IEnumerable<OrderBookItem> orders)
+        {
+            var orderBookSnapshot = new OrderBookSnapshot(ExchangeName, pair, timeStamp);
+            orderBookSnapshot.AddOrUpdateOrders(orders);
+            _orderBookSnapshots[pair] = orderBookSnapshot;
+
+            if (ExchangeConfiguration.SaveOrderBooksToAzure)
+                await OrderBookSnapshotsRepository.SaveAsync(orderBookSnapshot);
+
+            await PublishOrderBookSnapshotAsync();
+        }
+
+        protected async Task HandleOrdersEventsAsync(string pair,
+            OrderBookEventType orderEventType,
+            IReadOnlyCollection<OrderBookItem> orders)
+        {
+            var orderBookSnapshot = await GetOrderBookSnapshot(pair);
+
+
+
+            switch (orderEventType)
+            {
+                case OrderBookEventType.Add:
+                case OrderBookEventType.Update:
+                    orderBookSnapshot.AddOrUpdateOrders(orders);
+                    break;
+                case OrderBookEventType.Delete:
+                    orderBookSnapshot.DeleteOrders(orders);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(orderEventType), orderEventType, null);
+            }
+
+            if (ExchangeConfiguration.SaveOrderBooksToAzure)
+            {
+                await OrderBookEventsRepository.SaveAsync(new OrderBookEvent
+                {
+                    SnapshotId = orderBookSnapshot.GeneratedId,
+                    EventType = orderEventType,
+                    OrderEventTimestamp = DateTime.UtcNow,
+                    OrderItems = orders
+                });
+            }
+
+            await PublishOrderBookSnapshotAsync();
         }
 
         private bool NeedThrottle()
@@ -164,18 +252,27 @@ namespace TradingBot.Exchanges.Concrete.Shared
             return result;
         }
 
-        protected abstract Task MessageLoopImpl();
-
-        public virtual void Dispose()
+        public void Dispose()
         {
-            Stop();
-            Messenger?.Dispose();
-            _messageLoopTask?.Dispose();
-            _cancellationTokenSource?.Dispose();
-            _heartBeatMonitoringTimer?.Dispose();
-            _measureTask?.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
+        ~OrderBooksHarvesterBase()
+        {
+            Dispose(false);
+        }
 
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Dispose managed resources
+                Stop();
+                _messageLoopTask?.Dispose();
+                _heartBeatMonitoringTimer?.Dispose();
+                _measureTask?.Dispose();
+            }
+        }
     }
 }

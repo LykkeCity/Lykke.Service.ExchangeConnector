@@ -31,6 +31,10 @@ namespace TradingBot.Modules
 
             builder.RegisterType<TranslatedSignalsRepository>();
 
+            builder.RegisterType<OrderBookEventsRepository>();
+
+            builder.RegisterType<OrderBookSnapshotsRepository>();
+
             builder.RegisterType<ExchangeFactory>();
 
             builder.RegisterType<ExchangeCallsInterceptor>()
@@ -48,9 +52,15 @@ namespace TradingBot.Modules
                 .SingleInstance();
 
             builder.RegisterType<BitMexOrderBooksHarvester>()
+                .WithParameter(new NamedParameter("exchangeName", BitMexExchange.Name))
                 .SingleInstance();
 
             builder.RegisterType<BitfinexOrderBooksHarvester>()
+                .WithParameter(new NamedParameter("exchangeName", BitfinexExchange.Name))
+                .SingleInstance();
+
+            builder.RegisterType<GdaxOrderBooksHarvester>()
+                .WithParameter(new NamedParameter("exchangeName", GdaxExchange.Name))
                 .SingleInstance();
 
             builder.RegisterInstance(_config.Icm)

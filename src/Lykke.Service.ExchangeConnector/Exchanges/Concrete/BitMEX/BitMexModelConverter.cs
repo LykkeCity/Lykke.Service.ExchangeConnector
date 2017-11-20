@@ -1,6 +1,7 @@
 ﻿using System;
-using System.Linq;
+using System.Collections.Generic;
 using TradingBot.Exchanges.Concrete.AutorestClient.Models;
+using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Models.Api;
 using TradingBot.Trading;
@@ -10,11 +11,17 @@ using Position = TradingBot.Exchanges.Concrete.AutorestClient.Models.Position;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
-    internal static class BitMexModelConverter
+    internal class BitMexModelConverter: ExchangeConverters
     {
         private const decimal SatoshiRate = 100000000;
 
-        public static PositionModel ExchangePositionToModel(Position position, ICurrencyMappingProvider configuration)
+        public BitMexModelConverter(IReadOnlyCollection<CurrencySymbol> currencySymbols,
+            string exchangeName): base(currencySymbols, exchangeName)
+        {
+
+        }
+
+        public static PositionModel ExchangePositionToModel(Position position)
         {
             return new PositionModel
             {
@@ -31,9 +38,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             };
         }
 
-        public static ExecutedTrade OrderToTrade(Order order, ICurrencyMappingProvider configuration)
+        public static ExecutedTrade OrderToTrade(Order order)
         {
-
             var execTime = order.TransactTime ?? DateTime.UtcNow;
             var execPrice = (decimal)(order.Price ?? 0);
             var execVolume = (decimal)(order.OrderQty ?? 0);
@@ -43,25 +49,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             var instr = new Instrument(BitMexExchange.Name, "USDBTC"); //HACK Hard code!
 
             return new ExecutedTrade(instr, execTime, execPrice, execVolume, tradeType, order.OrderID, status) { Message = order.Text };
-        }
-
-        public static string ConvertSymbolFromLykkeToBitMex(string symbol, ICurrencyMappingProvider configuration)
-        {
-            if (!configuration.CurrencyMapping.TryGetValue(symbol, out var result))
-            {
-                throw new ArgumentException($"Symbol {symbol} is not mapped to BitMex value");
-            }
-            return result;
-        }
-
-        public static Instrument ConvertSymbolFromBitMexToLykke(string symbol, ICurrencyMappingProvider configuration)
-        {
-            var result = configuration.CurrencyMapping.FirstOrDefault(kv => kv.Value == symbol).Key;
-            if (result == null)
-            {
-                throw new ArgumentException($"Symbol {symbol} is not mapped to lykke value");
-            }
-            return new Instrument(BitMexExchange.Name, result);
         }
 
         public static string ConvertOrderType(OrderType type)
