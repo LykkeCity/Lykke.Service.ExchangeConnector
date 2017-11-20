@@ -19,7 +19,7 @@ namespace TradingBot.Communications
         private readonly INoSQLTableStorage<OrderBookEventEntity> _tableStorage;
         private readonly Queue<OrderBookEvent> _orderBookEvents = new Queue<OrderBookEvent>();
         private readonly Queue<OrderBookEventEntity> _orderBookEventEntities = new Queue<OrderBookEventEntity>();
-        private static readonly string _className = nameof(OrderBookSnapshotsRepository);
+        private static readonly string _className = nameof(OrderBookEventsRepository);
         private DateTime _currentMinute;
 
         /// <summary>
@@ -73,9 +73,6 @@ namespace TradingBot.Communications
             try
             {
                 await _tableStorage.InsertOrReplaceBatchAsync(tableEntities);
-                await _log.WriteInfoAsync(_className, _className,
-                    $"{tableEntities.Count} order events for orderbook with snapshot {orderBookEvent.SnapshotId} were " + 
-                    $"published to Azure table {_tableStorage.Name}.");
             }
             catch (Microsoft.WindowsAzure.Storage.StorageException ex)
                 when (ex.Message == _azureConflictExceptionReason)
