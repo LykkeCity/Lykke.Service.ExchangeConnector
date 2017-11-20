@@ -7,7 +7,6 @@ using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Repositories;
 using Action = TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.Action;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX

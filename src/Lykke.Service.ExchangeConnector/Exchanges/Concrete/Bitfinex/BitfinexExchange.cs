@@ -22,24 +22,22 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 {
     internal class BitfinexExchange : Exchange
     {
-        private readonly BitfinexExchangeConfiguration _configuration;
         private readonly BitfinexOrderBooksHarvester _orderBooksHarvester;
         private readonly IBitfinexApi _exchangeApi;
         private readonly ExchangeConverters _converters;
         public new const string Name = "bitfinex";
 
-        public BitfinexExchange(BitfinexExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository, BitfinexOrderBooksHarvester orderBooksHarvester, ILog log) : base(Name, configuration, translatedSignalsRepository, log)
+        public BitfinexExchange(BitfinexExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository, BitfinexOrderBooksHarvester orderBooksHarvester, ILog log) 
+            : base(Name, configuration, translatedSignalsRepository, log)
         {
-            _configuration = configuration;
             _orderBooksHarvester = orderBooksHarvester;
-            var credenitals = new BitfinexServiceClientCredentials(_configuration.ApiKey, _configuration.ApiSecret);
+            var credenitals = new BitfinexServiceClientCredentials(configuration.ApiKey, configuration.ApiSecret);
             _exchangeApi = new BitfinexApi(credenitals)
             {
                 BaseUri = new Uri(configuration.EndpointUrl)
             };
 
-            _converters = new ExchangeConverters(configuration.SupportedCurrencySymbols,
-                Name);
+            _converters = new ExchangeConverters(configuration.SupportedCurrencySymbols, Name);
 
             _orderBooksHarvester.AddHandler(CallOrderBookHandlers);
             orderBooksHarvester.ExchangeName = Name;
@@ -63,7 +61,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
                 throw new ApiException(error.Message);
             }
 
-            var trade = OrderToTrade((Order)response, _configuration);
+            var trade = OrderToTrade((Order)response);
             return trade;
         }
 
@@ -80,7 +78,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             {
                 throw new ApiException(error.Message);
             }
-            var trade = OrderToTrade((Order)response, _configuration);
+            var trade = OrderToTrade((Order)response);
             return trade;
         }
 
@@ -96,7 +94,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             {
                 throw new ApiException(error.Message);
             }
-            var trade = OrderToTrade((Order)response, _configuration);
+            var trade = OrderToTrade((Order)response);
             return trade;
         }
 
@@ -109,7 +107,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             {
                 throw new ApiException(error.Message);
             }
-            var trades = ((IReadOnlyCollection<Order>)response).Select(r => OrderToTrade(r, _configuration));
+            var trades = ((IReadOnlyCollection<Order>)response).Select(r => OrderToTrade(r));
             return trades;
         }
 
@@ -122,11 +120,11 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
                 throw new ApiException(error.Message);
             }
             var marginInfo = await GetMarginInfo(timeout);
-            var positions = ExchangePositionsToPositionModel((IReadOnlyCollection<Position>)response, marginInfo, _configuration);
+            var positions = ExchangePositionsToPositionModel((IReadOnlyCollection<Position>)response, marginInfo);
             return positions;
         }
 
-        private IReadOnlyCollection<PositionModel> ExchangePositionsToPositionModel(IEnumerable<Position> response, IReadOnlyList<MarginInfo> marginInfo, BitfinexExchangeConfiguration configuration)
+        private IReadOnlyCollection<PositionModel> ExchangePositionsToPositionModel(IEnumerable<Position> response, IReadOnlyList<MarginInfo> marginInfo)
         {
             var marginByCurrency = marginInfo[0].MarginLimits.ToDictionary(ml => ml.OnPair, ml => ml, StringComparer.InvariantCultureIgnoreCase);
             var result = response.Select(r =>
@@ -186,7 +184,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             return new[] { balance };
         }
 
-        private ExecutedTrade OrderToTrade(Order order, BitfinexExchangeConfiguration configuration)
+        private ExecutedTrade OrderToTrade(Order order)
         {
             var id = order.Id;
             var execTime = order.Timestamp;

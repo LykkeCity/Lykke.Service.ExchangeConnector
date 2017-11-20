@@ -21,7 +21,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
         protected CancellationToken CancellationToken;
 
         private readonly ConcurrentDictionary<string, OrderBookSnapshot> _orderBookSnapshots;
-        private ExchangeConverters _converters;
+        private readonly ExchangeConverters _converters;
         private readonly Timer _heartBeatMonitoringTimer;
         private readonly TimeSpan _heartBeatPeriod = TimeSpan.FromSeconds(30);
         private CancellationTokenSource _cancellationTokenSource;
@@ -35,18 +35,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         protected IExchangeConfiguration ExchangeConfiguration { get; }
 
-        private string _exchangeName;
-        public string ExchangeName
-        {
-            get => _exchangeName;
-            set
-            {
-                _exchangeName = value;
-                _converters = new ExchangeConverters(
-                    ExchangeConfiguration.SupportedCurrencySymbols,
-                    string.Empty);
-            }
-        }
+        public string ExchangeName { get; set; }
 
         public int MaxOrderBookRate { get; set; }
 

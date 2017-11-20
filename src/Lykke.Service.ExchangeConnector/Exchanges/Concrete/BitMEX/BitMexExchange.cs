@@ -23,16 +23,14 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 {
     internal class BitMexExchange : Exchange
     {
-        private readonly BitMexExchangeConfiguration _configuration;
         private readonly BitMexOrderBooksHarvester _orderBooksHarvester;
         private readonly IBitMEXAPI _exchangeApi;
         public new const string Name = "bitmex";
 
         public BitMexExchange(BitMexExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository, BitMexOrderBooksHarvester orderBooksHarvester, ILog log) : base(Name, configuration, translatedSignalsRepository, log)
         {
-            _configuration = configuration;
             _orderBooksHarvester = orderBooksHarvester;
-            var credenitals = new BitMexServiceClientCredentials(_configuration.ApiKey, _configuration.ApiSecret);
+            var credenitals = new BitMexServiceClientCredentials(configuration.ApiKey, configuration.ApiSecret);
             _exchangeApi = new BitMEXAPI(credenitals)
             {
                 BaseUri = new Uri(configuration.EndpointUrl)
