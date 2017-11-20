@@ -27,7 +27,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         private readonly IBitMEXAPI _exchangeApi;
         public new const string Name = "bitmex";
 
-        public BitMexExchange(BitMexExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository, BitMexOrderBooksHarvester orderBooksHarvester, ILog log) : base(Name, configuration, translatedSignalsRepository, log)
+        public BitMexExchange(BitMexExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository, 
+            BitMexOrderBooksHarvester orderBooksHarvester, ILog log) : base(Name, configuration, translatedSignalsRepository, log)
         {
             _orderBooksHarvester = orderBooksHarvester;
             var credenitals = new BitMexServiceClientCredentials(configuration.ApiKey, configuration.ApiSecret);
@@ -37,7 +38,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             };
 
             orderBooksHarvester.AddHandler(CallOrderBookHandlers);
-            orderBooksHarvester.ExchangeName = Name;
             orderBooksHarvester.MaxOrderBookRate = configuration.MaxOrderBookRate;
         }
 

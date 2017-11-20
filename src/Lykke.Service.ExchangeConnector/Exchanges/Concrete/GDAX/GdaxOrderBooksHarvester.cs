@@ -23,9 +23,9 @@ namespace TradingBot.Exchanges.Concrete.GDAX
         private ConcurrentDictionary<string, long> _symbolsLastSequenceNumbers;
         private readonly GdaxConverters _converters;
 
-        public GdaxOrderBooksHarvester(GdaxExchangeConfiguration configuration, ILog log,
+        public GdaxOrderBooksHarvester(string exchangeName, GdaxExchangeConfiguration configuration, ILog log,
             OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
-            : base(configuration, log, orderBookSnapshotsRepository, orderBookEventsRepository)
+            : base(exchangeName, configuration, log, orderBookSnapshotsRepository, orderBookEventsRepository)
         {
             _configuration = configuration;
             _symbolsLastSequenceNumbers = new ConcurrentDictionary<string, long>();

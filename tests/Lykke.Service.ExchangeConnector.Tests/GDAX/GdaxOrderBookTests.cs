@@ -52,9 +52,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
         [Fact]
         public async Task HarvestAndPersist()
         {
-            var orderBookHarvester = new GdaxOrderBooksHarvester(_gdaxConfiguration, _log,
+            var orderBookHarvester = new GdaxOrderBooksHarvester("Gdax", _gdaxConfiguration, _log,
                 _snapshotsRepository, _eventsRepository);
-            orderBookHarvester.ExchangeName = "Gdax";
             orderBookHarvester.Start();
 
             await Task.Delay(100000);

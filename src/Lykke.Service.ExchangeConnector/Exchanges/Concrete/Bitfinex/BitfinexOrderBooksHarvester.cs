@@ -16,9 +16,9 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         private readonly BitfinexExchangeConfiguration _configuration;
         private readonly Dictionary<long, Channel> _channels;
 
-        public BitfinexOrderBooksHarvester(BitfinexExchangeConfiguration configuration, ILog log,
+        public BitfinexOrderBooksHarvester(string exchangeName, BitfinexExchangeConfiguration configuration, ILog log,
             OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository) : 
-            base(configuration, configuration.WebSocketEndpointUrl, log, 
+            base(exchangeName, configuration, configuration.WebSocketEndpointUrl, log, 
                 orderBookSnapshotsRepository, orderBookEventsRepository)
         {
             _configuration = configuration;

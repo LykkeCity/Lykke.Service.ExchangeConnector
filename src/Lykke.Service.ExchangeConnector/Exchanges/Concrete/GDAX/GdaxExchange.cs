@@ -41,7 +41,6 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             _converters = new GdaxConverters(configuration.SupportedCurrencySymbols, Name);
 
             _orderBooksHarvester = orderBookHarvester;
-            _orderBooksHarvester.ExchangeName = Name;
             _orderBooksHarvester.AddHandler(CallOrderBookHandlers);
 
             _restApi = CreateRestApiClient();

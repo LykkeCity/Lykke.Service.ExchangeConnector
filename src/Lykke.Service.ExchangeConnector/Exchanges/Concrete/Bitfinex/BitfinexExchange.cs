@@ -27,7 +27,8 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         private readonly ExchangeConverters _converters;
         public new const string Name = "bitfinex";
 
-        public BitfinexExchange(BitfinexExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository, BitfinexOrderBooksHarvester orderBooksHarvester, ILog log) 
+        public BitfinexExchange(BitfinexExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository, 
+            BitfinexOrderBooksHarvester orderBooksHarvester, ILog log) 
             : base(Name, configuration, translatedSignalsRepository, log)
         {
             _orderBooksHarvester = orderBooksHarvester;
@@ -40,9 +41,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             _converters = new ExchangeConverters(configuration.SupportedCurrencySymbols, Name);
 
             _orderBooksHarvester.AddHandler(CallOrderBookHandlers);
-            orderBooksHarvester.ExchangeName = Name;
             orderBooksHarvester.MaxOrderBookRate = configuration.MaxOrderBookRate;
-
         }
 
         public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)

@@ -15,9 +15,9 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
     {
         private readonly IExchangeConfiguration _configuration;
 
-        public BitMexOrderBooksHarvester(BitMexExchangeConfiguration configuration, ILog log,
+        public BitMexOrderBooksHarvester(string exchangeName, BitMexExchangeConfiguration configuration, ILog log,
             OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
-            : base(configuration, configuration.WebSocketEndpointUrl, log,
+            : base(exchangeName, configuration, configuration.WebSocketEndpointUrl, log,
                 orderBookSnapshotsRepository, orderBookEventsRepository)
         {
             _configuration = configuration;

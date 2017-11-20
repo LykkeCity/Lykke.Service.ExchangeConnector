@@ -131,7 +131,6 @@ namespace TradingBot
 
                 builder.RegisterInstance(log).As<ILog>().SingleInstance();
 
-
                 _pricesStorage = AzureTableStorage<PriceTableEntity>.Create(
                     settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "tickPrices", log);
 

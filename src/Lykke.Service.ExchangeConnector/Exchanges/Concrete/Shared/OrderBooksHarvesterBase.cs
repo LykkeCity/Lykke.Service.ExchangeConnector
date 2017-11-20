@@ -21,7 +21,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
         protected CancellationToken CancellationToken;
 
         private readonly ConcurrentDictionary<string, OrderBookSnapshot> _orderBookSnapshots;
-        private readonly ExchangeConverters _converters;
+        private ExchangeConverters _converters;
         private readonly Timer _heartBeatMonitoringTimer;
         private readonly TimeSpan _heartBeatPeriod = TimeSpan.FromSeconds(30);
         private CancellationTokenSource _cancellationTokenSource;
@@ -35,16 +35,17 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         protected IExchangeConfiguration ExchangeConfiguration { get; }
 
-        public string ExchangeName { get; set; }
+        public string ExchangeName { get; }
 
         public int MaxOrderBookRate { get; set; }
 
-        protected OrderBooksHarvesterBase(IExchangeConfiguration exchangeConfiguration, ILog log,
+        protected OrderBooksHarvesterBase(string exchangeName, IExchangeConfiguration exchangeConfiguration, ILog log,
             OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
         {
             ExchangeConfiguration = exchangeConfiguration;
             OrderBookSnapshotsRepository = orderBookSnapshotsRepository;
             OrderBookEventsRepository = orderBookEventsRepository;
+            ExchangeName = exchangeName;
 
             Log = log.CreateComponentScope(GetType().Name);
 
