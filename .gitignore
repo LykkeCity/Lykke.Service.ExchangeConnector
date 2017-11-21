@@ -59,3 +59,4 @@ node_modules
 **/launchSettings.json
 **/appsettings.*.json
 
+/src/Lykke.Service.ExchangeConnector/store

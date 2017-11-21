@@ -10,20 +10,18 @@ using Polly;
 
 namespace TradingBot.Exchanges.Concrete.Shared
 {
-    public sealed class WebSocketTextMessenger : IDisposable
+    internal sealed class WebSocketTextMessenger : IMessenger<object, string>
     {
         private readonly string _endpointUrl;
         private readonly ILog _log;
-        private readonly CancellationToken _cancellationToken;
         private ClientWebSocket _clientWebSocket;
         private readonly TimeSpan _responseTimeout = TimeSpan.FromMinutes(1);
 
-        public WebSocketTextMessenger(string endpointUrl, ILog log, CancellationToken cancellationToken)
+        public WebSocketTextMessenger(string endpointUrl, ILog log)
         {
 
             _endpointUrl = endpointUrl;
             _log = log;
-            _cancellationToken = cancellationToken;
         }
 
         public void Dispose()
@@ -31,14 +29,14 @@ namespace TradingBot.Exchanges.Concrete.Shared
             _clientWebSocket?.Dispose();
         }
 
-        public async Task ConnectAsync()
+        public async Task ConnectAsync(CancellationToken cancellationToken)
         {
             await _log.WriteInfoAsync(nameof(ConnectAsync), "Connecting to WebSocket", $"API endpoint {_endpointUrl}");
             var uri = new Uri(_endpointUrl);
 
             const int attempts = 20;
             var retryPolicy = Policy
-                .Handle<Exception>()
+                .Handle<Exception>(e => !(e is OperationCanceledException))
                 .WaitAndRetryAsync(attempts, attempt => TimeSpan.FromSeconds(3));
             try
             {
@@ -48,7 +46,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
                     try
                     {
                         _clientWebSocket = new ClientWebSocket();
-                        await _clientWebSocket.ConnectAsync(uri, _cancellationToken);
+                        await _clientWebSocket.ConnectAsync(uri, cancellationToken);
                         await _log.WriteInfoAsync(nameof(ConnectAsync), "Successfully connected to WebSocket", $"API endpoint {_endpointUrl}");
                     }
                     catch (Exception ex)
@@ -61,17 +59,18 @@ namespace TradingBot.Exchanges.Concrete.Shared
             catch (Exception ex)
             {
                 await _log.WriteErrorAsync(nameof(ConnectAsync), $"Unable to connect to {_endpointUrl} after {attempts} attempts", ex);
+                throw;
             }
 
         }
 
 
-        public async Task SendRequestAsync(object request)
+        public async Task SendRequestAsync(object request, CancellationToken cancellationToken)
         {
             try
             {
                 var msg = EncodeRequest(request);
-                await _clientWebSocket.SendAsync(msg, WebSocketMessageType.Text, true, _cancellationToken);
+                await _clientWebSocket.SendAsync(msg, WebSocketMessageType.Text, true, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -82,10 +81,10 @@ namespace TradingBot.Exchanges.Concrete.Shared
         }
 
 
-        public async Task<string> GetResponseAsync()
+        public async Task<string> GetResponseAsync(CancellationToken cancellationToken)
         {
             using (var cts = new CancellationTokenSource(_responseTimeout))
-            using (var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, _cancellationToken))
+            using (var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, cancellationToken))
             {
 
                 var buffer = new byte[10000];
@@ -114,11 +113,11 @@ namespace TradingBot.Exchanges.Concrete.Shared
             return Encoding.UTF8.GetString(message);
         }
 
-        public async Task StopAsync()
+        public async Task StopAsync(CancellationToken cancellationToken)
         {
             if (_clientWebSocket != null && _clientWebSocket.State == WebSocketState.Open)
             {
-                await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Good bye", _cancellationToken);
+                await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Good bye", cancellationToken);
             }
         }
     }

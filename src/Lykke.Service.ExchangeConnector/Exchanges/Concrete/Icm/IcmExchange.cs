@@ -11,6 +11,7 @@ using QuickFix.Transport;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Icm.Converters;
+using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 using TradingBot.Repositories;
