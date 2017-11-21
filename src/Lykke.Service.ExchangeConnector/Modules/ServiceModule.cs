@@ -66,7 +66,7 @@ namespace TradingBot.Modules
                 .SingleInstance();
 
             builder.RegisterType<JfdOrderBooksHarvester>()
-                .WithParameter("exchangeName", GdaxExchange.Name)
+                .WithParameter("exchangeName", JfdExchange.Name)
                 .SingleInstance();
 
             builder.RegisterType<JfdTradeSessionConnector>()
