@@ -28,7 +28,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
         private const string _defaultConnectorUserAgent = "Lykke";
 
         private readonly RestApiClient _restClient;
-
+        
         public GdaxRestApi(string apiKey, string apiSecret, string passPhrase) :
             this (apiKey, apiSecret, passPhrase, GdaxPublicApiUrl, _defaultConnectorUserAgent)
         { }
@@ -36,7 +36,9 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
         public GdaxRestApi(string apiKey, string apiSecret, string passPhrase, 
             string publicApiUrl, string userAgent)
         {
-            var credentials = new GdaxRestClientCredentials(apiKey, apiSecret, passPhrase);
+            var credentials = !string.IsNullOrEmpty(apiKey) 
+                ? new GdaxRestClientCredentials(apiKey, apiSecret, passPhrase)
+                : null;
 
             HttpClient.BaseAddress = new Uri(publicApiUrl);
             

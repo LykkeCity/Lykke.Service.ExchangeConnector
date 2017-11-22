@@ -44,7 +44,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 
                 // First subscribe with websockets and ignore all the order events with 
                 // sequential number less than symbol's orderbook orders
-                var subscriptionTask = _websocketApi.SubscribeToFullUpdatesAsync(
+                var subscriptionTask = _websocketApi.SubscribeToOrderBookUpdatesAsync(
                     _configuration.SupportedCurrencySymbols.Select(s => s.ExchangeSymbol).ToList(),
                     CancellationToken);
 

@@ -10,6 +10,7 @@ using Common.Log;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using TradingBot.Exchanges.Concrete.GDAX.Credentials;
+using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
 using TradingBot.Exchanges.Concrete.GDAX.WssClient.Entities;
 using TradingBot.Helpers;
 using TradingBot.Infrastructure.Exceptions;
@@ -21,8 +22,12 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
         public const string GdaxPublicWssApiUrl = @"wss://ws-feed.gdax.com";
         public const string GdaxSandboxWssApiUrl = @"wss://ws-feed-public.sandbox.gdax.com";
         private const string _selfVerifyUrl = @"/users/self/verify";
-        private readonly ILog _logger;
+        private const string _tickerChannelName = "ticker";
+        private const string _fullChannelName = "full";
+        private const string _userChannelName = "user";
+        private const string _subscribeActionName = "subscribe";
 
+        private readonly ILog _logger;
         private readonly GdaxCredentialsFactory _credentialsFactory;
         private ClientWebSocket _clientWebSocket;
 
@@ -126,48 +131,33 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
             await Connected.NullableInvokeAsync(this, BaseUri);
         }
 
-        public async Task SubscribeToPrivateUpdatesAsync(IReadOnlyCollection<string> productIds, CancellationToken cancellationToken)
+        public async Task SubscribeToPrivateUpdatesAsync(IReadOnlyCollection<string> productIds, 
+            CancellationToken cancellationToken)
         {
-            if (_clientWebSocket == null || _clientWebSocket.State != WebSocketState.Open)
-                throw new ApiException($"Could not subscribe to {BaseUri} because no connection is established.");
+            ThrowOnClosedConnection();
 
-            var credentials = _credentialsFactory.GenerateCredentials(HttpMethod.Get, 
-                new Uri(BaseUri, _selfVerifyUrl), string.Empty);
-            var requestString = JsonConvert.SerializeObject(new
-            {
-                type = "subscribe",
-                signature = credentials.Signature,
-                key = credentials.ApiKey,
-                passphrase = credentials.PassPhrase,
-                timestamp = credentials.UnixTimestampString,
-                channels = new[] {
-                    new { name = "ticker", product_ids = productIds },
-                    new { name = "user", product_ids = productIds },
-                }
-            });
+            var requestString = GetCredentialSubscriptionMessage(
+                new[] {
+                    new GdaxSubscriptionChannel { Name = _tickerChannelName, ProductIds = productIds },
+                    new GdaxSubscriptionChannel { Name = _userChannelName, ProductIds = productIds }
+                });
 
             await SubscribeImplAsync(cancellationToken, requestString);
         }
 
-        public async Task SubscribeToFullUpdatesAsync(IReadOnlyCollection<string> productIds, CancellationToken cancellationToken)
+        public async Task SubscribeToOrderBookUpdatesAsync(IReadOnlyCollection<string> productIds, 
+            CancellationToken cancellationToken)
         {
-            if (_clientWebSocket == null || _clientWebSocket.State != WebSocketState.Open)
-                throw new ApiException($"Could not subscribe to {BaseUri} because no connection is established.");
+            ThrowOnClosedConnection();
 
-            var credentials = _credentialsFactory.GenerateCredentials(HttpMethod.Get,
-                new Uri(BaseUri, _selfVerifyUrl), string.Empty);
-            var requestString = JsonConvert.SerializeObject(new
-            {
-                type = "subscribe",
-                signature = credentials.Signature,
-                key = credentials.ApiKey,
-                passphrase = credentials.PassPhrase,
-                timestamp = credentials.UnixTimestampString,
-                channels = new[] {
-                    new { name = "ticker", product_ids = productIds },
-                    new { name = "full", product_ids = productIds },
-                }
-            });
+            var subscriptionChannels = new[] {
+                new GdaxSubscriptionChannel { Name = _tickerChannelName, ProductIds = productIds },
+                new GdaxSubscriptionChannel { Name = _fullChannelName, ProductIds = productIds }
+            };
+
+            var requestString = string.IsNullOrEmpty(_credentialsFactory.ApiKey)
+                ? GetAnonymousSubscriptionMessage(subscriptionChannels)
+                : GetCredentialSubscriptionMessage(subscriptionChannels);
 
             await SubscribeImplAsync(cancellationToken, requestString);
         }
@@ -260,6 +250,43 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
                     // Clients are expected to ignore messages they do not support.
                     break;
             }
+        }
+
+        private GdaxCredentials GenerateClientCredentials()
+        {
+            return _credentialsFactory.GenerateCredentials(HttpMethod.Get,
+                new Uri(BaseUri, _selfVerifyUrl), string.Empty);
+        }
+
+        private void ThrowOnClosedConnection()
+        {
+            if (_clientWebSocket == null || _clientWebSocket.State != WebSocketState.Open)
+                throw new ApiException($"Could not subscribe to {BaseUri} because no connection is established.");
+        }
+
+        private string GetAnonymousSubscriptionMessage(
+            IReadOnlyCollection<GdaxSubscriptionChannel> subscriptionChannels)
+        {
+            return JsonConvert.SerializeObject(new
+            {
+                type = _subscribeActionName,
+                channels = subscriptionChannels
+            });
+        }
+
+        private string GetCredentialSubscriptionMessage(
+            IReadOnlyCollection<GdaxSubscriptionChannel> subscriptionChannels)
+        {
+            var credentials = GenerateClientCredentials();
+            return JsonConvert.SerializeObject(new
+            {
+                type = _subscribeActionName,
+                signature = credentials.Signature,
+                key = credentials.ApiKey,
+                passphrase = credentials.PassPhrase,
+                timestamp = credentials.UnixTimestampString,
+                channels = subscriptionChannels
+            });
         }
 
         public void Dispose()

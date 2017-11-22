@@ -8,7 +8,6 @@
 
         public string PassPhrase { get; private set; }
 
-
         public string UnixTimestampString { get; private set; }
 
         public string Signature { get; private set; }
