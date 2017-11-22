@@ -56,7 +56,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
                 _snapshotsRepository, _eventsRepository);
             orderBookHarvester.Start();
 
-            await Task.Delay(100000);
+            await Task.Delay(1000000);
 
             orderBookHarvester.Stop();
         }

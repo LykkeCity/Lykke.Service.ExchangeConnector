@@ -31,7 +31,6 @@ namespace TradingBot.Repositories
             OrderEventTimestamp = orderEventTimestamp;
             OrderId = orderId;
 
-            Timestamp = DateTime.UtcNow;
             PartitionKey = orderBookSnapshotId.RemoveSpecialCharacters('-', '_', '.');
             RowKey = $"{Guid.NewGuid()}"
                 .RemoveSpecialCharacters('-', '_', '.');
