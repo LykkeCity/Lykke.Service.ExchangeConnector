@@ -8,6 +8,8 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange.Entities
     {
         public string AssetPairId { get; set; }
         
+        public string Asset { get; set; }
+        
         [JsonConverter(typeof(StringEnumConverter))]
         public TradeType OrderAction { get; set; }
         

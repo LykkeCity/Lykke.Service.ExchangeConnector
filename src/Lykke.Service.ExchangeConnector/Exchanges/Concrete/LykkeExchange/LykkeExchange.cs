@@ -138,6 +138,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                         CreateHttpContent(new MarketOrderRequest()
                         {
                             AssetPairId = signal.Instrument.Name,
+                            Asset = signal.Instrument.Base,
                             OrderAction = signal.TradeType,
                             Volume = signal.Volume
                         }),
