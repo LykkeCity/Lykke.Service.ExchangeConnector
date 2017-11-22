@@ -54,24 +54,28 @@ namespace TradingBot.Communications
             if (!isDifferentMinute && !isQueueMaxLength)  
 		        return;
 
-            var tableEntities = _orderBookEventEntities
-                .DequeueChunk(_desiredQueueLength).ToList();
+            var tableEntityBatches = _orderBookEventEntities
+                .DequeueChunk(_desiredQueueLength)
+                .GroupBy(ee => ee.PartitionKey);
 
-            try
+            foreach (var currentBatch in tableEntityBatches)
             {
-                await _tableStorage.InsertOrReplaceBatchAsync(tableEntities);
-                //Mute for now
-                //await _log.WriteInfoAsync(_className, _className,
-                //    $"{tableEntities.Count} order events for orderbook with snapshot {orderBookEvent.SnapshotId} were " + 
-                //    $"published to Azure table {_tableStorage.Name}.");
-                _lastSavedMinute = currentTimeMinute;
-            }
-            catch (Exception ex)
-            {
-                _orderBookEventEntities.AddRange(tableEntities);    // Queue the list back
-                await _log.WriteErrorAsync(_className,
-                    $"Can't write to Azure Table {_tableStorage.Name}, will try later. Now in queue: " + 
-                    $"{_orderBookEventEntities.Count}", ex);
+                try
+                {
+                    await _tableStorage.InsertOrReplaceBatchAsync(currentBatch);
+                    //Mute for now
+                    //await _log.WriteInfoAsync(_className, _className,
+                    //    $"{tableEntities.Count} order events for orderbook with snapshot {orderBookEvent.SnapshotId} were " + 
+                    //    $"published to Azure table {_tableStorage.Name}.");
+                    _lastSavedMinute = currentTimeMinute;
+                }
+                catch (Exception ex)
+                {
+                    _orderBookEventEntities.AddRange(currentBatch);    // Queue the list back
+                    await _log.WriteErrorAsync(_className,
+                        $"Can't write to Azure Table {_tableStorage.Name} for snapshot {currentBatch.Key}, " + 
+                        $"will try later. Now in queue: {_orderBookEventEntities.Count}", ex);
+                }
             }
 		}
     }

@@ -103,7 +103,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             return new Shared.OrderBookItem
             {
                 Id = gdaxItem.OrderId.ToString(),
-                IsBuy = false,
+                IsBuy = isBuy,
                 Symbol = symbol,
                 Price = gdaxItem.Price,
                 Size = gdaxItem.Size
