@@ -199,8 +199,6 @@ namespace TradingBot.Exchanges.Concrete.Shared
         {
             var orderBookSnapshot = await GetOrderBookSnapshot(pair);
 
-
-
             switch (orderEventType)
             {
                 case OrderBookEventType.Add:
