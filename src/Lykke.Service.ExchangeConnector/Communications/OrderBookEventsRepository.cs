@@ -18,7 +18,7 @@ namespace TradingBot.Communications
         private readonly ILog _log;
         private readonly INoSQLTableStorage<OrderBookEventEntity> _tableStorage;
         private readonly Queue<OrderBookEventEntity> _orderBookEventEntities = new Queue<OrderBookEventEntity>();
-        private static readonly string _className = nameof(OrderBookSnapshotsRepository);
+        private static readonly string _className = nameof(OrderBookEventsRepository);
         private DateTime _lastSavedMinute;
 
         public OrderBookEventsRepository(INoSQLTableStorage<OrderBookEventEntity> tableStorage, 
@@ -60,9 +60,10 @@ namespace TradingBot.Communications
             try
             {
                 await _tableStorage.InsertOrReplaceBatchAsync(tableEntities);
-                await _log.WriteInfoAsync(_className, _className,
-                    $"{tableEntities.Count} order events for orderbook with snapshot {orderBookEvent.SnapshotId} were " + 
-                    $"published to Azure table {_tableStorage.Name}.");
+                //Mute for now
+                //await _log.WriteInfoAsync(_className, _className,
+                //    $"{tableEntities.Count} order events for orderbook with snapshot {orderBookEvent.SnapshotId} were " + 
+                //    $"published to Azure table {_tableStorage.Name}.");
                 _lastSavedMinute = currentTimeMinute;
             }
             catch (Exception ex)

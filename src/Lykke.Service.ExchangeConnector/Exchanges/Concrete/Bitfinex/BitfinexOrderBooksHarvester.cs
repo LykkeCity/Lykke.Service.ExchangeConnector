@@ -11,15 +11,13 @@ using SubscribeRequest = TradingBot.Exchanges.Concrete.Bitfinex.WebSocketClient.
 
 namespace TradingBot.Exchanges.Concrete.Bitfinex
 {
-    internal sealed class BitfinexOrderBooksHarvester : OrderBooksWebSocketHarvester
+    internal sealed class BitfinexOrderBooksHarvester : OrderBooksWebSocketHarvester<object, string>
     {
         private readonly BitfinexExchangeConfiguration _configuration;
         private readonly Dictionary<long, Channel> _channels;
 
-        public BitfinexOrderBooksHarvester(string exchangeName, BitfinexExchangeConfiguration configuration, ILog log,
-            OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository) : 
-            base(exchangeName, configuration, configuration.WebSocketEndpointUrl, log, 
-                orderBookSnapshotsRepository, orderBookEventsRepository)
+        public BitfinexOrderBooksHarvester(string exchangeName, BitfinexExchangeConfiguration configuration, ILog log, OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
+        : base(exchangeName, configuration, new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookSnapshotsRepository, orderBookEventsRepository)
         {
             _configuration = configuration;
             _channels = new Dictionary<long, Channel>();
@@ -29,7 +27,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         {
             try
             {
-                await Messenger.ConnectAsync();
+                await Messenger.ConnectAsync(CancellationToken);
                 await Subscribe();
                 RechargeHeartbeat();
                 while (!CancellationToken.IsCancellationRequested)
@@ -42,7 +40,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             {
                 try
                 {
-                    await Messenger.StopAsync();
+                    await Messenger.StopAsync(CancellationToken);
                 }
                 catch
                 {
@@ -52,7 +50,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         private async Task<dynamic> GetResponse()
         {
-            var json = await Messenger.GetResponseAsync();
+            var json = await Messenger.GetResponseAsync(CancellationToken);
 
             var result = EventResponse.Parse(json) ?? OrderBookSnapshotResponse.Parse(json) ?? (dynamic)OrderBookUpdateResponse.Parse(json) ?? HeartbeatResponse.Parse(json);
             return result;
@@ -73,7 +71,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
                     Prec = "R0",
                     Freq = "F0"
                 };
-                await Messenger.SendRequestAsync(request);
+                await Messenger.SendRequestAsync(request, CancellationToken);
                 var response = await GetResponse();
                 await HandleResponse(response);
             }

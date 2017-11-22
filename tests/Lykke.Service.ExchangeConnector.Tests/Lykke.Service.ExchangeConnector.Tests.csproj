@@ -4,6 +4,11 @@
     <Version>1.0.1</Version>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="..\..\src\Lykke.Service.ExchangeConnector\FIX44.xml" Link="Jfd\FIX44.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.3.0" />
     <PackageReference Include="System.Net.WebSockets.Client" Version="4.3.1" />
     <PackageReference Include="xunit" Version="2.3.1" />
