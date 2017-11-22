@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using TradingBot.Exchanges.Concrete.Kraken.Entities;
+using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 using OrderType = TradingBot.Trading.OrderType;
 
@@ -13,9 +15,9 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Requests
 
         }
 
-        public AddStandardOrderRequest(TradingSignal tradingSignal)
+        public AddStandardOrderRequest(TradingSignal tradingSignal, IReadOnlyCollection<CurrencySymbol> currencySymbols)
         {
-            Pair = tradingSignal.Instrument.Name;
+            Pair = currencySymbols.Single(x => x.LykkeSymbol == tradingSignal.Instrument.Name).ExchangeSymbol;
             Type = tradingSignal.TradeType;
             OrderType = tradingSignal.OrderType;
             Price = tradingSignal.Price ?? 0;
