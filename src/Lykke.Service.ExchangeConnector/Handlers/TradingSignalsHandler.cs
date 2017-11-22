@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Common.Log;
-using Polly;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Infrastructure.Exceptions;
@@ -43,12 +42,7 @@ namespace TradingBot.Handlers
                 return HandleTradingSignals(exchanges[message.Instrument.Exchange], message);    
             }
         }
-        
-        
-        private readonly Policy retryTwoTimesPolicy = Policy
-            .Handle<Exception>(x => !(x is InsufficientFundsException))
-            .WaitAndRetryAsync(1, attempt => TimeSpan.FromSeconds(3));
-        
+
         public async Task HandleTradingSignals(Exchange exchange, TradingSignal signal)
         {
             if (signal == null || signal.Instrument == null || string.IsNullOrEmpty(signal.Instrument.Name))
@@ -78,10 +72,9 @@ namespace TradingBot.Handlers
                                 break;
                             }
 
-                            var result = await retryTwoTimesPolicy.ExecuteAndCaptureAsync(() =>
-                                exchange.AddOrder(signal, translatedSignal));
+                            bool orderAdded = await exchange.AddOrder(signal, translatedSignal);
 
-                            if (result.Outcome == OutcomeType.Successful)
+                            if (orderAdded)
                             {
                                 await logger.WriteInfoAsync(nameof(TradingSignalsHandler),
                                     nameof(HandleTradingSignals),
@@ -90,15 +83,15 @@ namespace TradingBot.Handlers
                             }
                             else
                             {
-                                await logger.WriteErrorAsync(nameof(TradingSignalsHandler),
+                                await logger.WriteWarningAsync(nameof(TradingSignalsHandler),
                                     nameof(HandleTradingSignals),
                                     signal.ToString(),
-                                    result.FinalException);
+                                    "exchange.AddOrder have returned false");
 
-                                translatedSignal.Failure(result.FinalException);
+                                translatedSignal.Failure("exchange.AddOrder have returned false");
                             }
 
-                            await exchange.CallAcknowledgementsHandlers(CreateAcknowledgement(exchange, result, instrumentName, signal, translatedSignal));
+                            await exchange.CallAcknowledgementsHandlers(CreateAcknowledgement(exchange, orderAdded, instrumentName, signal, translatedSignal));
                         }
                         catch (Exception e)
                         {
@@ -108,6 +101,8 @@ namespace TradingBot.Handlers
                                 e);
                             
                             translatedSignal.Failure(e);
+                            
+                            await exchange.CallAcknowledgementsHandlers(CreateAcknowledgement(exchange, false, instrumentName, signal, translatedSignal, e));
                         }
                         break;
 
@@ -118,32 +113,31 @@ namespace TradingBot.Handlers
 
                         try
                         {
-                            var result = await retryTwoTimesPolicy.ExecuteAndCaptureAsync(() =>
-                                exchange.CancelOrder(signal, translatedSignal));
+                            bool orderCanceled = await exchange.CancelOrder(signal, translatedSignal);
 
-                            if (result.Outcome == OutcomeType.Successful)
+                            if (orderCanceled)
                             {
                                 logger.WriteInfoAsync(nameof(TradingSignalsHandler),
                                     nameof(HandleTradingSignals),
                                     signal.ToString(),
                                     "Canceled order").Wait();
 
-                                if (result.Result)
-                                {
-                                    await exchange.CallExecutedTradeHandlers(new ExecutedTrade(
-                                        signal.Instrument,
-                                        DateTime.UtcNow, signal.Price ?? 0, signal.Volume,
+                                await exchange.CallExecutedTradeHandlers(
+                                    new ExecutedTrade(signal.Instrument,
+                                        DateTime.UtcNow,
+                                        signal.Price ?? 0,
+                                        signal.Volume,
                                         signal.TradeType,
-                                        signal.OrderId, ExecutionStatus.Cancelled));
-                                }
+                                        signal.OrderId,
+                                        ExecutionStatus.Cancelled));
                             }
                             else
                             {
-                                translatedSignal.Failure(result.FinalException);
-                                await logger.WriteErrorAsync(nameof(TradingSignalsHandler),
+                                translatedSignal.Failure("exchange.CancelOrder have returned false");
+                                await logger.WriteWarningAsync(nameof(TradingSignalsHandler),
                                     nameof(HandleTradingSignals),
-                                    nameof(HandleTradingSignals),
-                                    result.FinalException);
+                                    signal.ToString(),
+                                    "exchange.CancelOrder have returned false");
                             }
                         }
                         catch (Exception e)
@@ -171,12 +165,12 @@ namespace TradingBot.Handlers
             
         }
 
-        private static Acknowledgement CreateAcknowledgement(Exchange exchange, PolicyResult<bool> result, string instrumentName,
-            TradingSignal arrivedSignal, TranslatedSignalTableEntity translatedSignal)
+        private static Acknowledgement CreateAcknowledgement(Exchange exchange, bool success, string instrumentName,
+            TradingSignal arrivedSignal, TranslatedSignalTableEntity translatedSignal, Exception exception = null)
         {
             var ack = new Acknowledgement()
             {
-                Success = result.Outcome == OutcomeType.Successful,
+                Success = success,
                 Exchange = exchange.Name,
                 Instrument = instrumentName,
                 ClientOrderId = arrivedSignal.OrderId,
@@ -184,9 +178,9 @@ namespace TradingBot.Handlers
                 Message = translatedSignal.ErrorMessage
             };
 
-            if (result.FinalException != null)
+            if (exception != null)
             {
-                switch (result.FinalException)
+                switch (exception)
                 {
                     case InsufficientFundsException _:
                         ack.FailureType = AcknowledgementFailureType.InsufficientFunds;
