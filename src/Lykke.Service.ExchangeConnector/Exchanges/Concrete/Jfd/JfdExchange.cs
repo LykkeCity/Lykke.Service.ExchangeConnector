@@ -179,7 +179,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
                     AccountCurrency = instr,
                     Totalbalance = report.IsSetField(OneZeroCustomTag.OzEquity) ? report.GetDecimal(OneZeroCustomTag.OzEquity) : -1,
                     UnrealisedPnL = report.IsSetField(OneZeroCustomTag.OzUnrealizedProfitOrLoss) ? report.GetDecimal(OneZeroCustomTag.OzUnrealizedProfitOrLoss) : -1,
-                    MaringAvailable = report.IsSetField(OneZeroCustomTag.OzUsedMargin) ? report.GetDecimal(OneZeroCustomTag.OzUsedMargin) : -1,
+                    MaringAvailable = report.IsSetField(OneZeroCustomTag.OzFreeMargin) ? report.GetDecimal(OneZeroCustomTag.OzFreeMargin) : -1,
                     MarginUsed = report.IsSetField(OneZeroCustomTag.OzUsedMargin) ? report.GetDecimal(OneZeroCustomTag.OzUsedMargin) : -1
                 };
                 models.Add(model);
