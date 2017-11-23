@@ -42,8 +42,10 @@ namespace TradingBot.Helpers
         public static AsyncEvent<TEventArgs> operator -(
             AsyncEvent<TEventArgs> e, Func<object, TEventArgs, Task> callback)
         {
-            if (callback == null) throw new NullReferenceException("callback is null");
-            if (e == null) return null;
+            if (callback == null)
+                throw new NullReferenceException("callback is null");
+            if (e == null)
+                return null;
 
             lock (e._locker)
             {

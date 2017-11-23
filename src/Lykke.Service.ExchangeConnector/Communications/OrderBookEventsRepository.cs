@@ -12,8 +12,7 @@ namespace TradingBot.Communications
 {
     internal class OrderBookEventsRepository
     {
-        private const int _desiredQueueLength = 20;
-        private const string _azureConflictExceptionReason = "Conflict";
+        private const int _desiredQueueLength = 30;
 
         private readonly ILog _log;
         private readonly INoSQLTableStorage<OrderBookEventEntity> _tableStorage;
@@ -65,8 +64,8 @@ namespace TradingBot.Communications
                     await _tableStorage.InsertOrReplaceBatchAsync(currentBatch);
                     //Mute for now
                     //await _log.WriteInfoAsync(_className, _className,
-                    //    $"{tableEntities.Count} order events for orderbook with snapshot {orderBookEvent.SnapshotId} were " + 
-                    //    $"published to Azure table {_tableStorage.Name}.");
+                    //    $"{currentBatch.Count()} order events for orderbook with snapshot {orderBookEvent.SnapshotId} " + 
+                    //    $"were published to Azure table {_tableStorage.Name}.");
                     _lastSavedMinute = currentTimeMinute;
                 }
                 catch (Exception ex)
