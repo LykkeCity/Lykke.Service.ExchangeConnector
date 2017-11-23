@@ -34,6 +34,15 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             request.Headers.Add("api-signature", signatureString);
         }
 
+        public object[] BuildAuthArguments(string path)
+        {
+            var nonce = GetNonce();
+            var message = path + nonce.ToString();
+            var signatureBytes = hmacsha256(Encoding.UTF8.GetBytes(_apiSecret), Encoding.UTF8.GetBytes(message));
+            var signatureString = ByteArrayToString(signatureBytes);
+            return new object[] { _apiKey, nonce, signatureString };
+        }
+
         private static async Task<string> GetContent(HttpRequestMessage request)
         {
             return request.Content == null ? string.Empty : await request.Content.ReadAsStringAsync();

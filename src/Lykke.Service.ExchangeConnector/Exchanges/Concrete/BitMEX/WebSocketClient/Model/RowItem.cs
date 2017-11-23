@@ -11,9 +11,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model
         private static readonly Func<OrderBookItem, OrderBookItem, bool> EqualsFunc = Equals;
         private static readonly Func<OrderBookItem, int> GetHashCodeFunc = GetHashCode;
 
-
         [JsonProperty("price")]
-        public decimal Price { get; set; }
+        public decimal? Price { get; set; }
 
         [JsonProperty("size")]
         public long Size { get; set; }
@@ -28,18 +27,51 @@ namespace TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model
         [JsonProperty("symbol")]
         public string Symbol { get; set; }
 
+        [JsonProperty(PropertyName = "timestamp")]
+        public DateTime Timestamp { get; set; }
+
+        [JsonProperty(PropertyName = "bidSize")]
+        public double? BidSize { get; set; }
+
+        [JsonProperty(PropertyName = "bidPrice")]
+        public double? BidPrice { get; set; }
+
+        [JsonProperty(PropertyName = "askPrice")]
+        public double? AskPrice { get; set; }
+
+        [JsonProperty(PropertyName = "askSize")]
+        public double? AskSize { get; set; }
+
+        [JsonProperty(PropertyName = "orderID")]
+        public string OrderID { get; set; }
+
+        [JsonProperty(PropertyName = "clOrdID")]
+        public string ClOrdID { get; set; }
+
+        [JsonProperty(PropertyName = "orderQty")]
+        public double? OrderQty { get; set; }
+
+        [JsonProperty(PropertyName = "cumQty")]
+        public double? CumQty { get; set; }
+
+        [JsonProperty(PropertyName = "ordStatus")]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public OrdStatus OrdStatus { get; set; }
+
+        [JsonProperty(PropertyName = "avgPx")]
+        public decimal? AvgPx { get; set; }
+
         public OrderBookItem ToOrderBookItem()
         {
             return new OrderBookItem(EqualsFunc, GetHashCodeFunc)
             {
                 Id = Id.ToString(CultureInfo.InvariantCulture),
                 IsBuy = Side == Side.Buy,
-                Price = Price,
+                Price = Price ?? 0,
                 Symbol = Symbol,
                 Size = Size
             };
         }
-
 
         private static bool Equals(OrderBookItem @this, OrderBookItem other)
         {
