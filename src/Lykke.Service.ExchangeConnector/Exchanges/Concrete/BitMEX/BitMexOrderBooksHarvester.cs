@@ -1,8 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Common.Log;
-using Newtonsoft.Json.Linq;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
 using TradingBot.Exchanges.Concrete.Shared;
@@ -13,75 +13,16 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 {
     internal sealed class BitMexOrderBooksHarvester : OrderBooksWebSocketHarvester<object, string>
     {
-        private readonly IExchangeConfiguration _configuration;
-
-        public BitMexOrderBooksHarvester(string exchangeName, BitMexExchangeConfiguration configuration, ILog log, OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository) :
+        public BitMexOrderBooksHarvester(string exchangeName, 
+            BitMexExchangeConfiguration configuration, 
+            ILog log, 
+            OrderBookSnapshotsRepository orderBookSnapshotsRepository, 
+            OrderBookEventsRepository orderBookEventsRepository) :
             base(exchangeName, configuration, new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookSnapshotsRepository, orderBookEventsRepository)
         {
-            _configuration = configuration;
-
         }
 
-        protected override async Task MessageLoopImpl()
-        {
-            try
-            {
-                await Messenger.ConnectAsync(CancellationToken);
-                await Subscribe();
-                RechargeHeartbeat();
-
-                var response = await ReadResponse();
-
-                for (var i = 0; i < 10 && (response is UnknownResponse || response is SuccessResponse); i++)
-                {
-                    response = await ReadResponse();
-                }
-
-                while (!CancellationToken.IsCancellationRequested)
-                {
-                    await HandleTableResponse((TableResponse)response);
-                    response = await ReadResponse();
-                    RechargeHeartbeat();
-                }
-            }
-            finally
-            {
-                try
-                {
-                    await Messenger.StopAsync(CancellationToken);
-                }
-                catch (Exception)
-                {
-
-                }
-            }
-        }
-
-        private async Task<object> ReadResponse()
-        {
-            var rs = await Messenger.GetResponseAsync(CancellationToken);
-            var response = JObject.Parse(rs);
-            var firstNodeName = response.First.Path;
-            if (firstNodeName == ErrorResponse.Token)
-            {
-                var error = response.ToObject<ErrorResponse>();
-                throw new InvalidOperationException(error.Error); // Some domain error. Unable to handle it here
-            }
-
-            if (firstNodeName == SuccessResponse.Token)
-            {
-                return response.ToObject<SuccessResponse>();
-            }
-
-            if (firstNodeName == TableResponse.Token)
-            {
-                return response.ToObject<TableResponse>();
-            }
-
-            return new UnknownResponse();
-        }
-
-        private async Task HandleTableResponse(TableResponse table)
+        public async Task HandleResponseAsync(TableResponse table)
         {
             var orderBookItems = table.Data.Select(o => o.ToOrderBookItem()).ToList();
             var groupByPair = orderBookItems.GroupBy(ob => ob.Symbol);
@@ -103,14 +44,44 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                     }
                     break;
                 default:
-                    await Log.WriteWarningAsync(nameof(HandleTableResponse), "Parsing table response",
-                        $"Unknown table action {table.Action}");
+                    await Log.WriteWarningAsync(nameof(HandleResponseAsync), "Parsing order book table response", $"Unknown table action {table.Action}");
                     break;
             }
         }
 
-        private OrderBookEventType ActionToOrderBookEventType(
-            TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.Action action)
+        public new Task HandleOrdebookSnapshotAsync(string pair, DateTime timeStamp, IEnumerable<OrderBookItem> orders)
+        {
+            return base.HandleOrdebookSnapshotAsync(pair, timeStamp, orders);
+        }
+
+        public new Task HandleOrdersEventsAsync(string pair, OrderBookEventType orderEventType,
+            IReadOnlyCollection<OrderBookItem> orders)
+        {
+            return base.HandleOrdersEventsAsync(pair, orderEventType, orders);
+        }
+
+        public Task LogMeasures()
+        {
+            return Measure();
+        }
+
+        protected override async Task Measure()
+        {
+            var msgInSec = _receivedMessages / MEASURE_PERIOD_SEC;
+            var pubInSec = _publishedToRabbit / MEASURE_PERIOD_SEC;
+            await Log.WriteInfoAsync(nameof(OrderBooksHarvesterBase),
+                $"Receive rate from {ExchangeName} {msgInSec} per second, publish rate to " +
+                $"RabbitMq {pubInSec} per second", string.Empty);
+            _receivedMessages = 0;
+            _publishedToRabbit = 0;
+        }
+
+        protected override async Task MessageLoopImpl()
+        {
+            // OrderBookHarvester reading cycle is not used
+        }
+
+        private OrderBookEventType ActionToOrderBookEventType(Action action)
         {
             switch (action)
             {
@@ -126,15 +97,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 default:
                     throw new ArgumentOutOfRangeException(nameof(action), action, null);
             }
-        }
-
-        private async Task Subscribe()
-        {
-            var filter = _configuration.SupportedCurrencySymbols
-                .Select(i => new Tuple<string, string>("orderBookL2",
-                    i.ExchangeSymbol)).ToArray();
-            var request = SubscribeRequest.BuildRequest(filter);
-            await Messenger.SendRequestAsync(request, CancellationToken);
         }
     }
 }
