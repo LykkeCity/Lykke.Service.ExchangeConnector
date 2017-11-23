@@ -142,7 +142,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
                     new GdaxSubscriptionChannel { Name = _userChannelName, ProductIds = productIds }
                 });
 
-            await SubscribeImplAsync(cancellationToken, requestString);
+            await SubscribeAndListenImplAsync(cancellationToken, requestString);
         }
 
         public async Task SubscribeToOrderBookUpdatesAsync(IReadOnlyCollection<string> productIds, 
@@ -159,10 +159,10 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
                 ? GetAnonymousSubscriptionMessage(subscriptionChannels)
                 : GetCredentialSubscriptionMessage(subscriptionChannels);
 
-            await SubscribeImplAsync(cancellationToken, requestString);
+            await SubscribeAndListenImplAsync(cancellationToken, requestString);
         }
 
-        private async Task SubscribeImplAsync(CancellationToken cancellationToken, string requestString)
+        private async Task SubscribeAndListenImplAsync(CancellationToken cancellationToken, string requestString)
         {
             await _clientWebSocket.SendAsync(StringToArraySegment(requestString), WebSocketMessageType.Text,
                 true, cancellationToken).ConfigureAwait(false);
@@ -190,6 +190,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
 
                     var messageBytes = stream.ToArray();
                     var jsonMessage = Encoding.UTF8.GetString(messageBytes, 0, messageBytes.Length);
+
                     await HandleWebSocketMessageAsync(jsonMessage);
                 }
             }
