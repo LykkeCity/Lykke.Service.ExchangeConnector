@@ -178,7 +178,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
             {
                 using (var stream = new MemoryStream(1024))
                 {
-                    var receiveBuffer = new ArraySegment<byte>(new byte[1024 * 8]);
+                    var receiveBuffer = new ArraySegment<byte>(new byte[1024]);
                     WebSocketReceiveResult receiveResult;
                     do
                     {
