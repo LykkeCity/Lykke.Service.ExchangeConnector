@@ -186,19 +186,19 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             _orderBooksHarvester.LogMeasures().Wait();
         }
 
-        private async Task HandleOrder(TableResponse table)
+        private Task HandleOrder(TableResponse table)
         {
-            await _ordersController.HandleResponseAsync(table);
+            return _ordersController.HandleResponseAsync(table);
         }
 
-        private async Task HandleQuote(TableResponse table)
+        private Task HandleQuote(TableResponse table)
         {
-            await _priceController.HandleResponseAsync(table);
+            return _priceController.HandleResponseAsync(table);
         }
 
-        private async Task HandleOrderbook(TableResponse table)
+        private Task HandleOrderbook(TableResponse table)
         {
-            await _orderBooksHarvester.HandleResponseAsync(table);
+            return _orderBooksHarvester.HandleResponseAsync(table);
         }
     }
 }
