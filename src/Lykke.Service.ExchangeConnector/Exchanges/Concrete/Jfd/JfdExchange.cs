@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
@@ -19,6 +20,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
 {
     internal class JfdExchange : Exchange
     {
+        private readonly JfdExchangeConfiguration _config;
         private readonly JfdTradeSessionConnector _connector;
         private readonly JfdOrderBooksHarvester _harvester;
         private readonly JfdModelConverter _modelConverter;
@@ -27,6 +29,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
 
         public JfdExchange(JfdExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, JfdTradeSessionConnector connector, JfdOrderBooksHarvester harvester, ILog log) : base(Name, config, translatedSignalsRepository, log)
         {
+            _config = config;
             _connector = connector;
             _harvester = harvester;
             _modelConverter = new JfdModelConverter(config);
@@ -40,12 +43,14 @@ namespace TradingBot.Exchanges.Concrete.Jfd
         {
             _connector.Start();
             _harvester.Start();
+            OnConnected();
         }
 
         protected override void StopImpl()
         {
             _connector.Stop();
             _harvester.Stop();
+            OnStopped();
         }
 
         public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
@@ -69,6 +74,26 @@ namespace TradingBot.Exchanges.Concrete.Jfd
 
             var trade = ConvertExecutionReport(report);
             return trade;
+        }
+
+        public override async Task<IReadOnlyCollection<TradeBalanceModel>> GetTradeBalances(TimeSpan timeout)
+        {
+            var pr = new CollateralInquiry()
+            {
+                NoPartyIDs = new NoPartyIDs(1)
+            };
+
+            var partyGroup = new CollateralInquiry.NoPartyIDsGroup
+            {
+                PartyID = new PartyID("*")
+            };
+            pr.AddGroup(partyGroup);
+            var cts = new CancellationTokenSource(timeout);
+
+            var collateral = await _connector.GetCollateralAsync(pr, cts.Token);
+
+            var models = ConvertCollateral(collateral);
+            return models;
         }
 
         public override async Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout)
@@ -97,24 +122,31 @@ namespace TradingBot.Exchanges.Concrete.Jfd
 
         private IReadOnlyCollection<PositionModel> ConvertPositionReport(IReadOnlyCollection<PositionReport> reports)
         {
-            const int ozUsedMarginTag = 8883;
-            const int ozUnrealizedProfitOrLoss = 8885;
-
-
             var result = new List<PositionModel>(reports.Count);
             foreach (var report in reports)
             {
                 var inst = _modelConverter.ConvertJfdSymbol(report.Symbol);
                 var details = report.GetGroup(1, new PositionReport.NoPositionsGroup());
-                var longQty = details.GetField(new LongQty());
-                var shortQty = details.GetField(new ShortQty());
-                var usedMagin = details.IsSetField(ozUsedMarginTag) ? details.GetDecimal(ozUsedMarginTag) : 0m;
-                var unrealizedPnl = details.IsSetField(ozUnrealizedProfitOrLoss) ? details.GetDecimal(ozUnrealizedProfitOrLoss) : 0m;
-                var model = new PositionModel // HACK Mapping to be defined
+                var longQty = details.GetField(new LongQty()).Obj;
+                var shortQty = details.GetField(new ShortQty()).Obj;
+                var usedMagin = details.IsSetField(OneZeroCustomTag.OzUsedMargin) ? details.GetDecimal(OneZeroCustomTag.OzUsedMargin) : 0m;
+                var unrealizedPnl = details.IsSetField(OneZeroCustomTag.OzUnrealizedProfitOrLoss) ? details.GetDecimal(OneZeroCustomTag.OzUnrealizedProfitOrLoss) : 0m;
+
+                var setting = _config.SupportedCurrencySymbols.FirstOrDefault(i => string.Equals(i.ExchangeSymbol, inst.Name, StringComparison.InvariantCultureIgnoreCase));
+                var initialMargin = setting?.InitialMarginPercent ?? -1;
+                var maintMargin = setting?.MaintMarginPercent ?? -1;
+
+                var model = new PositionModel
                 {
                     Symbol = inst.Name,
+                    PositionVolume = longQty - shortQty,
+                    MaintMarginUsed = usedMagin,
+                    RealisedPnL = 0,
                     UnrealisedPnL = unrealizedPnl,
-                    MaintMarginUsed = usedMagin
+                    PositionValue = null,
+                    AvailableMargin = null,
+                    InitialMarginRequirement = initialMargin,
+                    MaintenanceMarginRequirement = maintMargin,
                 };
                 result.Add(model);
             }
@@ -135,5 +167,37 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             return executedTrade;
         }
 
+
+        private static IReadOnlyCollection<TradeBalanceModel> ConvertCollateral(IEnumerable<CollateralReport> collateralReports)
+        {
+
+            var models = new List<TradeBalanceModel>();
+            foreach (var report in collateralReports)
+            {
+                var instr = report.IsSetField(OneZeroCustomTag.OzAccountCurrency) ? report.GetString(OneZeroCustomTag.OzAccountCurrency) : "NoSymbol";
+                var model = new TradeBalanceModel
+                {
+                    AccountCurrency = instr,
+                    Totalbalance = report.IsSetField(OneZeroCustomTag.OzEquity) ? report.GetDecimal(OneZeroCustomTag.OzEquity) : -1,
+                    UnrealisedPnL = report.IsSetField(OneZeroCustomTag.OzUnrealizedProfitOrLoss) ? report.GetDecimal(OneZeroCustomTag.OzUnrealizedProfitOrLoss) : -1,
+                    MaringAvailable = report.IsSetField(OneZeroCustomTag.OzUsedMargin) ? report.GetDecimal(OneZeroCustomTag.OzUsedMargin) : -1,
+                    MarginUsed = report.IsSetField(OneZeroCustomTag.OzUsedMargin) ? report.GetDecimal(OneZeroCustomTag.OzUsedMargin) : -1
+                };
+                models.Add(model);
+            }
+
+            return models;
+        }
+
+        private static class OneZeroCustomTag
+        {
+            public const int OzAccountCurrency = 8880;
+            public const int OzAccountBalance = 8881;
+            public const int OzMarginUtilizationPercentage = 8882;
+            public const int OzUsedMargin = 8883;
+            public const int OzFreeMargin = 8884;
+            public const int OzUnrealizedProfitOrLoss = 8885;
+            public const int OzEquity = 8886;
+        }
     }
 }

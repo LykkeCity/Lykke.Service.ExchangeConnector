@@ -39,7 +39,13 @@ namespace TradingBot.Exchanges.Concrete.Jfd
 
         public Instrument ConvertJfdSymbol(Symbol jfdSymbol)
         {
-            var result = _configuration.SupportedCurrencySymbols.FirstOrDefault(symb => symb.ExchangeSymbol == jfdSymbol.Obj);
+            return ConvertJfdSymbol(jfdSymbol.Obj);
+        }
+
+        public Instrument ConvertJfdSymbol(string jfdSymbol)
+        {
+            var jfdNorm = jfdSymbol.Replace("/", string.Empty);
+            var result = _configuration.SupportedCurrencySymbols.FirstOrDefault(symb => symb.ExchangeSymbol == jfdNorm);
             if (result == null)
             {
                 throw new ArgumentException($"Symbol {jfdSymbol} is not mapped to lykke value");

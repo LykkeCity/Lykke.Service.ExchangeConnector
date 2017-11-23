@@ -41,6 +41,7 @@
     <PackageReference Include="Microsoft.Rest.ClientRuntime" Version="2.3.10" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="Polly" Version="5.5.0" />
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="6.6.0.3969" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Exchanges\Concrete\Bitstamp\" />
@@ -56,6 +57,9 @@
   <ItemGroup>
     <None Update="Dockerfile">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="FIX44.jfd.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="FIX44.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

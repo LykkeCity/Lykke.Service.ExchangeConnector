@@ -7,7 +7,6 @@ using QuickFix;
 using QuickFix.Fields;
 using QuickFix.FIX44;
 using QuickFix.Transport;
-using TradingBot.Exchanges.Concrete.Icm;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using ILog = Common.Log.ILog;
@@ -104,7 +103,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
 
         public void OnCreate(SessionID sessionId)
         {
-
+            // Nothing to do here
         }
 
         public void OnLogout(SessionID sessionId)
@@ -183,8 +182,6 @@ namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
 
         private void SendRequest(Message request)
         {
-            _log.WriteInfoAsync(nameof(IcmConnector), nameof(SendRequest), string.Empty, $"About to send a request {request}").Wait();
-
             var header = request.Header;
             header.SetField(new SenderCompID(_sessionId.SenderCompID));
             header.SetField(new TargetCompID(_sessionId.TargetCompID));
