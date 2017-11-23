@@ -6,8 +6,8 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Rest;
+using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Abstractions.Models;
-using TradingBot.Exchanges.Abstractions.RestClient;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
 
 namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
@@ -19,11 +19,9 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
 
         private const string _balanceRequestUrl = @"/accounts";
         private const string _newOrderRequestUrl = @"/orders";
-        private const string _orderStatusRequestUrl = @"/orders/{0}&status=done&status=pending&status=open&status=cancelled";
         private const string _orderCancelRequestUrl = @"/orders/{0}";
         private const string _activeOrdersRequestUrl = @"/orders";
         private const string _orderBookRequestUrl = @"/products/{0}/book?level=3";
-        private const string _marginInfoRequstUrl = @"/v1/margin_infos";
         
         private const string _defaultConnectorUserAgent = "Lykke";
 

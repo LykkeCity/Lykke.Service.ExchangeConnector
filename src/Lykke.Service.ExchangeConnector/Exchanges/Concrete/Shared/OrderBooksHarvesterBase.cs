@@ -83,7 +83,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
         private async Task Measure()
         {
             const double period = 60;
-            while (true)
+            while (!CancellationToken.IsCancellationRequested)
             {
                 var msgInSec = _lastSecPublicationsNum / period;
                 var pubInSec = _publishedToRabbit / period;

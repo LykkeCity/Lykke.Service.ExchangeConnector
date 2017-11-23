@@ -183,7 +183,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
                     do
                     {
                         receiveResult = await webSocket.ReceiveAsync(receiveBuffer,
-                            cancellationToken).ConfigureAwait(false);
+                            cancellationToken);
                         await stream.WriteAsync(receiveBuffer.Array, receiveBuffer.Offset, receiveBuffer.Count, 
                             cancellationToken);
                     } while (!receiveResult.EndOfMessage);
@@ -207,7 +207,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
 
         private ArraySegment<byte> StringToArraySegment(string message)
         {
-            var messageBytes = UTF8Encoding.UTF8.GetBytes(message);
+            var messageBytes = Encoding.UTF8.GetBytes(message);
             var messageArraySegment = new ArraySegment<byte>(messageBytes);
             return messageArraySegment;
         }

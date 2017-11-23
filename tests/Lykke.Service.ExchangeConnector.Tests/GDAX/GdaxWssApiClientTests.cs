@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient;
@@ -17,7 +15,6 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
         private readonly GdaxExchangeConfiguration _configuration;
         private readonly LogToConsole _logger;
         private GdaxWebSocketApi _api;
-        private readonly Guid _orderId = Guid.NewGuid();
 
         private const string _btcUsd = "BTC-USD";
         private const string _orderDoneTypeName = "done";
@@ -215,9 +212,9 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
 
             // Subscribe
             var skipTask = _api.SubscribeToPrivateUpdatesAsync(new[] { _btcUsd }, cancellationToken);
-            await WhenAllTaskAreDone(10000, tcsSubscribed.Task);  // Wait max n milliseconds for subscription
+            await WhenAllTaskAreDone(timeoutMs, tcsSubscribed.Task);  // Wait max n milliseconds for subscription
 
-            return tcsSubscribed != null && tcsSubscribed.Task.IsCompletedSuccessfully;
+            return tcsSubscribed.Task.IsCompletedSuccessfully;
         }
 
         private async Task<bool> SubscribeToOrderBookUpdatesAsync(int timeoutMs, CancellationToken cancellationToken)
@@ -230,9 +227,9 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
 
             // Subscribe
             var skipTask = _api.SubscribeToOrderBookUpdatesAsync(new[] { _btcUsd }, cancellationToken);
-            await WhenAllTaskAreDone(10000, tcsSubscribed.Task);  // Wait max n milliseconds for subscription
+            await WhenAllTaskAreDone(timeoutMs, tcsSubscribed.Task);  // Wait max n milliseconds for subscription
 
-            return tcsSubscribed != null && tcsSubscribed.Task.IsCompletedSuccessfully;
+            return tcsSubscribed.Task.IsCompletedSuccessfully;
         }
 
         private GdaxRestApi CreateRestApi()

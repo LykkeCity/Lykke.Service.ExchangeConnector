@@ -107,17 +107,17 @@
             <response code="200">Active positions</response>
             <response code="500">Unexpected error</response>
         </member>
-        <member name="P:TradingBot.Exchanges.Abstractions.RestClient.RestApiClient.HttpClient">
+        <member name="P:TradingBot.Exchanges.Abstractions.RestApiClient.HttpClient">
             <summary>
             Gets the used HttpClient
             </summary>
         </member>
-        <member name="P:TradingBot.Exchanges.Abstractions.RestClient.RestApiClient.SerializationSettings">
+        <member name="P:TradingBot.Exchanges.Abstractions.RestApiClient.SerializationSettings">
             <summary>
             Gets or sets json serialization settings.
             </summary>
         </member>
-        <member name="P:TradingBot.Exchanges.Abstractions.RestClient.RestApiClient.DeserializationSettings">
+        <member name="P:TradingBot.Exchanges.Abstractions.RestApiClient.DeserializationSettings">
             <summary>
             Gets or sets json deserialization settings.
             </summary>

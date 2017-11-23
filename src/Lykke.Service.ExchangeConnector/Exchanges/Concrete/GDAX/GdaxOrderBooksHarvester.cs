@@ -218,11 +218,5 @@ namespace TradingBot.Exchanges.Concrete.GDAX
                 while (productOrdersQueue.Count > 0)
                     yield return productOrdersQueue.Dequeue();            
         }
-
-        private bool ShouldProcessOrder(string symbol, long orderSequenceNumber)
-        {
-            return (_symbolsLastSequenceNumbers.TryGetValue(symbol, out long seqNumberInOrderBook)) &&
-                seqNumberInOrderBook < orderSequenceNumber;
-        }
     }
 }
