@@ -48,7 +48,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
                 }
                 catch (Exception)
                 {
-
+                    // Nothing can do here 
                 }
             }
         }

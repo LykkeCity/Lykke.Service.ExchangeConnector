@@ -60,35 +60,15 @@ namespace TradingBot.Tests.BitMex
 
             var snapshot = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
 
-            var obsh = OrderBookSnapshotResponse.Parse(snapshot);
-
+            OrderBookSnapshotResponse.Parse(snapshot);
 
             var update = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
 
-            var upd = OrderBookUpdateResponse.Parse(update);
+            OrderBookUpdateResponse.Parse(update);
 
             Assert.NotNull(respose);
 
 
-        }
-
-
-        [Fact]
-        public void Test2()
-        {
-            var dt = DateTime.UtcNow;
-            var dts = JsonConvert.SerializeObject(dt, new JsonSerializerSettings()
-            {
-                //  DateFormatHandling = DateFormatHandling.IsoDateFormat,
-                // DateTimeZoneHandling = DateTimeZoneHandling.Utc
-                // DateFormatString = "yyyy-MM-ddTHH:mm:ss.fffzzz"
-            });
-
-
-            var dd = JsonConvert.DeserializeObject<DateTime>("\"2017-10-25T10:23:17.000+0000\"");
-            var dd2 = JsonConvert.DeserializeObject<DateTime>("\"2017-10-25T10:23:17.000+00:00\"");
-
-            Assert.Equal(dd, dd2);
         }
 
         public void Dispose()

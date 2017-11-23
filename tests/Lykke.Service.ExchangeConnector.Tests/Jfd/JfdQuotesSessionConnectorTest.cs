@@ -36,7 +36,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
                     "ConnectionType=initiator",
                     "ReconnectInterval=60",
                     "BeginString=FIX.4.4",
-                    "DataDictionary=FIX44.xml",
+                    "DataDictionary=FIX44.jfd.xml",
                     "HeartBtInt=15",
                     "SSLEnable=Y",
                     "SSLProtocols=Tls",

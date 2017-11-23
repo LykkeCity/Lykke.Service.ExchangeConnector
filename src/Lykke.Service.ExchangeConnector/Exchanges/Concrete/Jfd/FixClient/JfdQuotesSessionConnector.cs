@@ -88,7 +88,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
 
         public void OnCreate(SessionID sessionId)
         {
-
+            // Nothing to do here
         }
 
         public void OnLogout(SessionID sessionId)
@@ -163,8 +163,6 @@ namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
 
         private bool SendRequest(Message request)
         {
-            _log.WriteInfoAsync(nameof(SendRequest), string.Empty, $"About to send a request {request.GetType().Name}").GetAwaiter().GetResult();
-
             var header = request.Header;
             header.SetField(new SenderCompID(_sessionId.SenderCompID));
             header.SetField(new TargetCompID(_sessionId.TargetCompID));
@@ -196,7 +194,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
             return _connectionCompletionSource.Task;
         }
 
-        public Task StopAsync(CancellationToken token)
+        public Task StopAsync(CancellationToken cancellationToken)
         {
             if (State == JfdConnectorState.Connecting || State == JfdConnectorState.Connected)
             {

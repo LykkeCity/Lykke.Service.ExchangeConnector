@@ -58,6 +58,9 @@
     <None Update="Dockerfile">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="FIX44.jfd.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="FIX44.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
