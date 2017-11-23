@@ -2,6 +2,7 @@
 {
     public enum Side
     {
+        NotSet = 0,
         Buy,
         Sell
     }
