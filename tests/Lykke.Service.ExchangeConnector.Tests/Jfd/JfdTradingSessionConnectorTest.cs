@@ -29,12 +29,13 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
                 TradingFixConfiguration = new[]
                 {
                     "[DEFAULT]",
+                    "ResetOnLogon=Y",
                     "FileStorePath=store",
                     "FileLogPath=log",
                     "ConnectionType=initiator",
                     "ReconnectInterval=60",
                     "BeginString=FIX.4.4",
-                    "DataDictionary=FIX44.xml",
+                    "DataDictionary=FIX44.jfd.xml",
                     "HeartBtInt=15",
                     "SSLEnable=Y",
                     "SSLProtocols=Tls",
@@ -64,16 +65,16 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
         {
             _connector.Start();
 
-            WaitForState(JfdConnectorState.Connected, 30);
+            WaitForState(JfdConnectorState.Connected, 10);
 
             _connector.Stop();
 
-            WaitForState(JfdConnectorState.Disconnected, 30);
+            WaitForState(JfdConnectorState.Disconnected, 10);
 
         }
 
         [Fact]
-        public async void ShouldGetPositions()
+        public async Task ShouldGetPositions()
         {
             _connector.Start();
             WaitForState(JfdConnectorState.Connected, 30);
@@ -81,43 +82,46 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
             var pr = new RequestForPositions()
             {
                 PosReqType = new PosReqType(PosReqType.POSITIONS),
-                NoPartyIDs = new NoPartyIDs(10),
+                NoPartyIDs = new NoPartyIDs(1),
                 TransactTime = new TransactTime(DateTime.UtcNow)
             };
             var partyGroup = new RequestForPositions.NoPartyIDsGroup
             {
-                PartyID = new PartyID("*")
+                PartyID = new PartyID("8")
             };
             pr.AddGroup(partyGroup);
 
             var resp = await _connector.GetPositionsAsync(pr, CancellationToken.None);
 
+            Assert.NotEmpty(resp);
         }
 
         [Fact]
-        public async void ShouldCreateOrder()
+        public async Task ShouldCreateOrder()
         {
             _connector.Start();
             WaitForState(JfdConnectorState.Connected, 30);
 
             var newOrderSingle = new NewOrderSingle
             {
-              //  NoPartyIDs = new NoPartyIDs(0),
+                //  NoPartyIDs = new NoPartyIDs(0),
                 HandlInst = new HandlInst(HandlInst.AUTOMATED_EXECUTION_ORDER_PRIVATE),
                 Symbol = new Symbol("EURUSD"),
                 Side = new Side(Side.BUY),
-                OrderQty = new OrderQty(1),
+                OrderQty = new OrderQty(100),
                 OrdType = new OrdType(OrdType.MARKET),
-                TimeInForce = new TimeInForce(TimeInForce.GOOD_TILL_CANCEL),
+                TimeInForce = new TimeInForce(TimeInForce.IMMEDIATE_OR_CANCEL),
                 TransactTime = new TransactTime(DateTime.UtcNow)
             };
 
             var resp = await _connector.AddOrderAsync(newOrderSingle, CancellationToken.None);
+            Assert.NotEmpty(resp);
+
 
         }
 
         [Fact]
-        public async void ShouldGetCollateral()
+        public async Task ShouldGetCollateral()
         {
             _connector.Start();
             WaitForState(JfdConnectorState.Connected, 30);
@@ -135,11 +139,13 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
 
 
             var resp = await _connector.GetCollateralAsync(pr, CancellationToken.None);
+            Assert.NotEmpty(resp);
+
 
         }
 
-        [Fact]
-        public async void ShouldSendHeartBeat()
+        [Fact(Skip = "For manual run only")]
+        public async Task ShouldSendHeartBeat()
         {
             _connector.Start();
             WaitForState(JfdConnectorState.Connected, 30);
@@ -166,7 +172,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
         public void Dispose()
         {
             _connector.Stop();
-            WaitForState(JfdConnectorState.Disconnected, 30);
+            WaitForState(JfdConnectorState.Disconnected, 10);
             _connector?.Dispose();
         }
     }
