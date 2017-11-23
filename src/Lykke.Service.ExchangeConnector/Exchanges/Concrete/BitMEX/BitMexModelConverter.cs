@@ -61,12 +61,12 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 var lykkeInstrument = this.ExchangeSymbolToLykkeInstrument(row.Symbol);
                 return new ExecutedTrade(
                     lykkeInstrument,
-                    time: row.Timestamp,
-                    price: row.Price ?? row.AvgPx ?? 0,
-                    volume: (decimal)(row.OrderQty ?? row.CumQty ?? 0),
-                    type: ConvertSideToModel(row.Side),
-                    orderId: row.OrderID,
-                    status: ConvertExecutionStatusToModel(row.OrdStatus));
+                    row.Timestamp,
+                    row.Price ?? row.AvgPx ?? 0,
+                    (decimal)(row.OrderQty ?? row.CumQty ?? 0),
+                    ConvertSideToModel(row.Side),
+                    row.OrderID,
+                    ConvertExecutionStatusToModel(row.OrdStatus));
             }
             else
             {
@@ -196,7 +196,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             if (row.AskPrice.HasValue && row.BidPrice.HasValue)
             {
                 var lykkeInstrument = this.ExchangeSymbolToLykkeInstrument(row.Symbol);
-                return new TickPrice(lykkeInstrument, row.Timestamp, (decimal)row.AskPrice.Value, (decimal)row.BidPrice.Value);
+                return new TickPrice(lykkeInstrument, row.Timestamp, row.AskPrice.Value, row.BidPrice.Value);
             }
             else
             {

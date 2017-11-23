@@ -99,9 +99,9 @@ namespace TradingBot.Infrastructure.WebSockets
             _heartBeatMonitoringTimer?.Dispose();
         }
 
-        protected virtual async Task Connect(CancellationToken token)
+        protected virtual Task Connect(CancellationToken token)
         {
-            await Messenger.ConnectAsync(token);
+            return Messenger.ConnectAsync(token);
         }
 
         protected virtual async Task MessageLoopImpl()

@@ -24,9 +24,9 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             _configuration = configuration;
         }
 
-        public virtual BitmexSocketSubscriber Subscribe(BitmexTopic topic, Func<TableResponse, Task> handler)
+        public virtual BitmexSocketSubscriber Subscribe(BitmexTopic topic, Func<TableResponse, Task> topicHandler)
         {
-            _handlers[topic.ToString().ToLowerInvariant()] = handler;
+            _handlers[topic.ToString().ToLowerInvariant()] = topicHandler;
             return this;
         }
 
@@ -65,7 +65,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             }
         }
 
-        protected virtual async Task Authorize(CancellationToken token)
+        protected virtual Task Authorize(CancellationToken token)
         {
             var credenitals = new BitMexServiceClientCredentials(_configuration.ApiKey, _configuration.ApiSecret);
 
@@ -75,7 +75,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 Arguments = credenitals.BuildAuthArguments("GET/realtime")
             };
 
-            await Messenger.SendRequestAsync(request, token);
+            return Messenger.SendRequestAsync(request, token);
         }
 
         protected virtual async Task Subscribe(CancellationToken token)
@@ -96,12 +96,11 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             if (!string.IsNullOrEmpty(resp.Table))
             {
                 var table = resp.Table.ToLowerInvariant();
-                Func<TableResponse, Task> handler;
-                if (_handlers.TryGetValue(table, out handler))
+                if (_handlers.TryGetValue(table, out var respHandler))
                 {
                     try
                     {
-                        await handler(resp);
+                        await respHandler(resp);
                     }
                     catch (Exception ex)
                     {
