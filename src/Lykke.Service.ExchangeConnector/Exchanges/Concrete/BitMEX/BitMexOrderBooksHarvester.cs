@@ -10,12 +10,9 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 {
     internal sealed class BitMexOrderBooksHarvester : OrderBooksWebSocketHarvester<object, string>
     {
-        private readonly IExchangeConfiguration _configuration;
-
         public BitMexOrderBooksHarvester(string exchangeName, BitMexExchangeConfiguration configuration, ILog log, OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository) :
             base(exchangeName, configuration, new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookSnapshotsRepository, orderBookEventsRepository)
         {
-            _configuration = configuration;
         }
 
         public new async Task HandleOrdebookSnapshotAsync(string pair, DateTime timeStamp, IEnumerable<OrderBookItem> orders)

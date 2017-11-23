@@ -31,16 +31,16 @@ namespace TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model
         public DateTime Timestamp { get; set; }
 
         [JsonProperty(PropertyName = "bidSize")]
-        public double? BidSize { get; set; }
+        public decimal? BidSize { get; set; }
 
         [JsonProperty(PropertyName = "bidPrice")]
-        public double? BidPrice { get; set; }
+        public decimal? BidPrice { get; set; }
 
         [JsonProperty(PropertyName = "askPrice")]
-        public double? AskPrice { get; set; }
+        public decimal? AskPrice { get; set; }
 
         [JsonProperty(PropertyName = "askSize")]
-        public double? AskSize { get; set; }
+        public decimal? AskSize { get; set; }
 
         [JsonProperty(PropertyName = "orderID")]
         public string OrderID { get; set; }
@@ -49,10 +49,10 @@ namespace TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model
         public string ClOrdID { get; set; }
 
         [JsonProperty(PropertyName = "orderQty")]
-        public double? OrderQty { get; set; }
+        public decimal? OrderQty { get; set; }
 
         [JsonProperty(PropertyName = "cumQty")]
-        public double? CumQty { get; set; }
+        public decimal? CumQty { get; set; }
 
         [JsonProperty(PropertyName = "ordStatus")]
         [JsonConverter(typeof(StringEnumConverter))]

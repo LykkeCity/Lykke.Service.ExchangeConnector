@@ -15,7 +15,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 {
     class BitmexSocketSubscriber : WebSocketSubscriber
     {
-        protected readonly BitMexExchangeConfiguration _configuration;
+        private readonly BitMexExchangeConfiguration _configuration;
         private readonly Dictionary<string, Func<TableResponse, Task>> _handlers = new Dictionary<string, Func<TableResponse, Task>>();
 
         public BitmexSocketSubscriber(BitMexExchangeConfiguration configuration, ILog log)
