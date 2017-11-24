@@ -119,7 +119,7 @@ namespace TradingBot
             {
                 exchange?.Stop();
             }
-
+            _signalSubscriber?.Stop();
         }
 
         public IReadOnlyCollection<IExchange> GetExchanges()
