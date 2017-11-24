@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Swashbuckle.Swagger.Model;
-using Swashbuckle.SwaggerGen.Generator;
+using Swashbuckle.AspNetCore.Swagger;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace TradingBot.Infrastructure.Auth
 {
@@ -11,8 +11,8 @@ namespace TradingBot.Infrastructure.Auth
         {
             var filterPipeline = context.ApiDescription.ActionDescriptor.FilterDescriptors;
             var isAuthorized = filterPipeline.Select(f => f.Filter).Any(f => f is ApiKeyAuthAttribute);
-            var authorizationRequired = context.ApiDescription.GetControllerAttributes().Any(a => a is ApiKeyAuthAttribute);
-            if (!authorizationRequired) authorizationRequired = context.ApiDescription.GetActionAttributes().Any(a => a is ApiKeyAuthAttribute);
+            var authorizationRequired = context.ApiDescription.ControllerAttributes().Any(a => a is ApiKeyAuthAttribute);
+            if (!authorizationRequired) authorizationRequired = context.ApiDescription.ActionAttributes().Any(a => a is ApiKeyAuthAttribute);
 
             if (isAuthorized && authorizationRequired)
             {

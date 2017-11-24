@@ -29,11 +29,8 @@ namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
                         Status = RequestStatus.Completed;
                         break;
                     case OrdStatus.CANCELED:
-                        TaskCompletionSource.SetException(new OperationRejectedException("Canceled by user"));
-                        Status = RequestStatus.Completed;
-                        break;
                     case OrdStatus.REJECTED:
-                        TaskCompletionSource.SetException(new OperationRejectedException(message.OrdRejReason.Obj.ToString()));
+                        TaskCompletionSource.SetException(new OperationRejectedException(message.Text.Obj));
                         Status = RequestStatus.Completed;
                         break;
                     case OrdStatus.PARTIALLY_FILLED:

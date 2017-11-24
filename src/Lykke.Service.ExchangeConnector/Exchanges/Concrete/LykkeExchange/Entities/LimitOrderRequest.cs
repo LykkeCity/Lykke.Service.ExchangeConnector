@@ -1,4 +1,6 @@
-﻿using TradingBot.Trading;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.LykkeExchange.Entities
 {
@@ -6,6 +8,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange.Entities
     {
         public string AssetPairId { get; set; }
         
+        [JsonConverter(typeof(StringEnumConverter))]
         public TradeType OrderAction { get; set; }
         
         public decimal Volume { get; set; }

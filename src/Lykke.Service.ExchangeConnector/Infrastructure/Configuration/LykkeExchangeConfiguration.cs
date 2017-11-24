@@ -16,10 +16,14 @@ namespace TradingBot.Infrastructure.Configuration
         public string ApiKey { get; set; }
         
         public string EndpointUrl { get; set; }
+        
+        public string ClientId { get; set; }
 
         public WampEndpointConfiguration WampEndpoint { get; set; }
 
         public IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; set; }
+        
+        public RabbitMqLykkeConfiguration RabbitMq { get; set; }
     }
 
     public class WampEndpointConfiguration

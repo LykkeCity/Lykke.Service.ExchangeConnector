@@ -17,8 +17,10 @@ namespace TradingBot.Infrastructure.Configuration
 
         public double InitialRating { get; set; }
 
-        public IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; set; }
+        IReadOnlyCollection<CurrencySymbol> IExchangeConfiguration.SupportedCurrencySymbols => SupportedCurrencySymbols;
 
+        public IReadOnlyCollection<JfdCurrencySymbol> SupportedCurrencySymbols { get; set; }
+        
         public string[] TradingFixConfiguration { get; set; }
 
         public string[] QuotingFixConfiguration { get; set; }

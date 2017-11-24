@@ -53,7 +53,11 @@ namespace TradingBot
             app.UseMvcWithDefaultRoute();
 
             app.UseSwagger();
-            app.UseSwaggerUi();
+            app.UseSwaggerUI(x =>
+            {
+                x.RoutePrefix = "swagger/ui";
+                x.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+            });
 
             // Dispose resources that have been resolved in the application container
             appLifetime.ApplicationStarted.Register(StartHandler);

@@ -10,7 +10,7 @@ using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 using Xunit;
 
-namespace TradingBot.Tests.LykkeApiTests
+namespace Lykke.Service.ExchangeConnector.Tests.LykkeApiTests
 {
     public class LykkeApiTests
     {

@@ -35,7 +35,8 @@ namespace TradingBot.Exchanges.Concrete.Kraken
 
             var httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds(3) }; // TODO: HttpClient have to be Singleton
             publicData = new PublicData(new ApiClient(httpClient, log));
-            privateData = new PrivateData(new ApiClient(new HttpClient() { Timeout = TimeSpan.FromSeconds(30) }, log), config.ApiKey, config.PrivateKey, new NonceProvider());
+            privateData = new PrivateData(new ApiClient(new HttpClient() { Timeout = TimeSpan.FromSeconds(30) }, log), config.ApiKey, config.PrivateKey, 
+                new NonceProvider(), Config.SupportedCurrencySymbols);
         }
 
         protected override void StartImpl()
