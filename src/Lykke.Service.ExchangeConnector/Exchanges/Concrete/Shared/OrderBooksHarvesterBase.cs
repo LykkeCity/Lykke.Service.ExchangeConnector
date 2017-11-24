@@ -56,12 +56,12 @@ namespace TradingBot.Exchanges.Concrete.Shared
             _cancellationTokenSource = new CancellationTokenSource();
             CancellationToken = _cancellationTokenSource.Token;
 
-            _heartBeatMonitoringTimer = new Timer(ForceStopMessenger);
+            _heartBeatMonitoringTimer = new Timer(RestartMessenger);
         }
 
-        private async void ForceStopMessenger(object state)
+        private async void RestartMessenger(object state)
         {
-            await Log.WriteWarningAsync(nameof(ForceStopMessenger), "Monitoring heartbeat",
+            await Log.WriteWarningAsync(nameof(RestartMessenger), "Monitoring heartbeat",
                 $"Heart stopped. Restarting {GetType().Name}");
             Stop();
             try

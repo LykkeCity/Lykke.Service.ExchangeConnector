@@ -3,7 +3,7 @@ using Microsoft.WindowsAzure.Storage.Table;
 
 namespace TradingBot.Repositories
 {
-    public class OrderBookItemEntity : TableEntity, IEquatable<OrderBookItemEntity>
+    internal sealed class OrderBookItemEntity : TableEntity, IEquatable<OrderBookItemEntity>
     {
         public string OrderId { get; set; }
 

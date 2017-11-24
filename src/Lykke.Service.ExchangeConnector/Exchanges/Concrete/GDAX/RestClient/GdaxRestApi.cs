@@ -46,7 +46,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
             _restClient = new RestApiClient(HttpClient, credentials);
         }
 
-        public async Task<GdaxOrderResponse> AddOrder(string productId, decimal amount, decimal price,
+        public async Task<GdaxOrderResponse> AddOrder(string symbol, decimal amount, decimal price,
             GdaxOrderSide side, GdaxOrderType type, CancellationToken cancellationToken = default,
             EventHandler<SentHttpRequest> sentHttpRequestHandler = default,
             EventHandler<ReceivedHttpResponse> receivedHttpRequestHandler = default)
@@ -55,7 +55,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
                 HttpMethod.Post, _newOrderRequestUrl,
                 new GdaxNewOrderPost
                 {
-                    ProductId = productId,
+                    ProductId = symbol,
                     Size = amount,
                     Price = price,
                     Side = side,

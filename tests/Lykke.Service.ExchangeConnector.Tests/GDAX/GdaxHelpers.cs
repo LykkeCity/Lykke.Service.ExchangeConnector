@@ -6,7 +6,7 @@ using TradingBot.Infrastructure.Configuration;
 
 namespace Lykke.Service.ExchangeConnector.Tests.GDAX
 {
-    internal class GdaxHelpers
+    internal static class GdaxHelpers
     {
         private static string _configFilePath = Path.Combine(
             AppDomain.CurrentDomain.BaseDirectory, "testsettings.Gdax.json");
