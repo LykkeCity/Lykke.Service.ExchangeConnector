@@ -1,5 +1,4 @@
 ﻿using System;
-using TradingBot.Exchanges.Concrete.Kraken.Entities;
 
 namespace TradingBot.Exchanges.Concrete.LykkeExchange.Entities
 {

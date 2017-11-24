@@ -11,7 +11,6 @@ using Lykke.RabbitMqBroker.Subscriber;
 using Newtonsoft.Json;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
-using TradingBot.Exchanges.Concrete.Kraken.Entities;
 using TradingBot.Exchanges.Concrete.LykkeExchange.Entities;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Wamp;
@@ -175,20 +174,20 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         {
             foreach (var order in message.Orders.Where(x => x.Order.ClientId == Config.ClientId))
             {
-                if (order.Order.Status == OrderStatus.Canceled)
+                if (order.Order.Status == OrderStatus.Cancelled)
                 {
                     await CallExecutedTradeHandlers(new ExecutedTrade(new Instrument(Name, order.Order.AssetPairId),
                         DateTime.UtcNow,
-                        order.Order.Price ?? 0, order.Order.Volume, TradeType.Unknown, order.Order.Id,
+                        order.Order.Price ?? 0, order.Order.Volume, TradeType.Unknown, order.Order.ExternalId,
                         ExecutionStatus.Cancelled));
                 }
-                else if (order.Trades.Any())
+                else if (order.Order.Status == OrderStatus.Matched && order.Trades.Any())
                 {
                     await CallExecutedTradeHandlers(new ExecutedTrade(new Instrument(Name, order.Order.AssetPairId),
                         order.Trades.First().Timestamp,
                         order.Trades.Sum(x => x.Price ?? 0) / order.Trades.Length,
                         order.Trades.Sum(x => x.Volume),
-                        TradeType.Unknown, order.Order.Id,
+                        TradeType.Unknown, order.Order.ExternalId,
                         ExecutionStatus.Fill));
                 }
             }
