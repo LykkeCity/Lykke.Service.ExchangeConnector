@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
-using Polly;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Abstractions.Models;
@@ -78,8 +77,8 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             try
             {
                 var response = await _restApi.AddOrder(symbol, volume, price, side, orderType, cts.Token, 
-                    (sender, httpRequest) => OnSentHttpRequest(sender, httpRequest, translatedSignal), 
-                    (sender, httpResponse) => OnReceivedHttpRequest(sender, httpResponse, translatedSignal));
+                    (sender, httpRequest) => OnSentHttpRequest(httpRequest, translatedSignal), 
+                    (sender, httpResponse) => OnReceivedHttpRequest(httpResponse, translatedSignal));
                 var trade = _converters.OrderToTrade(response);
                 return trade;
             }
@@ -99,8 +98,8 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             try
             {
                 var response = await _restApi.CancelOrder(id, cts.Token,
-                    (sender, httpRequest) => OnSentHttpRequest(sender, httpRequest, translatedSignal),
-                    (sender, httpResponse) => OnReceivedHttpRequest(sender, httpResponse, translatedSignal));
+                    (sender, httpRequest) => OnSentHttpRequest(httpRequest, translatedSignal),
+                    (sender, httpResponse) => OnReceivedHttpRequest(httpResponse, translatedSignal));
                 if (!response) 
                     return null;
 
@@ -180,10 +179,6 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             {
                 _orderBooksHarvester.Start();
 
-                var retryPolicy = Policy
-                    .Handle<Exception>(ex => !(ex is OperationCanceledException))
-                    .WaitAndRetryAsync(5, attempt => TimeSpan.FromSeconds(attempt),
-                        (exception, span, attempt, context) => LogAsync(exception, $"Connection attemp #{attempt}"));
                 OnConnected();
 
                 await _websocketApi.SubscribeToPrivateUpdatesAsync(Instruments.Select(i => i.Name).ToList(), 
@@ -219,15 +214,14 @@ namespace TradingBot.Exchanges.Concrete.GDAX
                 : new CancellationTokenSource(timeout);
         }
 
-        private async void OnSentHttpRequest(object sender, SentHttpRequest request, 
+        private static void OnSentHttpRequest(SentHttpRequest request, 
             TranslatedSignalTableEntity translatedSignal)
         {
             var url = request.Uri.ToString();
             translatedSignal?.RequestSent(request.HttpMethod, url, request.Content);
-            await LogAsync($"Making request to url: {url}. {translatedSignal?.RequestSentToExchange}");
         }
 
-        private void OnReceivedHttpRequest(object sender, ReceivedHttpResponse response, 
+        private static void OnReceivedHttpRequest(ReceivedHttpResponse response, 
             TranslatedSignalTableEntity translatedSignal)
         {
             translatedSignal?.ResponseReceived(response.Content);

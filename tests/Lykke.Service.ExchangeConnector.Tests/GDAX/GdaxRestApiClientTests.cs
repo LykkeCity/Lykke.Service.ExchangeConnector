@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
@@ -11,7 +9,6 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
     public class GdaxRestApiClientTests
     {
         private readonly GdaxRestApi _api;
-        private readonly Guid _orderId = Guid.NewGuid();
 
         public GdaxRestApiClientTests()
         {

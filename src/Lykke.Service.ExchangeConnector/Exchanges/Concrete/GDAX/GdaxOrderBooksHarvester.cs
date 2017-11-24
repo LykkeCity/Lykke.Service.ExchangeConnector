@@ -178,8 +178,10 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             OrderBookEventType eventType, OrderBookItem orderBookItem)
         {
             // Queue this item if the order book is not fully populated yet
-            var orderBookExists = _symbolsLastSequenceNumbers.TryGetValue(productId, 
-                out long seqNumberInOrderBook);
+            var orderBookExists = 
+                _symbolsLastSequenceNumbers.TryGetValue(productId, out long seqNumberInOrderBook) &&
+                TryGetOrderBookSnapshot(productId, out var _);
+
             if (!orderBookExists)
             {
                 QueueItem(productId, new GdaxQueueOrderItem(orderEventSequenceNumber, 
@@ -217,12 +219,6 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             if (_queuedOrderBookItems.TryGetValue(productId, out var productOrdersQueue))
                 while (productOrdersQueue.Count > 0)
                     yield return productOrdersQueue.Dequeue();            
-        }
-
-        private bool ShouldProcessOrder(string symbol, long orderSequenceNumber)
-        {
-            return (_symbolsLastSequenceNumbers.TryGetValue(symbol, out long seqNumberInOrderBook)) &&
-                seqNumberInOrderBook < orderSequenceNumber;
         }
     }
 }

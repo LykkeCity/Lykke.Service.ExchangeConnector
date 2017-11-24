@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 
 namespace TradingBot.Helpers
@@ -7,7 +6,7 @@ namespace TradingBot.Helpers
     internal class AsyncEventAwaiter<T>
     {
         private AsyncEvent<T> _asyncEvent;
-        private TaskCompletionSource<T> _completionSource;
+        private readonly TaskCompletionSource<T> _completionSource;
 
         public AsyncEventAwaiter(ref AsyncEvent<T> asyncEvent)
         {

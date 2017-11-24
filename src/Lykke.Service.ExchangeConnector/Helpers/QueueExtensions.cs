@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace System.Collections.Generic
+﻿namespace System.Collections.Generic
 {
     public static class QueueExtensions
     {

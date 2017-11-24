@@ -46,8 +46,8 @@ namespace TradingBot.Communications
                     });
 
             var currentTimeMinute = DateTime.UtcNow.TruncSeconds();
-            bool isDifferentMinute = currentTimeMinute != _lastSavedMinute;
-            bool isQueueMaxLength = _orderBookEventEntities.Count > _desiredQueueLength;
+            var isDifferentMinute = currentTimeMinute != _lastSavedMinute;
+            var isQueueMaxLength = _orderBookEventEntities.Count > _desiredQueueLength;
 
             // Save on certain amount of time or items count
             if (!isDifferentMinute && !isQueueMaxLength)  
@@ -62,10 +62,6 @@ namespace TradingBot.Communications
                 try
                 {
                     await _tableStorage.InsertOrReplaceBatchAsync(currentBatch);
-                    //Mute for now
-                    //await _log.WriteInfoAsync(_className, _className,
-                    //    $"{currentBatch.Count()} order events for orderbook with snapshot {orderBookEvent.SnapshotId} " + 
-                    //    $"were published to Azure table {_tableStorage.Name}.");
                     _lastSavedMinute = currentTimeMinute;
                 }
                 catch (Exception ex)

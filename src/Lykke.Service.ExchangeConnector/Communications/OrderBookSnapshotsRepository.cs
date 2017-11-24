@@ -86,11 +86,5 @@ namespace TradingBot.Communications
         {
             return JsonConvert.SerializeObject(orderItems, _serializerSettings);
         }
-
-        private ICollection<OrderBookItem> JsonDeserializeVolumePriceList(string serializedVolumePrices)
-        {
-            return JsonConvert.DeserializeObject<ICollection<OrderBookItem>>(
-                serializedVolumePrices, _serializerSettings);
-        }
     }
 }
