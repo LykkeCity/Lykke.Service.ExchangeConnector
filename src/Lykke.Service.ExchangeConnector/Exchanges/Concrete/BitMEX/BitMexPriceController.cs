@@ -40,11 +40,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                     await _tickPriceHandler(price);
                 }
             }
-            else
-            {
-                await _log.WriteWarningAsync(nameof(BitMexPriceController), nameof(HandleResponseAsync),
-                    $"Ignoring 'quote' message on table action={table.Action}. Message: '{JsonConvert.SerializeObject(table)}'");
-            }
         }
 
         private bool ValidateQuote(TableResponse table)

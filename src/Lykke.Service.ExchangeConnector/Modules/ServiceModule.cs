@@ -1,6 +1,5 @@
 ﻿using Autofac;
 using Autofac.Extras.DynamicProxy;
-using Common;
 using TradingBot.Communications;
 using TradingBot.Exchanges;
 using TradingBot.Exchanges.Abstractions;

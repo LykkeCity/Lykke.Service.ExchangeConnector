@@ -63,7 +63,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                     lykkeInstrument,
                     row.Timestamp,
                     row.Price ?? row.AvgPx ?? 0,
-                    (decimal)(row.OrderQty ?? row.CumQty ?? 0),
+                    row.OrderQty ?? row.CumQty ?? 0,
                     ConvertSideToModel(row.Side),
                     row.OrderID,
                     ConvertExecutionStatusToModel(row.OrdStatus));

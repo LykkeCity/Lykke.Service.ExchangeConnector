@@ -15,14 +15,10 @@ namespace TradingBot.Exchanges.Concrete.Shared
 {
     internal abstract class OrderBooksHarvesterBase : IDisposable
     {
-        protected const double MeasurePeriodSec = 60;
-
         protected readonly ILog Log;
         protected readonly OrderBookSnapshotsRepository OrderBookSnapshotsRepository;
         protected readonly OrderBookEventsRepository OrderBookEventsRepository;
         protected CancellationToken CancellationToken;
-        protected long ReceivedMessages;
-        protected long PublishedToRabbit;
 
         private readonly ConcurrentDictionary<string, OrderBookSnapshot> _orderBookSnapshots;
         private readonly ExchangeConverters _converters;
@@ -32,8 +28,10 @@ namespace TradingBot.Exchanges.Concrete.Shared
         private Task _messageLoopTask;
         private Func<OrderBook, Task> _newOrderBookHandler;
         private DateTime _lastPublishTime = DateTime.MinValue;
+        private long _lastSecPublicationsNum;
         private int _orderBooksReceivedInLastTimeFrame;
         private Task _measureTask;
+        private long _publishedToRabbit;
 
         protected IExchangeConfiguration ExchangeConfiguration { get; }
 
@@ -82,18 +80,19 @@ namespace TradingBot.Exchanges.Concrete.Shared
             _heartBeatMonitoringTimer.Change(_heartBeatPeriod, Timeout.InfiniteTimeSpan);
         }
 
-        protected virtual async Task Measure()
+        private async Task Measure()
         {
+            const double period = 60;
             while (!CancellationToken.IsCancellationRequested)
             {
-                var msgInSec = ReceivedMessages / MeasurePeriodSec;
-                var pubInSec = PublishedToRabbit / MeasurePeriodSec;
+                var msgInSec = _lastSecPublicationsNum / period;
+                var pubInSec = _publishedToRabbit / period;
                 await Log.WriteInfoAsync(nameof(OrderBooksHarvesterBase),
                     $"Receive rate from {ExchangeName} {msgInSec} per second, publish rate to " +
                     $"RabbitMq {pubInSec} per second", string.Empty);
-                ReceivedMessages = 0;
-                PublishedToRabbit = 0;
-                await Task.Delay(TimeSpan.FromSeconds(MeasurePeriodSec), CancellationToken);
+                _lastSecPublicationsNum = 0;
+                _publishedToRabbit = 0;
+                await Task.Delay(TimeSpan.FromSeconds(period), CancellationToken);
             }
         }
 
@@ -156,7 +155,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         protected async Task PublishOrderBookSnapshotAsync()
         {
-            ReceivedMessages++;
+            _lastSecPublicationsNum++;
             if (NeedThrottle())
             {
                 return;
@@ -168,7 +167,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
                     obs.Asks.Values.Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
                     obs.Bids.Values.Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
                     DateTime.UtcNow));
-            PublishedToRabbit++;
+            _publishedToRabbit++;
 
             foreach (var orderBook in orderBooks)
             {

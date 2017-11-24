@@ -55,8 +55,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                     break;
                 case Action.Delete:
                 default:
-                    await _log.WriteWarningAsync(nameof(BitMexOrdersController), nameof(HandleResponseAsync),
-                        $"Ignoring 'order' message on table action {table.Action}. Message: '{JsonConvert.SerializeObject(table)}'");
                     break;
             }
         }
