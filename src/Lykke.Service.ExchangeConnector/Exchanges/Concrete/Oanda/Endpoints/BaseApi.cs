@@ -7,7 +7,7 @@ namespace TradingBot.Exchanges.Concrete.Oanda.Endpoints
     {
         protected readonly ApiClient ApiClient;
 
-        public BaseApi(ApiClient apiClient)
+        protected BaseApi(ApiClient apiClient)
         {
             this.ApiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
         }

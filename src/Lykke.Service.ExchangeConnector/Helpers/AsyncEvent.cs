@@ -23,7 +23,7 @@ namespace TradingBot.Helpers
             AsyncEvent<TEventArgs> e, Func<object, TEventArgs, Task> callback)
         {
             if (callback == null)
-                throw new NullReferenceException("callback is null");
+                throw new ArgumentNullException(nameof(callback));
 
             //Note: Thread safety issue- if two threads register to the same event (on the first time, i.e when it is null)
             //they could get a different instance, so whoever was first will be overridden.
@@ -42,7 +42,7 @@ namespace TradingBot.Helpers
             AsyncEvent<TEventArgs> e, Func<object, TEventArgs, Task> callback)
         {
             if (callback == null)
-                throw new NullReferenceException("callback is null");
+                throw new ArgumentNullException(nameof(callback));
             if (e == null)
                 return null;
 
