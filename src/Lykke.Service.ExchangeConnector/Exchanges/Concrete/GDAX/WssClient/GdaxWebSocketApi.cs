@@ -176,7 +176,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
         {
             while (webSocket.State == WebSocketState.Open)
             {
-                using (var stream = new MemoryStream(1024))
+                using (var stream = new MemoryStream(8192))
                 {
                     var receiveBuffer = new ArraySegment<byte>(new byte[1024]);
                     WebSocketReceiveResult receiveResult;
@@ -184,7 +184,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient
                     {
                         receiveResult = await webSocket.ReceiveAsync(receiveBuffer,
                             cancellationToken);
-                        await stream.WriteAsync(receiveBuffer.Array, receiveBuffer.Offset, receiveBuffer.Count, 
+                        await stream.WriteAsync(receiveBuffer.Array, receiveBuffer.Offset, receiveResult.Count, 
                             cancellationToken);
                     } while (!receiveResult.EndOfMessage);
 

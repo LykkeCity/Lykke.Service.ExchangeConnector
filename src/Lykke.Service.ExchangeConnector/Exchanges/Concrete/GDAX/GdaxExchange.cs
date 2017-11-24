@@ -214,15 +214,14 @@ namespace TradingBot.Exchanges.Concrete.GDAX
                 : new CancellationTokenSource(timeout);
         }
 
-        private async void OnSentHttpRequest(SentHttpRequest request, 
+        private static void OnSentHttpRequest(SentHttpRequest request, 
             TranslatedSignalTableEntity translatedSignal)
         {
             var url = request.Uri.ToString();
             translatedSignal?.RequestSent(request.HttpMethod, url, request.Content);
-            await LogAsync($"Making request to url: {url}. {translatedSignal?.RequestSentToExchange}");
         }
 
-        private void OnReceivedHttpRequest(ReceivedHttpResponse response, 
+        private static void OnReceivedHttpRequest(ReceivedHttpResponse response, 
             TranslatedSignalTableEntity translatedSignal)
         {
             translatedSignal?.ResponseReceived(response.Content);
