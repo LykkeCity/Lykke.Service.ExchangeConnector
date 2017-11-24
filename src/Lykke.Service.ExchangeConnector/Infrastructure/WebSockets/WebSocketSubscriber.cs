@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Autofac;
+using Common;
 using Common.Log;
 using Polly;
 using TradingBot.Exchanges.Concrete.Shared;
@@ -11,13 +13,13 @@ namespace TradingBot.Infrastructure.WebSockets
 {
     class WebSocketSubscriber : IDisposable
     {
-        protected readonly ILog Log = null;
+        protected readonly ILog Log;
         protected readonly WebSocketTextMessenger Messenger;
-        protected Func<string, Task> handler;
-        private Task _messageLoopTask;
-        private CancellationTokenSource _cancellationTokenSource;
+        protected Func<string, Task> Handler;
         protected CancellationToken CancellationToken;
 
+        private Task _messageLoopTask;
+        private CancellationTokenSource _cancellationTokenSource;
         private readonly Timer _heartBeatMonitoringTimer;
         private readonly TimeSpan _heartBeatPeriod = TimeSpan.FromSeconds(3000);
 
@@ -47,19 +49,19 @@ namespace TradingBot.Infrastructure.WebSockets
             _heartBeatMonitoringTimer.Change(_heartBeatPeriod, Timeout.InfiniteTimeSpan);
         }
 
-        public WebSocketSubscriber Subscribe(Func<string, Task> handler)
+        public WebSocketSubscriber Subscribe(Func<string, Task> messageHandler)
         {
-            this.handler = handler;
+            Handler = messageHandler;
             return this;
         }
 
         protected virtual async Task HandleResponse(string json, CancellationToken token)
         {
-            if (this.handler != null)
+            if (Handler != null)
             {
                 try
                 {
-                    await this.handler(json);
+                    await Handler(json);
                 }
                 catch (Exception ex)
                 {
@@ -80,7 +82,13 @@ namespace TradingBot.Infrastructure.WebSockets
         {
             Log.WriteInfoAsync(nameof(Stop), "Stopping", $"Stopping {GetType().Name}").Wait();
             _cancellationTokenSource?.Cancel();
-            _messageLoopTask.Wait();
+            try
+            {
+                _messageLoopTask?.GetAwaiter().GetResult();
+            }
+            catch (OperationCanceledException)
+            {
+            }
             _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = null;
         }
@@ -95,7 +103,6 @@ namespace TradingBot.Infrastructure.WebSockets
             Stop();
             Messenger?.Dispose();
             _messageLoopTask?.Dispose();
-            _cancellationTokenSource?.Dispose();
             _heartBeatMonitoringTimer?.Dispose();
         }
 

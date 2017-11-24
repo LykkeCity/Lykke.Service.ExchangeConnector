@@ -29,22 +29,23 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         private readonly IBitMEXAPI _exchangeApi;
         private readonly BitMexOrdersController _ordersController;
         private readonly BitMexPriceController _priceController;
-        private Timer _measureTimer;
         public new const string Name = "bitmex";
 
-        public BitMexExchange(BitMexExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository,
-            BitMexOrderBooksHarvester orderBooksHarvester, ILog log)
+        public BitMexExchange(BitMexExchangeConfiguration configuration,
+            TranslatedSignalsRepository translatedSignalsRepository,
+            BitMexOrderBooksHarvester orderBooksHarvester,
+            BitmexSocketSubscriber socketSubscriber,
+            ILog log)
             : base(Name, configuration, translatedSignalsRepository, log)
         {
             _orderBooksHarvester = orderBooksHarvester;
             var mapper = new BitMexModelConverter(configuration.SupportedCurrencySymbols, Name);
             _ordersController = new BitMexOrdersController(mapper, CallAcknowledgementsHandlers, CallExecutedTradeHandlers, log);
             _priceController = new BitMexPriceController(mapper, CallTickPricesHandlers, log);
-            
-            _socketSubscriber = new BitmexSocketSubscriber(configuration, log)
+
+            _socketSubscriber = socketSubscriber
                 .Subscribe(BitmexTopic.Order, HandleOrder)
-                .Subscribe(BitmexTopic.Quote, HandleQuote)
-                .Subscribe(BitmexTopic.OrderBookL2, HandleOrderbook);
+                .Subscribe(BitmexTopic.Quote, HandleQuote);
 
             var credenitals = new BitMexServiceClientCredentials(configuration.ApiKey, configuration.ApiSecret);
             _exchangeApi = new BitMEXAPI(credenitals)
@@ -89,7 +90,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
         public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-
             var ct = new CancellationTokenSource(timeout);
             var id = signal.OrderId;
             var response = await _exchangeApi.OrdercancelAsync(cancellationToken: ct.Token, orderID: id);
@@ -170,20 +170,14 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         protected override void StartImpl()
         {
             OnConnected();
+            _orderBooksHarvester.Start();
             _socketSubscriber.Start();
-            _measureTimer = new Timer(OnMeasureTimer, null, TimeSpan.Zero, TimeSpan.FromSeconds(60));
         }
 
         protected override void StopImpl()
         {
             _socketSubscriber.Stop();
-            _measureTimer?.Dispose();
-            _measureTimer = null;
-        }
-
-        private void OnMeasureTimer(object state)
-        {
-            _orderBooksHarvester.LogMeasures().Wait();
+            _orderBooksHarvester.Stop();
         }
 
         private async Task HandleOrder(TableResponse table)
@@ -194,11 +188,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         private async Task HandleQuote(TableResponse table)
         {
             await _priceController.HandleResponseAsync(table);
-        }
-
-        private async Task HandleOrderbook(TableResponse table)
-        {
-            await _orderBooksHarvester.HandleResponseAsync(table);
         }
     }
 }

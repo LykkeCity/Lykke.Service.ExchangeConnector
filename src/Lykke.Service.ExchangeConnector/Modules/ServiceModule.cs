@@ -1,5 +1,6 @@
 ﻿using Autofac;
 using Autofac.Extras.DynamicProxy;
+using Common;
 using TradingBot.Communications;
 using TradingBot.Exchanges;
 using TradingBot.Exchanges.Abstractions;
@@ -51,6 +52,9 @@ namespace TradingBot.Modules
 
             builder.RegisterType<ExchangeConnectorApplication>()
                 .As<IApplicationFacade>()
+                .SingleInstance();
+
+            builder.RegisterType<BitmexSocketSubscriber>()
                 .SingleInstance();
 
             builder.RegisterType<BitMexOrderBooksHarvester>()
