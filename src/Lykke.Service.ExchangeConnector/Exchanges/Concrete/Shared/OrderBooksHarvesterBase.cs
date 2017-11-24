@@ -21,7 +21,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
         protected CancellationToken CancellationToken;
 
         private readonly ConcurrentDictionary<string, OrderBookSnapshot> _orderBookSnapshots;
-        private ExchangeConverters _converters;
+        private readonly ExchangeConverters _converters;
         private readonly Timer _heartBeatMonitoringTimer;
         private readonly TimeSpan _heartBeatPeriod = TimeSpan.FromSeconds(30);
         private CancellationTokenSource _cancellationTokenSource;
@@ -143,7 +143,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
              });
         }
 
-        protected async Task PublishOrderBookSnapshotAsync()
+        private async Task PublishOrderBookSnapshotAsync()
         {
             _lastSecPublicationsNum++;
             if (NeedThrottle())
@@ -167,7 +167,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         protected abstract Task MessageLoopImpl();
 
-        protected async Task<OrderBookSnapshot> GetOrderBookSnapshot(string pair)
+        private async Task<OrderBookSnapshot> GetOrderBookSnapshot(string pair)
         {
             if (!_orderBookSnapshots.TryGetValue(pair, out var orderBook))
             {
@@ -181,14 +181,20 @@ namespace TradingBot.Exchanges.Concrete.Shared
             return orderBook;
         }
 
+        protected bool TryGetOrderBookSnapshot(string pair, out OrderBookSnapshot orderBookSnapshot)
+        {
+            return _orderBookSnapshots.TryGetValue(pair, out orderBookSnapshot);
+        }
+
         protected async Task HandleOrdebookSnapshotAsync(string pair, DateTime timeStamp, IEnumerable<OrderBookItem> orders)
         {
             var orderBookSnapshot = new OrderBookSnapshot(ExchangeName, pair, timeStamp);
             orderBookSnapshot.AddOrUpdateOrders(orders);
-            _orderBookSnapshots[pair] = orderBookSnapshot;
 
             if (ExchangeConfiguration.SaveOrderBooksToAzure)
                 await OrderBookSnapshotsRepository.SaveAsync(orderBookSnapshot);
+
+            _orderBookSnapshots[pair] = orderBookSnapshot;
 
             await PublishOrderBookSnapshotAsync();
         }

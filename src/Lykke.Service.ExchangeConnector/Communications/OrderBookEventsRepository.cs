@@ -63,9 +63,9 @@ namespace TradingBot.Communications
                 {
                     await _tableStorage.InsertOrReplaceBatchAsync(currentBatch);
                     //Mute for now
-                    await _log.WriteInfoAsync(_className, _className,
-                        $"{currentBatch.Count()} order events for orderbook with snapshot {orderBookEvent.SnapshotId} " +
-                        $"were published to Azure table {_tableStorage.Name}.");
+                    //await _log.WriteInfoAsync(_className, _className,
+                    //    $"{currentBatch.Count()} order events for orderbook with snapshot {orderBookEvent.SnapshotId} " +
+                    //    $"were published to Azure table {_tableStorage.Name}.");
                     _lastSavedMinute = currentTimeMinute;
                 }
                 catch (Exception ex)

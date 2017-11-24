@@ -43,9 +43,7 @@ namespace TradingBot.Communications
             // Retry to save 5 times
             var retryPolicy = Policy
                 .Handle<Exception>(ex => !(ex is OperationCanceledException))
-                .WaitAndRetryAsync(5, attempt => attempt % 60 == 0
-                    ? TimeSpan.FromMinutes(5)
-                    : TimeSpan.FromSeconds(5)); // After every 60 attempts wait 5min 
+                .WaitAndRetryAsync(5, attempt => TimeSpan.FromSeconds(5));
 
             await retryPolicy.ExecuteAsync(async () =>
             {
