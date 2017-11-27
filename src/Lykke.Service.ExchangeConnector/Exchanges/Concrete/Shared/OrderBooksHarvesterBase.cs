@@ -107,15 +107,25 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
             _cancellationTokenSource = new CancellationTokenSource();
             CancellationToken = _cancellationTokenSource.Token;
-            _messageLoopTask = Task.Run(async () => await MessageLoop());
             _measureTask = Task.Run(async () => await Measure());
+            StartReading();
+        }
+
+        protected virtual void StartReading()
+        {
+            _messageLoopTask = Task.Run(async () => await MessageLoop());
         }
 
         public void Stop()
         {
             Log.WriteInfoAsync(nameof(Stop), "Stopping", $"Stopping {GetType().Name}").Wait();
             _cancellationTokenSource?.Cancel();
+            SwallowCanceledException(() => 
+                _messageLoopTask?.GetAwaiter().GetResult());
+            SwallowCanceledException(() => 
+                _measureTask?.GetAwaiter().GetResult());
             _cancellationTokenSource?.Dispose();
+            _cancellationTokenSource = null;
         }
 
         private async Task MessageLoop()
@@ -276,6 +286,17 @@ namespace TradingBot.Exchanges.Concrete.Shared
                 _messageLoopTask?.Dispose();
                 _heartBeatMonitoringTimer?.Dispose();
                 _measureTask?.Dispose();
+            }
+        }
+
+        private void SwallowCanceledException(Action action)
+        {
+            try
+            {
+                action();
+            }
+            catch (OperationCanceledException)
+            {
             }
         }
     }
