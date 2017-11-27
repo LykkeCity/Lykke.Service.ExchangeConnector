@@ -27,25 +27,19 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         private readonly BitMexOrderBooksHarvester _orderBooksHarvester;
         private readonly BitmexSocketSubscriber _socketSubscriber;
         private readonly IBitMEXAPI _exchangeApi;
-        private readonly BitMexOrdersController _ordersController;
-        private readonly BitMexPriceController _priceController;
         public new const string Name = "bitmex";
 
         public BitMexExchange(BitMexExchangeConfiguration configuration,
             TranslatedSignalsRepository translatedSignalsRepository,
             BitMexOrderBooksHarvester orderBooksHarvester,
+            BitMexOrderHarvester orderHarvester,
+            BitMexPriceHarvester priceHarvester,
             BitmexSocketSubscriber socketSubscriber,
             ILog log)
             : base(Name, configuration, translatedSignalsRepository, log)
         {
             _orderBooksHarvester = orderBooksHarvester;
-            var mapper = new BitMexModelConverter(configuration.SupportedCurrencySymbols, Name);
-            _ordersController = new BitMexOrdersController(mapper, CallAcknowledgementsHandlers, CallExecutedTradeHandlers, log);
-            _priceController = new BitMexPriceController(mapper, CallTickPricesHandlers, log);
-
-            _socketSubscriber = socketSubscriber
-                .Subscribe(BitmexTopic.Order, HandleOrder)
-                .Subscribe(BitmexTopic.Quote, HandleQuote);
+            _socketSubscriber = socketSubscriber;
 
             var credenitals = new BitMexServiceClientCredentials(configuration.ApiKey, configuration.ApiSecret);
             _exchangeApi = new BitMEXAPI(credenitals)
@@ -55,6 +49,9 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
             orderBooksHarvester.AddHandler(CallOrderBookHandlers);
             orderBooksHarvester.MaxOrderBookRate = configuration.MaxOrderBookRate;
+            orderHarvester.AddAcknowledgementHandler(CallAcknowledgementsHandlers);
+            orderHarvester.AddExecutedTradeHandler(CallExecutedTradeHandlers);
+            priceHarvester.AddHandler(CallTickPricesHandlers);
         }
 
         public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
@@ -66,7 +63,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             var side = BitMexModelConverter.ConvertTradeType(signal.TradeType);
             var price = (double?)signal.Price;
             var ct = new CancellationTokenSource(timeout);
-
 
             var response = await _exchangeApi.OrdernewAsync(symbol, orderQty: volume, price: price, ordType: orderType, side: side, cancellationToken: ct.Token);
 
@@ -178,16 +174,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         {
             _socketSubscriber.Stop();
             _orderBooksHarvester.Stop();
-        }
-
-        private async Task HandleOrder(TableResponse table)
-        {
-            await _ordersController.HandleResponseAsync(table);
-        }
-
-        private async Task HandleQuote(TableResponse table)
-        {
-            await _priceController.HandleResponseAsync(table);
         }
     }
 }

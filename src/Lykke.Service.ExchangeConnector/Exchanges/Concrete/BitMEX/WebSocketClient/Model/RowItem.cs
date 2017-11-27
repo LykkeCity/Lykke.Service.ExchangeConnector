@@ -22,7 +22,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model
 
         [JsonProperty("side")]
         [JsonConverter(typeof(StringEnumConverter))]
-        public Side Side { get; set; }
+        public Side? Side { get; set; }
 
         [JsonProperty("symbol")]
         public string Symbol { get; set; }
@@ -56,7 +56,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model
 
         [JsonProperty(PropertyName = "ordStatus")]
         [JsonConverter(typeof(StringEnumConverter))]
-        public OrdStatus OrdStatus { get; set; }
+        public OrdStatus? OrdStatus { get; set; }
 
         [JsonProperty(PropertyName = "avgPx")]
         public decimal? AvgPx { get; set; }
@@ -66,7 +66,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model
             return new OrderBookItem(EqualsFunc, GetHashCodeFunc)
             {
                 Id = Id.ToString(CultureInfo.InvariantCulture),
-                IsBuy = Side == Side.Buy,
+                IsBuy = Side == Model.Side.Buy,
                 Price = Price ?? 0,
                 Symbol = Symbol,
                 Size = Size

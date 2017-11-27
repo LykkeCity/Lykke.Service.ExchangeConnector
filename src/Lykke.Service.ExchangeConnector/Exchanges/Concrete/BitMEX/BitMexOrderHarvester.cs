@@ -4,35 +4,51 @@ using System.Linq;
 using System.Threading.Tasks;
 using Common.Log;
 using Newtonsoft.Json;
+using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient;
 using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
+using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 using Action = TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.Action;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
-    internal class BitMexOrdersController
+    internal class BitMexOrderHarvester
     {
         private readonly ILog _log;
         private readonly BitMexModelConverter _mapper;
-        private readonly Func<Acknowledgement, Task> _ackHandler;
-        private readonly Func<ExecutedTrade, Task> _tradeHandler;
+        private Func<Acknowledgement, Task> _ackHandler;
+        private Func<ExecutedTrade, Task> _tradeHandler;
 
-        public BitMexOrdersController(BitMexModelConverter mapper, 
-            Func<Acknowledgement, Task> ackHandler,
-            Func<ExecutedTrade, Task> tradeHandler,
+        public BitMexOrderHarvester(string exchangeName,
+            BitMexExchangeConfiguration configuration,
+            BitmexSocketSubscriber socketSubscriber,
             ILog log)
         {
-            _mapper = mapper;
-            _ackHandler = ackHandler;
-            _tradeHandler = tradeHandler;
             _log = log;
+            socketSubscriber.Subscribe(BitmexTopic.Order, HandleResponseAsync);
+            _mapper = new BitMexModelConverter(configuration.SupportedCurrencySymbols, exchangeName);
+        }
+
+        public void AddAcknowledgementHandler(Func<Acknowledgement, Task> handler)
+        {
+            _ackHandler = handler;
+        }
+
+        public void AddExecutedTradeHandler(Func<ExecutedTrade, Task> handler)
+        {
+            _tradeHandler = handler;
         }
 
         public async Task HandleResponseAsync(TableResponse table)
         {
+            if (_ackHandler == null || _tradeHandler == null)
+            {
+                throw new InvalidOperationException("Acknowledgement handler or executed trader is not set.");
+            }
+
             if (!ValidateOrder(table))
             {
-                await _log.WriteWarningAsync(nameof(BitMexOrdersController), nameof(HandleResponseAsync),
+                await _log.WriteWarningAsync(nameof(BitMexOrderHarvester), nameof(HandleResponseAsync),
                     $"Ignoring invalid 'order' message: '{JsonConvert.SerializeObject(table)}'");
                 return;
             }

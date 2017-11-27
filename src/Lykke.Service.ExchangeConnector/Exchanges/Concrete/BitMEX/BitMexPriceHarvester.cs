@@ -4,30 +4,46 @@ using System.Linq;
 using System.Threading.Tasks;
 using Common.Log;
 using Newtonsoft.Json;
+using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient;
 using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
+using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 using Action = TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.Action;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
-    internal class BitMexPriceController
+    internal class BitMexPriceHarvester
     {
         private readonly ILog _log;
         private readonly BitMexModelConverter _mapper;
-        private readonly Func<TickPrice, Task> _tickPriceHandler;
+        private Func<TickPrice, Task> _tickPriceHandler;
 
-        public BitMexPriceController(BitMexModelConverter mapper, Func<TickPrice, Task> tickPriceHandler, ILog log)
+        public BitMexPriceHarvester(
+            string exchangeName,
+            BitMexExchangeConfiguration configuration,
+            BitmexSocketSubscriber socketSubscriber,
+            ILog log)
         {
-            _mapper = mapper;
-            _tickPriceHandler = tickPriceHandler;
             _log = log;
+            socketSubscriber.Subscribe(BitmexTopic.Quote, HandleResponseAsync);
+            _mapper = new BitMexModelConverter(configuration.SupportedCurrencySymbols, exchangeName);
+        }
+
+        public void AddHandler(Func<TickPrice, Task> handler)
+        {
+            _tickPriceHandler = handler;
         }
 
         public async Task HandleResponseAsync(TableResponse table)
         {
+            if (_tickPriceHandler == null)
+            {
+                throw new InvalidOperationException("Tick price handler is not set.");
+            }
+
             if (!ValidateQuote(table))
             {
-                await _log.WriteWarningAsync(nameof(BitMexPriceController), nameof(HandleResponseAsync),
+                await _log.WriteWarningAsync(nameof(BitMexPriceHarvester), nameof(HandleResponseAsync),
                     $"Ignoring invalid 'quote' message: '{JsonConvert.SerializeObject(table)}'");
                 return;
             }

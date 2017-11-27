@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using TradingBot.Exchanges.Concrete.AutorestClient.Models;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
@@ -56,22 +57,15 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
         public ExecutedTrade OrderToTrade(WebSocketClient.Model.RowItem row)
         {
-            if (row.AskPrice.HasValue && row.BidPrice.HasValue)
-            {
-                var lykkeInstrument = this.ExchangeSymbolToLykkeInstrument(row.Symbol);
-                return new ExecutedTrade(
-                    lykkeInstrument,
-                    row.Timestamp,
-                    row.Price ?? row.AvgPx ?? 0,
-                    row.OrderQty ?? row.CumQty ?? 0,
-                    ConvertSideToModel(row.Side),
-                    row.OrderID,
-                    ConvertExecutionStatusToModel(row.OrdStatus));
-            }
-            else
-            {
-                throw new ArgumentException("Ask/bid price is not specified for a quote.", nameof(row));
-            }
+            var lykkeInstrument = this.ExchangeSymbolToLykkeInstrument(row.Symbol);
+            return new ExecutedTrade(
+                lykkeInstrument,
+                row.Timestamp,
+                row.Price ?? row.AvgPx ?? 0,
+                row.OrderQty ?? row.CumQty ?? 0,
+                row.Side.HasValue ? ConvertSideToModel(row.Side.Value) : TradeType.Unknown,
+                row.OrderID,
+                row.OrdStatus.HasValue ? ConvertExecutionStatusToModel(row.OrdStatus.Value) : ExecutionStatus.Unknown);
         }
 
         public Acknowledgement OrderToAck(WebSocketClient.Model.RowItem row)
@@ -200,7 +194,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             }
             else
             {
-                throw new ArgumentException("Ask/bid price is not specified for a quote.", nameof(row));
+                throw new ArgumentException($"Ask/bid price is not specified for a quote. Message: '{JsonConvert.SerializeObject(row)}'", nameof(row));
             }
         }
     }
