@@ -34,7 +34,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             _tickPriceHandler = handler;
         }
 
-        public async Task HandleResponseAsync(TableResponse table)
+        private async Task HandleResponseAsync(TableResponse table)
         {
             if (_tickPriceHandler == null)
             {

@@ -39,7 +39,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             _tradeHandler = handler;
         }
 
-        public async Task HandleResponseAsync(TableResponse table)
+        private async Task HandleResponseAsync(TableResponse table)
         {
             if (_ackHandler == null || _tradeHandler == null)
             {
