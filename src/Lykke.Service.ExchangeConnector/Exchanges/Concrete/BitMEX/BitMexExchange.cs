@@ -14,8 +14,6 @@ using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Models.Api;
 using TradingBot.Repositories;
 using TradingBot.Trading;
-using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient;
-using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
 using Instrument = TradingBot.Trading.Instrument;
 using Order = TradingBot.Exchanges.Concrete.AutorestClient.Models.Order;
 using Position = TradingBot.Exchanges.Concrete.AutorestClient.Models.Position;

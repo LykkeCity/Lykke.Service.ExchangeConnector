@@ -63,9 +63,16 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                     }
                     break;
                 case Action.Update:
-                    var trades = table.Data.Select(row => _mapper.OrderToTrade(row));
-                    foreach (var trade in trades)
+                    foreach (var row in table.Data)
                     {
+                        var trade = _mapper.OrderToTrade(row);
+                        
+                        if (trade.Status == ExecutionStatus.Unknown)
+                        {
+                            await _log.WriteWarningAsync(nameof(BitMexOrderHarvester), nameof(HandleResponseAsync),
+                                $"Can't convert trade status {row.OrdStatus} into ExecutionStatus. Converted item: {trade}");
+                        }
+                        
                         await _tradeHandler(trade);
                     }
                     break;
