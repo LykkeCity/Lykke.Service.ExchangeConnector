@@ -70,10 +70,12 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                         if (trade.Status == ExecutionStatus.Unknown)
                         {
                             await _log.WriteWarningAsync(nameof(BitMexOrderHarvester), nameof(HandleResponseAsync),
-                                $"Can't convert trade status {row.OrdStatus} into ExecutionStatus. Converted item: {trade}");
+                                $"Can't convert trade status {row.OrdStatus} into ExecutionStatus. Converted item: {trade}. Don't call handlers.");
                         }
-                        
-                        await _tradeHandler(trade);
+                        else
+                        {
+                            await _tradeHandler(trade);   
+                        }
                     }
                     break;
                 case Action.Delete:
