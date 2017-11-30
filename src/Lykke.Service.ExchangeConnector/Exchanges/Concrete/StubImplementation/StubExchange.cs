@@ -216,9 +216,12 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 		    throw new NotImplementedException();
 	    }
 
-	    public override Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
-	    {
-		    throw new NotImplementedException();
-	    }
+        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        {
+            bool result = await CancelOrderImpl(signal, translatedSignal);
+
+            return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId,
+                result ? ExecutionStatus.Cancelled : ExecutionStatus.Unknown);
+        }
     }
 }
