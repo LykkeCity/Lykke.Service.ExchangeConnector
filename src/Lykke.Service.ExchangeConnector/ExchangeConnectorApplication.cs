@@ -84,7 +84,7 @@ namespace TradingBot
 
         private void SetupTradingSignalsSubscription(RabbitMqMultyExchangeConfiguration rabbitConfig)
         {
-            var handler = new TradingSignalsHandler(_exchanges, _log, TranslatedSignalsRepository);
+            var handler = new TradingSignalsHandler(_exchanges, _log, TranslatedSignalsRepository, _config.AspNet.ApiTimeout);
 
             var subscriberSettings = new RabbitMqSubscriptionSettings()
             {
