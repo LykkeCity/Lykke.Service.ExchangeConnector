@@ -62,7 +62,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             var price = (double?)signal.Price;
             var ct = new CancellationTokenSource(timeout);
 
-            var response = await _exchangeApi.OrdernewAsync(symbol, orderQty: volume, price: price, ordType: orderType, side: side, cancellationToken: ct.Token);
+            var response = await _exchangeApi.OrdernewAsync(symbol, orderQty: volume, price: price, clOrdID: signal.OrderId, ordType: orderType, side: side, cancellationToken: ct.Token);
 
             if (response is Error error)
             {
