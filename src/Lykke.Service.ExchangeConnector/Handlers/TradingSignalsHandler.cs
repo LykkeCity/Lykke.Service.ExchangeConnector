@@ -16,14 +16,15 @@ namespace TradingBot.Handlers
         private readonly ILog logger;
         private readonly TranslatedSignalsRepository translatedSignalsRepository;
         private readonly TimeSpan tradingSignalsThreshold = TimeSpan.FromMinutes(10);
+        private readonly TimeSpan apiTimeout;
 
-        public TradingSignalsHandler(Dictionary<string, Exchange> exchanges, ILog logger, TranslatedSignalsRepository translatedSignalsRepository)
+        public TradingSignalsHandler(Dictionary<string, Exchange> exchanges, ILog logger, TranslatedSignalsRepository translatedSignalsRepository, TimeSpan apiTimeout)
         {
             this.exchanges = exchanges;
             this.logger = logger;
             this.translatedSignalsRepository = translatedSignalsRepository;
+            this.apiTimeout = apiTimeout;
         }
-        
         
         public override Task Handle(TradingSignal message)
         {
@@ -113,9 +114,9 @@ namespace TradingBot.Handlers
 
                         try
                         {
-                            bool orderCanceled = await exchange.CancelOrder(signal, translatedSignal);
-
-                            if (orderCanceled)
+                            var executedTrade = await exchange.CancelOrderAndWaitExecution(signal, translatedSignal, apiTimeout);
+                            
+                            if (executedTrade.Status == ExecutionStatus.Cancelled)
                             {
                                 logger.WriteInfoAsync(nameof(TradingSignalsHandler),
                                     nameof(HandleTradingSignals),
@@ -133,11 +134,12 @@ namespace TradingBot.Handlers
                             }
                             else
                             {
-                                translatedSignal.Failure("exchange.CancelOrder have returned false");
+                                var message = $"Executed trade status {executedTrade.Status} after calling 'exchange.CancelOrderAndWaitExecution'";
+                                translatedSignal.Failure(message);
                                 await logger.WriteWarningAsync(nameof(TradingSignalsHandler),
                                     nameof(HandleTradingSignals),
                                     signal.ToString(),
-                                    "exchange.CancelOrder have returned false");
+                                    message);
                             }
                         }
                         catch (Exception e)
