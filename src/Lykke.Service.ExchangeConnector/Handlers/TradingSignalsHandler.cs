@@ -123,14 +123,7 @@ namespace TradingBot.Handlers
                                     signal.ToString(),
                                     "Canceled order").Wait();
 
-                                await exchange.CallExecutedTradeHandlers(
-                                    new ExecutedTrade(signal.Instrument,
-                                        DateTime.UtcNow,
-                                        signal.Price ?? 0,
-                                        signal.Volume,
-                                        signal.TradeType,
-                                        signal.OrderId,
-                                        ExecutionStatus.Cancelled));
+                                await exchange.CallExecutedTradeHandlers(executedTrade);
                             }
                             else
                             {
