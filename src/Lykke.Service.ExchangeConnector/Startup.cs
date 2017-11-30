@@ -113,7 +113,7 @@ namespace TradingBot
                 {
                     var slackService = services.UseSlackNotificationsSenderViaAzureQueue(topSettings.SlackNotifications.AzureQueue, log);
                     var tableStorage = AzureTableStorage<LogEntity>.Create(
-                        settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "logsExchangeConnector", log);
+                        settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), settings.AzureStorage.LogTableName, log);
                     builder.RegisterInstance(tableStorage).As<INoSQLTableStorage<LogEntity>>().SingleInstance();
                     var persistenceManager = new LykkeLogToAzureStoragePersistenceManager(appName, tableStorage, log);
                     var slackNotificationsManager = new LykkeLogToAzureSlackNotificationsManager(appName, slackService, log);
