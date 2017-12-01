@@ -52,7 +52,7 @@ namespace TradingBot.Trading
 
         public override string ToString()
         {
-            return $"OrderId: {OrderId} for {Instrument}. {Type} at {Time}. Price: {Price}. Volume: {Volume}";
+            return $"OrderId: {OrderId} for {Instrument}. {Type} at {Time}. Price: {Price}. Volume: {Volume}. Status: {Status}";
         }
     }
 }

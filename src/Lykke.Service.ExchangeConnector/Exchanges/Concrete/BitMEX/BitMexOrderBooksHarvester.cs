@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
-using Newtonsoft.Json.Linq;
 using TradingBot.Communications;
+using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient;
 using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
@@ -13,76 +15,29 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 {
     internal sealed class BitMexOrderBooksHarvester : OrderBooksWebSocketHarvester<object, string>
     {
-        private readonly IExchangeConfiguration _configuration;
-
-        public BitMexOrderBooksHarvester(string exchangeName, BitMexExchangeConfiguration configuration, ILog log, OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository) :
+        public BitMexOrderBooksHarvester(string exchangeName, 
+            BitMexExchangeConfiguration configuration, 
+            ILog log, 
+            OrderBookSnapshotsRepository orderBookSnapshotsRepository,
+            OrderBookEventsRepository orderBookEventsRepository,
+            BitmexSocketSubscriber socketSubscriber) :
             base(exchangeName, configuration, new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookSnapshotsRepository, orderBookEventsRepository)
         {
-            _configuration = configuration;
-
+            socketSubscriber.Subscribe(BitmexTopic.OrderBookL2, HandleResponseAsync);
         }
-
 
         protected override async Task MessageLoopImpl()
         {
-            try
-            {
-                await Messenger.ConnectAsync(CancellationToken);
-                await Subscribe();
-                RechargeHeartbeat();
-
-                var response = await ReadResponse();
-
-                for (var i = 0; i < 10 && (response is UnknownResponse || response is SuccessResponse); i++)
-                {
-                    response = await ReadResponse();
-                }
-
-                while (!CancellationToken.IsCancellationRequested)
-                {
-                    await HandleTableResponse((TableResponse)response);
-                    response = await ReadResponse();
-                    RechargeHeartbeat();
-                }
-            }
-            finally
-            {
-                try
-                {
-                    await Messenger.StopAsync(CancellationToken);
-                }
-                catch (Exception)
-                {
-
-                }
-            }
+            // OrderBookHarvester reading cycle is not used
         }
 
-        private async Task<object> ReadResponse()
+        protected override void StartReading()
         {
-            var rs = await Messenger.GetResponseAsync(CancellationToken);
-            var response = JObject.Parse(rs);
-            var firstNodeName = response.First.Path;
-            if (firstNodeName == ErrorResponse.Token)
-            {
-                var error = response.ToObject<ErrorResponse>();
-                throw new InvalidOperationException(error.Error); // Some domain error. Unable to handle it here
-            }
-
-            if (firstNodeName == SuccessResponse.Token)
-            {
-                return response.ToObject<SuccessResponse>();
-            }
-
-            if (firstNodeName == TableResponse.Token)
-            {
-                return response.ToObject<TableResponse>();
-            }
-
-            return new UnknownResponse();
+            // Do not start message reading loop
+            // Only measure loop is started
         }
 
-        private async Task HandleTableResponse(TableResponse table)
+        private async Task HandleResponseAsync(TableResponse table)
         {
             var orderBookItems = table.Data.Select(o => o.ToOrderBookItem()).ToList();
             var groupByPair = orderBookItems.GroupBy(ob => ob.Symbol);
@@ -104,14 +59,12 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                     }
                     break;
                 default:
-                    await Log.WriteWarningAsync(nameof(HandleTableResponse), "Parsing table response",
-                        $"Unknown table action {table.Action}");
+                    await Log.WriteWarningAsync(nameof(HandleResponseAsync), "Parsing order book table response", $"Unknown table action {table.Action}");
                     break;
             }
         }
 
-        private OrderBookEventType ActionToOrderBookEventType(
-            TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.Action action)
+        private OrderBookEventType ActionToOrderBookEventType(Action action)
         {
             switch (action)
             {
@@ -127,15 +80,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 default:
                     throw new ArgumentOutOfRangeException(nameof(action), action, null);
             }
-        }
-
-        private async Task Subscribe()
-        {
-            var filter = _configuration.SupportedCurrencySymbols
-                .Select(i => new Tuple<string, string>("orderBookL2",
-                    i.ExchangeSymbol)).ToArray();
-            var request = SubscribeRequest.BuildRequest(filter);
-            await Messenger.SendRequestAsync(request, CancellationToken);
         }
     }
 }

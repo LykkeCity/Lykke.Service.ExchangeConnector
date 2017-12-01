@@ -53,6 +53,17 @@ namespace TradingBot.Modules
                 .As<IApplicationFacade>()
                 .SingleInstance();
 
+            builder.RegisterType<BitmexSocketSubscriber>()
+                .SingleInstance();
+
+            builder.RegisterType<BitMexOrderHarvester>()
+                .WithParameter(new NamedParameter("exchangeName", BitMexExchange.Name))
+                .SingleInstance();
+
+            builder.RegisterType<BitMexPriceHarvester>()
+                .WithParameter(new NamedParameter("exchangeName", BitMexExchange.Name))
+                .SingleInstance();
+
             builder.RegisterType<BitMexOrderBooksHarvester>()
                 .WithParameter(new NamedParameter("exchangeName", BitMexExchange.Name))
                 .SingleInstance();
