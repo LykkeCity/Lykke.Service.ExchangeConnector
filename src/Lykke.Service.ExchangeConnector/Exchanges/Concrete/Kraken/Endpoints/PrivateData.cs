@@ -12,6 +12,7 @@ using TradingBot.Exchanges.Concrete.Kraken.Entities;
 using TradingBot.Exchanges.Concrete.Kraken.Requests;
 using TradingBot.Exchanges.Concrete.Kraken.Responses;
 using TradingBot.Helpers;
+using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
@@ -31,14 +32,17 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
         private readonly string apiKey;
         private readonly string apiPrivateKey;
         private readonly NonceProvider nonceProvider;
+        private readonly IReadOnlyCollection<CurrencySymbol> _currencySymbols;
 
-        public PrivateData(ApiClient apiClient, string apiKey, string apiPrivateKey, NonceProvider nonceProvider)
+        public PrivateData(ApiClient apiClient, string apiKey, string apiPrivateKey, NonceProvider nonceProvider, 
+            IReadOnlyCollection<CurrencySymbol> currencySymbols)
         {
             this.apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
 
             this.apiKey = apiKey;
             this.apiPrivateKey = apiPrivateKey;
             this.nonceProvider = nonceProvider;
+            _currencySymbols = currencySymbols;
         }
 
         public Task<Dictionary<string, decimal>> GetAccountBalance(TranslatedSignalTableEntity translatedSignal, CancellationToken cancellationToken)
@@ -69,7 +73,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
 
         public Task<AddStandardOrderResponse> AddOrder(TradingSignal tradingSignal, TranslatedSignalTableEntity translatedSignal, CancellationToken cancellationToken)
         {
-            var request = new AddStandardOrderRequest(tradingSignal);
+            var request = new AddStandardOrderRequest(tradingSignal, _currencySymbols);
 
             return MakePostRequestAsync<AddStandardOrderResponse>("AddOrder", request, translatedSignal, cancellationToken);
         }

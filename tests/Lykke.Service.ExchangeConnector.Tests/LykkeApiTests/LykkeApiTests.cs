@@ -10,13 +10,18 @@ using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 using Xunit;
 
-namespace TradingBot.Tests.LykkeApiTests
+namespace Lykke.Service.ExchangeConnector.Tests.LykkeApiTests
 {
     public class LykkeApiTests
     {
         private readonly LykkeExchangeConfiguration config = new LykkeExchangeConfiguration()
             {
-                Instruments = new [] { "BTCUSD" },
+                SupportedCurrencySymbols = new[] {
+                    new CurrencySymbol
+                    {
+                        LykkeSymbol = "BTCUSD",
+                        ExchangeSymbol = "BTCUSD",
+                    }},
                 EndpointUrl = "",
                 ApiKey = ""
             };

@@ -13,7 +13,7 @@ using TradingBot.Exchanges.Abstractions.Models;
 using TradingBot.Helpers;
 using TradingBot.Infrastructure.Exceptions;
 
-namespace TradingBot.Exchanges.Abstractions.RestClient
+namespace TradingBot.Exchanges.Abstractions
 {
     internal class RestApiClient
     {

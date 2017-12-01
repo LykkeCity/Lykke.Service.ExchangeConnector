@@ -11,10 +11,10 @@ namespace TradingBot.Exchanges.Concrete.GDAX.WssClient.Entities
         public decimal LastSize { get; set; }
 
         [JsonProperty("best_bid")]
-        public decimal BestBid { get; set; }
+        public decimal? BestBid { get; set; }
 
         [JsonProperty("best_ask")]
-        public decimal BestAsk { get; set; }
+        public decimal? BestAsk { get; set; }
 
         public override string ToString()
         {

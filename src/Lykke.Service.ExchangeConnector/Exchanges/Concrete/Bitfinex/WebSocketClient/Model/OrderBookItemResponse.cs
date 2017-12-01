@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using TradingBot.Exchanges.Concrete.Shared;
 
 namespace TradingBot.Exchanges.Concrete.Bitfinex.WebSocketClient.Model
@@ -20,7 +21,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex.WebSocketClient.Model
         {
             return new OrderBookItem(EqualsFunc, GetHashCodeFunc)
             {
-                Id = Id,
+                Id = Id.ToString(CultureInfo.InvariantCulture),
                 IsBuy = Amount > 0,
                 Price = Price,
                 Symbol = Pair,

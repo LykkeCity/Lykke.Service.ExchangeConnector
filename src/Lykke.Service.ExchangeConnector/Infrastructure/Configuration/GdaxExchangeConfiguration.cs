@@ -8,9 +8,9 @@ namespace TradingBot.Infrastructure.Configuration
 
         public bool Enabled { get; set; }
 
-        public string[] Instruments { get; set; }
-
         public bool SaveQuotesToAzure { get; set; }
+
+        public bool SaveOrderBooksToAzure { get; set; }
 
         public bool PubQuotesToRabbit { get; set; }
 
@@ -26,6 +26,6 @@ namespace TradingBot.Infrastructure.Configuration
 
         public string UserAgent { get; set; }
 
-        public Dictionary<string, string> CurrencyMapping { get; set; }
+        public IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; set; }
     }
 }

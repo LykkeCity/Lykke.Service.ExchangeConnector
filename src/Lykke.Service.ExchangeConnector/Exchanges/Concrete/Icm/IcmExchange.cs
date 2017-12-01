@@ -11,6 +11,7 @@ using QuickFix.Transport;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Icm.Converters;
+using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 using TradingBot.Repositories;
@@ -105,7 +106,8 @@ namespace TradingBot.Exchanges.Concrete.Icm
             var rabbitSettings = new RabbitMqSubscriptionSettings()
             {
                 ConnectionString = config.RabbitMq.GetConnectionString(),
-                ExchangeName = config.RabbitMq.Exchange
+                ExchangeName = config.RabbitMq.Exchange,
+                QueueName = config.RabbitMq.Exchange + ".ExchangeConnector"
             };
             var errorStrategy = new DefaultErrorHandlingStrategy(_log, rabbitSettings);
             rabbit = new RabbitMqSubscriber<OrderBook>(rabbitSettings, errorStrategy)

@@ -84,14 +84,16 @@ namespace TradingBot
 
         private void SetupTradingSignalsSubscription(RabbitMqMultyExchangeConfiguration rabbitConfig)
         {
-            var handler = new TradingSignalsHandler(_exchanges, _log, TranslatedSignalsRepository);
-
+            var handler = new TradingSignalsHandler(_exchanges, _log, TranslatedSignalsRepository, _config.AspNet.ApiTimeout);
 
             var subscriberSettings = new RabbitMqSubscriptionSettings()
             {
                 ConnectionString = rabbitConfig.GetConnectionString(),
-                ExchangeName = rabbitConfig.Signals.Exchange
+                ExchangeName = rabbitConfig.Signals.Exchange,
+                QueueName = rabbitConfig.Signals.Queue,
+                IsDurable = false
             };
+            
             var errorStrategy = new DefaultErrorHandlingStrategy(_log, subscriberSettings);
             _signalSubscriber = new RabbitMqSubscriber<TradingSignal>(subscriberSettings, errorStrategy)
                 .SetMessageDeserializer(new GenericRabbitModelConverter<TradingSignal>())
@@ -117,7 +119,7 @@ namespace TradingBot
             {
                 exchange?.Stop();
             }
-
+            _signalSubscriber?.Stop();
         }
 
         public IReadOnlyCollection<IExchange> GetExchanges()

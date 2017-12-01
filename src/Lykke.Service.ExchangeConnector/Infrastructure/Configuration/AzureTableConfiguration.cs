@@ -7,5 +7,7 @@
         public string StorageConnectionString { get; set; }
 
         public string AssetsTableName { get; } = "Assets";
+
+        public string LogTableName { get; set; } = "logsExchangeConnector";
     }
 }

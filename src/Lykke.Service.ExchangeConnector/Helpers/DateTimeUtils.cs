@@ -4,7 +4,7 @@ namespace TradingBot.Helpers
 {
     public static class DateTimeUtils
     {
-        internal static DateTime BaseUnixDateTime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        internal static readonly DateTime BaseUnixDateTime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         public static DateTime FromUnix(long unixtime)
         {
@@ -18,8 +18,8 @@ namespace TradingBot.Helpers
 
         public static DateTime FromUnix(decimal unixtime)
         {
-            long baseTicks = BaseUnixDateTime.Ticks;
-            long ticks = decimal.ToInt64(unixtime * 10000000);
+            var baseTicks = BaseUnixDateTime.Ticks;
+            var ticks = decimal.ToInt64(unixtime * 10000000);
             return new DateTime(ticks + baseTicks);
         }
 

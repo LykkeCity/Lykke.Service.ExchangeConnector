@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
@@ -11,20 +9,12 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
     public class GdaxRestApiClientTests
     {
         private readonly GdaxRestApi _api;
-        private readonly Guid _orderId = Guid.NewGuid();
-
-        private const string _userAgent = "LykkeTest";
-        private const string _apiKey = "";
-        private const string _apiSecret = "";
-        private const string _apiPassPhrase = "";
 
         public GdaxRestApiClientTests()
         {
-            _api = new GdaxRestApi(_apiKey, _apiSecret, _apiPassPhrase)
-            {
-                BaseUri = new Uri(GdaxRestApi.GdaxSandboxApiUrl),
-                ConnectorUserAgent = _userAgent
-            };
+            var configuration = GdaxHelpers.GetGdaxConfiguration();
+            _api = new GdaxRestApi(configuration.ApiKey, configuration.ApiSecret, configuration.PassPhrase,
+                configuration.RestEndpointUrl, configuration.UserAgent);
         }
 
         [Fact]
@@ -79,19 +69,11 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
         [Fact]
         public async Task AddAndCancelOrder()
         {
-            var newOrder = await _api.AddOrder("BTC-USD", 5, 0.01m, GdaxOrderSide.Buy, GdaxOrderType.Limit);
+            var newOrder = await _api.AddOrder("BTC-USD", 5, 100.01m, GdaxOrderSide.Buy, GdaxOrderType.Limit);
 
             var result = await _api.CancelOrder(newOrder.Id);
             
-            Assert.NotNull(result);
-            Assert.Equal(1, result.Count);
-            var cancelledId = result.First();
-            Assert.Equal(cancelledId, newOrder.Id);
-
-            //var order = await _api.GetOrderStatus(newOrder.Id);
-            //Assert.NotNull(order);
-            //Assert.Equal(cancelledId, order.Id);
-            //Assert.Equal("cancelled", order.Status);
+            Assert.True(result);
         }
 
         /// <summary>

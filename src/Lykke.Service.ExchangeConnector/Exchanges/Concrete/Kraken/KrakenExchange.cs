@@ -35,7 +35,8 @@ namespace TradingBot.Exchanges.Concrete.Kraken
 
             var httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds(3) }; // TODO: HttpClient have to be Singleton
             publicData = new PublicData(new ApiClient(httpClient, log));
-            privateData = new PrivateData(new ApiClient(new HttpClient() { Timeout = TimeSpan.FromSeconds(30) }, log), config.ApiKey, config.PrivateKey, new NonceProvider());
+            privateData = new PrivateData(new ApiClient(new HttpClient() { Timeout = TimeSpan.FromSeconds(30) }, log), config.ApiKey, config.PrivateKey, 
+                new NonceProvider(), Config.SupportedCurrencySymbols);
         }
 
         protected override void StartImpl()
@@ -53,19 +54,19 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             {
                 pricesJob = Task.Run(async () =>
                 {
-                    var lasts = Instruments.Select(x => (long)0).ToList();
+                    var lasts = Instruments.ToDictionary(x => x.Name, x => 0L);
 
                     while (!ctSource.IsCancellationRequested)
                     {
                         try
                         {
-                            for (int i = 0; i < Instruments.Count && !ctSource.IsCancellationRequested; i++)
+                            foreach (var pair in config.SupportedCurrencySymbols)
                             {
                                 SpreadDataResult result;
 
                                 try
                                 {
-                                    result = await publicData.GetSpread(ctSource.Token, Instruments[i].Name, lasts[i]);
+                                    result = await publicData.GetSpread(ctSource.Token, pair.ExchangeSymbol, lasts[pair.LykkeSymbol]);
                                 }
                                 catch (Exception e)
                                 {
@@ -77,13 +78,14 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                                     continue;
                                 }
 
-                                lasts[i] = result.Last;
-                                var i1 = i;
-                                var prices = result.Data.Single().Value.Select(x => new TickPrice(Instruments[i1], x.Time, x.Ask, x.Bid)).ToArray();
+                                lasts[pair.LykkeSymbol] = result.Last;
+                                var prices = result.Data.Single().Value.Select(x => 
+                                    new TickPrice(Instruments.Single(i => i.Name == pair.LykkeSymbol), 
+                                    x.Time, x.Ask, x.Bid)).ToArray();
 
                                 if (prices.Any())
                                 {
-                                    if (prices.Length == 1 && prices[0].Time == DateTimeUtils.FromUnix(lasts[i]))
+                                    if (prices.Length == 1 && prices[0].Time == DateTimeUtils.FromUnix(lasts[pair.LykkeSymbol]))
                                     {
                                         // If there is only one price and it has timestamp of last one, ignore it.
                                     }

@@ -15,7 +15,11 @@ namespace TradingBot.Tests.BitstampApiTests
             {
                 Enabled = true,
                 ApplicationKey = "de504dc5763aeef9ff52",
-                Instruments = new [] { "BTCUSD" }
+                SupportedCurrencySymbols = new[] {
+                    new CurrencySymbol {
+                        LykkeSymbol = "BTCUSD",
+                        ExchangeSymbol = "BTCUSD",
+                    }}
             }, null, new LogToConsole());
 
             var tcs = new TaskCompletionSource<bool>();

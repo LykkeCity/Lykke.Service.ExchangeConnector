@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
-using Newtonsoft.Json.Linq;
+using TradingBot.Communications;
+using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient;
 using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
@@ -10,109 +13,73 @@ using Action = TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.Action
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
-    internal sealed class BitMexOrderBooksHarvester : OrderBooksHarvesterBase
+    internal sealed class BitMexOrderBooksHarvester : OrderBooksWebSocketHarvester<object, string>
     {
-        private readonly IExchangeConfiguration _configuration;
-
-        public BitMexOrderBooksHarvester(BitMexExchangeConfiguration configuration, ILog log) : base(configuration, configuration.WebSocketEndpointUrl, log)
+        public BitMexOrderBooksHarvester(string exchangeName, 
+            BitMexExchangeConfiguration configuration, 
+            ILog log, 
+            OrderBookSnapshotsRepository orderBookSnapshotsRepository,
+            OrderBookEventsRepository orderBookEventsRepository,
+            BitmexSocketSubscriber socketSubscriber) :
+            base(exchangeName, configuration, new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookSnapshotsRepository, orderBookEventsRepository)
         {
-            _configuration = configuration;
-
+            socketSubscriber.Subscribe(BitmexTopic.OrderBookL2, HandleResponseAsync);
         }
 
         protected override async Task MessageLoopImpl()
         {
-            try
-            {
-                await Messenger.ConnectAsync();
-                await Subscribe();
-                RechargeHeartbeat();
-
-                var response = await ReadResponse();
-
-                for (var i = 0; i < 10 && (response is UnknownResponse || response is SuccessResponse); i++)
-                {
-                    response = await ReadResponse();
-                }
-
-                while (!CancellationToken.IsCancellationRequested)
-                {
-                    await HandleTableResponse((TableResponse)response);
-                    response = await ReadResponse();
-                    RechargeHeartbeat();
-                }
-            }
-            finally
-            {
-                try
-                {
-                    await Messenger.StopAsync();
-                }
-                catch (Exception)
-                {
-
-                }
-            }
+            // OrderBookHarvester reading cycle is not used
         }
 
-        private async Task<object> ReadResponse()
+        protected override void StartReading()
         {
-            var rs = await Messenger.GetResponseAsync();
-            var response = JObject.Parse(rs);
-            var firstNodeName = response.First.Path;
-            if (firstNodeName == ErrorResponse.Token)
-            {
-                var error = response.ToObject<ErrorResponse>();
-                throw new InvalidOperationException(error.Error); // Some domain error. Unable to handle it here
-            }
-
-            if (firstNodeName == SuccessResponse.Token)
-            {
-                return response.ToObject<SuccessResponse>();
-            }
-
-            if (firstNodeName == TableResponse.Token)
-            {
-                return response.ToObject<TableResponse>();
-            }
-
-            return new UnknownResponse();
+            // Do not start message reading loop
+            // Only measure loop is started
         }
 
-        private async Task HandleTableResponse(TableResponse table)
+        private async Task HandleResponseAsync(TableResponse table)
         {
+            var orderBookItems = table.Data.Select(o => o.ToOrderBookItem()).ToList();
+            var groupByPair = orderBookItems.GroupBy(ob => ob.Symbol);
+
             switch (table.Action)
             {
                 case Action.Partial:
-                    OrderBookSnapshot.Clear();
-                    goto case Action.Update;
-                case Action.Update:
-                case Action.Insert:
-                    foreach (var item in table.Data)
+                    foreach (var symbolGroup in groupByPair)
                     {
-                        OrderBookSnapshot.Add(item.ToOrderBookItem());
+                        await HandleOrdebookSnapshotAsync(symbolGroup.Key, DateTime.UtcNow, orderBookItems);
                     }
                     break;
+                case Action.Update:
+                case Action.Insert:
                 case Action.Delete:
-                    foreach (var item in table.Data)
+                    foreach (var symbolGroup in groupByPair)
                     {
-                        OrderBookSnapshot.Remove(item.ToOrderBookItem());
+                        await HandleOrdersEventsAsync(symbolGroup.Key, ActionToOrderBookEventType(table.Action), orderBookItems);
                     }
                     break;
                 default:
-                    await Log.WriteWarningAsync(nameof(HandleTableResponse), "Parsing table response", $"Unknown table action {table.Action}");
+                    await Log.WriteWarningAsync(nameof(HandleResponseAsync), "Parsing order book table response", $"Unknown table action {table.Action}");
                     break;
             }
-
-            await PublishOrderBookSnapshotAsync();
         }
 
-
-        private async Task Subscribe()
+        private OrderBookEventType ActionToOrderBookEventType(Action action)
         {
-            var filter = _configuration.Instruments.Select(i => new Tuple<string, string>("orderBookL2", BitMexModelConverter.ConvertSymbolFromLykkeToBitMex(i, CurrencyMappingProvider))).ToArray();
-            var request = SubscribeRequest.BuildRequest(filter);
-            await Messenger.SendRequestAsync(request);
+            switch (action)
+            {
+                case Action.Update:
+                    return OrderBookEventType.Update;
+                case Action.Insert:
+                    return OrderBookEventType.Add;
+                case Action.Delete:
+                    return OrderBookEventType.Delete;
+                case Action.Unknown:
+                case Action.Partial:
+                    throw new NotSupportedException($"Order action {action} cannot be converted to OrderBookEventType");
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(action), action, null);
+            }
         }
     }
 }
