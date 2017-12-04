@@ -167,6 +167,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                     return ExecutionStatus.PartialFill;
                 case "Canceled":
                     return ExecutionStatus.Cancelled;
+                case "Rejeсted":
+                    return ExecutionStatus.Rejected;
                 default:
                     return ExecutionStatus.Unknown;
             }
