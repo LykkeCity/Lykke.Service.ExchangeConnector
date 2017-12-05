@@ -19,7 +19,6 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         public WebSocketTextMessenger(string endpointUrl, ILog log)
         {
-
             _endpointUrl = endpointUrl;
             _log = log;
         }
@@ -40,7 +39,6 @@ namespace TradingBot.Exchanges.Concrete.Shared
                 .WaitAndRetryAsync(attempts, attempt => TimeSpan.FromSeconds(3));
             try
             {
-
                 await retryPolicy.ExecuteAsync(async () =>
                 {
                     try
@@ -51,19 +49,26 @@ namespace TradingBot.Exchanges.Concrete.Shared
                     }
                     catch (Exception ex)
                     {
-                        await _log.WriteErrorAsync(nameof(ConnectAsync), $"Unable to connect to {_endpointUrl}", ex);
+                        if (!cancellationToken.IsCancellationRequested)
+                        {
+                            await _log.WriteErrorAsync(nameof(ConnectAsync), $"Unable to connect to {_endpointUrl}",
+                                ex);
+                        }
                         throw;
                     }
                 });
             }
-            catch (Exception ex)
+            catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
             {
-                await _log.WriteErrorAsync(nameof(ConnectAsync), $"Unable to connect to {_endpointUrl} after {attempts} attempts", ex);
                 throw;
             }
-
+            catch (Exception ex)
+            {
+                await _log.WriteErrorAsync(nameof(ConnectAsync),
+                    $"Unable to connect to {_endpointUrl} after {attempts} attempts", ex);
+                throw;
+            }
         }
-
 
         public async Task SendRequestAsync(object request, CancellationToken cancellationToken)
         {
@@ -72,21 +77,22 @@ namespace TradingBot.Exchanges.Concrete.Shared
                 var msg = EncodeRequest(request);
                 await _clientWebSocket.SendAsync(msg, WebSocketMessageType.Text, true, cancellationToken);
             }
+            catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 await _log.WriteErrorAsync(nameof(ConnectAsync), "An exception occurred while sending request", ex);
-
                 throw;
             }
         }
-
 
         public async Task<string> GetResponseAsync(CancellationToken cancellationToken)
         {
             using (var cts = new CancellationTokenSource(_responseTimeout))
             using (var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, cancellationToken))
             {
-
                 var buffer = new byte[10000];
                 var segment = new ArraySegment<byte>(buffer);
                 var sb = new StringBuilder();
@@ -100,8 +106,6 @@ namespace TradingBot.Exchanges.Concrete.Shared
                 return sb.ToString();
             }
         }
-
-
 
         private static ArraySegment<byte> EncodeRequest(object request)
         {
