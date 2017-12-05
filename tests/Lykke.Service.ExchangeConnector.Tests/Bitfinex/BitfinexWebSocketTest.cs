@@ -67,8 +67,30 @@ namespace TradingBot.Tests.BitMex
             OrderBookUpdateResponse.Parse(update);
 
             Assert.NotNull(respose);
+        }
 
+        [Fact]
+        public async Task SubscribeToTickers()
+        {
+            await _clientWebSocket.ConnectAsync(CancellationToken.None);
+            var info = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
 
+            Assert.NotNull(info);
+
+            var request = new SubscribeRequest
+            {
+                Event = "subscribe",
+                Channel = "ticker",
+                Pair = "BTCUSD"
+            };
+            await _clientWebSocket.SendRequestAsync(request, CancellationToken.None);
+            
+            var successfull = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
+            var respose = JsonConvert.DeserializeObject<SubscribedResponse>(successfull);
+            var ticker = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
+            TickerResponse.Parse(ticker);
+            
+            Assert.NotNull(respose);
         }
 
         public void Dispose()
