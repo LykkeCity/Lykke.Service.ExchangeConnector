@@ -30,11 +30,11 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             {
                 // Symbol = ConvertSymbolFromBitMexToLykke(position.Symbol, configuration).Name,
                 Symbol = "USDBTC", //HACK Hard code!
-                PositionVolume = Convert.ToDecimal(position.CurrentQty),
+                PositionVolume = -Convert.ToDecimal(position.CurrentQty),
                 MaintMarginUsed = Convert.ToDecimal(position.MaintMargin) / SatoshiRate,
                 RealisedPnL = Convert.ToDecimal(position.RealisedPnl) / SatoshiRate,
                 UnrealisedPnL = Convert.ToDecimal(position.UnrealisedPnl) / SatoshiRate,
-                PositionValue = -Convert.ToDecimal(position.MarkValue) / SatoshiRate,
+                PositionValue = Convert.ToDecimal(position.MarkValue) / SatoshiRate,
                 AvailableMargin = 0, // Nothing to map
                 InitialMarginRequirement = Convert.ToDecimal(position.InitMarginReq),
                 MaintenanceMarginRequirement = Convert.ToDecimal(position.MaintMarginReq)
@@ -101,11 +101,12 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
         public static string ConvertTradeType(TradeType signalTradeType)
         {
+            // HACK!!! the direction is inverted
             switch (signalTradeType)
             {
-                case TradeType.Buy:
-                    return "Buy";
                 case TradeType.Sell:
+                    return "Buy";
+                case TradeType.Buy:
                     return "Sell";
                 default:
                     throw new ArgumentOutOfRangeException(nameof(signalTradeType), signalTradeType, null);
@@ -114,12 +115,13 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
         public static TradeType ConvertTradeType(string signalTradeType)
         {
+            // HACK!!! the direction is inverted
             switch (signalTradeType)
             {
                 case "Buy":
-                    return TradeType.Buy;
-                case "Sell":
                     return TradeType.Sell;
+                case "Sell":
+                    return TradeType.Buy;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(signalTradeType), signalTradeType, null);
             }
