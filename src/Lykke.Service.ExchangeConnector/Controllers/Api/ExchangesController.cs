@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using TradingBot.Infrastructure.Monitoring;
 using TradingBot.Models;
 using TradingBot.Models.Api;
@@ -23,6 +24,7 @@ namespace TradingBot.Controllers.Api
         /// <remarks>The names of available exchanges participates in API calls for exchange-specific methods</remarks>
         /// <response code="200">An array of strings which are the names of exchanges</response>
         [HttpGet]
+        [SwaggerOperation("GetSupportedExchanges")]
         public IEnumerable<string> List()
         {
             return Application.GetExchanges().Select(x => x.Name);
@@ -34,6 +36,7 @@ namespace TradingBot.Controllers.Api
         /// <param name="exchangeName">Name of the specific exchange</param>
         /// <response code="200">An information about the exchange, such as available trading instruments</response>
         /// <response code="400">Bad request response is returned in case of specifying name of unavailable exchange</response>
+        [SwaggerOperation("GetExchangeInfo")]
         [HttpGet("{exchangeName}")]
         [ProducesResponseType(typeof(ExchangeInformationModel), 200)]
         [Produces("application/json")]
@@ -63,6 +66,7 @@ namespace TradingBot.Controllers.Api
         [ProducesResponseType(typeof(IEnumerable<ExchangeRatingModel>), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
         [Produces("application/json")]
+        [SwaggerOperation("GetRating")]
         public IActionResult GetRating()
         {
             return Ok(_ratingValuer.Rating);

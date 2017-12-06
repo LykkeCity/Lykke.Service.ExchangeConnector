@@ -15,6 +15,8 @@ using Lykke.SlackNotification.AzureQueue;
 using AzureStorage;
 using AzureStorage.Blob;
 using AzureStorage.Tables;
+using Newtonsoft.Json;
+using Swashbuckle.AspNetCore.Swagger;
 using TradingBot.Communications;
 using TradingBot.Repositories;
 using TradingBot.Infrastructure.Auth;
@@ -50,9 +52,12 @@ namespace TradingBot
 
             app.UseMiddleware<StatusCodeExceptionHandler>();
 
-            app.UseMvcWithDefaultRoute();
+            app.UseMvc();
+            app.UseSwagger(c =>
+            {
+                c.PreSerializeFilters.Add((swagger, httpReq) => swagger.Host = httpReq.Host.Value);
+            });
 
-            app.UseSwagger();
             app.UseSwaggerUI(x =>
             {
                 x.RoutePrefix = "swagger/ui";
@@ -89,12 +94,16 @@ namespace TradingBot
             try
             {
                 // Add framework services.
-                services.AddMvc();
+                services.AddMvc()
+                    .AddJsonOptions(options =>
+                    {
+                        options.SerializerSettings.DateTimeZoneHandling = DateTimeZoneHandling.Utc;
+                    });
 
                 services.AddSwaggerGen(options =>
                 {
                     options.DefaultLykkeConfiguration("v1", "ExchangeConnectorAPI");
-                    options.OperationFilter<AddSwaggerAuthorizationHeaderParameter>();
+                    options.AddSecurityDefinition("CustomScheme", new ApiKeyScheme { In = "header", Description = "Please insert API key into field", Name = ApiKeyAuthAttribute.HeaderName, Type = "apiKey" });
                 });
 
                 var settingsManager = Configuration.LoadSettings<TradingBotSettings>("SettingsUrl");

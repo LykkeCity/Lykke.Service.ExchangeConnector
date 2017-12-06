@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
@@ -30,11 +31,11 @@ namespace TradingBot.Controllers.Api
         /// <param name="exchangeName">The exchange name</param>
         /// <response code="200">Active positions</response>
         /// <response code="500">Unexpected error</response>
+        [SwaggerOperation("GetOpenedPosition")]
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<PositionModel>), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
         [ProducesResponseType(400)]
-        [Produces("application/json")]
         public async Task<IActionResult> Index([FromQuery, Required] string exchangeName)
         {
             try

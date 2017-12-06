@@ -1,6 +1,7 @@
 ﻿using System;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.PlatformAbstractions;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using TradingBot.Models;
 
 namespace TradingBot.Controllers.Api
@@ -15,6 +16,7 @@ namespace TradingBot.Controllers.Api
         /// Checks service is alive
         /// </summary>
         [HttpGet]
+        [SwaggerOperation("IsAlive")]
         [Produces("application/json", Type = typeof(IsAliveResponseModel))]
         public IsAliveResponseModel Get()
         {

@@ -60,3 +60,4 @@ node_modules
 **/appsettings.*.json
 
 /src/Lykke.Service.ExchangeConnector/store
+*.DotSettings
