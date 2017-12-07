@@ -217,6 +217,10 @@ namespace TradingBot.Infrastructure.WebSockets
                 {
                     throw;
                 }
+                catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     await Log.WriteErrorAsync(nameof(MessageLoopImpl), $"An exception occurred while working with WebSocket. Reconnect in {smallTimeout} sec", ex);
@@ -244,6 +248,11 @@ namespace TradingBot.Infrastructure.WebSockets
             }
 
             public static readonly Result Ok = new Result(false, true);
+        }
+
+        private void ValidateInstance()
+        {
+            if (_isDisposed) { throw new InvalidOperationException("Calling disposed instance."); }
         }
     }
 }
