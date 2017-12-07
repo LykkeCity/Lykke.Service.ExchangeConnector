@@ -128,28 +128,6 @@ namespace TradingBot.Exchanges.Concrete.Icm
                     })
                 .Start();
         }
-        
-        protected override async Task<bool> AddOrderImpl(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
-        {
-            await LykkeLog.WriteInfoAsync(
-                nameof(Icm),
-                nameof(IcmExchange),
-                nameof(AddOrderImpl),
-                $"About to place new order for {signal}");
-            
-            return connector.AddOrder(signal, translatedSignal);
-        }
-
-        protected override async Task<bool> CancelOrderImpl(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
-        {
-            await LykkeLog.WriteInfoAsync(
-                nameof(Icm),
-                nameof(IcmExchange),
-                nameof(AddOrderImpl),
-                $"Canceling order {signal}");
-
-            return connector.CancelOrder(signal, translatedSignal);
-        }
 
         public override Task<ExecutedTrade> GetOrder(string orderId, Instrument instrument, TimeSpan timeout)
         {

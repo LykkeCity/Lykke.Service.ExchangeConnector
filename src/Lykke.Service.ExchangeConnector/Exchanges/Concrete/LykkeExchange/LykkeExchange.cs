@@ -13,6 +13,7 @@ using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.LykkeExchange.Entities;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Infrastructure.Wamp;
 using TradingBot.Repositories;
 using TradingBot.Trading;
@@ -237,8 +238,20 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             OnStopped();
         }
 
-        protected override async Task<bool> AddOrderImpl(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        private StringContent CreateHttpContent(object value)
         {
+            var content = new StringContent(JsonConvert.SerializeObject(value));
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+            return content;
+        }
+
+        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal,
+            TimeSpan timeout)
+        {
+            var cts = new CancellationTokenSource(timeout);
+            
+            
             switch (signal.OrderType)
             {
                 case OrderType.Market:
@@ -253,9 +266,18 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                             Volume = signal.Volume
                         }),
                         translatedSignal,
-                        CancellationToken.None);
+                        cts.Token);
 
-                    return marketOrderResponse != null && marketOrderResponse.Error == null;
+                    if (marketOrderResponse != null && marketOrderResponse.Error == null)
+                    {
+                        return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, marketOrderResponse.Result,
+                            signal.Volume, signal.TradeType,
+                            signal.OrderId, ExecutionStatus.Fill);
+                    }
+                    else
+                    {
+                        throw new ApiException("Unexpected result from exchange");
+                    }
 
                 case OrderType.Limit:
 
@@ -269,69 +291,40 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                             Price = signal.Price ?? 0
                         }),
                         translatedSignal,
-                        CancellationToken.None);
+                        cts.Token);
 
                     var orderPlaced = limitOrderResponse != null && Guid.TryParse(limitOrderResponse, out var orderId);
 
                     if (orderPlaced)
                     {
                         translatedSignal.ExternalId = orderId.ToString();
+                        return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume,
+                            signal.TradeType,
+                            orderId.ToString(), ExecutionStatus.New);
+                    }
+                    else
+                    {
+                        throw new ApiException("Unexpected result from exchange");
                     }
 
-                    return orderPlaced;
-
                 default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        }
-
-        private StringContent CreateHttpContent(object value)
-        {
-            var content = new StringContent(JsonConvert.SerializeObject(value));
-            content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-
-            return content;
-        }
-
-        protected override async Task<bool> CancelOrderImpl(TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal)
-        {
-            await apiClient.MakePostRequestAsync<string>(
-               $"{Config.EndpointUrl}/api/Orders/{signal.OrderId}/Cancel",
-               CreateHttpContent(new object()),
-               trasnlatedSignal,
-               CancellationToken.None);
-
-            return true;
-        }
-
-        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal,
-            TimeSpan timeout)
-        {
-            if (await AddOrder(signal, translatedSignal))
-            {
-                return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
-                    signal.OrderId, ExecutionStatus.New);
-            }
-            else
-            {
-                return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
-                    signal.OrderId, ExecutionStatus.Rejected);
+                    throw new ApiException($"Unsupported OrderType {signal.OrderType}");
             }
         }
 
         public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            if (await CancelOrder(signal, translatedSignal))
-            {
-                return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
-                    signal.OrderId, ExecutionStatus.Cancelled);
-            }
-            else
-            {
-                return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
-                    signal.OrderId, ExecutionStatus.Rejected);
-            }
+            var cts = new CancellationTokenSource(timeout);
+            
+            string result = await apiClient.MakePostRequestAsync<string>(
+                $"{Config.EndpointUrl}/api/Orders/{signal.OrderId}/Cancel",
+                CreateHttpContent(new object()),
+                translatedSignal,
+                cts.Token);
+            
+            return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
+                signal.OrderId, ExecutionStatus.Cancelled);
         }
 
         public async Task CancelAllOrders()

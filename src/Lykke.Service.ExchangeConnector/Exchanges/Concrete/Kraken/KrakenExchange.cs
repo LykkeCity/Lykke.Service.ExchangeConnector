@@ -164,18 +164,6 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                 });
         }
 
-
-        protected override async Task<bool> AddOrderImpl(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
-        {
-            var executedTrade = await AddOrderAndWaitExecution(signal, translatedSignal, TimeSpan.FromSeconds(30));
-
-            if (executedTrade == null) return false;
-
-            translatedSignal.SetExecutionResult(executedTrade);
-
-            return true;
-        }
-
         public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
