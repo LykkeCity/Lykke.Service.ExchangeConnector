@@ -47,21 +47,30 @@ namespace TradingBot.Exchanges.Concrete.Shared
                     {
                         _clientWebSocket = new ClientWebSocket();
                         await _clientWebSocket.ConnectAsync(uri, cancellationToken);
-                        await _log.WriteInfoAsync(nameof(ConnectAsync), "Successfully connected to WebSocket", $"API endpoint {_endpointUrl}");
+                        await _log.WriteInfoAsync(nameof(ConnectAsync), "Successfully connected to WebSocket",
+                            $"API endpoint {_endpointUrl}");
                     }
                     catch (Exception ex)
                     {
-                        await _log.WriteErrorAsync(nameof(ConnectAsync), $"Unable to connect to {_endpointUrl}", ex);
+                        if (!cancellationToken.IsCancellationRequested)
+                        {
+                            await _log.WriteErrorAsync(nameof(ConnectAsync), $"Unable to connect to {_endpointUrl}",
+                                ex);
+                        }
                         throw;
                     }
                 });
             }
-            catch (Exception ex)
+            catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
             {
-                await _log.WriteErrorAsync(nameof(ConnectAsync), $"Unable to connect to {_endpointUrl} after {attempts} attempts", ex);
                 throw;
             }
-
+            catch (Exception ex)
+            {
+                await _log.WriteErrorAsync(nameof(ConnectAsync),
+                    $"Unable to connect to {_endpointUrl} after {attempts} attempts", ex);
+                throw;
+            }
         }
 
 
@@ -72,10 +81,13 @@ namespace TradingBot.Exchanges.Concrete.Shared
                 var msg = EncodeRequest(request);
                 await _clientWebSocket.SendAsync(msg, WebSocketMessageType.Text, true, cancellationToken);
             }
+            catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 await _log.WriteErrorAsync(nameof(ConnectAsync), "An exception occurred while sending request", ex);
-
                 throw;
             }
         }

@@ -23,7 +23,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
     internal class BitMexExchange : Exchange
     {
         private readonly BitMexOrderBooksHarvester _orderBooksHarvester;
-        private readonly BitmexSocketSubscriber _socketSubscriber;
+        private readonly IBitmexSocketSubscriber _socketSubscriber;
         private readonly IBitMEXAPI _exchangeApi;
         public new const string Name = "bitmex";
 
@@ -32,7 +32,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             BitMexOrderBooksHarvester orderBooksHarvester,
             BitMexOrderHarvester orderHarvester,
             BitMexPriceHarvester priceHarvester,
-            BitmexSocketSubscriber socketSubscriber,
+            IBitmexSocketSubscriber socketSubscriber,
             ILog log)
             : base(Name, configuration, translatedSignalsRepository, log)
         {
