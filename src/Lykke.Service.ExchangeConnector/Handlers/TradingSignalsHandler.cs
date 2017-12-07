@@ -51,6 +51,8 @@ namespace TradingBot.Handlers
 
         private async Task HandleTradingSignals(Exchange exchange, TradingSignal signal)
         {
+            await logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleTradingSignals), signal.ToString(), "New trading signal to be handled.");
+            
             var translatedSignal = new TranslatedSignalTableEntity(SignalSource.RabbitQueue, signal);
 
             try
@@ -75,6 +77,9 @@ namespace TradingBot.Handlers
             finally
             {
                 translatedSignalsRepository.Save(translatedSignal);
+
+                await logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleTradingSignals),
+                    signal.ToString(), "Signal handled. Waiting for another one.");
             }
         }
 
@@ -88,7 +93,7 @@ namespace TradingBot.Handlers
                     translatedSignal.Failure("The signal is too old");
                     
                     await logger.WriteInfoAsync(nameof(TradingSignalsHandler),
-                        nameof(HandleTradingSignals),
+                        nameof(HandleCreation),
                         signal.ToString(),
                         "Skipping old signal");
 
@@ -106,14 +111,14 @@ namespace TradingBot.Handlers
                 if (orderAdded || orderFilled)
                 {
                     await logger.WriteInfoAsync(nameof(TradingSignalsHandler),
-                        nameof(HandleTradingSignals),
+                        nameof(HandleCreation),
                         signal.ToString(),
                         "Created new order");
                 }
                 else
                 {
                     await logger.WriteWarningAsync(nameof(TradingSignalsHandler),
-                        nameof(HandleTradingSignals),
+                        nameof(HandleCreation),
                         signal.ToString(),
                         $"Added order is in unexpected status: {executedTrade}");
     
@@ -130,7 +135,7 @@ namespace TradingBot.Handlers
             catch (Exception e)
             {
                 await logger.WriteErrorAsync(nameof(TradingSignalsHandler),
-                    nameof(HandleTradingSignals),
+                    nameof(HandleCreation),
                     signal.ToString(),
                     e);
                 
@@ -150,7 +155,7 @@ namespace TradingBot.Handlers
                 if (executedTrade.Status == ExecutionStatus.Cancelled)
                 {
                     logger.WriteInfoAsync(nameof(TradingSignalsHandler),
-                        nameof(HandleTradingSignals),
+                        nameof(HandleCancellation),
                         signal.ToString(),
                         "Canceled order").Wait();
 
@@ -161,7 +166,7 @@ namespace TradingBot.Handlers
                     var message = $"Executed trade status {executedTrade.Status} after calling 'exchange.CancelOrderAndWaitExecution'";
                     translatedSignal.Failure(message);
                     await logger.WriteWarningAsync(nameof(TradingSignalsHandler),
-                        nameof(HandleTradingSignals),
+                        nameof(HandleCancellation),
                         signal.ToString(),
                         message);
                 }
@@ -170,7 +175,7 @@ namespace TradingBot.Handlers
             {
                 translatedSignal.Failure(e);
                 await logger.WriteErrorAsync(nameof(TradingSignalsHandler),
-                    nameof(HandleTradingSignals),
+                    nameof(HandleCancellation),
                     signal.ToString(),
                     e);
             }

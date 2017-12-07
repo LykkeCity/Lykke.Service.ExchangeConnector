@@ -25,7 +25,6 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
     internal class LykkeExchange : Exchange
     {
         public new static readonly string Name = "lykke";
-        private static readonly Object _sync = new Object();
         private new LykkeExchangeConfiguration Config => (LykkeExchangeConfiguration) base.Config;
         private readonly ApiClient apiClient;
         private CancellationTokenSource ctSource;
