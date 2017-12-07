@@ -565,7 +565,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return Session.SendToTarget(request);
         }
 
-        public bool AddOrder(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        private bool AddOrder(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             if (!orderSignals.TryAdd(signal.OrderId, signal))
                 throw new InvalidOperationException($"Order with ID {signal.OrderId} was sent already");
@@ -682,7 +682,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return result;
         }
 
-        public bool CancelOrder(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+        private bool CancelOrder(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
         {
             logger.WriteInfoAsync(nameof(IcmConnector), nameof(CancelOrder), string.Empty, $"Generating request for cancelling order {signal.OrderId} for {signal.Instrument.Name}").Wait();
 
