@@ -7,7 +7,9 @@ namespace TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model
         [JsonProperty("error")]
         public string Error { get; set; }
 
-        public const string Token = "error";
+        [JsonProperty("status")]
+        public int? Status { get; set; }
 
+        public const string Token = "error";
     }
 }

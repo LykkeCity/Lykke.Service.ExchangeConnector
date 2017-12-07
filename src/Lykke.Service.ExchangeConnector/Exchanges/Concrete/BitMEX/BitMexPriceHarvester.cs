@@ -21,7 +21,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         public BitMexPriceHarvester(
             string exchangeName,
             BitMexExchangeConfiguration configuration,
-            BitmexSocketSubscriber socketSubscriber,
+            IBitmexSocketSubscriber socketSubscriber,
             ILog log)
         {
             _log = log;
