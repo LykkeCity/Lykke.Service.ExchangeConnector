@@ -32,8 +32,6 @@ namespace TradingBot.Exchanges.Abstractions
 
         public IReadOnlyList<Instrument> Instruments { get; }
 
-        private readonly TimeSpan _defaultTimeOut = TimeSpan.FromSeconds(30);
-
         protected Exchange(string name, IExchangeConfiguration config, 
             TranslatedSignalsRepository translatedSignalsRepository, ILog log)
         {

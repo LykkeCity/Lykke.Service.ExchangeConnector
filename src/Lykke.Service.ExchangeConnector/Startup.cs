@@ -152,7 +152,7 @@ namespace TradingBot
                 builder.RegisterInstance(fixMessagesStorage).As<INoSQLTableStorage<FixMessageTableEntity>>().SingleInstance();
 
                 var signalsStorage = AzureTableStorage<TranslatedSignalTableEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "translatedSignals", log);
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), settings.AzureStorage.TranslatedSignalsTableName, log);
                 builder.RegisterInstance(signalsStorage).As<INoSQLTableStorage<TranslatedSignalTableEntity>>().SingleInstance();
 
                 var orderBookSnapshotStorage = AzureTableStorage<OrderBookSnapshotEntity>.Create(
