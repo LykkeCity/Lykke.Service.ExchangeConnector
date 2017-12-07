@@ -53,7 +53,8 @@ namespace TradingBot.Modules
                 .As<IApplicationFacade>()
                 .SingleInstance();
 
-            builder.RegisterType<BitmexSocketSubscriber>()
+            builder.RegisterType<BitmexSocketSubscriberProxy>()
+                .As<IBitmexSocketSubscriber>()
                 .SingleInstance();
 
             builder.RegisterType<BitMexOrderHarvester>()

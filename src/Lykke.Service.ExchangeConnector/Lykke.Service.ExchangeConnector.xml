@@ -9816,6 +9816,11 @@
             Thrown if validation fails
             </exception>
         </member>
+        <member name="T:TradingBot.Exchanges.Concrete.BitMEX.BitmexSocketSubscriberProxy">
+            <summary>
+            Redirects calls to opened-data socket and authorized socket.
+            </summary>
+        </member>
         <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities.GdaxActiveOrdersPost.OrderId">
             <summary>
             This class can be used to send a cancel message in addition to 

@@ -20,7 +20,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             ILog log, 
             OrderBookSnapshotsRepository orderBookSnapshotsRepository,
             OrderBookEventsRepository orderBookEventsRepository,
-            BitmexSocketSubscriber socketSubscriber) :
+            IBitmexSocketSubscriber socketSubscriber) :
             base(exchangeName, configuration, new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookSnapshotsRepository, orderBookEventsRepository)
         {
             socketSubscriber.Subscribe(BitmexTopic.OrderBookL2, HandleResponseAsync);

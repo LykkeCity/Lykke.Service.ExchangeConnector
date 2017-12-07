@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
@@ -13,56 +15,81 @@ using TradingBot.Infrastructure.WebSockets;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
-    class BitmexSocketSubscriber : WebSocketSubscriber
+    class BitmexSocketSubscriber : WebSocketSubscriber, IBitmexSocketSubscriber
     {
+        private readonly bool _authorized;
         private readonly BitMexExchangeConfiguration _configuration;
         private readonly Dictionary<string, Func<TableResponse, Task>> _handlers = new Dictionary<string, Func<TableResponse, Task>>();
 
-        public BitmexSocketSubscriber(BitMexExchangeConfiguration configuration, ILog log)
+        public BitmexSocketSubscriber(BitMexExchangeConfiguration configuration, ILog log, bool authorized = false)
             : base(configuration.WebSocketEndpointUrl, log)
         {
+            _authorized = authorized;
             _configuration = configuration;
         }
 
-        public virtual BitmexSocketSubscriber Subscribe(BitmexTopic topic, Func<TableResponse, Task> topicHandler)
+        public virtual IBitmexSocketSubscriber Subscribe(BitmexTopic topic, Func<TableResponse, Task> topicHandler)
         {
             _handlers[topic.ToString().ToLowerInvariant()] = topicHandler;
             return this;
         }
 
-        protected override async Task Connect(CancellationToken token)
+        protected override async Task<Result> Connect(CancellationToken token)
         {
+            if (_authorized && (string.IsNullOrEmpty(_configuration.ApiKey) || string.IsNullOrEmpty(_configuration.ApiSecret)))
+            {
+                var error = "ApiKey and ApiSecret must be specified to authorize BitMex web socket subscription.";
+                await Log.WriteFatalErrorAsync(nameof(BitmexSocketSubscriber), nameof(HandleResponse), new InvalidOperationException(error));
+                return new Result(isFailure: true, _continue: false, error: error);
+            }
+
             await base.Connect(token);
-            if (!String.IsNullOrEmpty(_configuration.ApiSecret) && !string.IsNullOrEmpty(_configuration.ApiSecret))
+            if (_authorized)
             {
                 await Authorize(token);
+                await Subscribe(new[] { "order" }, token);
             }
-            await Subscribe(token);
+            await Subscribe(new[] { "orderBookL2", "quote" }, token);
+            return Result.Ok;
         }
 
-        protected override async Task HandleResponse(string json, CancellationToken token)
+        protected override async Task<Result> HandleResponse(string json, CancellationToken token)
         {
             var response = JObject.Parse(json);
 
-            var firstNodeName = response.First.Path;
-            if (firstNodeName == ErrorResponse.Token)
+            JToken infoProp = response.GetValue("info", StringComparison.InvariantCultureIgnoreCase);
+            JToken errorProp = response.GetValue("error", StringComparison.InvariantCultureIgnoreCase);
+            JToken successProp = response.GetValue("success", StringComparison.InvariantCultureIgnoreCase);
+            JToken tableProp = response.GetValue("table", StringComparison.InvariantCultureIgnoreCase);
+
+            if (errorProp != null)
             {
                 var error = response.ToObject<ErrorResponse>();
-                throw new InvalidOperationException(error.Error); // Some domain error. Unable to handle it here
+                if ((error.Status.HasValue && error.Status.Value == (int)HttpStatusCode.Unauthorized))
+                {
+                    await Log.WriteFatalErrorAsync(nameof(BitmexSocketSubscriber), nameof(HandleResponse), new AuthenticationException(error.Error));
+                    return new Result(isFailure: true, _continue: false, error: error.Error);
+                }
+                else
+                {
+                    throw new InvalidOperationException(error.Error);
+                }
             }
-            else if (firstNodeName == SuccessResponse.Token)
+            else if (infoProp != null || (successProp != null && successProp.Value<bool>()))
             {
-                // ignore
+                // Ignoring success and info messages
             }
-            else if (firstNodeName == TableResponse.Token)
+            else if (tableProp != null)
             {
-                TableResponse table = response.ToObject<TableResponse>();
-                await HandleTableResponse(table);
+                await HandleTableResponse(response.ToObject<TableResponse>());
             }
             else
             {
-                // UnknownResponse
+                // Unknown response
+                await Log.WriteWarningAsync(nameof(HandleResponse), "", $"Ignoring unknown response: {json}");
             }
+
+            return Result.Ok;
         }
 
         protected virtual Task Authorize(CancellationToken token)
@@ -78,16 +105,16 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return Messenger.SendRequestAsync(request, token);
         }
 
-        protected virtual async Task Subscribe(CancellationToken token)
+        protected virtual async Task Subscribe(IEnumerable<string> topics, CancellationToken token)
         {
-            var bitMexInstruments = _configuration.SupportedCurrencySymbols;
+            var filter = new List<Tuple<string, string>>();
+            foreach (var topic in topics)
+            {
+                filter.AddRange(
+                    _configuration.SupportedCurrencySymbols.Select(i => new Tuple<string, string>(topic, i.ExchangeSymbol)));
+            }
 
-            var filter = bitMexInstruments.Select(i => new Tuple<string, string>("orderBookL2", i.ExchangeSymbol))
-                    .Concat(bitMexInstruments.Select(i => new Tuple<string, string>("quote", i.ExchangeSymbol)))
-                    .Concat(bitMexInstruments.Select(i => new Tuple<string, string>("order", i.ExchangeSymbol)))
-                    .ToArray();
-            var request = SubscribeRequest.BuildRequest(filter);
-
+            var request = SubscribeRequest.BuildRequest(filter.ToArray());
             await Messenger.SendRequestAsync(request, token);
         }
 
