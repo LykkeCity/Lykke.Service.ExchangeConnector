@@ -14,38 +14,39 @@ namespace TradingBot.Infrastructure.WebSockets
     class WebSocketSubscriber : IDisposable
     {
         protected readonly ILog Log;
-        protected readonly WebSocketTextMessenger Messenger;
+        protected readonly IMessenger<object, string> Messenger;
         protected Func<string, Task> Handler;
         protected CancellationToken CancellationToken;
 
         private Task _messageLoopTask;
         private CancellationTokenSource _cancellationTokenSource;
         private readonly Timer _heartBeatMonitoringTimer;
-        private readonly TimeSpan _heartBeatPeriod = TimeSpan.FromSeconds(30);
+        private readonly TimeSpan _heartBeatPeriod;
         private static readonly object _sync = new object();
-        private bool _isStarted = false;
-        private bool _isDisposed = false;
+        private volatile State _state = State.Stopped;
 
-        public WebSocketSubscriber(string uri, ILog log)
+        public WebSocketSubscriber(IMessenger<object, string> messenger, ILog log, TimeSpan? heartbeatPeriod = null)
         {
             Log = log.CreateComponentScope(GetType().Name);
-            Messenger = new WebSocketTextMessenger(uri, Log);
+            Messenger = messenger;
+            _heartBeatPeriod = heartbeatPeriod ?? TimeSpan.FromSeconds(30);
             _heartBeatMonitoringTimer = new Timer(ForceStopMessenger);
         }
 
         private async void ForceStopMessenger(object state)
         {
-            ValidateInstance();
             await Log.WriteWarningAsync(nameof(ForceStopMessenger), "Monitoring heartbeat", $"Heart stopped. Restarting {GetType().Name}");
-            Stop();
-            try
+
+            lock (_sync)
             {
-                await _messageLoopTask;
+                if (_state == State.Starting || _state == State.Stopping || _state == State.Disposed)
+                {
+                    return;
+                }
+
+                StopImpl();
+                StartImpl();
             }
-            catch (OperationCanceledException)
-            {
-            }
-            Start();
         }
 
         protected void RechargeHeartbeat()
@@ -81,65 +82,29 @@ namespace TradingBot.Infrastructure.WebSockets
         {
             ValidateInstance();
 
-            if (_isStarted)
-                return;
-
             lock (_sync)
             {
-                if (_isStarted)
+                if (_state != State.Stopped)
                     return;
 
-                _isStarted = true;
+                _state = State.Starting;
+                StartImpl();
+                _state = State.Started;
             }
-
-            Log.WriteInfoAsync(nameof(Start), "Starting", $"Starting {GetType().Name}").Wait();
-            _cancellationTokenSource = new CancellationTokenSource();
-            CancellationToken = _cancellationTokenSource.Token;
-            _messageLoopTask = Task.Run(async () => await MessageLoop());
         }
 
         public virtual void Stop()
         {
             ValidateInstance();
 
-            if (!_isStarted)
-                return;
-
             lock (_sync)
             {
-                if (!_isStarted)
+                if (_state != State.Started)
                     return;
-                _isStarted = false;
-            }
 
-            Log.WriteInfoAsync(nameof(Stop), "Stopping", $"Stopping {GetType().Name}").Wait();
-            _heartBeatMonitoringTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-            _cancellationTokenSource?.Cancel();
-            try
-            {
-                _messageLoopTask?.GetAwaiter().GetResult();
-            }
-            catch (OperationCanceledException)
-            {
-            }
-            _cancellationTokenSource?.Dispose();
-            _cancellationTokenSource = null;
-        }
-
-        public void Dispose()
-        {
-            this.Dispose(true);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_isDisposed)
-            {
-                Stop();
-                Messenger?.Dispose();
-                _messageLoopTask?.Dispose();
-                _heartBeatMonitoringTimer?.Dispose();
-                _isDisposed = true;
+                _state = State.Stopping;
+                StopImpl();
+                _state = State.Stopped;
             }
         }
 
@@ -160,7 +125,6 @@ namespace TradingBot.Infrastructure.WebSockets
                 }
 
                 RechargeHeartbeat();
-
                 while (!CancellationToken.IsCancellationRequested)
                 {
                     var response = await Messenger.GetResponseAsync(CancellationToken);
@@ -224,15 +188,65 @@ namespace TradingBot.Infrastructure.WebSockets
             }, CancellationToken);
         }
 
+
+        private void StartImpl()
+        {
+            Log.WriteInfoAsync(nameof(Start), "Starting", $"Starting {GetType().Name}").Wait();
+            _cancellationTokenSource = new CancellationTokenSource();
+            CancellationToken = _cancellationTokenSource.Token;
+            _messageLoopTask = Task.Run(async () => await MessageLoop());
+        }
+
+        private void StopImpl()
+        {
+            Log.WriteInfoAsync(nameof(Stop), "Stopping", $"Stopping {GetType().Name}").Wait();
+            _cancellationTokenSource?.Cancel();
+            try
+            {
+                _messageLoopTask?.GetAwaiter().GetResult();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            // Stop heartbeat timer can be recharged in the loop
+            _heartBeatMonitoringTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            _cancellationTokenSource?.Dispose();
+            _cancellationTokenSource = null;
+        }
+
         private void ValidateInstance()
         {
-            if (_isDisposed)
+            if (_state == State.Disposed)
             {
                 throw new InvalidOperationException("Calling disposed instance.");
             }
         }
 
-protected class Result
+        #region "IDispose Implementation"
+        public void Dispose()
+        {
+            this.Dispose(true);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            lock (_sync)
+            {
+                if (_state == State.Disposed)
+                {
+                    return;
+                }
+
+                StopImpl();
+                _messageLoopTask?.Dispose();
+                _heartBeatMonitoringTimer?.Dispose();
+
+                _state = State.Disposed;
+            }
+        }
+        #endregion
+
+        protected class Result
         {
             public bool IsFailure { get; private set; }
             public string Error { get; private set; }
@@ -246,6 +260,15 @@ protected class Result
             }
 
             public static readonly Result Ok = new Result(false, true);
+        }
+
+        enum State
+        {
+            Stopped = 0,
+            Starting,
+            Started,
+            Stopping,
+            Disposed
         }
     }
 }
