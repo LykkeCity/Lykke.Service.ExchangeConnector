@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Common.Log;
 using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient;
 using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
+using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
@@ -17,13 +18,17 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
     /// </summary>
     sealed class BitmexSocketSubscriberProxy : IBitmexSocketSubscriber
     {
+        private readonly IMessenger<object, string> _openMessenger;
+        private readonly IMessenger<object, string> _authMessenger;
         private readonly BitmexSocketSubscriber _openSocket;
         private readonly BitmexSocketSubscriber _authSocket;
 
         public BitmexSocketSubscriberProxy(BitMexExchangeConfiguration configuration, ILog log)
         {
-            _openSocket = new BitmexSocketSubscriber(configuration, log, false);
-            _authSocket = new BitmexSocketSubscriber(configuration, log, true);
+            _openMessenger = new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log);
+            _authMessenger = new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log);
+            _openSocket = new BitmexSocketSubscriber(_openMessenger, configuration, log, false);
+            _authSocket = new BitmexSocketSubscriber(_authMessenger, configuration, log, true);
         }
 
         public IBitmexSocketSubscriber Subscribe(BitmexTopic topic, Func<TableResponse, Task> topicHandler)
@@ -59,6 +64,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         {
             _openSocket.Dispose();
             _authSocket.Dispose();
+            _openMessenger.Dispose();
+            _authMessenger.Dispose();
         }
     }
 }
