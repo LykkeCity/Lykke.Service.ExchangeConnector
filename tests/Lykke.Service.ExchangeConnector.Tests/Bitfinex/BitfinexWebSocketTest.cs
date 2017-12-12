@@ -2,12 +2,11 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient.Model;
+using Lykke.ExternalExchangesApi.Shared;
 using Newtonsoft.Json;
-using TradingBot.Exchanges.Concrete.Bitfinex.WebSocketClient.Model;
-using TradingBot.Exchanges.Concrete.Shared;
 using Xunit;
 using Xunit.Abstractions;
-using SubscribeRequest = TradingBot.Exchanges.Concrete.Bitfinex.WebSocketClient.Model.SubscribeRequest;
 
 namespace TradingBot.Tests.BitMex
 {

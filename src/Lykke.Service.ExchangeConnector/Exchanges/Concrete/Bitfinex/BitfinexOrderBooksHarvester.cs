@@ -1,15 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using Castle.Core;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient.Model;
+using Lykke.ExternalExchangesApi.Shared;
 using TradingBot.Communications;
-using TradingBot.Exchanges.Concrete.Bitfinex.WebSocketClient.Model;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
-using SubscribeRequest = TradingBot.Exchanges.Concrete.Bitfinex.WebSocketClient.Model.SubscribeRequest;
 
 namespace TradingBot.Exchanges.Concrete.Bitfinex
 {
@@ -61,9 +63,9 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         {
             var json = await Messenger.GetResponseAsync(CancellationToken);
 
-            var result = EventResponse.Parse(json) ?? 
+            var result = EventResponse.Parse(json) ??
                 TickerResponse.Parse(json) ??
-                OrderBookSnapshotResponse.Parse(json) ?? 
+                OrderBookSnapshotResponse.Parse(json) ??
                 (dynamic)OrderBookUpdateResponse.Parse(json) ??
                 HeartbeatResponse.Parse(json);
             return result;
@@ -151,28 +153,30 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
             await HandleOrdebookSnapshotAsync(pair,
                 DateTime.UtcNow, // TODO: Get this from the server
-                snapshot.Orders.Select(o => o.ToOrderBookItem()));
+                snapshot.Orders.Select(BitfinexModelConverter.ToOrderBookItem));
         }
+
+
 
         private async Task HandleResponse(TickerResponse ticker)
         {
-            var pair = _channels[ticker.ChannelId].Pair; 
+            var pair = _channels[ticker.ChannelId].Pair;
 
-            var tickPrice = new TickPrice(new Instrument(ExchangeName, pair), DateTime.UtcNow, 
+            var tickPrice = new TickPrice(new Instrument(ExchangeName, pair), DateTime.UtcNow,
                 ticker.Ask, ticker.Bid);
             await CallTickPricesHandlers(tickPrice);
         }
 
         private async Task HandleResponse(OrderBookUpdateResponse response)
         {
-            var orderBookItem = response.ToOrderBookItem();
+            var orderBookItem = BitfinexModelConverter.ToOrderBookItem(response);
             var pair = _channels[response.ChannelId].Pair;
             response.Pair = pair;
 
             if (response.Price == 0)
             {
-                await HandleOrdersEventsAsync(response.Pair, 
-                    OrderBookEventType.Delete, new[] {orderBookItem});
+                await HandleOrdersEventsAsync(response.Pair,
+                    OrderBookEventType.Delete, new[] { orderBookItem });
             }
             else
             {

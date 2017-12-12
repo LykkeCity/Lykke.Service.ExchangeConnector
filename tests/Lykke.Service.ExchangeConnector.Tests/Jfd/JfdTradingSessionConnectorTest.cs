@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Exchanges.Jfd;
 using QuickFix.Fields;
 using QuickFix.FIX44;
 using TradingBot.Exchanges.Concrete.Jfd.FixClient;
@@ -49,7 +50,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
                     "EndTime=23:00:00"
                 }
             };
-            _connector = new JfdTradeSessionConnector(config, new LogToConsole());
+            var connectorConfig = new JfdConnectorConfiguration(config.Password, config.GetTradingFixConfigAsReader());
+            _connector = new JfdTradeSessionConnector(connectorConfig, new LogToConsole());
         }
 
         [Fact]

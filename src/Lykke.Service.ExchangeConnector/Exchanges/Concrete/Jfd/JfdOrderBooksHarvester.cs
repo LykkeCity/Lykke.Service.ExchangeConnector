@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Exchanges.Jfd;
 using QuickFix.Fields;
 using QuickFix.FIX44;
 using TradingBot.Communications;
@@ -18,10 +19,15 @@ namespace TradingBot.Exchanges.Concrete.Jfd
         private readonly JfdModelConverter _modelConverter;
 
         public JfdOrderBooksHarvester(string exchangeName, JfdExchangeConfiguration configuration, JfdModelConverter modelConverter, ILog log, OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
-            : base(exchangeName, configuration, new JfdQuotesSessionConnector(configuration, log), log, orderBookSnapshotsRepository, orderBookEventsRepository)
+            : base(exchangeName, configuration, new JfdQuotesSessionConnector(GetConnectorConfig(configuration), log), log, orderBookSnapshotsRepository, orderBookEventsRepository)
         {
             _configuration = configuration;
             _modelConverter = modelConverter;
+        }
+
+        private static JfdConnectorConfiguration GetConnectorConfig(JfdExchangeConfiguration exchangeConfiguration)
+        {
+            return new JfdConnectorConfiguration(exchangeConfiguration.Password, exchangeConfiguration.GetQuotingFixConfigAsReader());
         }
 
         protected override async Task MessageLoopImpl()
