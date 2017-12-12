@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Common.Log;
-using Polly;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Infrastructure.Exceptions;
@@ -13,51 +12,47 @@ namespace TradingBot.Handlers
 {
     internal class TradingSignalsHandler : Handler<TradingSignal>
     {
-        private readonly Dictionary<string, Exchange> exchanges;
+        private readonly IReadOnlyDictionary<string, Exchange> exchanges;
         private readonly ILog logger;
         private readonly TranslatedSignalsRepository translatedSignalsRepository;
         private readonly TimeSpan tradingSignalsThreshold = TimeSpan.FromMinutes(10);
+        private readonly TimeSpan apiTimeout;
 
-        public TradingSignalsHandler(Dictionary<string, Exchange> exchanges, ILog logger, TranslatedSignalsRepository translatedSignalsRepository)
+        public TradingSignalsHandler(Dictionary<string, Exchange> exchanges, ILog logger, TranslatedSignalsRepository translatedSignalsRepository, TimeSpan apiTimeout)
         {
             this.exchanges = exchanges;
             this.logger = logger;
             this.translatedSignalsRepository = translatedSignalsRepository;
+            this.apiTimeout = apiTimeout;
         }
-        
         
         public override Task Handle(TradingSignal message)
         {
+            if (message == null || message.Instrument == null || string.IsNullOrEmpty(message.Instrument.Name))
+            {
+                return logger.WriteWarningAsync(
+                    nameof(TradingSignalsHandler),
+                    nameof(Handle),
+                    message?.ToString(),
+                    $"Received an unconsistent signal");
+            }
+            
             if (!exchanges.ContainsKey(message.Instrument.Exchange))
             {
-                logger.WriteWarningAsync(
+                return logger.WriteWarningAsync(
                         nameof(TradingSignalsHandler),
                         nameof(Handle),
-                        string.Empty,
-                        $"Received a trading signal for unconnected exchange {message.Instrument.Exchange}")
-                    .Wait();
-                return Task.FromResult(0);
+                        message.ToString(),
+                        $"Received a trading signal for unconnected exchange {message.Instrument.Exchange}");
             }
-            else
-            {
-                return HandleTradingSignals(exchanges[message.Instrument.Exchange], message);    
-            }
+                
+            return HandleTradingSignals(exchanges[message.Instrument.Exchange], message);    
         }
-        
-        
-        private readonly Policy retryTwoTimesPolicy = Policy
-            .Handle<Exception>(x => !(x is InsufficientFundsException))
-            .WaitAndRetryAsync(1, attempt => TimeSpan.FromSeconds(3));
-        
-        public async Task HandleTradingSignals(Exchange exchange, TradingSignal signal)
+
+        private async Task HandleTradingSignals(Exchange exchange, TradingSignal signal)
         {
-            if (signal == null || signal.Instrument == null || string.IsNullOrEmpty(signal.Instrument.Name))
-            {
-                return;
-            }
-
-            var instrumentName = signal.Instrument.Name;
-
+            await logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleTradingSignals), signal.ToString(), "New trading signal to be handled.");
+            
             var translatedSignal = new TranslatedSignalTableEntity(SignalSource.RabbitQueue, signal);
 
             try
@@ -65,97 +60,12 @@ namespace TradingBot.Handlers
                 switch (signal.Command)
                 {
                     case OrderCommand.Create:
-                        try
-                        {
-                            if (!signal.IsTimeInThreshold(tradingSignalsThreshold))
-                            {
-                                await logger.WriteInfoAsync(nameof(TradingSignalsHandler),
-                                    nameof(HandleTradingSignals),
-                                    signal.ToString(),
-                                    "Skipping old signal");
-
-                                translatedSignal.Failure("The signal is too old");
-                                break;
-                            }
-
-                            var result = await retryTwoTimesPolicy.ExecuteAndCaptureAsync(() =>
-                                exchange.AddOrder(signal, translatedSignal));
-
-                            if (result.Outcome == OutcomeType.Successful)
-                            {
-                                await logger.WriteInfoAsync(nameof(TradingSignalsHandler),
-                                    nameof(HandleTradingSignals),
-                                    signal.ToString(),
-                                    "Created new order");
-                            }
-                            else
-                            {
-                                await logger.WriteErrorAsync(nameof(TradingSignalsHandler),
-                                    nameof(HandleTradingSignals),
-                                    signal.ToString(),
-                                    result.FinalException);
-
-                                translatedSignal.Failure(result.FinalException);
-                            }
-
-                            await exchange.CallAcknowledgementsHandlers(CreateAcknowledgement(exchange, result, instrumentName, signal, translatedSignal));
-                        }
-                        catch (Exception e)
-                        {
-                            await logger.WriteErrorAsync(nameof(TradingSignalsHandler),
-                                nameof(HandleTradingSignals),
-                                signal.ToString(),
-                                e);
-                            
-                            translatedSignal.Failure(e);
-                        }
+                        await HandleCreation(signal, translatedSignal, exchange);
                         break;
-
-                    case OrderCommand.Edit:
-                        throw new NotSupportedException("Do not support edit signal");
-
                     case OrderCommand.Cancel:
-
-                        try
-                        {
-                            var result = await retryTwoTimesPolicy.ExecuteAndCaptureAsync(() =>
-                                exchange.CancelOrder(signal, translatedSignal));
-
-                            if (result.Outcome == OutcomeType.Successful)
-                            {
-                                logger.WriteInfoAsync(nameof(TradingSignalsHandler),
-                                    nameof(HandleTradingSignals),
-                                    signal.ToString(),
-                                    "Canceled order").Wait();
-
-                                if (result.Result)
-                                {
-                                    await exchange.CallExecutedTradeHandlers(new ExecutedTrade(
-                                        signal.Instrument,
-                                        DateTime.UtcNow, signal.Price ?? 0, signal.Volume,
-                                        signal.TradeType,
-                                        signal.OrderId, ExecutionStatus.Cancelled));
-                                }
-                            }
-                            else
-                            {
-                                translatedSignal.Failure(result.FinalException);
-                                await logger.WriteErrorAsync(nameof(TradingSignalsHandler),
-                                    nameof(HandleTradingSignals),
-                                    nameof(HandleTradingSignals),
-                                    result.FinalException);
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            translatedSignal.Failure(e);
-                            await logger.WriteErrorAsync(nameof(TradingSignalsHandler),
-                                nameof(HandleTradingSignals),
-                                signal.ToString(),
-                                e);
-                        }
-
+                        await HandleCancellation(signal, translatedSignal, exchange);
                         break;
+                        
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
@@ -167,26 +77,138 @@ namespace TradingBot.Handlers
             finally
             {
                 translatedSignalsRepository.Save(translatedSignal);
+
+                await logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleTradingSignals),
+                    signal.ToString(), "Signal handled. Waiting for another one.");
             }
-            
         }
 
-        private static Acknowledgement CreateAcknowledgement(Exchange exchange, PolicyResult<bool> result, string instrumentName,
-            TradingSignal arrivedSignal, TranslatedSignalTableEntity translatedSignal)
+        private async Task HandleCreation(TradingSignal signal, TranslatedSignalTableEntity translatedSignal,
+            Exchange exchange)
+        {
+            try
+            {
+                if (!signal.IsTimeInThreshold(tradingSignalsThreshold))
+                {
+                    translatedSignal.Failure("The signal is too old");
+                    
+                    await logger.WriteInfoAsync(nameof(TradingSignalsHandler),
+                        nameof(HandleCreation),
+                        signal.ToString(),
+                        "Skipping old signal");
+
+                    return;
+                }
+
+                var executedTrade = await exchange.AddOrderAndWaitExecution(signal, translatedSignal, apiTimeout);
+
+                bool orderAdded = executedTrade.Status == ExecutionStatus.New ||
+                                  executedTrade.Status == ExecutionStatus.Pending;
+
+                bool orderFilled = executedTrade.Status == ExecutionStatus.Fill ||
+                                   executedTrade.Status == ExecutionStatus.PartialFill;
+    
+                if (orderAdded || orderFilled)
+                {
+                    await logger.WriteInfoAsync(nameof(TradingSignalsHandler),
+                        nameof(HandleCreation),
+                        signal.ToString(),
+                        "Created new order");
+                }
+                else
+                {
+                    await logger.WriteWarningAsync(nameof(TradingSignalsHandler),
+                        nameof(HandleCreation),
+                        signal.ToString(),
+                        $"Added order is in unexpected status: {executedTrade}");
+    
+                    translatedSignal.Failure($"Added order is in unexpected status: {executedTrade}");
+                }
+    
+                logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), signal.ToString(),
+                    "About to call AcknowledgementsHandlers").Wait();
+                await exchange.CallAcknowledgementsHandlers(CreateAcknowledgement(exchange, orderAdded, signal, translatedSignal));
+                logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), signal.ToString(),
+                    "AcknowledgementsHandlers are called").Wait();
+
+                if (orderFilled)
+                {
+                    logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), signal.ToString(),
+                        "About to call ExecutedTradeHandlers").Wait();
+                    await exchange.CallExecutedTradeHandlers(executedTrade);
+                    logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), signal.ToString(),
+                        "ExecutedTradeHandlers are called").Wait();
+                }
+            }
+            catch (Exception e)
+            {
+                await logger.WriteErrorAsync(nameof(TradingSignalsHandler),
+                    nameof(HandleCreation),
+                    signal.ToString(),
+                    e);
+                
+                translatedSignal.Failure(e);
+                
+                await exchange.CallAcknowledgementsHandlers(CreateAcknowledgement(exchange, false, signal, translatedSignal, e));
+            }
+        }
+
+        private async Task HandleCancellation(TradingSignal signal, TranslatedSignalTableEntity translatedSignal,
+            Exchange exchange)
+        {
+            try
+            {
+                var executedTrade = await exchange.CancelOrderAndWaitExecution(signal, translatedSignal, apiTimeout);
+                            
+                if (executedTrade.Status == ExecutionStatus.Cancelled)
+                {
+                    logger.WriteInfoAsync(nameof(TradingSignalsHandler),
+                        nameof(HandleCancellation),
+                        signal.ToString(),
+                        "Canceled order. About to call ExecutedTradeHandlers").Wait();
+
+                    
+                    await exchange.CallExecutedTradeHandlers(executedTrade);
+
+                    logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCancellation), signal.ToString(),
+                        "ExecutedTradeHandlers are called").Wait();
+                }
+                else
+                {
+                    var message = $"Executed trade status {executedTrade.Status} after calling 'exchange.CancelOrderAndWaitExecution'";
+                    translatedSignal.Failure(message);
+                    await logger.WriteWarningAsync(nameof(TradingSignalsHandler),
+                        nameof(HandleCancellation),
+                        signal.ToString(),
+                        message);
+                }
+            }
+            catch (Exception e)
+            {
+                translatedSignal.Failure(e);
+                await logger.WriteErrorAsync(nameof(TradingSignalsHandler),
+                    nameof(HandleCancellation),
+                    signal.ToString(),
+                    e);
+            }
+        }
+
+        private static Acknowledgement CreateAcknowledgement(Exchange exchange, bool success,
+            TradingSignal arrivedSignal, TranslatedSignalTableEntity translatedSignal, Exception exception = null)
         {
             var ack = new Acknowledgement()
             {
-                Success = result.Outcome == OutcomeType.Successful,
+                Success = success,
                 Exchange = exchange.Name,
-                Instrument = instrumentName,
+                Instrument = arrivedSignal.Instrument.Name,
                 ClientOrderId = arrivedSignal.OrderId,
                 ExchangeOrderId = translatedSignal.ExternalId,
                 Message = translatedSignal.ErrorMessage
             };
 
-            if (result.FinalException != null)
+            if (exception != null)
             {
-                switch (result.FinalException)
+                switch (exception)
                 {
                     case InsufficientFundsException _:
                         ack.FailureType = AcknowledgementFailureType.InsufficientFunds;

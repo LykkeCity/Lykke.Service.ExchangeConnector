@@ -17,13 +17,6 @@
             https://docs.microsoft.com/en-us/rest/api/storageservices/Understanding-the-Table-Service-Data-Model
             </summary>
         </member>
-        <member name="F:TradingBot.Communications.OrderBookEventsRepository.MaxQueueCount">
-            <summary>
-            One AzureTable field must be 64k or less. 
-            Strings are stored in UTF16 encoding, so maximum number of characters is 32K.
-            One serialized entry has size no more then 100 characters.
-            </summary>
-        </member>
         <member name="M:TradingBot.Controllers.Api.AccountController.GetBalance(System.String)">
             <summary>
             Returns a simple balance for the exchange
@@ -114,17 +107,17 @@
             <response code="200">Active positions</response>
             <response code="500">Unexpected error</response>
         </member>
-        <member name="P:TradingBot.Exchanges.Abstractions.RestClient.RestApiClient.HttpClient">
+        <member name="P:TradingBot.Exchanges.Abstractions.RestApiClient.HttpClient">
             <summary>
             Gets the used HttpClient
             </summary>
         </member>
-        <member name="P:TradingBot.Exchanges.Abstractions.RestClient.RestApiClient.SerializationSettings">
+        <member name="P:TradingBot.Exchanges.Abstractions.RestApiClient.SerializationSettings">
             <summary>
             Gets or sets json serialization settings.
             </summary>
         </member>
-        <member name="P:TradingBot.Exchanges.Abstractions.RestClient.RestApiClient.DeserializationSettings">
+        <member name="P:TradingBot.Exchanges.Abstractions.RestApiClient.DeserializationSettings">
             <summary>
             Gets or sets json deserialization settings.
             </summary>
@@ -9822,6 +9815,11 @@
             <exception cref="T:Microsoft.Rest.ValidationException">
             Thrown if validation fails
             </exception>
+        </member>
+        <member name="T:TradingBot.Exchanges.Concrete.BitMEX.BitmexSocketSubscriberProxy">
+            <summary>
+            Redirects calls to opened-data socket and authorized socket.
+            </summary>
         </member>
         <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities.GdaxActiveOrdersPost.OrderId">
             <summary>

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient;
@@ -15,8 +13,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
     public class GdaxWssApiClientTests
     {
         private readonly GdaxExchangeConfiguration _configuration;
-        private readonly GdaxWebSocketApi _api;
-        private readonly Guid _orderId = Guid.NewGuid();
+        private readonly LogToConsole _logger;
+        private GdaxWebSocketApi _api;
 
         private const string _btcUsd = "BTC-USD";
         private const string _orderDoneTypeName = "done";
@@ -25,7 +23,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
         public GdaxWssApiClientTests()
         {
             _configuration = GdaxHelpers.GetGdaxConfiguration();
-            _api = new GdaxWebSocketApi(new LogToConsole(), _configuration.ApiKey,
+            _logger = new LogToConsole();
+            _api = new GdaxWebSocketApi(_logger, _configuration.ApiKey,
                 _configuration.ApiSecret, _configuration.PassPhrase, _configuration.WssEndpointUrl);
         }
 
@@ -38,16 +37,29 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
         }
 
         [Fact]
-        public async Task Subscribe()
+        public async Task SubscribeToPrivateOrderUpdates()
         {
             var cancellationToken = new CancellationTokenSource().Token;
             await _api.ConnectAsync(cancellationToken);
-            var skipTask = _api.SubscribeToPrivateUpdatesAsync(new[] { _btcUsd }, cancellationToken);
+            var subscribed = await SubscribeToPrivateOrderUpdatesAsync(10000, cancellationToken);
             await _api.CloseConnectionAsync(cancellationToken);
+
+            Assert.True(subscribed);
         }
 
         [Fact]
-        public async Task SubscribeAndHandleOrderEvents()
+        public async Task SubscribeToOrderBookUpdates()
+        {
+            var cancellationToken = new CancellationTokenSource().Token;
+            await _api.ConnectAsync(cancellationToken);
+            var subscribed = await SubscribeToOrderBookUpdatesAsync(10000, cancellationToken);
+            await _api.CloseConnectionAsync(cancellationToken);
+
+            Assert.True(subscribed);
+        }
+
+        [Fact]
+        public async Task SubscribeAndHandlePrivateOrderEvents()
         {
             var cancellationToken = new CancellationTokenSource().Token;
 
@@ -73,7 +85,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
             try
             {
                 // Subscribe
-                var subscribed = await SubscribeAsync(10000, cancellationToken);
+                var subscribed = await SubscribeToPrivateOrderUpdatesAsync(10000, cancellationToken);
                 Assert.True(subscribed);
 
                 // Raise some events
@@ -119,7 +131,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
         }
 
         [Fact]
-        public async Task SubscribeAndHandleTickerEvents()
+        public async Task SubscribeAndHandlePrivateTickerEvent()
         {
             var cancellationToken = new CancellationTokenSource().Token;
 
@@ -134,7 +146,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
             try
             {
                 // Subscribe
-                var subscribed = await SubscribeAsync(10000, cancellationToken);
+                var subscribed = await SubscribeToOrderBookUpdatesAsync(10000, cancellationToken);
                 Assert.True(subscribed);
 
                 // Wait maximum n seconds the received and done events to be received
@@ -153,7 +165,44 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
             Assert.Equal(_btcUsd, tick.ProductId);
         }
 
-        private async Task<bool> SubscribeAsync(int timeoutMs, CancellationToken cancellationToken)
+        [Fact]
+        public async Task SubscribeAndHandleAnonymousTickerEvent()
+        {
+            _api = new GdaxWebSocketApi(_logger, string.Empty, string.Empty, 
+                string.Empty, _configuration.WssEndpointUrl);
+            var cancellationToken = new CancellationTokenSource().Token;
+
+            var tcsTicker = new TaskCompletionSource<GdaxWssTicker>();
+            _api.Ticker += (sender, ticker) => {
+                tcsTicker.SetResult(ticker);
+                return tcsTicker.Task;
+            };
+
+            // Connect and subscribe to web socket events
+            await _api.ConnectAsync(cancellationToken);
+            try
+            {
+                // Subscribe
+                var subscribed = await SubscribeToOrderBookUpdatesAsync(10000, cancellationToken);
+                Assert.True(subscribed);
+
+                // Wait maximum n seconds the received and done events to be received
+                await WhenAllTaskAreDone(10000, tcsTicker.Task);
+            }
+            finally
+            {
+                await _api.CloseConnectionAsync(cancellationToken);
+            }
+
+            // Check if events were received successfuly
+            // Ticker event
+            Assert.NotNull(tcsTicker.Task);
+            Assert.True(tcsTicker.Task.IsCompletedSuccessfully);
+            var tick = tcsTicker.Task.Result;
+            Assert.Equal(_btcUsd, tick.ProductId);
+        }
+
+        private async Task<bool> SubscribeToPrivateOrderUpdatesAsync(int timeoutMs, CancellationToken cancellationToken)
         {
             var tcsSubscribed = new TaskCompletionSource<string>();
             _api.Subscribed += (sender, message) => {
@@ -163,9 +212,24 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
 
             // Subscribe
             var skipTask = _api.SubscribeToPrivateUpdatesAsync(new[] { _btcUsd }, cancellationToken);
-            await WhenAllTaskAreDone(10000, tcsSubscribed.Task);  // Wait max n milliseconds for subscription
+            await WhenAllTaskAreDone(timeoutMs, tcsSubscribed.Task);  // Wait max n milliseconds for subscription
 
-            return tcsSubscribed != null && tcsSubscribed.Task.IsCompletedSuccessfully;
+            return tcsSubscribed.Task.IsCompletedSuccessfully;
+        }
+
+        private async Task<bool> SubscribeToOrderBookUpdatesAsync(int timeoutMs, CancellationToken cancellationToken)
+        {
+            var tcsSubscribed = new TaskCompletionSource<string>();
+            _api.Subscribed += (sender, message) => {
+                tcsSubscribed.SetResult(message);
+                return tcsSubscribed.Task;
+            };
+
+            // Subscribe
+            var skipTask = _api.SubscribeToOrderBookUpdatesAsync(new[] { _btcUsd }, cancellationToken);
+            await WhenAllTaskAreDone(timeoutMs, tcsSubscribed.Task);  // Wait max n milliseconds for subscription
+
+            return tcsSubscribed.Task.IsCompletedSuccessfully;
         }
 
         private GdaxRestApi CreateRestApi()

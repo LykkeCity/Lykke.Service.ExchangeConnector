@@ -2,7 +2,7 @@
 
 namespace TradingBot.Infrastructure.Exceptions
 {
-    public class OperationRejectedException : Exception
+    internal sealed class OperationRejectedException : Exception
     {
         public OperationRejectedException(string message) : base(message)
         {

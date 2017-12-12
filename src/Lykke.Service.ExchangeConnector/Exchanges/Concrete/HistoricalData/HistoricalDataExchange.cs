@@ -58,16 +58,6 @@ namespace TradingBot.Exchanges.Concrete.HistoricalData
             reader?.Dispose();
         }
 
-        protected override Task<bool> AddOrderImpl(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override Task<bool> CancelOrderImpl(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
-        {
-            throw new NotImplementedException();
-        }
-
         public override Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             throw new NotImplementedException();

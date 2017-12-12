@@ -9,7 +9,6 @@ using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.AutorestClient;
 using TradingBot.Exchanges.Concrete.AutorestClient.Models;
-using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Models.Api;
@@ -24,13 +23,22 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
     internal class BitMexExchange : Exchange
     {
         private readonly BitMexOrderBooksHarvester _orderBooksHarvester;
+        private readonly IBitmexSocketSubscriber _socketSubscriber;
         private readonly IBitMEXAPI _exchangeApi;
         public new const string Name = "bitmex";
 
-        public BitMexExchange(BitMexExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository, 
-            BitMexOrderBooksHarvester orderBooksHarvester, ILog log) : base(Name, configuration, translatedSignalsRepository, log)
+        public BitMexExchange(BitMexExchangeConfiguration configuration,
+            TranslatedSignalsRepository translatedSignalsRepository,
+            BitMexOrderBooksHarvester orderBooksHarvester,
+            BitMexOrderHarvester orderHarvester,
+            BitMexPriceHarvester priceHarvester,
+            IBitmexSocketSubscriber socketSubscriber,
+            ILog log)
+            : base(Name, configuration, translatedSignalsRepository, log)
         {
             _orderBooksHarvester = orderBooksHarvester;
+            _socketSubscriber = socketSubscriber;
+
             var credenitals = new BitMexServiceClientCredentials(configuration.ApiKey, configuration.ApiSecret);
             _exchangeApi = new BitMEXAPI(credenitals)
             {
@@ -39,6 +47,9 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
             orderBooksHarvester.AddHandler(CallOrderBookHandlers);
             orderBooksHarvester.MaxOrderBookRate = configuration.MaxOrderBookRate;
+            orderHarvester.AddAcknowledgementHandler(CallAcknowledgementsHandlers);
+            orderHarvester.AddExecutedTradeHandler(CallExecutedTradeHandlers);
+            priceHarvester.AddHandler(CallTickPricesHandlers);
         }
 
         public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
@@ -51,8 +62,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             var price = (double?)signal.Price;
             var ct = new CancellationTokenSource(timeout);
 
-
-            var response = await _exchangeApi.OrdernewAsync(symbol, orderQty: volume, price: price, ordType: orderType, side: side, cancellationToken: ct.Token);
+            var response = await _exchangeApi.OrdernewAsync(symbol, orderQty: volume, price: price, clOrdID: signal.OrderId, ordType: orderType, side: side, cancellationToken: ct.Token);
 
             if (response is Error error)
             {
@@ -67,13 +77,13 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             var exceTime = order.TransactTime ?? DateTime.UtcNow;
             var execType = BitMexModelConverter.ConvertTradeType(order.Side);
 
+            translatedSignal.ExternalId = order.OrderID;
+
             return new ExecutedTrade(signal.Instrument, exceTime, execPrice, execVolume, execType, order.OrderID, execStatus) { Message = order.Text };
         }
 
-
         public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-
             var ct = new CancellationTokenSource(timeout);
             var id = signal.OrderId;
             var response = await _exchangeApi.OrdercancelAsync(cancellationToken: ct.Token, orderID: id);
@@ -121,8 +131,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return new[] { model };
         }
 
-
-
         public override async Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout)
         {
             var cts = new CancellationTokenSource(timeout);
@@ -138,7 +146,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 BitMexModelConverter.ExchangePositionToModel(r)).ToArray();
             return model;
         }
-
 
         private static IReadOnlyList<Order> EnsureCorrectResponse(string id, object response)
         {
@@ -158,10 +165,12 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         {
             OnConnected();
             _orderBooksHarvester.Start();
+            _socketSubscriber.Start();
         }
 
         protected override void StopImpl()
         {
+            _socketSubscriber.Stop();
             _orderBooksHarvester.Stop();
         }
     }

@@ -7,7 +7,7 @@ namespace TradingBot
 {
     internal sealed class Program
     {
-        static async Task Main(string[] args)
+        private static async Task Main(string[] args)
         {
             try
             {

@@ -32,7 +32,7 @@ namespace TradingBot.Repositories
             OrderId = orderId;
 
             PartitionKey = orderBookSnapshotId.RemoveSpecialCharacters('-', '_', '.');
-            RowKey = $"{orderEventTimestamp:yyyy-MM-dd_HH-mm-ss.fff}_{orderId}"
+            RowKey = $"{Guid.NewGuid()}"
                 .RemoveSpecialCharacters('-', '_', '.');
         }
     }

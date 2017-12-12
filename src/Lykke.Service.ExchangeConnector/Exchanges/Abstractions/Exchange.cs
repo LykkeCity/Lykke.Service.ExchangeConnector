@@ -32,8 +32,6 @@ namespace TradingBot.Exchanges.Abstractions
 
         public IReadOnlyList<Instrument> Instruments { get; }
 
-        private readonly TimeSpan _defaultTimeOut = TimeSpan.FromSeconds(30);
-
         protected Exchange(string name, IExchangeConfiguration config, 
             TranslatedSignalsRepository translatedSignalsRepository, ILog log)
         {
@@ -126,40 +124,6 @@ namespace TradingBot.Exchanges.Abstractions
         public Task CallAcknowledgementsHandlers(Acknowledgement ack)
         {
             return Task.WhenAll(_acknowledgementsHandlers.Select(x => x.Handle(ack)));
-        }
-
-        internal async Task<bool> AddOrder(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
-        {
-            bool added = await AddOrderImpl(signal, translatedSignal);
-
-            await LykkeLog.WriteInfoAsync(nameof(Exchange), nameof(AddOrder), "", $"Signal {signal} added with result {added}");
-
-            return added;
-        }
-
-        protected virtual async Task<bool> AddOrderImpl(TradingSignal signal,
-            TranslatedSignalTableEntity translatedSignal)
-        {
-            ExecutedTrade trade = await AddOrderAndWaitExecution(signal, translatedSignal, _defaultTimeOut);
-
-            return trade != null && (
-                       trade.Status == ExecutionStatus.New ||
-                       trade.Status == ExecutionStatus.Fill ||
-                       trade.Status == ExecutionStatus.PartialFill ||
-                       trade.Status == ExecutionStatus.Pending);
-        }
-
-        internal Task<bool> CancelOrder(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
-        {
-            return CancelOrderImpl(signal, translatedSignal);
-        }
-
-        protected virtual async Task<bool> CancelOrderImpl(TradingSignal signal,
-            TranslatedSignalTableEntity translatedSignal)
-        {
-            ExecutedTrade trade = await CancelOrderAndWaitExecution(signal, translatedSignal, _defaultTimeOut);
-
-            return trade != null && trade.Status == ExecutionStatus.Cancelled;
         }
 
         public abstract Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal,

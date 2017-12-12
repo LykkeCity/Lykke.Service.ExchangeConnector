@@ -9,6 +9,6 @@ namespace TradingBot.Helpers
         {
             if (asyncEvent != null)
                 await asyncEvent.InvokeAsync(sender, eventArgs);
-        }
+        }        
     }
 }

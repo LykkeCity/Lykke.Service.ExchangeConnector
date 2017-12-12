@@ -15,6 +15,8 @@ using Lykke.SlackNotification.AzureQueue;
 using AzureStorage;
 using AzureStorage.Blob;
 using AzureStorage.Tables;
+using Newtonsoft.Json;
+using Swashbuckle.AspNetCore.Swagger;
 using TradingBot.Communications;
 using TradingBot.Repositories;
 using TradingBot.Infrastructure.Auth;
@@ -50,10 +52,17 @@ namespace TradingBot
 
             app.UseMiddleware<StatusCodeExceptionHandler>();
 
-            app.UseMvcWithDefaultRoute();
+            app.UseMvc();
+            app.UseSwagger(c =>
+            {
+                c.PreSerializeFilters.Add((swagger, httpReq) => swagger.Host = httpReq.Host.Value);
+            });
 
-            app.UseSwagger();
-            app.UseSwaggerUi();
+            app.UseSwaggerUI(x =>
+            {
+                x.RoutePrefix = "swagger/ui";
+                x.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+            });
 
             // Dispose resources that have been resolved in the application container
             appLifetime.ApplicationStarted.Register(StartHandler);
@@ -85,12 +94,16 @@ namespace TradingBot
             try
             {
                 // Add framework services.
-                services.AddMvc();
+                services.AddMvc()
+                    .AddJsonOptions(options =>
+                    {
+                        options.SerializerSettings.DateTimeZoneHandling = DateTimeZoneHandling.Utc;
+                    });
 
                 services.AddSwaggerGen(options =>
                 {
                     options.DefaultLykkeConfiguration("v1", "ExchangeConnectorAPI");
-                    options.OperationFilter<AddSwaggerAuthorizationHeaderParameter>();
+                    options.AddSecurityDefinition("CustomScheme", new ApiKeyScheme { In = "header", Description = "Please insert API key into field", Name = ApiKeyAuthAttribute.HeaderName, Type = "apiKey" });
                 });
 
                 var settingsManager = Configuration.LoadSettings<TradingBotSettings>("SettingsUrl");
@@ -109,7 +122,7 @@ namespace TradingBot
                 {
                     var slackService = services.UseSlackNotificationsSenderViaAzureQueue(topSettings.SlackNotifications.AzureQueue, log);
                     var tableStorage = AzureTableStorage<LogEntity>.Create(
-                        settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "logsExchangeConnector", log);
+                        settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), settings.AzureStorage.LogTableName, log);
                     builder.RegisterInstance(tableStorage).As<INoSQLTableStorage<LogEntity>>().SingleInstance();
                     var persistenceManager = new LykkeLogToAzureStoragePersistenceManager(appName, tableStorage, log);
                     var slackNotificationsManager = new LykkeLogToAzureSlackNotificationsManager(appName, slackService, log);
@@ -139,7 +152,7 @@ namespace TradingBot
                 builder.RegisterInstance(fixMessagesStorage).As<INoSQLTableStorage<FixMessageTableEntity>>().SingleInstance();
 
                 var signalsStorage = AzureTableStorage<TranslatedSignalTableEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "translatedSignals", log);
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), settings.AzureStorage.TranslatedSignalsTableName, log);
                 builder.RegisterInstance(signalsStorage).As<INoSQLTableStorage<TranslatedSignalTableEntity>>().SingleInstance();
 
                 var orderBookSnapshotStorage = AzureTableStorage<OrderBookSnapshotEntity>.Create(

@@ -1,5 +1,4 @@
 ﻿using System.Threading.Tasks;
-using AzureStorage;
 using AzureStorage.Blob;
 using AzureStorage.Tables;
 using Common.Log;
@@ -15,9 +14,6 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
     public class GdaxOrderBookTests
     {
         private readonly ILog _log;
-        private readonly INoSQLTableStorage<OrderBookEventEntity> _orderBookEventsStorage;
-        private readonly INoSQLTableStorage<OrderBookSnapshotEntity> _orderBookSnapshotStorage;
-        private readonly IBlobStorage _azureBlobStorage;
         private readonly OrderBookSnapshotsRepository _snapshotsRepository;
         private readonly OrderBookEventsRepository _eventsRepository;
         private readonly GdaxExchangeConfiguration _gdaxConfiguration;
@@ -27,10 +23,6 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
         private const string _orderBookEventsTable = "orderBookEvents";
         private const string _blobStorageEndpoint = "UseDevelopmentStorage=true";
 
-        private const string _btcUsd = "BTCUSD";
-        private const string _orderDoneTypeName = "done";
-        private const string _orderCanceledReason = "canceled";
-
         public GdaxOrderBookTests()
         {
             _log = new LogToConsole();
@@ -38,15 +30,15 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
             var settingsManager = GdaxHelpers.GetGdaxSettingsMenager();
              _gdaxConfiguration = settingsManager.CurrentValue;
 
-            _orderBookEventsStorage = AzureTableStorage<OrderBookEventEntity>.Create(
+            var orderBookEventsStorage = AzureTableStorage<OrderBookEventEntity>.Create(
                 settingsManager.ConnectionString(i => _tableStorageEndpoint), _orderBookEventsTable, _log);
-            _orderBookSnapshotStorage = AzureTableStorage<OrderBookSnapshotEntity>.Create(
+            var orderBookSnapshotStorage = AzureTableStorage<OrderBookSnapshotEntity>.Create(
                 settingsManager.ConnectionString(i => _tableStorageEndpoint), _snapshotsTable, _log);
-            _azureBlobStorage = AzureBlobStorage.Create(
+            var azureBlobStorage = AzureBlobStorage.Create(
                 settingsManager.ConnectionString(i => _blobStorageEndpoint));
 
-            _snapshotsRepository = new OrderBookSnapshotsRepository(_orderBookSnapshotStorage, _azureBlobStorage, _log);
-            _eventsRepository = new OrderBookEventsRepository(_orderBookEventsStorage, _log);
+            _snapshotsRepository = new OrderBookSnapshotsRepository(orderBookSnapshotStorage, azureBlobStorage, _log);
+            _eventsRepository = new OrderBookEventsRepository(orderBookEventsStorage, _log);
         }
 
         [Fact]
@@ -56,7 +48,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.GDAX
                 _snapshotsRepository, _eventsRepository);
             orderBookHarvester.Start();
 
-            await Task.Delay(100000);
+            await Task.Delay(1000000);
 
             orderBookHarvester.Stop();
         }

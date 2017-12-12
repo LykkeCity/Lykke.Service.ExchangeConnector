@@ -97,13 +97,13 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             };
         }
 
-        public Shared.OrderBookItem GdaxOrderBookItemToOrderBookItem(string symbol, bool isBuy, 
+        public OrderBookItem GdaxOrderBookItemToOrderBookItem(string symbol, bool isBuy, 
             GdaxOrderBookEntityRow gdaxItem)
         {
-            return new Shared.OrderBookItem
+            return new OrderBookItem
             {
                 Id = gdaxItem.OrderId.ToString(),
-                IsBuy = false,
+                IsBuy = isBuy,
                 Symbol = symbol,
                 Price = gdaxItem.Price,
                 Size = gdaxItem.Size

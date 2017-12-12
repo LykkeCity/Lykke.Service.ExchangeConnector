@@ -6,11 +6,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
 using TradingBot.Communications;
+using TradingBot.Exchanges.Concrete.GDAX.Entities;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
 using TradingBot.Exchanges.Concrete.GDAX.WssClient;
 using TradingBot.Exchanges.Concrete.GDAX.WssClient.Entities;
 using TradingBot.Exchanges.Concrete.Shared;
+using TradingBot.Helpers;
 using TradingBot.Infrastructure.Configuration;
 
 namespace TradingBot.Exchanges.Concrete.GDAX
@@ -20,7 +22,8 @@ namespace TradingBot.Exchanges.Concrete.GDAX
         private readonly GdaxExchangeConfiguration _configuration;
         private readonly GdaxWebSocketApi _websocketApi;
         private readonly GdaxRestApi _restApi;
-        private ConcurrentDictionary<string, long> _symbolsLastSequenceNumbers;
+        private readonly ConcurrentDictionary<string, long> _symbolsLastSequenceNumbers;
+        private readonly IDictionary<string, Queue<GdaxQueueOrderItem>> _queuedOrderBookItems;
         private readonly GdaxConverters _converters;
 
         public GdaxOrderBooksHarvester(string exchangeName, GdaxExchangeConfiguration configuration, ILog log,
@@ -29,6 +32,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
         {
             _configuration = configuration;
             _symbolsLastSequenceNumbers = new ConcurrentDictionary<string, long>();
+            _queuedOrderBookItems = new Dictionary<string, Queue<GdaxQueueOrderItem>>();
 
             _websocketApi = CreateWebSocketsApiClient();
             _restApi = CreateRestApiClient();
@@ -44,10 +48,13 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 
                 // First subscribe with websockets and ignore all the order events with 
                 // sequential number less than symbol's orderbook orders
-                var subscriptionTask = _websocketApi.SubscribeToFullUpdatesAsync(
+                var subscriptionTask = new AsyncEventAwaiter<string>(ref _websocketApi.Subscribed)
+                    .Await(CancellationToken);
+                var ordersListenerTask = _websocketApi.SubscribeToOrderBookUpdatesAsync(
                     _configuration.SupportedCurrencySymbols.Select(s => s.ExchangeSymbol).ToList(),
                     CancellationToken);
 
+                await subscriptionTask; // Wait to be subscribed first
                 var retrieveOrderBooksTask = Task.Run(async () =>
                 {
                     foreach (var currencySymbol in _configuration.SupportedCurrencySymbols)
@@ -58,7 +65,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
                     }
                 });
 
-                await Task.WhenAll(subscriptionTask, retrieveOrderBooksTask);
+                await Task.WhenAll(ordersListenerTask, retrieveOrderBooksTask);
             }
             finally
             {
@@ -129,11 +136,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 
         private async Task OnWebSocketOrderReceivedAsync(object sender, GdaxWssOrderReceived order)
         {
-            if (!ShouldProcessOrder(order.ProductId, order.Sequence))
-                return;
-
-            await HandleOrdersEventsAsync(order.ProductId, OrderBookEventType.Add, new[]
-            {
+            await HandleOrderEventAsync(order.ProductId, order.Sequence, OrderBookEventType.Add,
                 new OrderBookItem
                 {
                     Id = order.OrderId.ToString(),
@@ -141,17 +144,12 @@ namespace TradingBot.Exchanges.Concrete.GDAX
                     Symbol = order.ProductId,
                     Price = order.Price ?? 0,
                     Size = order.Size
-                }
-            });
+                });
         }
 
         private async Task OnOrderChangedAsync(object sender, GdaxWssOrderChange order)
         {
-            if (!ShouldProcessOrder(order.ProductId, order.Sequence))
-                return;
-
-            await HandleOrdersEventsAsync(order.ProductId, OrderBookEventType.Update, new[]
-            {
+            await HandleOrderEventAsync(order.ProductId, order.Sequence, OrderBookEventType.Update,
                 new OrderBookItem
                 {
                     Id = order.OrderId.ToString(),
@@ -159,17 +157,12 @@ namespace TradingBot.Exchanges.Concrete.GDAX
                     Symbol = order.ProductId,
                     Price = order.Price ?? 0,
                     Size = order.NewSize
-                }
-            });
+                });
         }
 
         private async Task OnWebSocketOrderDoneAsync(object sender, GdaxWssOrderDone order)
         {
-            if (!ShouldProcessOrder(order.ProductId, order.Sequence))
-                return;
-
-            await HandleOrdersEventsAsync(order.ProductId, OrderBookEventType.Delete, new[]
-            {
+            await HandleOrderEventAsync(order.ProductId, order.Sequence, OrderBookEventType.Delete,
                 new OrderBookItem
                 {
                     Id = order.OrderId.ToString(),
@@ -178,14 +171,54 @@ namespace TradingBot.Exchanges.Concrete.GDAX
                     Price = order.Price ?? 0,
                     Size = order.RemainingSize
                     // TODO Handle reason: order.Reason == "cancelled" ? ExecutionStatus.Cancelled : ExecutionStatus.Fill
-                }
-            });
+                });
         }
 
-        private bool ShouldProcessOrder(string symbol, long orderSequenceNumber)
+        private async Task HandleOrderEventAsync(string productId, long orderEventSequenceNumber, 
+            OrderBookEventType eventType, OrderBookItem orderBookItem)
         {
-            return (_symbolsLastSequenceNumbers.TryGetValue(symbol, out long seqNumberInOrderBook)) &&
-                seqNumberInOrderBook < orderSequenceNumber;
+            // Queue this item if the order book is not fully populated yet
+            var orderBookExists = 
+                _symbolsLastSequenceNumbers.TryGetValue(productId, out long seqNumberInOrderBook) &&
+                TryGetOrderBookSnapshot(productId, out var _);
+
+            if (!orderBookExists)
+            {
+                QueueItem(productId, new GdaxQueueOrderItem(orderEventSequenceNumber, 
+                    eventType, orderBookItem));
+                return;
+            }
+
+            // Dequeue all items in the order events queue
+            foreach (var queuedItem in DequeuOrderItems(productId)
+                .Where(q => q.SequenceNumber > seqNumberInOrderBook))
+            {
+                await HandleOrdersEventsAsync(productId, queuedItem.OrderBookEventType,
+                    new[] { queuedItem.OrderBookItem });
+            }
+
+            // Handle the current item
+            if (orderEventSequenceNumber > seqNumberInOrderBook)
+                await HandleOrdersEventsAsync(productId, eventType, new[] { orderBookItem });
+        }
+
+        private void QueueItem(string productId, GdaxQueueOrderItem queueOrderItem)
+        {
+            var queueExist = _queuedOrderBookItems.TryGetValue(productId, out var productOrdersQueue);
+            if (!queueExist)
+            {
+                productOrdersQueue = new Queue<GdaxQueueOrderItem>();
+                _queuedOrderBookItems[productId] = productOrdersQueue;
+            }
+
+            productOrdersQueue.Enqueue(queueOrderItem);
+        }
+
+        private IEnumerable<GdaxQueueOrderItem> DequeuOrderItems(string productId)
+        {
+            if (_queuedOrderBookItems.TryGetValue(productId, out var productOrdersQueue))
+                while (productOrdersQueue.Count > 0)
+                    yield return productOrdersQueue.Dequeue();            
         }
     }
 }

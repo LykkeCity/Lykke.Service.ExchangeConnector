@@ -158,24 +158,6 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 	        }
         }
 
-	    protected override Task<bool> AddOrderImpl(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
-	    {
-	        translatedSignal.RequestSent("stub exchange don't send actual request");
-//
-//	        SimulateWork();
-//	        SimulateException();
-//	        
-		    translatedSignal.ResponseReceived("stub exchange don't recevie actual response");
-	        lock (syncRoot)
-	        {
-	            var s = new TradingSignal(signal.Instrument, Guid.NewGuid().ToString(), signal.Command, signal.TradeType, signal.Price, signal.Volume, signal.Time, signal.OrderType, signal.TimeInForce);
-	            ActualSignals[signal.Instrument.Name].AddLast(s);
-	            translatedSignal.ExternalId = s.OrderId;
-	        }
-
-		    return Task.FromResult(true);
-	    }
-
 	    private static readonly Random Random = new Random();
 	    private void SimulateException()
 	    {
@@ -190,35 +172,44 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
             Thread.Sleep(TimeSpan.FromSeconds(Random.Next(1, 11)));
         }
 
-	    protected override Task<bool> CancelOrderImpl(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
-	    {
-		    translatedSignal.RequestSent("stub exchange don't send actual request");
-//	        SimulateWork();
-//	        SimulateException();
-		    translatedSignal.ResponseReceived("stub exchange don't recevie actual response");
-
-	        bool isCanceled = false;
-	        lock (syncRoot)
-	        {
-	            TradingSignal existing = ActualSignals[signal.Instrument.Name].FirstOrDefault(x => x.OrderId == signal.OrderId);
-	            if (existing != null)
-	            {
-	                ActualSignals[signal.Instrument.Name].Remove(existing);
-	                isCanceled = true;
-	            }
-	        }
-	        
-		    return Task.FromResult(isCanceled);
-	    }
-
 	    public override Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
 	    {
-		    throw new NotImplementedException();
+	        translatedSignal.RequestSent("stub exchange don't send actual request");
+//
+//	        SimulateWork();
+//	        SimulateException();
+//	        
+	        translatedSignal.ResponseReceived("stub exchange don't recevie actual response");
+	        lock (syncRoot)
+	        {
+	            var s = new TradingSignal(signal.Instrument, Guid.NewGuid().ToString(), signal.Command, signal.TradeType, signal.Price, signal.Volume, signal.Time, signal.OrderType, signal.TimeInForce);
+	            ActualSignals[signal.Instrument.Name].AddLast(s);
+	            translatedSignal.ExternalId = s.OrderId;
+	            
+	            return Task.FromResult(new ExecutedTrade(s.Instrument, DateTime.UtcNow, s.Price ?? 0, s.Volume, s.TradeType, s.OrderId, ExecutionStatus.New));
+	        }
 	    }
 
-	    public override Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
-	    {
-		    throw new NotImplementedException();
-	    }
+        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        {
+            translatedSignal.RequestSent("stub exchange don't send actual request");
+//	        SimulateWork();
+//	        SimulateException();
+            translatedSignal.ResponseReceived("stub exchange don't recevie actual response");
+
+            bool isCanceled = false;
+            lock (syncRoot)
+            {
+                TradingSignal existing = ActualSignals[signal.Instrument.Name].FirstOrDefault(x => x.OrderId == signal.OrderId);
+                if (existing != null)
+                {
+                    ActualSignals[signal.Instrument.Name].Remove(existing);
+                    isCanceled = true;
+                }
+            }
+
+            return Task.FromResult(new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId,
+                isCanceled ? ExecutionStatus.Cancelled : ExecutionStatus.Unknown));
+        }
     }
 }

@@ -20,10 +20,10 @@ namespace TradingBot.Models.Api
         public decimal UnrealisedPnL { get; set; }
 
         [JsonProperty("value")]
-        public decimal PositionValue { get; set; }
+        public decimal? PositionValue { get; set; }
 
         [JsonProperty("availableMargin")]
-        public decimal AvailableMargin { get; set; }
+        public decimal? AvailableMargin { get; set; }
 
         [JsonProperty("initialMarginRequirement")]
         public decimal InitialMarginRequirement { get; set; }

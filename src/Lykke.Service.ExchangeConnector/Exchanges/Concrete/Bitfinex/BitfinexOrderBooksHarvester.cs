@@ -6,30 +6,37 @@ using Common.Log;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.Bitfinex.WebSocketClient.Model;
 using TradingBot.Exchanges.Concrete.Shared;
+using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Trading;
 using SubscribeRequest = TradingBot.Exchanges.Concrete.Bitfinex.WebSocketClient.Model.SubscribeRequest;
 
 namespace TradingBot.Exchanges.Concrete.Bitfinex
 {
-    internal sealed class BitfinexOrderBooksHarvester : OrderBooksWebSocketHarvester
+    internal sealed class BitfinexOrderBooksHarvester : OrderBooksWebSocketHarvester<object, string>
     {
         private readonly BitfinexExchangeConfiguration _configuration;
         private readonly Dictionary<long, Channel> _channels;
+        private readonly List<Func<TickPrice, Task>> _tickPriceHandlers;
 
-        public BitfinexOrderBooksHarvester(string exchangeName, BitfinexExchangeConfiguration configuration, ILog log,
-            OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository) : 
-            base(exchangeName, configuration, configuration.WebSocketEndpointUrl, log, 
-                orderBookSnapshotsRepository, orderBookEventsRepository)
+        public BitfinexOrderBooksHarvester(string exchangeName, BitfinexExchangeConfiguration configuration, ILog log, OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
+        : base(exchangeName, configuration, new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookSnapshotsRepository, orderBookEventsRepository)
         {
             _configuration = configuration;
             _channels = new Dictionary<long, Channel>();
+            _tickPriceHandlers = new List<Func<TickPrice, Task>>();
+        }
+
+        public void AddTickPriceHandler(Func<TickPrice, Task> handler)
+        {
+            _tickPriceHandlers.Add(handler);
         }
 
         protected override async Task MessageLoopImpl()
         {
             try
             {
-                await Messenger.ConnectAsync();
+                await Messenger.ConnectAsync(CancellationToken);
                 await Subscribe();
                 RechargeHeartbeat();
                 while (!CancellationToken.IsCancellationRequested)
@@ -42,7 +49,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             {
                 try
                 {
-                    await Messenger.StopAsync();
+                    await Messenger.StopAsync(CancellationToken);
                 }
                 catch
                 {
@@ -52,17 +59,28 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         private async Task<dynamic> GetResponse()
         {
-            var json = await Messenger.GetResponseAsync();
+            var json = await Messenger.GetResponseAsync(CancellationToken);
 
-            var result = EventResponse.Parse(json) ?? OrderBookSnapshotResponse.Parse(json) ?? (dynamic)OrderBookUpdateResponse.Parse(json) ?? HeartbeatResponse.Parse(json);
+            var result = EventResponse.Parse(json) ?? 
+                TickerResponse.Parse(json) ??
+                OrderBookSnapshotResponse.Parse(json) ?? 
+                (dynamic)OrderBookUpdateResponse.Parse(json) ??
+                HeartbeatResponse.Parse(json);
             return result;
         }
 
         private async Task Subscribe()
         {
             var instruments = _configuration.SupportedCurrencySymbols
-                .Select(s => s.ExchangeSymbol);
+                .Select(s => s.ExchangeSymbol)
+                .ToList();
 
+            await SubscribeToOrderBookAsync(instruments);
+            await SubscribeToTickerAsync(instruments);
+        }
+
+        private async Task SubscribeToOrderBookAsync(IEnumerable<string> instruments)
+        {
             foreach (var instrument in instruments)
             {
                 var request = new SubscribeRequest
@@ -73,11 +91,26 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
                     Prec = "R0",
                     Freq = "F0"
                 };
-                await Messenger.SendRequestAsync(request);
+                await Messenger.SendRequestAsync(request, CancellationToken);
                 var response = await GetResponse();
                 await HandleResponse(response);
             }
+        }
 
+        private async Task SubscribeToTickerAsync(IEnumerable<string> instruments)
+        {
+            foreach (var instrument in instruments)
+            {
+                var request = new SubscribeRequest
+                {
+                    Event = "subscribe",
+                    Channel = "ticker",
+                    Pair = instrument
+                };
+                await Messenger.SendRequestAsync(request, CancellationToken);
+                var response = await GetResponse();
+                await HandleResponse(response);
+            }
         }
 
         private async Task HandleResponse(InfoResponse response)
@@ -121,6 +154,15 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
                 snapshot.Orders.Select(o => o.ToOrderBookItem()));
         }
 
+        private async Task HandleResponse(TickerResponse ticker)
+        {
+            var pair = _channels[ticker.ChannelId].Pair; 
+
+            var tickPrice = new TickPrice(new Instrument(ExchangeName, pair), DateTime.UtcNow, 
+                ticker.Ask, ticker.Bid);
+            await CallTickPricesHandlers(tickPrice);
+        }
+
         private async Task HandleResponse(OrderBookUpdateResponse response)
         {
             var orderBookItem = response.ToOrderBookItem();
@@ -137,6 +179,11 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
                 await HandleOrdersEventsAsync(response.Pair,
                     OrderBookEventType.Add, new[] { orderBookItem });
             }
+        }
+
+        private Task CallTickPricesHandlers(TickPrice tickPrice)
+        {
+            return Task.WhenAll(_tickPriceHandlers.Select(handler => handler(tickPrice)));
         }
 
         private class Channel
