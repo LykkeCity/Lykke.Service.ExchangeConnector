@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 namespace TradingBot.Exchanges.Concrete.LykkeExchange.Entities
 {
@@ -10,6 +11,11 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange.Entities
         {
             public Order Order { get; set; }
             public Trade[] Trades { get; set; }
+            
+            public override string ToString()
+            {
+                return $"{Order}, trades: {string.Join(", ", Trades.Select(x => x.ToString()))}";
+            }
         }
         
         public class Order
@@ -25,6 +31,11 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange.Entities
             public OrderStatus Status { get; set; }
             public DateTime CreatedAt { get; set; }
             public DateTime Registered { get; set; }
+
+            public override string ToString()
+            {
+                return $"Id: {Id}, ExternalId: {ExternalId}, Price: {Price}, Volume: {Volume}, Remaining: {RemainingVolume}, Status: {Status}";
+            }
         }
         
         public class Trade
@@ -39,6 +50,11 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange.Entities
             public string OppositeAsset { get; set; }
             public string OppositeClientId { get; set; }
             public decimal OppositeVolume { get; set; }
+
+            public override string ToString()
+            {
+                return $"Time: {Timestamp}, Price: {Price}, Volume: {Volume}, Asset: {Asset}, ClientId: {ClientId}, OppClientId: {OppositeClientId}";
+            }
         }
     }
 

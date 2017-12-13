@@ -176,18 +176,28 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             {
                 if (order.Order.Status == OrderStatus.Cancelled)
                 {
+                    await LykkeLog.WriteInfoAsync(nameof(LykkeExchange), nameof(HandleOrderStatus), order.ToString(),
+                        "Order canceled. Calling ExecutedTradeHandlers");
+                    
                     await CallExecutedTradeHandlers(new ExecutedTrade(new Instrument(Name, order.Order.AssetPairId),
                         DateTime.UtcNow,
-                        order.Order.Price ?? 0, order.Order.Volume, TradeType.Unknown, order.Order.ExternalId,
+                        order.Order.Price ?? 0, 
+                        Math.Abs(order.Order.Volume), 
+                        order.Order.Volume < 0 ? TradeType.Sell : TradeType.Buy, 
+                        order.Order.ExternalId,
                         ExecutionStatus.Cancelled));
                 }
                 else if (order.Order.Status == OrderStatus.Matched && order.Trades.Any())
                 {
+                    await LykkeLog.WriteInfoAsync(nameof(LykkeExchange), nameof(HandleOrderStatus), order.ToString(),
+                        "Order executed. Calling ExecutedTradeHandlers");
+                    
                     await CallExecutedTradeHandlers(new ExecutedTrade(new Instrument(Name, order.Order.AssetPairId),
-                        order.Trades.First().Timestamp,
-                        Math.Abs(order.Trades.Sum(x => x.Price ?? 0 * x.Volume) / order.Trades.Sum(x => x.Volume)),
-                        order.Trades.Sum(x => x.Volume),
-                        TradeType.Unknown, order.Order.ExternalId,
+                        order.Trades.Last().Timestamp,
+                        order.Order.Price ?? order.Trades.Last().Price ?? 0,
+                        Math.Abs(order.Order.Volume - order.Order.RemainingVolume),
+                        order.Order.Volume < 0 ? TradeType.Sell : TradeType.Buy, 
+                        order.Order.ExternalId,
                         ExecutionStatus.Fill));
                 }
             }
