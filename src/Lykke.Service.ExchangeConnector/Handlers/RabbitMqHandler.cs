@@ -10,6 +10,7 @@ namespace TradingBot.Handlers
     public class RabbitMqHandler<T> : Handler<T>, IDisposable
     {
         private readonly RabbitMqPublisher<T> _rabbitPublisher;
+        private readonly object _sync = new object();
 
         public RabbitMqHandler(string connectionString, string exchangeName, bool durable = false, ILog log = null)
         {
@@ -32,7 +33,10 @@ namespace TradingBot.Handlers
 
         public override Task Handle(T message)
         {
-            return _rabbitPublisher.ProduceAsync(message);
+            lock (_sync)
+            { 
+                return _rabbitPublisher.ProduceAsync(message);
+            }
         }
 
         public void Dispose()
