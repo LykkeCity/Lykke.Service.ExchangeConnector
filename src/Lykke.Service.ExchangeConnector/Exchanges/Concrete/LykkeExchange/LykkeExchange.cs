@@ -185,7 +185,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                 {
                     await CallExecutedTradeHandlers(new ExecutedTrade(new Instrument(Name, order.Order.AssetPairId),
                         order.Trades.First().Timestamp,
-                        order.Trades.Sum(x => x.Price ?? 0) / order.Trades.Length,
+                        Math.Abs(order.Trades.Sum(x => x.Price ?? 0 * x.Volume) / order.Trades.Sum(x => x.Volume)),
                         order.Trades.Sum(x => x.Volume),
                         TradeType.Unknown, order.Order.ExternalId,
                         ExecutionStatus.Fill));

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Shared;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient;
 using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
@@ -15,9 +16,9 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 {
     internal sealed class BitMexOrderBooksHarvester : OrderBooksWebSocketHarvester<object, string>
     {
-        public BitMexOrderBooksHarvester(string exchangeName, 
-            BitMexExchangeConfiguration configuration, 
-            ILog log, 
+        public BitMexOrderBooksHarvester(string exchangeName,
+            BitMexExchangeConfiguration configuration,
+            ILog log,
             OrderBookSnapshotsRepository orderBookSnapshotsRepository,
             OrderBookEventsRepository orderBookEventsRepository,
             IBitmexSocketSubscriber socketSubscriber) :
@@ -39,7 +40,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
         private async Task HandleResponseAsync(TableResponse table)
         {
-            var orderBookItems = table.Data.Select(o => o.ToOrderBookItem()).ToList();
+            var orderBookItems = table.Data.Select(BitMexModelConverter.ConvertBookItem).ToList();
             var groupByPair = orderBookItems.GroupBy(ob => ob.Symbol);
 
             switch (table.Action)

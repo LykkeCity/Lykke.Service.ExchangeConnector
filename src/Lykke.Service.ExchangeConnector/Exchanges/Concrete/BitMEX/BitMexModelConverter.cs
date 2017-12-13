@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Globalization;
 using Newtonsoft.Json;
+using QuickFix.Fields;
 using TradingBot.Exchanges.Concrete.AutorestClient.Models;
+using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Models.Api;
@@ -11,6 +15,7 @@ using Order = TradingBot.Exchanges.Concrete.AutorestClient.Models.Order;
 using Position = TradingBot.Exchanges.Concrete.AutorestClient.Models.Position;
 using OrdStatus = TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.OrdStatus;
 using Side = TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.Side;
+using TradeType = TradingBot.Trading.TradeType;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
@@ -176,6 +181,19 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             }
         }
 
+
+        public static OrderBookItem ConvertBookItem(RowItem row)
+        {
+            return new OrderBookItem
+            {
+                Id = row.Id.ToString(CultureInfo.InvariantCulture),
+                IsBuy = row.Side == Side.Buy,
+                Price = row.Price ?? 0,
+                Symbol = row.Symbol,
+                Size = row.Size
+            };
+        }
+
         public static TradeBalanceModel ExchangeBalanceToModel(Margin bitmexMargin)
         {
             var model = new TradeBalanceModel
@@ -201,5 +219,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 throw new ArgumentException($"Ask/bid price is not specified for a quote. Message: '{JsonConvert.SerializeObject(row)}'", nameof(row));
             }
         }
+
+
+
     }
 }

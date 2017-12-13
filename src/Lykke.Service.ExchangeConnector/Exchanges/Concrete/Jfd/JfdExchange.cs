@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Exchanges.Jfd;
 using QuickFix.Fields;
 using QuickFix.FIX44;
 using TradingBot.Communications;
@@ -27,10 +28,10 @@ namespace TradingBot.Exchanges.Concrete.Jfd
         private readonly ILog _log;
         public new const string Name = "jfd";
 
-        public JfdExchange(JfdExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, JfdTradeSessionConnector connector, JfdOrderBooksHarvester harvester, ILog log) : base(Name, config, translatedSignalsRepository, log)
+        public JfdExchange(JfdExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, JfdOrderBooksHarvester harvester, ILog log) : base(Name, config, translatedSignalsRepository, log)
         {
             _config = config;
-            _connector = connector;
+            _connector = new JfdTradeSessionConnector(new JfdConnectorConfiguration(config.Password, config.GetTradingFixConfigAsReader()), log);
             _harvester = harvester;
             _modelConverter = new JfdModelConverter(config);
             _log = log.CreateComponentScope(nameof(JfdExchange));

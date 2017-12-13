@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient;
 using TradingBot.Exchanges.Concrete.Bitfinex;
-using TradingBot.Exchanges.Concrete.Bitfinex.RestClient;
 using Xunit;
 using Order = TradingBot.Exchanges.Concrete.AutorestClient.Models.Order;
 

@@ -4,10 +4,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
-using TradingBot.Exchanges.Concrete.Bitfinex.RestClient;
-using TradingBot.Exchanges.Concrete.Bitfinex.RestClient.Model;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
@@ -15,8 +14,10 @@ using TradingBot.Models.Api;
 using TradingBot.Repositories;
 using TradingBot.Trading;
 using Instrument = TradingBot.Trading.Instrument;
-using Order = TradingBot.Exchanges.Concrete.Bitfinex.RestClient.Model.Order;
-using Position = TradingBot.Exchanges.Concrete.Bitfinex.RestClient.Model.Position;
+using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient.Model;
+using Order = Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient.Model.Order;
+using Position = Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient.Model.Position;
+using Error = Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient.Model.Error;
 
 namespace TradingBot.Exchanges.Concrete.Bitfinex
 {
@@ -27,8 +28,8 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         private readonly ExchangeConverters _converters;
         public new const string Name = "bitfinex";
 
-        public BitfinexExchange(BitfinexExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository, 
-            BitfinexOrderBooksHarvester orderBooksHarvester, ILog log) 
+        public BitfinexExchange(BitfinexExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository,
+            BitfinexOrderBooksHarvester orderBooksHarvester, ILog log)
             : base(Name, configuration, translatedSignalsRepository, log)
         {
             _orderBooksHarvester = orderBooksHarvester;

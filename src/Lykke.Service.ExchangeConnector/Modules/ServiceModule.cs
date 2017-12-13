@@ -81,9 +81,6 @@ namespace TradingBot.Modules
                 .WithParameter("exchangeName", JfdExchange.Name)
                 .SingleInstance();
 
-            builder.RegisterType<JfdTradeSessionConnector>()
-                .SingleInstance();
-
             builder.RegisterType<JfdModelConverter>()
                 .SingleInstance();
 

@@ -10,6 +10,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient;
 using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
+using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.WebSockets;
 
@@ -21,8 +22,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         private readonly BitMexExchangeConfiguration _configuration;
         private readonly Dictionary<string, Func<TableResponse, Task>> _handlers = new Dictionary<string, Func<TableResponse, Task>>();
 
-        public BitmexSocketSubscriber(BitMexExchangeConfiguration configuration, ILog log, bool authorized = false)
-            : base(configuration.WebSocketEndpointUrl, log)
+        public BitmexSocketSubscriber(IMessenger<object, string> messenger, BitMexExchangeConfiguration configuration, ILog log, bool authorized = false)
+            : base(messenger, log)
         {
             _authorized = authorized;
             _configuration = configuration;

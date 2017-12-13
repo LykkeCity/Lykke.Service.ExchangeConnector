@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Exchanges.Jfd;
 using QuickFix.Fields;
 using QuickFix.FIX44;
 using TradingBot.Exchanges.Concrete.Jfd.FixClient;
@@ -50,7 +51,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
                     "EndTime=23:00:00"
                 }
             };
-            _connector = new JfdQuotesSessionConnector(config, new LogToConsole());
+            var jfdConfig = new JfdConnectorConfiguration(config.Password, config.GetQuotingFixConfigAsReader());
+            _connector = new JfdQuotesSessionConnector(jfdConfig, new LogToConsole());
         }
 
 
@@ -59,7 +61,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
         {
             await _connector.ConnectAsync(CancellationToken.None);
             WaitForState(JfdConnectorState.Connected, 30);
-            var symbols = new[] {"USDCHF", "EURUSD"};
+            var symbols = new[] { "USDCHF", "EURUSD" };
             var request = new MarketDataRequest()
             {
                 MDReqID = new MDReqID(DateTime.UtcNow.Ticks.ToString()),

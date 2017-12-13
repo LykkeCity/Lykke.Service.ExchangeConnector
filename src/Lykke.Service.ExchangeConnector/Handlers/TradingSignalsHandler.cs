@@ -125,11 +125,19 @@ namespace TradingBot.Handlers
                     translatedSignal.Failure($"Added order is in unexpected status: {executedTrade}");
                 }
     
+                logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), signal.ToString(),
+                    "About to call AcknowledgementsHandlers").Wait();
                 await exchange.CallAcknowledgementsHandlers(CreateAcknowledgement(exchange, orderAdded, signal, translatedSignal));
+                logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), signal.ToString(),
+                    "AcknowledgementsHandlers are called").Wait();
 
                 if (orderFilled)
                 {
+                    logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), signal.ToString(),
+                        "About to call ExecutedTradeHandlers").Wait();
                     await exchange.CallExecutedTradeHandlers(executedTrade);
+                    logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), signal.ToString(),
+                        "ExecutedTradeHandlers are called").Wait();
                 }
             }
             catch (Exception e)
@@ -157,9 +165,13 @@ namespace TradingBot.Handlers
                     logger.WriteInfoAsync(nameof(TradingSignalsHandler),
                         nameof(HandleCancellation),
                         signal.ToString(),
-                        "Canceled order").Wait();
+                        "Canceled order. About to call ExecutedTradeHandlers").Wait();
 
+                    
                     await exchange.CallExecutedTradeHandlers(executedTrade);
+
+                    logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCancellation), signal.ToString(),
+                        "ExecutedTradeHandlers are called").Wait();
                 }
                 else
                 {
