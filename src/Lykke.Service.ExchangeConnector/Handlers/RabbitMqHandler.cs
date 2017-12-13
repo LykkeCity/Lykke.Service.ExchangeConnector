@@ -32,7 +32,10 @@ namespace TradingBot.Handlers
 
         public override Task Handle(T message)
         {
-            return _rabbitPublisher.ProduceAsync(message);
+            lock (this)
+            { 
+                return _rabbitPublisher.ProduceAsync(message);
+            }
         }
 
         public void Dispose()
