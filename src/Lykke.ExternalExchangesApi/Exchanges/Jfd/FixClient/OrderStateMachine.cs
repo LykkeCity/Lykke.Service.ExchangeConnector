@@ -29,7 +29,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
                         break;
                     case OrdStatus.CANCELED:
                     case OrdStatus.REJECTED:
-                        TaskCompletionSource.SetException(new InvalidOperationException(message.Text.Obj));
+                        TaskCompletionSource.TrySetException(new InvalidOperationException(message.Text.Obj));
                         Status = RequestStatus.Completed;
                         break;
                     case OrdStatus.PARTIALLY_FILLED:
