@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
 using Lykke.ExternalExchangesApi.Shared;
@@ -24,7 +22,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             IBitmexSocketSubscriber socketSubscriber) :
             base(exchangeName, configuration, new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookSnapshotsRepository, orderBookEventsRepository)
         {
-            socketSubscriber.Subscribe(BitmexTopic.OrderBookL2, HandleResponseAsync);
+            socketSubscriber.Subscribe(BitmexTopic.orderBookL2, HandleResponseAsync);
         }
 
         protected override async Task MessageLoopImpl()

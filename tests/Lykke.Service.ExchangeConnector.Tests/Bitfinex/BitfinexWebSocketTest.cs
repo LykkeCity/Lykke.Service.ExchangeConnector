@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient;
 using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient.Model;
 using Lykke.ExternalExchangesApi.Shared;
 using Newtonsoft.Json;
@@ -47,7 +48,7 @@ namespace TradingBot.Tests.BitMex
             var request = new SubscribeRequest
             {
                 Event = "subscribe",
-                Channel = "book",
+                Channel = WsChannel.book,
                 Pair = "BTCUSD",
                 Prec = "R0"
             };
@@ -79,7 +80,7 @@ namespace TradingBot.Tests.BitMex
             var request = new SubscribeRequest
             {
                 Event = "subscribe",
-                Channel = "ticker",
+                Channel = WsChannel.ticker,
                 Pair = "BTCUSD"
             };
             await _clientWebSocket.SendRequestAsync(request, CancellationToken.None);

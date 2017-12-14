@@ -92,7 +92,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
                     $"RabbitMq {pubInSec} per second", string.Empty);
                 _lastSecPublicationsNum = 0;
                 _publishedToRabbit = 0;
-                await Task.Delay(TimeSpan.FromSeconds(period), CancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(period), CancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -107,7 +107,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
             _cancellationTokenSource = new CancellationTokenSource();
             CancellationToken = _cancellationTokenSource.Token;
-            _measureTask = Task.Run(async () => await Measure());
+            _measureTask = Task.Run(Measure, _cancellationTokenSource.Token);
             StartReading();
         }
 
@@ -120,9 +120,9 @@ namespace TradingBot.Exchanges.Concrete.Shared
         {
             Log.WriteInfoAsync(nameof(Stop), "Stopping", $"Stopping {GetType().Name}").Wait();
             _cancellationTokenSource?.Cancel();
-            SwallowCanceledException(() => 
+            SwallowCanceledException(() =>
                 _messageLoopTask?.GetAwaiter().GetResult());
-            SwallowCanceledException(() => 
+            SwallowCanceledException(() =>
                 _measureTask?.GetAwaiter().GetResult());
             _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = null;
@@ -132,7 +132,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
         {
             const int smallTimeout = 5;
             var retryPolicy = Policy
-                .Handle<Exception>(ex => !(ex is OperationCanceledException))
+                .Handle<Exception>(ex => !CancellationToken.IsCancellationRequested)
                 .WaitAndRetryForeverAsync(attempt => attempt % 60 == 0
                     ? TimeSpan.FromMinutes(5)
                     : TimeSpan.FromSeconds(smallTimeout)); // After every 60 attempts wait 5min 

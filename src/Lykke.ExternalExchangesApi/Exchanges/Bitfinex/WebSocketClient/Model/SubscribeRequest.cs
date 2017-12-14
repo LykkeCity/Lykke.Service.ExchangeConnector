@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient.Model
 {
@@ -12,7 +13,8 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient.Model
         public string Pair { get; set; }
 
         [JsonProperty("channel")]
-        public string Channel { get; set; }
+        [JsonConverter(typeof(StringEnumConverter))]
+        public WsChannel Channel { get; set; }
 
         [JsonProperty("freq")]
         public string Freq { get; set; }

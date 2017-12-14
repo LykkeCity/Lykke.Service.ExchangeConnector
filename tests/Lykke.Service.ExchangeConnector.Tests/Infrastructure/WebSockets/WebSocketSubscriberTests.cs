@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Shared;
 using Moq;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.WebSockets;
@@ -33,7 +34,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
             socket.Dispose();
 
             // Check
-            
+
             // Expecting no exceptions and no errors
             Assert.True(log.NoErrors());
         }
@@ -51,7 +52,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
             var messenger = CreateDefaultMockMessenger();
             messenger
                 .Setup(m => m.GetResponseAsync(It.IsAny<CancellationToken>()))
-                .Returns<CancellationToken>(async token => {
+                .Returns<CancellationToken>(async token =>
+                {
                     await Task.Delay(executionTime, token); return ""; // Emulate no messages for a long time
                 });
 
@@ -87,7 +89,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
             var messenger = CreateDefaultMockMessenger();
             messenger
                 .Setup(m => m.ConnectAsync(It.IsAny<CancellationToken>()))
-                .Returns<CancellationToken>(async token => {
+                .Returns<CancellationToken>(async token =>
+                {
                     await Task.Delay(executionTime, token); // Emulate long connection
                 });
             var socket = new WebSocketSubscriber(messenger.Object, log);
@@ -130,7 +133,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
             var messenger = CreateDefaultMockMessenger();
             messenger
                 .Setup(m => m.GetResponseAsync(It.IsAny<CancellationToken>()))
-                .Returns<CancellationToken>(async token => {
+                .Returns<CancellationToken>(async token =>
+                {
                     await Task.Delay(executionTime, token); // Emulate long connection
                     return "";
                 });
@@ -201,7 +205,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
 
             var income = new List<string>();
             var socket = new WebSocketSubscriber(messenger.Object, log);
-            socket.Subscribe(s => { income.Add(s); return Task.FromResult(0); }); 
+            socket.Subscribe(s => { income.Add(s); return Task.FromResult(0); });
 
             // Execute
 
@@ -270,7 +274,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
             var messenger = CreateDefaultMockMessenger();
             messenger
                 .Setup(m => m.ConnectAsync(It.IsAny<CancellationToken>()))
-                .Callback(() => {
+                .Callback(() =>
+                {
                     if (count++ == 0)
                     {
                         throw new TimeoutException();
@@ -304,7 +309,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
             var messenger = CreateDefaultMockMessenger();
             messenger
                 .Setup(m => m.GetResponseAsync(It.IsAny<CancellationToken>()))
-                .Callback(() => {
+                .Callback(() =>
+                {
                     if (count++ == 0)
                     {
                         throw new TimeoutException();
@@ -374,7 +380,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
             var messenger = CreateDefaultMockMessenger();
             var socket = new DerivedWebSocketSubscriber(messenger.Object, log, heartbeat)
             {
-                ConnectCallback = (token) => Task.FromResult(new OpResult(isFailure: true, _continue: false))
+                ConnectCallback = (token) => Task.FromException(new AuthenticationException())
             };
 
             // Execute
@@ -404,7 +410,11 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
                 ConnectCallback = (token) =>
                 {
                     var failure = count++ == 0;
-                    return Task.FromResult(new OpResult(isFailure: failure, _continue: true));
+                    if (failure)
+                    {
+                        throw new InvalidOperationException();
+                    }
+                    return Task.CompletedTask;
                 }
             };
 
@@ -422,24 +432,27 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
         }
 
         [Fact]
-        public async Task SetupSubscriberToStopOnFailedHandle()
+        public void SetupSubscriberToStopOnFailedHandle()
         {
             // Setup
 
-            TimeSpan heartbeat = TimeSpan.FromMilliseconds(500);
-            TimeSpan waitTime = TimeSpan.FromMilliseconds(1000);
-
+            TimeSpan heartbeat = Timeout.InfiniteTimeSpan;
+            var lk = new ManualResetEventSlim(false);
             var log = new LogToMemory();
             var messenger = CreateDefaultMockMessenger();
             var socket = new DerivedWebSocketSubscriber(messenger.Object, log, heartbeat)
             {
-                HandleCallback = (token) => Task.FromResult(new OpResult(isFailure: true, _continue: false))
+                HandleCallback = (token) =>
+                {
+                    lk.Set();
+                    return Task.FromException(new AuthenticationException());
+                }
             };
 
             // Execute
 
             socket.Start();
-            await Task.Delay(waitTime); // wait for possible heartbeat recharge 
+            Thread.Sleep(10000);
             socket.Dispose();
 
             // Check
@@ -454,30 +467,34 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
         public async Task SetupSubscriberToContinueOnFailedHandle()
         {
             // Setup
-           
+
             var count = 0;
             var log = new LogToMemory();
             var messenger = CreateDefaultMockMessenger();
+            var _lock = new ManualResetEvent(false);
             var socket = new DerivedWebSocketSubscriber(messenger.Object, log)
             {
                 HandleCallback = (token) =>
                 {
-                    var failure = count++ == 0;
-                    return Task.FromResult(new OpResult(isFailure: failure, _continue: true));
+                    if (++count < 2)
+                    {
+                        throw new InvalidOperationException();
+                    }
+                    _lock.Set();
+                    return Task.CompletedTask;
                 }
             };
 
             // Execute
-            
-            socket.Start();
-            await Task.Delay(50);
-            socket.Dispose();
 
+            socket.Start();
+            _lock.WaitOne();
+            socket.Dispose();
             // Check
 
-            messenger.Verify(m => m.ConnectAsync(It.IsAny<CancellationToken>()), Times.Exactly(1));
+            messenger.Verify(m => m.ConnectAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
             messenger.Verify(m => m.GetResponseAsync(It.IsAny<CancellationToken>()), Times.AtLeast(2));
-            messenger.Verify(m => m.StopAsync(It.IsAny<CancellationToken>()), Times.Exactly(1));
+            messenger.Verify(m => m.StopAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
         }
 
         private static Mock<IMessenger<object, string>> CreateDefaultMockMessenger()
@@ -504,8 +521,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
     /// </summary>
     class DerivedWebSocketSubscriber : WebSocketSubscriber
     {
-        public Func<CancellationToken, Task<OpResult>> ConnectCallback { get; set; } = token => Task.FromResult(OpResult.Ok);
-        public Func<CancellationToken, Task<OpResult>> HandleCallback { get; set; } = token => Task.FromResult(OpResult.Ok);
+        public Func<CancellationToken, Task> ConnectCallback { get; set; } = token => Task.CompletedTask;
+        public Func<CancellationToken, Task> HandleCallback { get; set; } = token => Task.CompletedTask;
 
         public DerivedWebSocketSubscriber(
             IMessenger<object, string> messenger,
@@ -515,36 +532,20 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
         {
         }
 
-        protected override async Task<Result> Connect(CancellationToken token)
+        protected override async Task Connect(CancellationToken token)
         {
             await base.Connect(token);
-            var res = await ConnectCallback(token);
-            return new Result(res.IsFailure, res.Continue, res.Error);
+            await ConnectCallback(token);
         }
 
-        protected override async Task<Result> HandleResponse(string json, CancellationToken token)
+        protected override async Task HandleResponse(string json, CancellationToken token)
         {
             await base.HandleResponse(json, token);
-            var res = await HandleCallback(token);
-            return new Result(res.IsFailure, res.Continue, res.Error);
+            await HandleCallback(token);
+
         }
     }
 
-    public class OpResult
-    {
-        public bool IsFailure { get; private set; }
-        public string Error { get; private set; }
-        public bool Continue { get; private set; }
-
-        public OpResult(bool isFailure, bool _continue, string error = "")
-        {
-            this.IsFailure = isFailure;
-            this.Continue = _continue;
-            this.Error = error;
-        }
-
-        public static readonly OpResult Ok = new OpResult(false, true);
-    }
 
     class LogEntity
     {

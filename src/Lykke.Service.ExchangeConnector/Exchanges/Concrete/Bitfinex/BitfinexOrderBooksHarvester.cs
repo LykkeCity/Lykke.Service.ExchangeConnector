@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Castle.Core;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient;
 using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient.Model;
 using Lykke.ExternalExchangesApi.Shared;
 using TradingBot.Communications;
@@ -88,7 +89,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
                 var request = new SubscribeRequest
                 {
                     Event = "subscribe",
-                    Channel = "book",
+                    Channel = WsChannel.book,
                     Pair = instrument,
                     Prec = "R0",
                     Freq = "F0"
@@ -106,7 +107,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
                 var request = new SubscribeRequest
                 {
                     Event = "subscribe",
-                    Channel = "ticker",
+                    Channel = WsChannel.ticker,
                     Pair = instrument
                 };
                 await Messenger.SendRequestAsync(request, CancellationToken);

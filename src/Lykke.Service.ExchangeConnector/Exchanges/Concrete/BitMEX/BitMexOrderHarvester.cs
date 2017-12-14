@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Common.Log;
@@ -25,7 +24,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             ILog log)
         {
             _log = log;
-            socketSubscriber.Subscribe(BitmexTopic.Order, HandleResponseAsync);
+            socketSubscriber.Subscribe(BitmexTopic.order, HandleResponseAsync);
             _mapper = new BitMexModelConverter(configuration.SupportedCurrencySymbols, exchangeName);
         }
 

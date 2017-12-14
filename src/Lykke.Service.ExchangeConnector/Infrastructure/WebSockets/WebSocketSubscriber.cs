@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Autofac;
-using Common;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Shared;
 using Polly;
 using TradingBot.Exchanges.Concrete.Shared;
 
@@ -39,7 +36,7 @@ namespace TradingBot.Infrastructure.WebSockets
 
             lock (_sync)
             {
-                if (_state == State.Starting || _state == State.Stopping || _state == State.Disposed)
+                if (_state == State.Starting || _state == State.Stopping || _state == State.Disposed || _state == State.Stopped)
                 {
                     return;
                 }
@@ -49,20 +46,19 @@ namespace TradingBot.Infrastructure.WebSockets
             }
         }
 
-        protected void RechargeHeartbeat()
+        private void RechargeHeartbeat()
         {
             _heartBeatMonitoringTimer.Change(_heartBeatPeriod, Timeout.InfiniteTimeSpan);
         }
 
-        public WebSocketSubscriber Subscribe(Func<string, Task> messageHandler)
+        public void Subscribe(Func<string, Task> messageHandler)
         {
             ValidateInstance();
 
             Handler = messageHandler;
-            return this;
         }
 
-        protected virtual async Task<Result> HandleResponse(string json, CancellationToken token)
+        protected virtual async Task HandleResponse(string json, CancellationToken token)
         {
             if (Handler != null)
             {
@@ -75,7 +71,6 @@ namespace TradingBot.Infrastructure.WebSockets
                     await Log.WriteErrorAsync(nameof(WebSocketSubscriber), $"An exception occurred while handling message: '{json}'", ex);
                 }
             }
-            return Result.Ok;
         }
 
         public virtual void Start()
@@ -108,37 +103,29 @@ namespace TradingBot.Infrastructure.WebSockets
             }
         }
 
-        protected virtual async Task<Result> Connect(CancellationToken token)
+        protected virtual Task Connect(CancellationToken token)
         {
-            await Messenger.ConnectAsync(token);
-            return Result.Ok;
+            return Messenger.ConnectAsync(token);
+
         }
 
-        protected virtual async Task<Result> MessageLoopImpl()
+        protected async Task MessageLoopImpl()
         {
             try
             {
-                var result = await Connect(CancellationToken);
-                if (result.IsFailure)
-                {
-                    return result;
-                }
+                await Connect(CancellationToken);
 
                 RechargeHeartbeat();
                 while (!CancellationToken.IsCancellationRequested)
                 {
                     var response = await Messenger.GetResponseAsync(CancellationToken);
                     RechargeHeartbeat();
-                    result = await HandleResponse(response, CancellationToken);
-                    if (!result.Continue)
-                    {
-                        return result;
-                    }
+                    await HandleResponse(response, CancellationToken);
                 }
             }
             catch (TaskCanceledException)
             {
-                // Ignore task cancelled exception which is happenning on stopping
+                // Ignore task canceled exception which is happening on stopping
             }
             finally
             {
@@ -150,42 +137,34 @@ namespace TradingBot.Infrastructure.WebSockets
                 {
                 }
             }
-            return Result.Ok;
         }
-
         private async Task MessageLoop()
         {
             const int smallTimeout = 5;
             var retryPolicy = Policy
-                .Handle<Exception>(ex => !(ex is OperationCanceledException))
+                .Handle<Exception>(ex => !(ex is AuthenticationException) && !CancellationToken.IsCancellationRequested)
                 .WaitAndRetryForeverAsync(attempt => attempt % 60 == 0 ? TimeSpan.FromMinutes(5) : TimeSpan.FromSeconds(smallTimeout)); // After every 60 attempts wait 5min 
 
-            await retryPolicy.ExecuteAsync(async (token) =>
+            await retryPolicy.ExecuteAsync(async () =>
             {
                 await Log.WriteInfoAsync(nameof(MessageLoopImpl), "Starting message loop", "");
                 try
                 {
-                    var result = await MessageLoopImpl();
-                    if (result.IsFailure && !result.Continue)
-                    {
-                        // Stop heartbeat timer
-                        _heartBeatMonitoringTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-                    }
-                    else if (result.IsFailure && result.Continue)
-                    {
-                        throw new InvalidOperationException(result.Error); // retry
-                    }
+                    await MessageLoopImpl();
                 }
-                catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
+                catch (AuthenticationException ex)
                 {
+                    await Log.WriteErrorAsync(nameof(MessageLoopImpl), $"AuthenticationException. Will not try to reconnect. Check the API keys in the settings", ex);
+                    _heartBeatMonitoringTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
                     throw;
                 }
                 catch (Exception ex)
                 {
+                    _heartBeatMonitoringTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
                     await Log.WriteErrorAsync(nameof(MessageLoopImpl), $"An exception occurred while working with WebSocket. Reconnect in {smallTimeout} sec", ex);
                     throw;
                 }
-            }, CancellationToken);
+            });
         }
 
 
@@ -194,7 +173,7 @@ namespace TradingBot.Infrastructure.WebSockets
             Log.WriteInfoAsync(nameof(Start), "Starting", $"Starting {GetType().Name}").Wait();
             _cancellationTokenSource = new CancellationTokenSource();
             CancellationToken = _cancellationTokenSource.Token;
-            _messageLoopTask = Task.Run(async () => await MessageLoop());
+            _messageLoopTask = Task.Run(MessageLoop, _cancellationTokenSource.Token);
         }
 
         private void StopImpl()
@@ -207,6 +186,10 @@ namespace TradingBot.Infrastructure.WebSockets
             }
             catch (OperationCanceledException)
             {
+            }
+            catch (AuthenticationException)
+            {
+
             }
             // Stop heartbeat timer can be recharged in the loop
             _heartBeatMonitoringTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
@@ -245,22 +228,6 @@ namespace TradingBot.Infrastructure.WebSockets
             }
         }
         #endregion
-
-        protected class Result
-        {
-            public bool IsFailure { get; private set; }
-            public string Error { get; private set; }
-            public bool Continue { get; private set; }
-
-            public Result(bool isFailure, bool _continue, string error = "")
-            {
-                this.IsFailure = isFailure;
-                this.Continue = _continue;
-                this.Error = error;
-            }
-
-            public static readonly Result Ok = new Result(false, true);
-        }
 
         enum State
         {
