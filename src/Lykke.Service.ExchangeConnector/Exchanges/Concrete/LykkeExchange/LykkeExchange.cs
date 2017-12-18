@@ -180,26 +180,26 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     await LykkeLog.WriteInfoAsync(nameof(LykkeExchange), nameof(HandleOrderStatus), order.ToString(),
                         "Order canceled. Calling ExecutedTradeHandlers");
                     
-                    await CallExecutedTradeHandlers(new ExecutedTrade(new Instrument(Name, order.Order.AssetPairId),
+                    await CallExecutedTradeHandlers(new OrderStatusUpdate(new Instrument(Name, order.Order.AssetPairId),
                         DateTime.UtcNow,
                         order.Order.Price ?? 0, 
                         Math.Abs(order.Order.Volume), 
                         order.Order.Volume < 0 ? TradeType.Sell : TradeType.Buy, 
                         order.Order.ExternalId,
-                        ExecutionStatus.Cancelled));
+                        OrderExecutionStatus.Cancelled));
                 }
                 else if (order.Order.Status == OrderStatus.Matched && order.Trades.Any())
                 {
                     await LykkeLog.WriteInfoAsync(nameof(LykkeExchange), nameof(HandleOrderStatus), order.ToString(),
                         "Order executed. Calling ExecutedTradeHandlers");
                     
-                    await CallExecutedTradeHandlers(new ExecutedTrade(new Instrument(Name, order.Order.AssetPairId),
+                    await CallExecutedTradeHandlers(new OrderStatusUpdate(new Instrument(Name, order.Order.AssetPairId),
                         order.Trades.Last().Timestamp,
                         order.Order.Price ?? order.Trades.Last().Price ?? 0,
                         Math.Abs(order.Order.Volume - order.Order.RemainingVolume),
                         order.Order.Volume < 0 ? TradeType.Sell : TradeType.Buy, 
                         order.Order.ExternalId,
-                        ExecutionStatus.Fill));
+                        OrderExecutionStatus.Fill));
                 }
             }
         }
