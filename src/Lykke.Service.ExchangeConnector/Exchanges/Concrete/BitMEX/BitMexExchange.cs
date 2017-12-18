@@ -52,7 +52,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             priceHarvester.AddHandler(CallTickPricesHandlers);
         }
 
-        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<OrderStatusUpdate> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
           //  var symbol = BitMexModelConverter.ConvertSymbolFromLykkeToBitMex(instrument.Name, _configuration);
             var symbol = "XBTUSD"; //HACK Hard code!
@@ -79,10 +79,10 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
             translatedSignal.ExternalId = order.OrderID;
 
-            return new ExecutedTrade(signal.Instrument, exceTime, execPrice, execVolume, execType, order.OrderID, execStatus) { Message = order.Text };
+            return new OrderStatusUpdate(signal.Instrument, exceTime, execPrice, execVolume, execType, order.OrderID, execStatus) { Message = order.Text };
         }
 
-        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<OrderStatusUpdate> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var ct = new CancellationTokenSource(timeout);
             var id = signal.OrderId;
@@ -96,7 +96,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return BitMexModelConverter.OrderToTrade(res[0]);
         }
 
-        public override async Task<ExecutedTrade> GetOrder(string id, Instrument instrument, TimeSpan timeout)
+        public override async Task<OrderStatusUpdate> GetOrder(string id, Instrument instrument, TimeSpan timeout)
         {
             var filterObj = new { orderID = id };
             var filterArg = JsonConvert.SerializeObject(filterObj);
@@ -106,7 +106,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return BitMexModelConverter.OrderToTrade(res[0]);
         }
 
-        public override async Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout)
+        public override async Task<IEnumerable<OrderStatusUpdate>> GetOpenOrders(TimeSpan timeout)
         {
             var filterObj = new { ordStatus = "New" };
             var filterArg = JsonConvert.SerializeObject(filterObj);

@@ -16,8 +16,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
     {
         private readonly ILog _log;
         private readonly BitMexModelConverter _mapper;
-        private Func<Acknowledgement, Task> _ackHandler;
-        private Func<ExecutedTrade, Task> _tradeHandler;
+        private Func<OrderStatusUpdate, Task> _ackHandler;
+        private Func<OrderStatusUpdate, Task> _tradeHandler;
 
         public BitMexOrderHarvester(string exchangeName,
             BitMexExchangeConfiguration configuration,
@@ -29,12 +29,12 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             _mapper = new BitMexModelConverter(configuration.SupportedCurrencySymbols, exchangeName);
         }
 
-        public void AddAcknowledgementHandler(Func<Acknowledgement, Task> handler)
+        public void AddAcknowledgementHandler(Func<OrderStatusUpdate, Task> handler)
         {
             _ackHandler = handler;
         }
 
-        public void AddExecutedTradeHandler(Func<ExecutedTrade, Task> handler)
+        public void AddExecutedTradeHandler(Func<OrderStatusUpdate, Task> handler)
         {
             _tradeHandler = handler;
         }
@@ -67,7 +67,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                     {
                         var trade = _mapper.OrderToTrade(row);
                         
-                        if (trade.Status == ExecutionStatus.Unknown)
+                        if (trade.Status == OrderExecutionStatus.Unknown)
                         {
                             await _log.WriteWarningAsync(nameof(BitMexOrderHarvester), nameof(HandleResponseAsync),
                                 $"Can't convert trade status {row.OrdStatus} into ExecutionStatus. Converted item: {trade}. Don't call handlers.");

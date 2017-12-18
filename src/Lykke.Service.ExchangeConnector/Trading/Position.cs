@@ -37,8 +37,8 @@ namespace TradingBot.Trading
 
 //        private decimal realizedProfit;
         
-        private readonly LinkedList<ExecutedTrade> longSide = new LinkedList<ExecutedTrade>();
-        private readonly LinkedList<ExecutedTrade> shortSide = new LinkedList<ExecutedTrade>();
+        private readonly LinkedList<OrderStatusUpdate> longSide = new LinkedList<OrderStatusUpdate>();
+        private readonly LinkedList<OrderStatusUpdate> shortSide = new LinkedList<OrderStatusUpdate>();
 
         public decimal GetPnL(decimal price) // TODO: price should be Ask or Bid in dependence of position
         {
@@ -61,7 +61,7 @@ namespace TradingBot.Trading
         private decimal BalancedVolume => Math.Min(longSide.Sum(x => x.Volume), shortSide.Sum(x => x.Volume));
 
         
-        public void AddTrade(ExecutedTrade trade) // todo: make a thread-safe method
+        public void AddTrade(OrderStatusUpdate trade) // todo: make a thread-safe method
         {
             if (trade.Type == TradeType.Buy)
             {

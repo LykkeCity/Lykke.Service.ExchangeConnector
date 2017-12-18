@@ -36,7 +36,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
         public event Action Connected;
         public event Action Disconnected;
-        public event Func<ExecutedTrade, Task> OnTradeExecuted;
+        public event Func<OrderStatusUpdate, Task> OnTradeExecuted;
 
         public IcmConnector(IcmConfig config, AzureFixMessagesRepository repository, ILog logger)
         {
@@ -312,13 +312,13 @@ namespace TradingBot.Exchanges.Concrete.Icm
             string icmId;
             GetIds(report, out id, out icmId);
 
-            ExecutionStatus executionStatus = ExecutionStatus.Pending;
+            OrderExecutionStatus orderExecutionStatus = OrderExecutionStatus.Pending;
 
             switch (report.ExecType.Obj)
             {
                 case ExecType.REJECTED:
                     logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandleExecutionReport), string.Empty, $"ICM rejected the order {id}. Rejection reason is {report.OrdRejReason}").Wait();
-                    executionStatus = ExecutionStatus.Rejected;
+                    orderExecutionStatus = OrderExecutionStatus.Rejected;
                     break;
 
                 case ExecType.TRADE:
@@ -326,23 +326,23 @@ namespace TradingBot.Exchanges.Concrete.Icm
                     if (report.OrdStatus.Obj == OrdStatus.FILLED)
                     {
                         logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandleExecutionReport), string.Empty, $"ICM filled the order {id}! OrdType: {report.OrdStatus.Obj}").Wait();
-                        executionStatus = ExecutionStatus.Fill;
+                        orderExecutionStatus = OrderExecutionStatus.Fill;
                     }
                     else if (report.OrdStatus.Obj == OrdStatus.PARTIALLY_FILLED)
                     {
                         logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandleExecutionReport), string.Empty, $"ICM filled the order {id} partially.").Wait();
-                        executionStatus = ExecutionStatus.PartialFill;
+                        orderExecutionStatus = OrderExecutionStatus.PartialFill;
                     }
                     break;
 
                 case ExecType.NEW:
                     logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandleExecutionReport), string.Empty, $"Order {id} placed as new!").Wait();
-                    executionStatus = ExecutionStatus.New;
+                    orderExecutionStatus = OrderExecutionStatus.New;
                     break;
 
                 case ExecType.CANCELLED:
                     logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandleExecutionReport), string.Empty, $"Order {id} was cancelled!").Wait();
-                    executionStatus = ExecutionStatus.Cancelled;
+                    orderExecutionStatus = OrderExecutionStatus.Cancelled;
                     break;
 
                 case ExecType.ORDER_STATUS:
@@ -356,23 +356,23 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
 
 
-            var executedTrade = new ExecutedTrade(
+            var executedTrade = new OrderStatusUpdate(
                 new Instrument(IcmExchange.Name, report.IsSetField(Tags.Symbol) ? symbolsMapBack[report.Symbol.Obj] : ""),
                 report.IsSetField(Tags.TransactTime) ? report.TransactTime.Obj : DateTime.UtcNow,
-                executionStatus == ExecutionStatus.Fill || executionStatus == ExecutionStatus.PartialFill ? report.AvgPx.Obj : report.Price.Obj,
+                orderExecutionStatus == OrderExecutionStatus.Fill || orderExecutionStatus == OrderExecutionStatus.PartialFill ? report.AvgPx.Obj : report.Price.Obj,
                 report.OrderQty.Obj,
                 report.Side.Obj == Side.BUY ? TradeType.Buy : TradeType.Sell,
                 id,
-                executionStatus);
+                orderExecutionStatus);
 
             if (report.IsSetField(Tags.Text))
             {
                 executedTrade.Message = report.Text.Obj;
             }
 
-            if (executionStatus == ExecutionStatus.Cancelled ||
-                executionStatus == ExecutionStatus.Fill ||
-                executionStatus == ExecutionStatus.PartialFill)
+            if (orderExecutionStatus == OrderExecutionStatus.Cancelled ||
+                orderExecutionStatus == OrderExecutionStatus.Fill ||
+                orderExecutionStatus == OrderExecutionStatus.PartialFill)
             {
                 OnTradeExecuted?.Invoke(executedTrade); // TODO: await?
             }
@@ -388,7 +388,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
                     }
                     else
                     {
-                        orderExecutions[id] = new TaskCompletionSource<ExecutedTrade>();
+                        orderExecutions[id] = new TaskCompletionSource<OrderStatusUpdate>();
                         orderExecutions[id].SetResult(executedTrade);
                     }
                 }
@@ -601,10 +601,10 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
 
 
-        public async Task<ExecutedTrade> AddOrderAndWaitResponse(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public async Task<OrderStatusUpdate> AddOrderAndWaitResponse(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var id = signal.OrderId;
-            var tcs = new TaskCompletionSource<ExecutedTrade>();
+            var tcs = new TaskCompletionSource<OrderStatusUpdate>();
 
             lock (orderExecutions)
             {
@@ -621,33 +621,33 @@ namespace TradingBot.Exchanges.Concrete.Icm
             var signalSended = AddOrder(signal, translatedSignal);
 
             if (!signalSended)
-                return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, ExecutionStatus.Rejected);
+                return new OrderStatusUpdate(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, OrderExecutionStatus.Rejected);
 
             var sw = Stopwatch.StartNew();
             var task = tcs.Task;
             await Task.WhenAny(task, Task.Delay(timeout)).ConfigureAwait(false);
 
-            ExecutedTrade result = null;
+            OrderStatusUpdate result = null;
 
             if (task.IsCompleted)
             {
                 result = task.Result;
 
-                if (result.Status == ExecutionStatus.New)
+                if (result.Status == OrderExecutionStatus.New)
                 {
                     lock (orderExecutions)
                     {
                         // probably the new result is here already
 
                         if (orderExecutions[id].Task.IsCompleted &&
-                            orderExecutions[id].Task.Result.Status == ExecutionStatus.New) // thats the old one, let's change
+                            orderExecutions[id].Task.Result.Status == OrderExecutionStatus.New) // thats the old one, let's change
                         {
-                            tcs = new TaskCompletionSource<ExecutedTrade>();
+                            tcs = new TaskCompletionSource<OrderStatusUpdate>();
                             orderExecutions[id] = tcs;
                             task = tcs.Task;
                         }
                         else if (orderExecutions[id].Task.IsCompleted &&
-                                 orderExecutions[id].Task.Result.Status != ExecutionStatus.New) // that's the new one, let's return
+                                 orderExecutions[id].Task.Result.Status != OrderExecutionStatus.New) // that's the new one, let's return
                         {
                             //result = orderExecutions[id].Task.Result;
                             task = orderExecutions[id].Task;
@@ -705,10 +705,10 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return SendRequest(request);
         }
 
-        public async Task<ExecutedTrade> CancelOrderAndWaitResponse(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public async Task<OrderStatusUpdate> CancelOrderAndWaitResponse(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var id = signal.OrderId;
-            var tcs = new TaskCompletionSource<ExecutedTrade>();
+            var tcs = new TaskCompletionSource<OrderStatusUpdate>();
 
             lock (orderExecutions)
             {
@@ -725,7 +725,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             var signalSended = CancelOrder(signal, translatedSignal);
 
             if (!signalSended)
-                return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, ExecutionStatus.Rejected);
+                return new OrderStatusUpdate(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, OrderExecutionStatus.Rejected);
 
             await Task.WhenAny(tcs.Task, Task.Delay(timeout)).ConfigureAwait(false);
 
@@ -738,12 +738,12 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return tcs.Task.Result;
         }
 
-        private readonly Dictionary<string, TaskCompletionSource<ExecutedTrade>> orderExecutions = new Dictionary<string, TaskCompletionSource<ExecutedTrade>>();
+        private readonly Dictionary<string, TaskCompletionSource<OrderStatusUpdate>> orderExecutions = new Dictionary<string, TaskCompletionSource<OrderStatusUpdate>>();
 
         private readonly ConcurrentDictionary<string, TradingSignal> orderSignals = new ConcurrentDictionary<string, TradingSignal>();
 
 
-        public Task<ExecutedTrade> GetOrderInfoAndWaitResponse(Instrument instrument, string orderId)
+        public Task<OrderStatusUpdate> GetOrderInfoAndWaitResponse(Instrument instrument, string orderId)
         {
             lock (orderExecutions)
             {
@@ -755,7 +755,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
                     }
                     else
                     {
-                        orderExecutions[orderId] = new TaskCompletionSource<ExecutedTrade>();
+                        orderExecutions[orderId] = new TaskCompletionSource<OrderStatusUpdate>();
                     }
                 }
             }
@@ -768,7 +768,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
         private readonly LinkedList<TaskCompletionSource<ListStatus>> listStatuses = new LinkedList<TaskCompletionSource<ListStatus>>();
 
-        public async Task<IEnumerable<ExecutedTrade>> GetAllOrdersInfo(TimeSpan timeout)
+        public async Task<IEnumerable<OrderStatusUpdate>> GetAllOrdersInfo(TimeSpan timeout)
         {
             var tcs = new TaskCompletionSource<ListStatus>();
 
@@ -808,13 +808,13 @@ namespace TradingBot.Exchanges.Concrete.Icm
             var listStatus = tcs.Task.Result;
             int ordersCount = listStatus.TotNoOrders.Obj;
 
-            var result = new List<ExecutedTrade>();
+            var result = new List<OrderStatusUpdate>();
 
             for (int i = 1; i <= ordersCount; i++)
             {
                 var orderGroup = listStatus.GetGroup(i, Tags.NoOrders);
 
-                var executedTrade = new ExecutedTrade(
+                var executedTrade = new OrderStatusUpdate(
                     new Instrument("icm", orderGroup.GetField(Tags.Symbol)),
                     orderGroup.GetField(new TransactTime()).Obj,
                     orderGroup.GetField(new AvgPx()).Obj,
@@ -853,16 +853,16 @@ namespace TradingBot.Exchanges.Concrete.Icm
             }
         }
 
-        private ExecutionStatus ConvertStatus(char status)
+        private OrderExecutionStatus ConvertStatus(char status)
         {
             switch (status)
             {
                 case OrdStatus.NEW:
-                    return ExecutionStatus.New;
+                    return OrderExecutionStatus.New;
                 case OrdStatus.CANCELED:
-                    return ExecutionStatus.Cancelled;
+                    return OrderExecutionStatus.Cancelled;
                 case OrdStatus.PENDING_NEW:
-                    return ExecutionStatus.Pending;
+                    return OrderExecutionStatus.Pending;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(status), status, null);
             }

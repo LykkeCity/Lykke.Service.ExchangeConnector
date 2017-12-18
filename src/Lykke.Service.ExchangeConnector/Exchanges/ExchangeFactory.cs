@@ -43,8 +43,8 @@ namespace TradingBot.Exchanges
                 foreach (var exchange in _implementations.Where(x => x.Config.PubQuotesToRabbit))
                 {
                     var pricesHandler = new RabbitMqHandler<TickPrice>(_config.RabbitMq.GetConnectionString(), _config.RabbitMq.TickPrices.Exchange);
-                    var tradesHandler = new RabbitMqHandler<ExecutedTrade>(_config.RabbitMq.GetConnectionString(), _config.RabbitMq.Trades.Exchange);
-                    var acknowledgementsHandler = new RabbitMqHandler<Acknowledgement>(_config.RabbitMq.GetConnectionString(), _config.RabbitMq.Acknowledgements.Exchange);
+                    var tradesHandler = new RabbitMqHandler<OrderStatusUpdate>(_config.RabbitMq.GetConnectionString(), _config.RabbitMq.Trades.Exchange);
+                    var acknowledgementsHandler = new RabbitMqHandler<OrderStatusUpdate>(_config.RabbitMq.GetConnectionString(), _config.RabbitMq.Acknowledgements.Exchange);
                     
                     exchange.AddTickPriceHandler(pricesHandler);
                     exchange.AddExecutedTradeHandler(tradesHandler);

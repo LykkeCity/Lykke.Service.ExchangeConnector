@@ -46,7 +46,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             };
         }
 
-        public static ExecutedTrade OrderToTrade(Order order)
+        public static OrderStatusUpdate OrderToTrade(Order order)
         {
             var execTime = order.TransactTime ?? DateTime.UtcNow;
             var execPrice = (decimal)(order.Price ?? 0);
@@ -56,29 +56,29 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             //  var instr = ConvertSymbolFromBitMexToLykke(order.Symbol, configuration);
             var instr = new Instrument(BitMexExchange.Name, "USDBTC"); //HACK Hard code!
 
-            return new ExecutedTrade(instr, execTime, execPrice, execVolume, tradeType, order.OrderID, status) { Message = order.Text };
+            return new OrderStatusUpdate(instr, execTime, execPrice, execVolume, tradeType, order.OrderID, status) { Message = order.Text };
         }
 
 
-        public ExecutedTrade OrderToTrade(WebSocketClient.Model.RowItem row)
+        public OrderStatusUpdate OrderToTrade(WebSocketClient.Model.RowItem row)
         {
             var lykkeInstrument = this.ExchangeSymbolToLykkeInstrument(row.Symbol);
-            return new ExecutedTrade(
+            return new OrderStatusUpdate(
                 lykkeInstrument,
                 row.Timestamp,
                 row.Price ?? row.AvgPx ?? 0,
                 row.OrderQty ?? row.CumQty ?? 0,
                 row.Side.HasValue ? ConvertSideToModel(row.Side.Value) : TradeType.Unknown,
                 row.OrderID,
-                row.OrdStatus.HasValue ? ConvertExecutionStatusToModel(row.OrdStatus.Value) : ExecutionStatus.Unknown);
+                row.OrdStatus.HasValue ? ConvertExecutionStatusToModel(row.OrdStatus.Value) : OrderExecutionStatus.Unknown);
         }
 
-        public Acknowledgement OrderToAck(WebSocketClient.Model.RowItem row)
+        public OrderStatusUpdate OrderToAck(WebSocketClient.Model.RowItem row)
         {
             var lykkeInstrument = this.ExchangeSymbolToLykkeInstrument(row.Symbol);
-            return new Acknowledgement()
+            return new OrderStatusUpdate
             {
-                Instrument = lykkeInstrument.Name,
+                InstrumentName = lykkeInstrument.Name,
                 Exchange = lykkeInstrument.Exchange,
                 ClientOrderId = row.ClOrdID,
                 ExchangeOrderId = row.OrderID,
@@ -145,39 +145,39 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             }
         }
 
-        public static ExecutionStatus ConvertExecutionStatusToModel(OrdStatus status)
+        public static OrderExecutionStatus ConvertExecutionStatusToModel(OrdStatus status)
         {
             switch (status)
             {
                 case OrdStatus.New:
-                    return ExecutionStatus.New;
+                    return OrderExecutionStatus.New;
                 case OrdStatus.PartiallyFilled:
-                    return ExecutionStatus.PartialFill;
+                    return OrderExecutionStatus.PartialFill;
                 case OrdStatus.Filled:
-                    return ExecutionStatus.Fill;
+                    return OrderExecutionStatus.Fill;
                 case OrdStatus.Canceled:
-                    return ExecutionStatus.Cancelled;
+                    return OrderExecutionStatus.Cancelled;
                 default:
-                    return ExecutionStatus.Unknown;
+                    return OrderExecutionStatus.Unknown;
             }
         }
 
-        public static ExecutionStatus ConvertExecutionStatus(string executionStatus)
+        public static OrderExecutionStatus ConvertExecutionStatus(string executionStatus)
         {
             switch (executionStatus)
             {
                 case "New":
-                    return ExecutionStatus.New;
+                    return OrderExecutionStatus.New;
                 case "Filled":
-                    return ExecutionStatus.Fill;
+                    return OrderExecutionStatus.Fill;
                 case "Partially Filled":
-                    return ExecutionStatus.PartialFill;
+                    return OrderExecutionStatus.PartialFill;
                 case "Canceled":
-                    return ExecutionStatus.Cancelled;
+                    return OrderExecutionStatus.Cancelled;
                 case "Rejeсted":
-                    return ExecutionStatus.Rejected;
+                    return OrderExecutionStatus.Rejected;
                 default:
-                    return ExecutionStatus.Unknown;
+                    return OrderExecutionStatus.Unknown;
             }
         }
 

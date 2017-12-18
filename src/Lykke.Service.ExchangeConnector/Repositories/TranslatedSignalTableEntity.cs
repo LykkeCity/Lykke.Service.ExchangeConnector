@@ -47,7 +47,7 @@ namespace TradingBot.Repositories
 
         public string ErrorMessage { get; set; }
         
-        public ExecutionStatus ExecutionStatus { get; set; }
+        public OrderExecutionStatus OrderExecutionStatus { get; set; }
         
         public string ClientIP { get; set; }
         
@@ -95,9 +95,9 @@ namespace TradingBot.Repositories
             RowKey = rowKey.ToString();
         }
 
-        public void SetExecutionResult(ExecutedTrade executedTrade)
+        public void SetExecutionResult(OrderStatusUpdate executedTrade)
         {
-            ExecutionStatus = executedTrade.Status;
+            OrderExecutionStatus = executedTrade.Status;
             ErrorMessage = executedTrade.Message;
         }
 

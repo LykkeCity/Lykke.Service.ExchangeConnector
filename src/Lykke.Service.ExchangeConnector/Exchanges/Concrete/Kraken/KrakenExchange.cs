@@ -164,7 +164,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                 });
         }
 
-        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal,
+        public override async Task<OrderStatusUpdate> AddOrderAndWaitExecution(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var cts = new CancellationTokenSource(timeout);
@@ -173,30 +173,30 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             string txId = orderInfo.TxId.FirstOrDefault();
             translatedSignal.ExternalId = txId;
 
-            return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, ExecutionStatus.New);
+            return new OrderStatusUpdate(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, OrderExecutionStatus.New);
         }
 
-        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<OrderStatusUpdate> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var result = await privateData.CancelOrder(signal.OrderId, translatedSignal);
 
-            var executedTrade = new ExecutedTrade(signal.Instrument,
+            var executedTrade = new OrderStatusUpdate(signal.Instrument,
                 DateTime.UtcNow,
                 signal.Price ?? 0,
                 signal.Volume,
                 signal.TradeType,
                 signal.OrderId,
-                result.Pending ? ExecutionStatus.Pending : ExecutionStatus.Cancelled);
+                result.Pending ? OrderExecutionStatus.Pending : OrderExecutionStatus.Cancelled);
 
             translatedSignal.SetExecutionResult(executedTrade);
 
             return executedTrade;
         }
 
-        public override async Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout)
+        public override async Task<IEnumerable<OrderStatusUpdate>> GetOpenOrders(TimeSpan timeout)
         {
             return (await privateData.GetOpenOrders(new CancellationTokenSource(timeout).Token))
-                .Select(x => new ExecutedTrade(new Instrument(Name, x.Value.DescriptionInfo.Pair), 
+                .Select(x => new OrderStatusUpdate(new Instrument(Name, x.Value.DescriptionInfo.Pair), 
                     DateTimeUtils.FromUnix(x.Value.StartTime), 
                     x.Value.Price,
                     x.Value.Volume,
@@ -205,10 +205,10 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                     ConvertStatus(x.Value.Status)));
         }
 
-        public async Task<IEnumerable<ExecutedTrade>> GetExecutedOrders(DateTime start, TimeSpan timeout)
+        public async Task<IEnumerable<OrderStatusUpdate>> GetExecutedOrders(DateTime start, TimeSpan timeout)
         {
             return (await privateData.GetClosedOrders(start, new CancellationTokenSource(timeout).Token)).Closed
-                .Select(x => new ExecutedTrade(new Instrument(Name, x.Value.DescriptionInfo.Pair), 
+                .Select(x => new OrderStatusUpdate(new Instrument(Name, x.Value.DescriptionInfo.Pair), 
                     DateTimeUtils.FromUnix(x.Value.StartTime), 
                     x.Value.Price,
                     x.Value.Volume,
@@ -217,20 +217,20 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                     ConvertStatus(x.Value.Status)));
         }
 
-        private ExecutionStatus ConvertStatus(OrderStatus status)
+        private OrderExecutionStatus ConvertStatus(OrderStatus status)
         {
             switch (status)
             {
                 case OrderStatus.Pending:
-                    return ExecutionStatus.Pending;
+                    return OrderExecutionStatus.Pending;
                 case OrderStatus.Open:
-                    return ExecutionStatus.New;
+                    return OrderExecutionStatus.New;
                 case OrderStatus.Closed:
-                    return ExecutionStatus.Fill;
+                    return OrderExecutionStatus.Fill;
                 case OrderStatus.Canceled:
-                    return ExecutionStatus.Cancelled;
+                    return OrderExecutionStatus.Cancelled;
                 case OrderStatus.Expired:
-                    return ExecutionStatus.Rejected;
+                    return OrderExecutionStatus.Rejected;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(status), status, null);
             }

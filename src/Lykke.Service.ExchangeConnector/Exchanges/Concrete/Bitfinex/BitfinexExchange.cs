@@ -46,7 +46,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             orderBooksHarvester.MaxOrderBookRate = configuration.MaxOrderBookRate;
         }
 
-        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<OrderStatusUpdate> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var symbol = _converters.LykkeSymbolToExchangeSymbol(signal.Instrument.Name);
             var volume = signal.Volume;
@@ -66,7 +66,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             return trade;
         }
 
-        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<OrderStatusUpdate> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
 
             var cts = new CancellationTokenSource(timeout);
@@ -83,7 +83,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             return trade;
         }
 
-        public override async Task<ExecutedTrade> GetOrder(string id, Instrument instrument, TimeSpan timeout)
+        public override async Task<OrderStatusUpdate> GetOrder(string id, Instrument instrument, TimeSpan timeout)
         {
             if (!long.TryParse(id, out var orderId))
             {
@@ -99,7 +99,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             return trade;
         }
 
-        public override async Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout)
+        public override async Task<IEnumerable<OrderStatusUpdate>> GetOpenOrders(TimeSpan timeout)
         {
 
             var cts = new CancellationTokenSource(timeout);
@@ -185,7 +185,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             return new[] { balance };
         }
 
-        private ExecutedTrade OrderToTrade(Order order)
+        private OrderStatusUpdate OrderToTrade(Order order)
         {
             var id = order.Id;
             var execTime = order.Timestamp;
@@ -195,7 +195,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             var status = ConvertExecutionStatus(order);
             var instr = _converters.ExchangeSymbolToLykkeInstrument(order.Symbol);
 
-            return new ExecutedTrade(instr, execTime, execPrice, execVolume, tradeType, id, status);
+            return new OrderStatusUpdate(instr, execTime, execPrice, execVolume, tradeType, id, status);
         }
 
         protected override void StartImpl()
@@ -248,17 +248,17 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             }
         }
 
-        private static ExecutionStatus ConvertExecutionStatus(Order order)
+        private static OrderExecutionStatus ConvertExecutionStatus(Order order)
         {
             if (order.IsCancelled)
             {
-                return ExecutionStatus.Cancelled;
+                return OrderExecutionStatus.Cancelled;
             }
             if (order.IsLive)
             {
-                return ExecutionStatus.New;
+                return OrderExecutionStatus.New;
             }
-            return ExecutionStatus.Fill;
+            return OrderExecutionStatus.Fill;
         }
 
     }

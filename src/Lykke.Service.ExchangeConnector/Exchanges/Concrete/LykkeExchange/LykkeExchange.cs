@@ -176,19 +176,19 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             {
                 if (order.Order.Status == OrderStatus.Cancelled)
                 {
-                    await CallExecutedTradeHandlers(new ExecutedTrade(new Instrument(Name, order.Order.AssetPairId),
+                    await CallExecutedTradeHandlers(new OrderStatusUpdate(new Instrument(Name, order.Order.AssetPairId),
                         DateTime.UtcNow,
                         order.Order.Price ?? 0, order.Order.Volume, TradeType.Unknown, order.Order.ExternalId,
-                        ExecutionStatus.Cancelled));
+                        OrderExecutionStatus.Cancelled));
                 }
                 else if (order.Order.Status == OrderStatus.Matched && order.Trades.Any())
                 {
-                    await CallExecutedTradeHandlers(new ExecutedTrade(new Instrument(Name, order.Order.AssetPairId),
+                    await CallExecutedTradeHandlers(new OrderStatusUpdate(new Instrument(Name, order.Order.AssetPairId),
                         order.Trades.First().Timestamp,
                         Math.Abs(order.Trades.Sum(x => x.Price ?? 0 * x.Volume) / order.Trades.Sum(x => x.Volume)),
                         order.Trades.Sum(x => x.Volume),
                         TradeType.Unknown, order.Order.ExternalId,
-                        ExecutionStatus.Fill));
+                        OrderExecutionStatus.Fill));
                 }
             }
         }
@@ -246,7 +246,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             return content;
         }
 
-        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal,
+        public override async Task<OrderStatusUpdate> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal,
             TimeSpan timeout)
         {
             var cts = new CancellationTokenSource(timeout);
@@ -270,9 +270,9 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
 
                     if (marketOrderResponse != null && marketOrderResponse.Error == null)
                     {
-                        return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, marketOrderResponse.Result,
+                        return new OrderStatusUpdate(signal.Instrument, DateTime.UtcNow, marketOrderResponse.Result,
                             signal.Volume, signal.TradeType,
-                            signal.OrderId, ExecutionStatus.Fill);
+                            signal.OrderId, OrderExecutionStatus.Fill);
                     }
                     else
                     {
@@ -298,9 +298,9 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     if (orderPlaced)
                     {
                         translatedSignal.ExternalId = orderId.ToString();
-                        return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume,
+                        return new OrderStatusUpdate(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume,
                             signal.TradeType,
-                            orderId.ToString(), ExecutionStatus.New);
+                            orderId.ToString(), OrderExecutionStatus.New);
                     }
                     else
                     {
@@ -312,7 +312,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             }
         }
 
-        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal,
+        public override async Task<OrderStatusUpdate> CancelOrderAndWaitExecution(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var cts = new CancellationTokenSource(timeout);
@@ -323,8 +323,8 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                 translatedSignal,
                 cts.Token);
             
-            return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
-                signal.OrderId, ExecutionStatus.Cancelled);
+            return new OrderStatusUpdate(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
+                signal.OrderId, OrderExecutionStatus.Cancelled);
         }
 
         public async Task CancelAllOrders()
