@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
+using Lykke.ExternalExchangesApi.Exchanges.GDAX.RestClient.Entities;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;

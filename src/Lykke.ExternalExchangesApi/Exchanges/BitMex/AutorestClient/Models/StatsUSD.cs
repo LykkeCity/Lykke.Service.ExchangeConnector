@@ -4,12 +4,11 @@
 // regenerated.
 // </auto-generated>
 
-namespace TradingBot.Exchanges.Concrete.AutorestClient.Models
-{
-    using Microsoft.Rest;
-    using Newtonsoft.Json;
-    using System.Linq;
+using Microsoft.Rest;
+using Newtonsoft.Json;
 
+namespace Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models
+{
     public partial class StatsUSD
     {
         /// <summary>

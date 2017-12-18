@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model
+namespace Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model
 {
     internal class UnsubscribeRequest : SubscribeRequest
     {

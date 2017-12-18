@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 using Common.Log;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient;
-using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
-using TradingBot.Exchanges.Concrete.Shared;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model;
+using Lykke.ExternalExchangesApi.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.WebSockets;
 

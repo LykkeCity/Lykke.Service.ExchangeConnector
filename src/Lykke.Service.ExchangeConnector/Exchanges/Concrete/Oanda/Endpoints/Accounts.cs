@@ -1,6 +1,6 @@
-﻿using System.Threading;
+﻿using Lykke.ExternalExchangesApi.Exchanges.Abstractions;
+using System.Threading;
 using System.Threading.Tasks;
-using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Oanda.Entities.Accounts;
 
 namespace TradingBot.Exchanges.Concrete.Oanda.Endpoints

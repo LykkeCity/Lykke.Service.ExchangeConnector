@@ -5,10 +5,10 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using TradingBot.Exchanges.Abstractions;
+using Lykke.ExternalExchangesApi.Exceptions;
+using Lykke.ExternalExchangesApi.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Kraken.Entities;
 using TradingBot.Exchanges.Concrete.Kraken.Responses;
-using TradingBot.Infrastructure.Exceptions;
 
 namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
 {

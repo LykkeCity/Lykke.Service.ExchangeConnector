@@ -4,10 +4,10 @@ using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Lykke.ExternalExchangesApi.Exceptions;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Models;
 using TradingBot.Models.Api;
 

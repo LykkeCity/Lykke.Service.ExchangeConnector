@@ -7,11 +7,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using TradingBot.Exchanges.Abstractions;
+using Lykke.ExternalExchangesApi.Exceptions;
+using Lykke.ExternalExchangesApi.Exchanges.Abstractions;
+using Lykke.ExternalExchangesApi.Helpers;
 using TradingBot.Exchanges.Concrete.Kraken.Entities;
 using TradingBot.Exchanges.Concrete.Kraken.Requests;
 using TradingBot.Exchanges.Concrete.Kraken.Responses;
-using TradingBot.Helpers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Infrastructure.Logging;
@@ -103,7 +104,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
                 var content = CreateHttpContent(request, nonceProvider.GetNonce(), url);
 
                 var response = await apiClient.MakePostRequestAsync<ResponseBase<T>>($"{endpointUrl}/{url}", content,
-                    translatedSignal, cancellationToken);
+                    translatedSignal.RequestSent, translatedSignal.ResponseReceived, cancellationToken);
 
                 if (response.Error.Any())
                 {

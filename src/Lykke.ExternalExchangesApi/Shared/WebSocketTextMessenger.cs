@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Common.Log;
 using Newtonsoft.Json;
 using Polly;
-using TradingBot.Exchanges.Concrete.Shared;
 
 namespace Lykke.ExternalExchangesApi.Shared
 {

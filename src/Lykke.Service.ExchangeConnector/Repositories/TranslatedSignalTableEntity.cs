@@ -101,18 +101,21 @@ namespace TradingBot.Repositories
             ErrorMessage = executedTrade.Message;
         }
 
-        public void RequestSent(string content)
+        public void RequestSentMessage(string content)
         {
             RequestToExchangeDateTime = DateTime.UtcNow;
             RequestSentToExchange = content;
         }
 
-        public void RequestSent(HttpMethod httpMethod, string url, HttpContent httpContent)
+        public string RequestSent(HttpMethod httpMethod, string url, HttpContent httpContent)
         {
             RequestToExchangeDateTime = DateTime.UtcNow;
-            RequestSentToExchange =
+            var sentRequest =
                 $"{httpMethod} {url} HEADERS: {string.Join("; ", httpContent.Headers.Select(x => $"{x.Key}: {string.Join(", ", x.Value)}"))} " +
                 $"BODY: {httpContent.ReadAsStringAsync().Result}";
+            RequestSentToExchange = sentRequest;
+
+            return sentRequest;
         }
 
         public void ResponseReceived(string content)

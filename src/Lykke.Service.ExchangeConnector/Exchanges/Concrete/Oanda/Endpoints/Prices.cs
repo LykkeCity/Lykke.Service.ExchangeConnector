@@ -4,7 +4,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using TradingBot.Exchanges.Abstractions;
+using Lykke.ExternalExchangesApi.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Oanda.Entities.Prices;
 using TradingBot.Infrastructure.Logging;
 

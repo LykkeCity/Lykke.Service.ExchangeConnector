@@ -2,12 +2,13 @@
 using System.Threading;
 using Common.Log;
 using Lykke.ExternalExchangesApi.Exchanges.Jfd;
+using Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient;
 using QuickFix.Fields;
 using QuickFix.FIX44;
-using TradingBot.Exchanges.Concrete.Jfd.FixClient;
 using TradingBot.Infrastructure.Configuration;
 using Xunit;
 using Xunit.Abstractions;
+using Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient;
 
 namespace Lykke.Service.ExchangeConnector.Tests.Jfd
 {

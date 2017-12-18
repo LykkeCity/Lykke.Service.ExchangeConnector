@@ -1,4 +1,4 @@
-﻿namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
+﻿namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
 {
     public enum JfdConnectorState
     {

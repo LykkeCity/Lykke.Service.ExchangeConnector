@@ -4,19 +4,18 @@
 // regenerated.
 // </auto-generated>
 
-namespace TradingBot.Exchanges.Concrete.AutorestClient
-{
-    using Microsoft.Rest;
-    using Microsoft.Rest.Serialization;
-    using Models;
-    using Newtonsoft.Json;
-    using System.Collections;
-    using System.Collections.Generic;
-    using System.Net;
-    using System.Net.Http;
-    using System.Threading;
-    using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Net;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models;
+using Microsoft.Rest;
+using Microsoft.Rest.Serialization;
+using Newtonsoft.Json;
 
+namespace Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient
+{
     /// <summary>
     /// ## REST API for the BitMEX Trading Platform
     ///

@@ -6,6 +6,8 @@ using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Exceptions;
+using Lykke.ExternalExchangesApi.Exchanges.Abstractions;
 using Lykke.RabbitMqBroker;
 using Lykke.RabbitMqBroker.Subscriber;
 using Newtonsoft.Json;
@@ -13,7 +15,6 @@ using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.LykkeExchange.Entities;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Infrastructure.Wamp;
 using TradingBot.Repositories;
 using TradingBot.Trading;
@@ -265,7 +266,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                             OrderAction = signal.TradeType,
                             Volume = signal.Volume
                         }),
-                        translatedSignal,
+                        translatedSignal.RequestSent, translatedSignal.ResponseReceived,
                         cts.Token);
 
                     if (marketOrderResponse != null && marketOrderResponse.Error == null)
@@ -290,7 +291,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                             Volume = signal.Volume,
                             Price = signal.Price ?? 0
                         }),
-                        translatedSignal,
+                        translatedSignal.RequestSent, translatedSignal.ResponseReceived,
                         cts.Token);
 
                     var orderPlaced = limitOrderResponse != null && Guid.TryParse(limitOrderResponse, out var orderId);
@@ -320,7 +321,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             string result = await apiClient.MakePostRequestAsync<string>(
                 $"{Config.EndpointUrl}/api/Orders/{signal.OrderId}/Cancel",
                 CreateHttpContent(new object()),
-                translatedSignal,
+                translatedSignal.RequestSent, translatedSignal.ResponseReceived,
                 cts.Token);
             
             return new OrderStatusUpdate(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
@@ -341,7 +342,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     await apiClient.MakePostRequestAsync<string>(
                         $"{Config.EndpointUrl}/api/Orders/{order.Id}/Cancel",
                         CreateHttpContent(new object()),
-                        null,
+                        null, null,
                         CancellationToken.None);
                 }
                 catch (Exception)

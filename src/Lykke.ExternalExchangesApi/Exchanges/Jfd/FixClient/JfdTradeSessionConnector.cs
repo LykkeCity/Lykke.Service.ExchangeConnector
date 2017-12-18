@@ -3,16 +3,15 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
-using Lykke.ExternalExchangesApi.Exchanges.Jfd;
+using Lykke.ExternalExchangesApi.Shared;
 using QuickFix;
 using QuickFix.Fields;
 using QuickFix.FIX44;
 using QuickFix.Transport;
-using TradingBot.Exchanges.Concrete.Shared;
 using ILog = Common.Log.ILog;
 using Message = QuickFix.Message;
 
-namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
+namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
 {
     public sealed class JfdTradeSessionConnector : IApplication, IDisposable
     {

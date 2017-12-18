@@ -4,8 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using AzureStorage;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Helpers;
 using TradingBot.Exchanges.Concrete.Shared;
-using TradingBot.Helpers;
 using TradingBot.Repositories;
 
 namespace TradingBot.Communications

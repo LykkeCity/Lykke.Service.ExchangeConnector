@@ -1,16 +1,16 @@
 ﻿using QuickFix;
 
-namespace TradingBot.Exchanges.Concrete.Shared
+namespace Lykke.ExternalExchangesApi.Shared
 {
     public class LykkeQuickFixLog : ILog
     {
-        private readonly Common.Log.ILog _lykkeLog;
+        private readonly global::Common.Log.ILog _lykkeLog;
         private readonly SessionID _sessionId;
         private readonly bool _logIncoming;
         private readonly bool _logOutgoing;
         private readonly bool _logEvents;
 
-        public LykkeQuickFixLog(Common.Log.ILog lykkeLog, SessionID sessionId, bool logIncoming, bool logOutgoing, bool logEvents)
+        public LykkeQuickFixLog(global::Common.Log.ILog lykkeLog, SessionID sessionId, bool logIncoming, bool logOutgoing, bool logEvents)
         {
             _lykkeLog = lykkeLog;
             _sessionId = sessionId;

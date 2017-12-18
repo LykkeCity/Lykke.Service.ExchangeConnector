@@ -7,16 +7,17 @@ using Common.Log;
 using Newtonsoft.Json;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
-using TradingBot.Exchanges.Concrete.AutorestClient;
-using TradingBot.Exchanges.Concrete.AutorestClient.Models;
+using Lykke.ExternalExchangesApi.Exceptions;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Models.Api;
 using TradingBot.Repositories;
 using TradingBot.Trading;
 using Instrument = TradingBot.Trading.Instrument;
-using Order = TradingBot.Exchanges.Concrete.AutorestClient.Models.Order;
-using Position = TradingBot.Exchanges.Concrete.AutorestClient.Models.Position;
+using Order = Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models.Order;
+using Position = Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models.Position;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {

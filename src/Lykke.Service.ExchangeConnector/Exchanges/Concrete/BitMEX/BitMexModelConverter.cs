@@ -4,17 +4,19 @@ using System.Drawing;
 using System.Globalization;
 using Newtonsoft.Json;
 using QuickFix.Fields;
-using TradingBot.Exchanges.Concrete.AutorestClient.Models;
-using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Models.Api;
 using TradingBot.Trading;
 using Instrument = TradingBot.Trading.Instrument;
-using Order = TradingBot.Exchanges.Concrete.AutorestClient.Models.Order;
-using Position = TradingBot.Exchanges.Concrete.AutorestClient.Models.Position;
-using OrdStatus = TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.OrdStatus;
-using Side = TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.Side;
+using Order = Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models.Order;
+using Position = Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models.Position;
+using OrdStatus = Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model.OrdStatus;
+using Side = Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model.Side;
+using RowItem = Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model.RowItem;
 using TradeType = TradingBot.Trading.TradeType;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
@@ -60,7 +62,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         }
 
 
-        public OrderStatusUpdate OrderToTrade(WebSocketClient.Model.RowItem row)
+        public OrderStatusUpdate OrderToTrade(RowItem row)
         {
             var lykkeInstrument = this.ExchangeSymbolToLykkeInstrument(row.Symbol);
             return new OrderStatusUpdate(
@@ -73,7 +75,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 row.OrdStatus.HasValue ? ConvertExecutionStatusToModel(row.OrdStatus.Value) : OrderExecutionStatus.Unknown);
         }
 
-        public OrderStatusUpdate OrderToAck(WebSocketClient.Model.RowItem row)
+        public OrderStatusUpdate OrderToAck(RowItem row)
         {
             var lykkeInstrument = this.ExchangeSymbolToLykkeInstrument(row.Symbol);
             return new OrderStatusUpdate
@@ -207,7 +209,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return model;
         }
 
-        public TickPrice QuoteToModel(WebSocketClient.Model.RowItem row)
+        public TickPrice QuoteToModel(RowItem row)
         {
             if (row.AskPrice.HasValue && row.BidPrice.HasValue)
             {

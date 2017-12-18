@@ -174,7 +174,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 
 	    public override Task<OrderStatusUpdate> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
 	    {
-	        translatedSignal.RequestSent("stub exchange don't send actual request");
+	        translatedSignal.RequestSentMessage("stub exchange don't send actual request");
 //
 //	        SimulateWork();
 //	        SimulateException();
@@ -192,7 +192,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 
         public override Task<OrderStatusUpdate> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            translatedSignal.RequestSent("stub exchange don't send actual request");
+            translatedSignal.RequestSentMessage("stub exchange don't send actual request");
 //	        SimulateWork();
 //	        SimulateException();
             translatedSignal.ResponseReceived("stub exchange don't recevie actual response");

@@ -16,6 +16,7 @@ using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 using TradingBot.Repositories;
 using OrderBook = TradingBot.Exchanges.Concrete.Icm.Entities.OrderBook;
+using Lykke.ExternalExchangesApi.Shared;
 
 namespace TradingBot.Exchanges.Concrete.Icm
 {

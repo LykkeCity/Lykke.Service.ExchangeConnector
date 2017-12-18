@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Globalization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-namespace TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model
+namespace Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model
 {
     public class RowItem
     {

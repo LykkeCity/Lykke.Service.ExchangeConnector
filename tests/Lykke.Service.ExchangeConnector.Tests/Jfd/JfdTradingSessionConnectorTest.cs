@@ -5,7 +5,7 @@ using Common.Log;
 using Lykke.ExternalExchangesApi.Exchanges.Jfd;
 using QuickFix.Fields;
 using QuickFix.FIX44;
-using TradingBot.Exchanges.Concrete.Jfd.FixClient;
+using Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient;
 using TradingBot.Infrastructure.Configuration;
 using Xunit;
 

@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using TradingBot.Helpers;
+using Lykke.ExternalExchangesApi.Helpers;
 
 namespace TradingBot.Exchanges.Concrete.Kraken.Entities
 {

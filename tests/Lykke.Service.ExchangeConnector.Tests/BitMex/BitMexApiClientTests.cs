@@ -4,8 +4,8 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using TradingBot.Exchanges.Concrete.AutorestClient;
-using TradingBot.Exchanges.Concrete.AutorestClient.Models;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models;
 using TradingBot.Exchanges.Concrete.BitMEX;
 using Xunit;
 
