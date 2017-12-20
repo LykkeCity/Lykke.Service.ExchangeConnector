@@ -23,6 +23,7 @@
     <PackageReference Include="Lykke.AzureStorage" Version="3.1.0" />
     <PackageReference Include="Lykke.Common" Version="3.0.2" />
     <PackageReference Include="Lykke.Common.ApiLibrary" Version="1.0.20" />
+    <PackageReference Include="Lykke.PusherClient" Version="1.0.3" />
     <PackageReference Include="Lykke.RabbitMqBroker" Version="4.0.5" />
     <PackageReference Include="Lykke.Logs" Version="3.4.1" />
     <PackageReference Include="Lykke.RabbitMqBroker" Version="4.3.0" />
@@ -58,7 +59,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Lykke.ExternalExchangesApi\Lykke.ExternalExchangesApi.csproj" />
-    <ProjectReference Include="..\PusherClient.DotNetCore\PusherClient.DotNetCore.csproj" />
     <ProjectReference Include="..\QuickFix.DotNetCore\QuickFix.DotNetCore.csproj" />
   </ItemGroup>
   <ItemGroup>

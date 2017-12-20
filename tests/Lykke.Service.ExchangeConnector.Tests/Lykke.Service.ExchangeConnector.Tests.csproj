@@ -8,6 +8,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Lykke.AzureStorage" Version="3.1.0" />
+    <PackageReference Include="Lykke.PusherClient" Version="1.0.3" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.5.0" />
     <PackageReference Include="Moq" Version="4.7.145" />
     <PackageReference Include="SonarAnalyzer.CSharp" Version="6.7.0.4267" />
