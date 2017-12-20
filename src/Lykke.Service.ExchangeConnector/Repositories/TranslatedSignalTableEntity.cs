@@ -97,7 +97,7 @@ namespace TradingBot.Repositories
 
         public void SetExecutionResult(OrderStatusUpdate executedTrade)
         {
-            OrderExecutionStatus = executedTrade.Status;
+            OrderExecutionStatus = executedTrade.ExecutionStatus;
             ErrorMessage = executedTrade.Message;
         }
 

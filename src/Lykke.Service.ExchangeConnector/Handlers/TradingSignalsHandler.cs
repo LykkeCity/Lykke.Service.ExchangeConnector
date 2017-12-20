@@ -103,11 +103,11 @@ namespace TradingBot.Handlers
 
                 var executedTrade = await exchange.AddOrderAndWaitExecution(signal, translatedSignal, apiTimeout);
 
-                bool orderAdded = executedTrade.Status == OrderExecutionStatus.New ||
-                                  executedTrade.Status == OrderExecutionStatus.Pending;
+                bool orderAdded = executedTrade.ExecutionStatus == OrderExecutionStatus.New ||
+                                  executedTrade.ExecutionStatus == OrderExecutionStatus.Pending;
 
-                bool orderFilled = executedTrade.Status == OrderExecutionStatus.Fill ||
-                                   executedTrade.Status == OrderExecutionStatus.PartialFill;
+                bool orderFilled = executedTrade.ExecutionStatus == OrderExecutionStatus.Fill ||
+                                   executedTrade.ExecutionStatus == OrderExecutionStatus.PartialFill;
     
                 if (orderAdded || orderFilled)
                 {
@@ -161,7 +161,7 @@ namespace TradingBot.Handlers
             {
                 var executedTrade = await exchange.CancelOrderAndWaitExecution(signal, translatedSignal, apiTimeout);
                             
-                if (executedTrade.Status == OrderExecutionStatus.Cancelled)
+                if (executedTrade.ExecutionStatus == OrderExecutionStatus.Cancelled)
                 {
                     logger.WriteInfoAsync(nameof(TradingSignalsHandler),
                         nameof(HandleCancellation),
@@ -176,7 +176,7 @@ namespace TradingBot.Handlers
                 }
                 else
                 {
-                    var message = $"Executed trade status {executedTrade.Status} after calling 'exchange.CancelOrderAndWaitExecution'";
+                    var message = $"Executed trade status {executedTrade.ExecutionStatus} after calling 'exchange.CancelOrderAndWaitExecution'";
                     translatedSignal.Failure(message);
                     await logger.WriteWarningAsync(nameof(TradingSignalsHandler),
                         nameof(HandleCancellation),
@@ -201,7 +201,7 @@ namespace TradingBot.Handlers
             {
                 Success = success,
                 Exchange = exchange.Name,
-                InstrumentName = arrivedSignal.Instrument.Name,
+                Instrument = arrivedSignal.Instrument,
                 ClientOrderId = arrivedSignal.OrderId,
                 ExchangeOrderId = translatedSignal.ExternalId,
                 Message = translatedSignal.ErrorMessage

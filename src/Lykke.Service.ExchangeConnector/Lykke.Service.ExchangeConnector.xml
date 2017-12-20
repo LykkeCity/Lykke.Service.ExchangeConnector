@@ -483,7 +483,7 @@
         <member name="P:TradingBot.Models.IsAliveResponseModel.Env">
             <summary>Environment variables</summary>
         </member>
-        <member name="F:TradingBot.Trading.Position.initialValue">
+        <member name="F:TradingBot.Trading.Position._initialValue">
             <summary>
             Initial amount of assets (base asset of the Instrument)
             </summary>

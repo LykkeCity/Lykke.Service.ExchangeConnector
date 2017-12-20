@@ -67,7 +67,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                     {
                         var trade = _mapper.OrderToTrade(row);
                         
-                        if (trade.Status == OrderExecutionStatus.Unknown)
+                        if (trade.ExecutionStatus == OrderExecutionStatus.Unknown)
                         {
                             await _log.WriteWarningAsync(nameof(BitMexOrderHarvester), nameof(HandleResponseAsync),
                                 $"Can't convert trade status {row.OrdStatus} into ExecutionStatus. Converted item: {trade}. Don't call handlers.");

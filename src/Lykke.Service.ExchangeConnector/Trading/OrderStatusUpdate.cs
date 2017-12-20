@@ -1,4 +1,5 @@
 ﻿using System;
+using Common;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
@@ -10,13 +11,9 @@ namespace TradingBot.Trading
 
         public string ExchangeOrderId { get; internal set; }
 
-        public bool Success { get; internal set; }
-
         public string Exchange { get; internal set; }
 
         public Instrument Instrument { get; internal set; }
-
-        public string InstrumentName { get; internal set; }
 
         [JsonConverter(typeof(StringEnumConverter))]
         public TradeType Type { get; internal set; }
@@ -31,12 +28,14 @@ namespace TradingBot.Trading
 
         public string OrderId { get; internal set; }
 
+        public bool Success { get; internal set; }
+
         [JsonConverter(typeof(StringEnumConverter))]
-        public OrderExecutionStatus Status { get; internal set; }
+        public OrderExecutionStatus ExecutionStatus { get; internal set; }
 
         public OrderStatusUpdateFailureType FailureType { get; internal set; }
 
-        public string Message { get; set; }
+        public string Message { get; internal set; }
 
         [JsonConstructor]
         public OrderStatusUpdate()
@@ -46,7 +45,7 @@ namespace TradingBot.Trading
 
         [JsonConstructor]
         public OrderStatusUpdate(Instrument instrument, DateTime time, decimal price, 
-            decimal volume, TradeType type, string orderId, OrderExecutionStatus status)
+            decimal volume, TradeType type, string orderId, OrderExecutionStatus executionStatus)
         {
             Instrument = instrument;
             Time = time;
@@ -55,12 +54,12 @@ namespace TradingBot.Trading
             Type = type;
             Fee = 0; // TODO
             OrderId = orderId;
-            Status = status;
+            ExecutionStatus = executionStatus;
         }
 
         public override string ToString()
         {
-            return $"ClientId: {ClientOrderId}, ExternalId: {ExchangeOrderId}, Success: {Success}, {Exchange}, {InstrumentName}";
+            return this.ToJson();
         }
     }
 }

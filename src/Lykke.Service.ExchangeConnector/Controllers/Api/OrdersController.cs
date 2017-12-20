@@ -135,8 +135,8 @@ namespace TradingBot.Controllers.Api
 
                     translatedSignal.SetExecutionResult(result);
 
-                    if (result.Status == OrderExecutionStatus.Rejected || result.Status == OrderExecutionStatus.Cancelled)
-                        throw new StatusCodeException(HttpStatusCode.BadRequest, $"Exchange return status: {result.Status}", null);
+                    if (result.ExecutionStatus == OrderExecutionStatus.Rejected || result.ExecutionStatus == OrderExecutionStatus.Cancelled)
+                        throw new StatusCodeException(HttpStatusCode.BadRequest, $"Exchange return status: {result.ExecutionStatus}", null);
 
                     return Ok(result);
                 }
@@ -200,8 +200,8 @@ namespace TradingBot.Controllers.Api
                     var result = await Application.GetExchange(exchangeName)
                         .CancelOrderAndWaitExecution(tradingSignal, translatedSignal, _timeout);
 
-                    if (result.Status == OrderExecutionStatus.Rejected)
-                        throw new StatusCodeException(HttpStatusCode.BadRequest, $"Exchange return status: {result.Status}", null);
+                    if (result.ExecutionStatus == OrderExecutionStatus.Rejected)
+                        throw new StatusCodeException(HttpStatusCode.BadRequest, $"Exchange return status: {result.ExecutionStatus}", null);
 
                     return Ok(result);
                 }

@@ -80,7 +80,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             var lykkeInstrument = this.ExchangeSymbolToLykkeInstrument(row.Symbol);
             return new OrderStatusUpdate
             {
-                InstrumentName = lykkeInstrument.Name,
+                Instrument = lykkeInstrument,
                 Exchange = lykkeInstrument.Exchange,
                 ClientOrderId = row.ClOrdID,
                 ExchangeOrderId = row.OrderID,

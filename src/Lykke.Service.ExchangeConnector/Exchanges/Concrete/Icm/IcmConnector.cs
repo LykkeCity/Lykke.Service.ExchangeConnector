@@ -633,21 +633,21 @@ namespace TradingBot.Exchanges.Concrete.Icm
             {
                 result = task.Result;
 
-                if (result.Status == OrderExecutionStatus.New)
+                if (result.ExecutionStatus == OrderExecutionStatus.New)
                 {
                     lock (orderExecutions)
                     {
                         // probably the new result is here already
 
                         if (orderExecutions[id].Task.IsCompleted &&
-                            orderExecutions[id].Task.Result.Status == OrderExecutionStatus.New) // thats the old one, let's change
+                            orderExecutions[id].Task.Result.ExecutionStatus == OrderExecutionStatus.New) // thats the old one, let's change
                         {
                             tcs = new TaskCompletionSource<OrderStatusUpdate>();
                             orderExecutions[id] = tcs;
                             task = tcs.Task;
                         }
                         else if (orderExecutions[id].Task.IsCompleted &&
-                                 orderExecutions[id].Task.Result.Status != OrderExecutionStatus.New) // that's the new one, let's return
+                                 orderExecutions[id].Task.Result.ExecutionStatus != OrderExecutionStatus.New) // that's the new one, let's return
                         {
                             //result = orderExecutions[id].Task.Result;
                             task = orderExecutions[id].Task;
