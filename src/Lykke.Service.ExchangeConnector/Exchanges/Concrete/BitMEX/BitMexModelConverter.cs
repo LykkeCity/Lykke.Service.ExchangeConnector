@@ -81,7 +81,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return new OrderStatusUpdate
             {
                 Instrument = lykkeInstrument,
-                Exchange = lykkeInstrument.Exchange,
                 ClientOrderId = row.ClOrdID,
                 ExchangeOrderId = row.OrderID,
                 Success = true

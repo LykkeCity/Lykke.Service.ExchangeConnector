@@ -11,8 +11,6 @@ namespace TradingBot.Trading
 
         public string ExchangeOrderId { get; internal set; }
 
-        public string Exchange { get; internal set; }
-
         public Instrument Instrument { get; internal set; }
 
         [JsonConverter(typeof(StringEnumConverter))]

@@ -200,7 +200,6 @@ namespace TradingBot.Handlers
             var ack = new OrderStatusUpdate
             {
                 Success = success,
-                Exchange = exchange.Name,
                 Instrument = arrivedSignal.Instrument,
                 ClientOrderId = arrivedSignal.OrderId,
                 ExchangeOrderId = translatedSignal.ExternalId,
