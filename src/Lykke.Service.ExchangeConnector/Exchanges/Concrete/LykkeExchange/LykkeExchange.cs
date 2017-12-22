@@ -6,14 +6,20 @@ using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
+using Lykke.RabbitMqBroker;
+using Lykke.RabbitMqBroker.Subscriber;
 using Newtonsoft.Json;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.LykkeExchange.Entities;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Infrastructure.Exceptions;
+using TradingBot.Infrastructure.Wamp;
 using TradingBot.Repositories;
 using TradingBot.Trading;
+using AssetPair = TradingBot.Exchanges.Concrete.LykkeExchange.Entities.AssetPair;
 using OrderBook = TradingBot.Exchanges.Concrete.LykkeExchange.Entities.OrderBook;
+using OrderType = TradingBot.Trading.OrderType;
 
 namespace TradingBot.Exchanges.Concrete.LykkeExchange
 {
@@ -23,16 +29,22 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         private new LykkeExchangeConfiguration Config => (LykkeExchangeConfiguration) base.Config;
         private readonly ApiClient apiClient;
         private CancellationTokenSource ctSource;
-        private Task getPricesTask;
-        
-        private readonly LinkedList<Guid> ordersToCheckExecution = new LinkedList<Guid>();
+        private WampSubscriber<Candle> wampSubscriber = null;
+        private RabbitMqSubscriber<OrderBook> orderbooksRabbit;
+        private RabbitMqSubscriber<LimitOrderMessage> orderStatusesRabbit;
 
-        public LykkeExchange(LykkeExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log) 
+        private readonly Dictionary<string, decimal> _lastBids;
+        private readonly Dictionary<string, decimal> _lastAsks;
+
+        public LykkeExchange(LykkeExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log)
             : base(Name, config, translatedSignalsRepository, log)
         {
             var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Add("api-key", Config.ApiKey);
             apiClient = new ApiClient(httpClient, log);
+
+            _lastBids = Instruments.ToDictionary(x => x.Name, x => 0m);
+            _lastAsks = Instruments.ToDictionary(x => x.Name, x => 0m);
         }
 
 
@@ -46,86 +58,241 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         protected override void StartImpl()
         {
             LykkeLog.WriteInfoAsync(nameof(LykkeExchange), nameof(StartImpl), string.Empty, $"Starting {Name} exchange").Wait();
-            
-            if (getPricesTask != null && getPricesTask.Status == TaskStatus.Running)
-            {
-                throw new InvalidOperationException("The process for getting prices is running already");
-            }
-            
+
             ctSource = new CancellationTokenSource();
 
-            getPricesTask = GetPricesCycle();
+            //StartWampConnection(); // TODO: wamp sends strange tickprices with ask=bid, temporary switch to direct rabbitmq connection:
+
+            GetInitialTickPrices().Wait();
+            StartRabbitMqTickPriceSubscription();
+            StartRabbitMqOrdersSubscription();
+            OnConnected();
         }
 
-        private async Task GetPricesCycle()
+        private async Task GetInitialTickPrices()
         {
-            OnConnected();
-            while (!ctSource.IsCancellationRequested)
+            foreach (var instrument in Instruments)
             {
                 try
                 {
-                    foreach (var instrument in Instruments)
+                    var orderBook =
+                        await apiClient.MakeGetRequestAsync<List<OrderBook>>(
+                            $"{Config.EndpointUrl}/api/OrderBooks/{instrument.Name}", ctSource.Token);
+                    var tickPrices = orderBook.GroupBy(x => x.AssetPair)
+                        .Select(g => new TickPrice(
+                            new Instrument(Name, g.Key),
+                            g.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow,
+                            g.FirstOrDefault(ob => !ob.IsBuy)?.Prices.Select(x => x.Price).DefaultIfEmpty(0).Min() ?? 0,
+                            g.FirstOrDefault(ob => ob.IsBuy)?.Prices.Select(x => x.Price).DefaultIfEmpty(0).Max() ?? 0)
+                        )
+                        .Where(x => x.Ask > 0 && x.Bid > 0);
+
+                    foreach (var tickPrice in tickPrices)
                     {
-                        var orderBook = await apiClient.MakeGetRequestAsync<List<OrderBook>>($"{Config.EndpointUrl}/api/OrderBooks/{instrument.Name}", ctSource.Token);
-                        var tickPrices = orderBook.GroupBy(x => x.AssetPair)
-                            .Select(g => new TickPrice(
-                                new Instrument(Name, g.Key),
-                                g.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow,
-                                g.FirstOrDefault(ob => !ob.IsBuy)?.Prices.Select(x => x.Price).DefaultIfEmpty(0).Min() ?? 0,
-                                g.FirstOrDefault(ob => ob.IsBuy)?.Prices.Select(x => x.Price).DefaultIfEmpty(0).Max() ?? 0)
-                                )
-                            .Where(x => x.Ask > 0 && x.Bid > 0);
-
-                        foreach (var tickPrice in tickPrices)
-                        {
-                            await CallTickPricesHandlers(tickPrice);    
-                        }
+                        _lastAsks[instrument.Name] = tickPrice.Ask;
+                        _lastBids[instrument.Name] = tickPrice.Bid;
+                        
+                        await CallTickPricesHandlers(tickPrice);
                     }
-
-                    await CheckExecutedOrders();
-                
-                    await Task.Delay(TimeSpan.FromSeconds(1));
                 }
                 catch (Exception e)
                 {
-                    await LykkeLog.WriteErrorAsync(
-                        nameof(LykkeExchange),
-                        nameof(LykkeExchange),
-                        nameof(GetPricesCycle), 
-                        e);
+                    await LykkeLog.WriteErrorAsync(nameof(LykkeExchange), nameof(GetInitialTickPrices), e);
                 }
             }
-            OnStopped();
+        }
+
+        private void StartRabbitMqTickPriceSubscription()
+        {
+            var rabbitSettings = new RabbitMqSubscriptionSettings()
+            {
+                ConnectionString = Config.RabbitMq.GetConnectionString(),
+                ExchangeName = Config.RabbitMq.OrderBook.Exchange,
+                QueueName = Config.RabbitMq.OrderBook.Queue
+            };
+            var errorStrategy = new DefaultErrorHandlingStrategy(LykkeLog, rabbitSettings);
+            orderbooksRabbit = new RabbitMqSubscriber<OrderBook>(rabbitSettings, errorStrategy)
+                .SetMessageDeserializer(new GenericRabbitModelConverter<OrderBook>())
+                .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
+                .SetConsole(new LogToConsole())
+                .SetLogger(LykkeLog)
+                .Subscribe(HandleOrderBook)
+                .Start();
+        }
+
+        
+        private async Task HandleOrderBook(OrderBook orderBook)
+        {
+            var instrument = Instruments.SingleOrDefault(x => 
+                string.Compare(x.Name, orderBook.AssetPair, StringComparison.InvariantCultureIgnoreCase) == 0);
+            if (instrument != null)
+            {
+                if (orderBook.Prices.Any())
+                {
+                    decimal bestBid = 0;
+                    decimal bestAsk = 0;
+
+                    if (orderBook.IsBuy)
+                    {
+                        _lastBids[instrument.Name] = bestBid = orderBook.Prices.Select(x => x.Price).OrderByDescending(x => x).First();
+                        bestAsk = _lastAsks[instrument.Name];
+                    }
+                    else
+                    {
+                        _lastAsks[instrument.Name] = bestAsk = orderBook.Prices.Select(x => x.Price).OrderBy(x => x).First();
+                        bestBid = _lastBids[instrument.Name];
+                    }
+                    
+                    if (bestBid > 0 && bestAsk > 0)
+                    {
+                        var tickPrice = new TickPrice(instrument, orderBook.Timestamp, bestAsk, bestBid);
+                        await CallTickPricesHandlers(tickPrice);
+                    }
+                }
+            }
+        }
+
+        private void StartRabbitMqOrdersSubscription()
+        {
+            var rabbitSettings = new RabbitMqSubscriptionSettings()
+            {
+                ConnectionString = Config.RabbitMq.GetConnectionString(),
+                ExchangeName = Config.RabbitMq.Orders.Exchange,
+                QueueName = Config.RabbitMq.Orders.Queue
+            };
+            var errorStrategy = new DefaultErrorHandlingStrategy(LykkeLog, rabbitSettings);
+            orderStatusesRabbit = new RabbitMqSubscriber<LimitOrderMessage>(rabbitSettings, errorStrategy)
+                .SetMessageDeserializer(new GenericRabbitModelConverter<LimitOrderMessage>())
+                .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
+                .SetConsole(new LogToConsole())
+                .SetLogger(LykkeLog)
+                .Subscribe(HandleOrderStatus)
+                .Start();
+        }
+
+        private async Task HandleOrderStatus(LimitOrderMessage message)
+        {
+            foreach (var order in message.Orders.Where(x => x.Order.ClientId == Config.ClientId))
+            {
+                if (order.Order.Status == OrderStatus.Cancelled)
+                {
+                    await LykkeLog.WriteInfoAsync(nameof(LykkeExchange), nameof(HandleOrderStatus), order.ToString(),
+                        "Order canceled. Calling ExecutedTradeHandlers");
+                    
+                    await CallExecutedTradeHandlers(new ExecutedTrade(new Instrument(Name, order.Order.AssetPairId),
+                        DateTime.UtcNow,
+                        order.Order.Price ?? 0, 
+                        Math.Abs(order.Order.Volume), 
+                        order.Order.Volume < 0 ? TradeType.Sell : TradeType.Buy, 
+                        order.Order.ExternalId,
+                        ExecutionStatus.Cancelled));
+                }
+                else if (order.Order.Status == OrderStatus.Matched && order.Trades.Any())
+                {
+                    await LykkeLog.WriteInfoAsync(nameof(LykkeExchange), nameof(HandleOrderStatus), order.ToString(),
+                        "Order executed. Calling ExecutedTradeHandlers");
+                    
+                    await CallExecutedTradeHandlers(new ExecutedTrade(new Instrument(Name, order.Order.AssetPairId),
+                        order.Trades.Last().Timestamp,
+                        order.Order.Price ?? order.Trades.Last().Price ?? 0,
+                        Math.Abs(order.Order.Volume - order.Order.RemainingVolume),
+                        order.Order.Volume < 0 ? TradeType.Sell : TradeType.Buy, 
+                        order.Order.ExternalId,
+                        ExecutionStatus.Fill));
+                }
+            }
+        }
+
+        // TODO: wamp sends strange tickprices with ask=bid, temporary switch to direct rabbitmq connection
+//        private void StartWampConnection()
+//        {
+//            var wampSettings = new WampSubscriberSettings()
+//            {
+//                Address = Config.WampEndpoint.Url,
+//                Realm = Config.WampEndpoint.PricesRealm,
+//                Topics = Instruments.SelectMany(i => new string[] {
+//                    String.Format(Config.WampEndpoint.PricesTopic, i.Name.ToLowerInvariant(), "ask", "sec"),
+//                    String.Format(Config.WampEndpoint.PricesTopic, i.Name.ToLowerInvariant(), "bid", "sec") }).ToArray()
+//            };
+//
+//            this.wampSubscriber = new WampSubscriber<Candle>(wampSettings, this.LykkeLog)
+//                .Subscribe(HandlePrice);
+//
+//            this.wampSubscriber.Start();
+//        }
+
+        /// <summary>
+        /// Called on incoming prices
+        /// </summary>
+        /// <param name="candle">Incoming candlestick</param>
+        /// <remarks>Can be called simultaneously from multiple threads</remarks>
+        private async Task HandlePrice(Candle candle)
+        {
+            var instrument = Instruments.FirstOrDefault(i => string.Equals(i.Name, candle.Asset, StringComparison.InvariantCultureIgnoreCase));
+            if (instrument != null)
+            {
+                var tickPrice = new TickPrice(
+                    instrument,
+                    candle.Timestamp,
+                    ask: candle.L,
+                    bid: candle.H);
+
+                await CallTickPricesHandlers(tickPrice);
+            }
         }
 
         protected override void StopImpl()
         {
+            this.wampSubscriber?.Stop();
             ctSource?.Cancel();
+            OnStopped();
         }
-        
-        protected override async Task<bool> AddOrderImpl(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
+
+        private StringContent CreateHttpContent(object value)
         {
+            var content = new StringContent(JsonConvert.SerializeObject(value));
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+            return content;
+        }
+
+        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal,
+            TimeSpan timeout)
+        {
+            var cts = new CancellationTokenSource(timeout);
+            
+            
             switch (signal.OrderType)
             {
                 case OrderType.Market:
-                    
+
                     var marketOrderResponse = await apiClient.MakePostRequestAsync<MarketOrderResponse>(
-                        $"{Config.EndpointUrl}/api/Orders/market", 
+                        $"{Config.EndpointUrl}/api/Orders/market",
                         CreateHttpContent(new MarketOrderRequest()
                         {
                             AssetPairId = signal.Instrument.Name,
+                            Asset = signal.Instrument.Base,
                             OrderAction = signal.TradeType,
                             Volume = signal.Volume
                         }),
-                        translatedSignal, 
-                        CancellationToken.None);
+                        translatedSignal,
+                        cts.Token);
 
-                    return marketOrderResponse != null && marketOrderResponse.Error == null;
-                    
+                    if (marketOrderResponse != null && marketOrderResponse.Error == null)
+                    {
+                        return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, marketOrderResponse.Result,
+                            signal.Volume, signal.TradeType,
+                            signal.OrderId, ExecutionStatus.Fill);
+                    }
+                    else
+                    {
+                        throw new ApiException("Unexpected result from exchange");
+                    }
+
                 case OrderType.Limit:
-                    
+
                     var limitOrderResponse = await apiClient.MakePostRequestAsync<string>(
-                        $"{Config.EndpointUrl}/api/Orders/limit", 
+                        $"{Config.EndpointUrl}/api/Orders/limit",
                         CreateHttpContent(new LimitOrderRequest()
                         {
                             AssetPairId = signal.Instrument.Name,
@@ -133,103 +300,41 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                             Volume = signal.Volume,
                             Price = signal.Price ?? 0
                         }),
-                        translatedSignal, 
-                        CancellationToken.None);
+                        translatedSignal,
+                        cts.Token);
 
                     var orderPlaced = limitOrderResponse != null && Guid.TryParse(limitOrderResponse, out var orderId);
 
                     if (orderPlaced)
                     {
                         translatedSignal.ExternalId = orderId.ToString();
-                        ordersToCheckExecution.AddLast(orderId);
+                        return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume,
+                            signal.TradeType,
+                            orderId.ToString(), ExecutionStatus.New);
+                    }
+                    else
+                    {
+                        throw new ApiException("Unexpected result from exchange");
                     }
 
-                    return orderPlaced;
-                    
                 default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        }
-        
-        private StringContent CreateHttpContent(object value)
-        {
-            var content = new StringContent(JsonConvert.SerializeObject(value));
-            content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-            
-            return content;
-        }
-
-        protected override async Task<bool> CancelOrderImpl(TradingSignal signal, TranslatedSignalTableEntity trasnlatedSignal)
-        {
-             await apiClient.MakePostRequestAsync<string>(
-                $"{Config.EndpointUrl}/api/Orders/{signal.OrderId}/Cancel", 
-                CreateHttpContent(new object()),
-                trasnlatedSignal, 
-                CancellationToken.None);
-
-            if (Guid.TryParse(signal.OrderId, out var id))
-                ordersToCheckExecution.Remove(id);
-            
-            return true;
-        }
-
-        private async Task CheckExecutedOrders()
-        {
-            var executedTrades = new List<ExecutedTrade>();
-
-            foreach (var id in ordersToCheckExecution.ToList())
-            {
-                LimitOrderState state = await GetOrderState(id);
-                
-                if (state.Status == LimitOrderStatus.Matched)
-                {
-                    executedTrades.Add(new ExecutedTrade(new Instrument(Name, state.AssetPairId), 
-                        DateTime.UtcNow, state.Price, state.Volume, TradeType.Unknown, id.ToString(), ExecutionStatus.Fill));
-                    ordersToCheckExecution.Remove(id);
-                }
-            }
-
-            foreach (var executedTrade in executedTrades)
-            {
-                await CallExecutedTradeHandlers(executedTrade);    
-            }
-        }
-
-        private Task<LimitOrderState> GetOrderState(Guid externalId)
-        {
-            return apiClient.MakeGetRequestAsync<LimitOrderState>(
-                $"{Config.EndpointUrl}/api/Orders/{externalId}",
-                CancellationToken.None);
-        }
-
-        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal,
-            TimeSpan timeout)
-        {
-            if (await AddOrder(signal, translatedSignal))
-            {
-                return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
-                    signal.OrderId, ExecutionStatus.New);
-            }
-            else
-            {
-                return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
-                    signal.OrderId, ExecutionStatus.Rejected);
+                    throw new ApiException($"Unsupported OrderType {signal.OrderType}");
             }
         }
 
         public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            if (await CancelOrder(signal, translatedSignal))
-            {
-                return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
-                    signal.OrderId, ExecutionStatus.Cancelled);
-            }
-            else
-            {
-                return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
-                    signal.OrderId, ExecutionStatus.Rejected);
-            }
+            var cts = new CancellationTokenSource(timeout);
+            
+            string result = await apiClient.MakePostRequestAsync<string>(
+                $"{Config.EndpointUrl}/api/Orders/{signal.OrderId}/Cancel",
+                CreateHttpContent(new object()),
+                translatedSignal,
+                cts.Token);
+            
+            return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
+                signal.OrderId, ExecutionStatus.Cancelled);
         }
 
         public async Task CancelAllOrders()
@@ -251,7 +356,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                 }
                 catch (Exception)
                 {
-                    
+
                 }
             }
         }

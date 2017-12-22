@@ -1,20 +1,19 @@
 ﻿using System;
-using System.Linq;
+using System.Collections.Generic;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
+using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
+using OrderType = TradingBot.Trading.OrderType;
 
 namespace TradingBot.Exchanges.Concrete.GDAX
 {
-    internal class GdaxConverters
+    internal class GdaxConverters: ExchangeConverters
     {
-        private readonly GdaxExchangeConfiguration _configuration;
-        private readonly string _exchangeName;
-
-        public GdaxConverters(GdaxExchangeConfiguration configuration, string exchangeName)
+        public GdaxConverters(IReadOnlyCollection<CurrencySymbol> currencySymbols, 
+            string exchangeName): base(currencySymbols, exchangeName)
         {
-            _configuration = configuration;
-            _exchangeName = exchangeName;
+
         }
 
         public ExecutedTrade OrderToTrade(GdaxOrderResponse order)
@@ -25,29 +24,10 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             var execVolume = order.ExecutedValue;
             var tradeType = GdaxOrderSideToTradeType(order.Side);
             var status = GdaxOrderStatusToExecutionStatus(order);
-            var instr = LykkeSymbolToGdaxInstrument(order.ProductId);
+            var instr = ExchangeSymbolToLykkeInstrument(order.ProductId);
 
             return new ExecutedTrade(instr, execTime, execPrice, execVolume,
                 tradeType, id.ToString(), status);
-        }
-
-        public string LykkeSymbolToGdaxSymbol(string symbol)
-        {
-            if (!_configuration.CurrencyMapping.TryGetValue(symbol, out var result))
-            {
-                throw new ArgumentException($"Symbol {symbol} is not mapped to GDAX value");
-            }
-            return result;
-        }
-
-        public Instrument LykkeSymbolToGdaxInstrument(string symbol)
-        {
-            var result = _configuration.CurrencyMapping.FirstOrDefault(kv => kv.Value == symbol).Key;
-            if (result == null)
-            {
-                throw new ArgumentException($"Symbol {symbol} is not mapped to lykke value");
-            }
-            return new Instrument(_exchangeName, result);
         }
 
         public GdaxOrderType OrderTypeToGdaxOrderType(OrderType type)
@@ -114,6 +94,19 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             {
                 Asset = gdaxBalance.Currency,
                 Balance = gdaxBalance.Balance
+            };
+        }
+
+        public OrderBookItem GdaxOrderBookItemToOrderBookItem(string symbol, bool isBuy, 
+            GdaxOrderBookEntityRow gdaxItem)
+        {
+            return new OrderBookItem
+            {
+                Id = gdaxItem.OrderId.ToString(),
+                IsBuy = isBuy,
+                Symbol = symbol,
+                Price = gdaxItem.Price,
+                Size = gdaxItem.Size
             };
         }
     }

@@ -12,5 +12,11 @@
                     throw new OperationCanceledException(cancellationToken);
             return await task;
         }
+
+        public static async Task<bool> AwaitWithTimeout(this Task task, int timeoutMs)
+        {
+            await Task.WhenAny(Task.Delay(timeoutMs), task);
+            return task.IsCompleted;
+        }
     }
 }

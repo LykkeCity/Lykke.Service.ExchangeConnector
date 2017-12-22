@@ -2,12 +2,11 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient.Model;
+using Lykke.ExternalExchangesApi.Shared;
 using Newtonsoft.Json;
-using TradingBot.Exchanges.Concrete.Bitfinex.WebSocketClient.Model;
-using TradingBot.Exchanges.Concrete.Shared;
 using Xunit;
 using Xunit.Abstractions;
-using SubscribeRequest = TradingBot.Exchanges.Concrete.Bitfinex.WebSocketClient.Model.SubscribeRequest;
 
 namespace TradingBot.Tests.BitMex
 {
@@ -20,16 +19,16 @@ namespace TradingBot.Tests.BitMex
         public BitfinexWebSocketTest(ITestOutputHelper output)
         {
             _output = output;
-            _clientWebSocket = new WebSocketTextMessenger(ApiUrl, new LogToConsole(), CancellationToken.None);
+            _clientWebSocket = new WebSocketTextMessenger(ApiUrl, new LogToConsole());
 
         }
 
         [Fact]
         public async Task Connect()
         {
-            await _clientWebSocket.ConnectAsync();
+            await _clientWebSocket.ConnectAsync(CancellationToken.None);
 
-            var r = await _clientWebSocket.GetResponseAsync();
+            var r = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
 
             var respose = JsonConvert.DeserializeObject<InfoResponse>(r);
             Assert.NotNull(respose);
@@ -40,8 +39,8 @@ namespace TradingBot.Tests.BitMex
         [Fact]
         public async Task ReceiveOrderBook()
         {
-            await _clientWebSocket.ConnectAsync();
-            var info = await _clientWebSocket.GetResponseAsync();
+            await _clientWebSocket.ConnectAsync(CancellationToken.None);
+            var info = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
 
             Assert.NotNull(info);
 
@@ -52,43 +51,45 @@ namespace TradingBot.Tests.BitMex
                 Pair = "BTCUSD",
                 Prec = "R0"
             };
-            await _clientWebSocket.SendRequestAsync(request);
+            await _clientWebSocket.SendRequestAsync(request, CancellationToken.None);
 
-            var successfull = await _clientWebSocket.GetResponseAsync();
+            var successfull = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
 
             var respose = JsonConvert.DeserializeObject<SubscribedResponse>(successfull);
 
-            var snapshot = await _clientWebSocket.GetResponseAsync();
+            var snapshot = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
 
-            var obsh = OrderBookSnapshotResponse.Parse(snapshot);
+            OrderBookSnapshotResponse.Parse(snapshot);
 
+            var update = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
 
-            var update = await _clientWebSocket.GetResponseAsync();
-
-            var upd = OrderBookUpdateResponse.Parse(update);
+            OrderBookUpdateResponse.Parse(update);
 
             Assert.NotNull(respose);
-
-
         }
 
-
         [Fact]
-        public void Test2()
+        public async Task SubscribeToTickers()
         {
-            var dt = DateTime.UtcNow;
-            var dts = JsonConvert.SerializeObject(dt, new JsonSerializerSettings()
+            await _clientWebSocket.ConnectAsync(CancellationToken.None);
+            var info = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
+
+            Assert.NotNull(info);
+
+            var request = new SubscribeRequest
             {
-                //  DateFormatHandling = DateFormatHandling.IsoDateFormat,
-                // DateTimeZoneHandling = DateTimeZoneHandling.Utc
-                // DateFormatString = "yyyy-MM-ddTHH:mm:ss.fffzzz"
-            });
-
-
-            var dd = JsonConvert.DeserializeObject<DateTime>("\"2017-10-25T10:23:17.000+0000\"");
-            var dd2 = JsonConvert.DeserializeObject<DateTime>("\"2017-10-25T10:23:17.000+00:00\"");
-
-            Assert.Equal(dd, dd2);
+                Event = "subscribe",
+                Channel = "ticker",
+                Pair = "BTCUSD"
+            };
+            await _clientWebSocket.SendRequestAsync(request, CancellationToken.None);
+            
+            var successfull = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
+            var respose = JsonConvert.DeserializeObject<SubscribedResponse>(successfull);
+            var ticker = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
+            TickerResponse.Parse(ticker);
+            
+            Assert.NotNull(respose);
         }
 
         public void Dispose()

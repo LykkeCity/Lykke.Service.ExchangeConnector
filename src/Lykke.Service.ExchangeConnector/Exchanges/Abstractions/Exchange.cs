@@ -16,13 +16,13 @@ namespace TradingBot.Exchanges.Abstractions
     {
         protected readonly ILog LykkeLog;
 
-        private readonly List<Handler<TickPrice>> tickPriceHandlers = new List<Handler<TickPrice>>();
+        private readonly List<Handler<TickPrice>> _tickPriceHandlers = new List<Handler<TickPrice>>();
 
         private readonly List<Handler<OrderBook>> _orderBookHandlers = new List<Handler<OrderBook>>();
 
-        private readonly List<Handler<ExecutedTrade>> executedTradeHandlers = new List<Handler<ExecutedTrade>>();
+        private readonly List<Handler<ExecutedTrade>> _executedTradeHandlers = new List<Handler<ExecutedTrade>>();
 
-        private readonly List<Handler<Acknowledgement>> acknowledgementsHandlers = new List<Handler<Acknowledgement>>();
+        private readonly List<Handler<Acknowledgement>> _acknowledgementsHandlers = new List<Handler<Acknowledgement>>();
 
         public string Name { get; }
 
@@ -32,26 +32,27 @@ namespace TradingBot.Exchanges.Abstractions
 
         public IReadOnlyList<Instrument> Instruments { get; }
 
-        private readonly TimeSpan defaultTimeOut = TimeSpan.FromSeconds(30);
-
-        protected Exchange(string name, IExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log)
+        protected Exchange(string name, IExchangeConfiguration config, 
+            TranslatedSignalsRepository translatedSignalsRepository, ILog log)
         {
             Name = name;
             Config = config;
             State = ExchangeState.Initializing;
             LykkeLog = log;
 
-            if (config.Instruments == null || config.Instruments.Length == 0)
+            if (config.SupportedCurrencySymbols == null || 
+                config.SupportedCurrencySymbols.Count == 0)
             {
                 throw new ArgumentException($"There is no instruments in the settings for {Name} exchange");
             }
 
-            Instruments = config.Instruments.Select(x => new Instrument(Name, x)).ToList();
+            Instruments = config.SupportedCurrencySymbols
+                .Select(x => new Instrument(Name, x.LykkeSymbol)).ToList();
         }
 
         public void AddTickPriceHandler(Handler<TickPrice> handler)
         {
-            tickPriceHandlers.Add(handler);
+            _tickPriceHandlers.Add(handler);
         }
 
         public void AddOrderBookHandler(Handler<OrderBook> handler)
@@ -61,12 +62,12 @@ namespace TradingBot.Exchanges.Abstractions
 
         public void AddExecutedTradeHandler(Handler<ExecutedTrade> handler)
         {
-            executedTradeHandlers.Add(handler);
+            _executedTradeHandlers.Add(handler);
         }
 
         public void AddAcknowledgementsHandler(Handler<Acknowledgement> handler)
         {
-            acknowledgementsHandlers.Add(handler);
+            _acknowledgementsHandlers.Add(handler);
         }
 
         public void Start()
@@ -107,7 +108,7 @@ namespace TradingBot.Exchanges.Abstractions
 
         protected Task CallTickPricesHandlers(TickPrice tickPrice)
         {
-            return Task.WhenAll(tickPriceHandlers.Select(x => x.Handle(tickPrice)));
+            return Task.WhenAll(_tickPriceHandlers.Select(x => x.Handle(tickPrice)));
         }
 
         protected Task CallOrderBookHandlers(OrderBook orderBook)
@@ -117,46 +118,12 @@ namespace TradingBot.Exchanges.Abstractions
 
         public Task CallExecutedTradeHandlers(ExecutedTrade trade)
         {
-            return Task.WhenAll(executedTradeHandlers.Select(x => x.Handle(trade)));
+            return Task.WhenAll(_executedTradeHandlers.Select(x => x.Handle(trade)));
         }
 
         public Task CallAcknowledgementsHandlers(Acknowledgement ack)
         {
-            return Task.WhenAll(acknowledgementsHandlers.Select(x => x.Handle(ack)));
-        }
-
-        internal async Task<bool> AddOrder(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
-        {
-            bool added = await AddOrderImpl(signal, translatedSignal);
-
-            await LykkeLog.WriteInfoAsync(nameof(Exchange), nameof(AddOrder), "", $"Signal {signal} added with result {added}");
-
-            return added;
-        }
-
-        protected virtual async Task<bool> AddOrderImpl(TradingSignal signal,
-            TranslatedSignalTableEntity translatedSignal)
-        {
-            ExecutedTrade trade = await AddOrderAndWaitExecution(signal, translatedSignal, defaultTimeOut);
-
-            return trade != null && (
-                       trade.Status == ExecutionStatus.New ||
-                       trade.Status == ExecutionStatus.Fill ||
-                       trade.Status == ExecutionStatus.PartialFill ||
-                       trade.Status == ExecutionStatus.Pending);
-        }
-
-        internal Task<bool> CancelOrder(TradingSignal signal, TranslatedSignalTableEntity translatedSignal)
-        {
-            return CancelOrderImpl(signal, translatedSignal);
-        }
-
-        protected virtual async Task<bool> CancelOrderImpl(TradingSignal signal,
-            TranslatedSignalTableEntity translatedSignal)
-        {
-            ExecutedTrade trade = await CancelOrderAndWaitExecution(signal, translatedSignal, defaultTimeOut);
-
-            return trade != null && trade.Status == ExecutionStatus.Cancelled;
+            return Task.WhenAll(_acknowledgementsHandlers.Select(x => x.Handle(ack)));
         }
 
         public abstract Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal,

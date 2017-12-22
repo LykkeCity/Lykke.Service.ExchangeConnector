@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Common.Log;
 using Lykke.RabbitMqBroker.Subscriber;
 using Lykke.RabbitMqBroker.Publisher;
@@ -6,9 +7,10 @@ using TradingBot.Trading;
 
 namespace TradingBot.Handlers
 {
-    public class RabbitMqHandler<T> : Handler<T>
+    public class RabbitMqHandler<T> : Handler<T>, IDisposable
     {
         private readonly RabbitMqPublisher<T> _rabbitPublisher;
+        private readonly object _sync = new object();
 
         public RabbitMqHandler(string connectionString, string exchangeName, bool durable = false, ILog log = null)
         {
@@ -31,7 +33,16 @@ namespace TradingBot.Handlers
 
         public override Task Handle(T message)
         {
-            return _rabbitPublisher.ProduceAsync(message);
+            lock (_sync)
+            { 
+                return _rabbitPublisher.ProduceAsync(message);
+            }
+        }
+
+        public void Dispose()
+        {
+            _rabbitPublisher.Stop();
+            _rabbitPublisher.Dispose();
         }
     }
 }

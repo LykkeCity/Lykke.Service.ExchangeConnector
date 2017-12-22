@@ -1,0 +1,18 @@
+﻿{
+  "enabled": true,
+  "apiKey": "",
+  "ApiSecret": "",
+  "saveQuotesToAzure": false,
+  "saveOrderBooksToAzure": false,
+  "pubQuotesToRabbit": false,
+  "InitialRating": 5,
+  "endpointUrl": "https://api.bitfinex.com/v1",
+  "maxOrderBookRate": 1000,
+  "webSocketEndpointUrl": "wss://api.bitfinex.com/ws",
+  "supportedCurrencySymbols": [
+    {
+      "LykkeSymbol": "USDBTC",
+      "ExchangeSymbol": "BTCUSD"
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.Serialization;
 
 namespace TradingBot.Infrastructure.Exceptions
 {
@@ -14,6 +15,10 @@ namespace TradingBot.Infrastructure.Exceptions
         }
 
         public ApiException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
+
+        protected ApiException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
     }

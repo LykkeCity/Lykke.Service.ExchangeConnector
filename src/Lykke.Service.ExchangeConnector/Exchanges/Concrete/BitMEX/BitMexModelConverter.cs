@@ -1,20 +1,35 @@
 ﻿using System;
-using System.Linq;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Globalization;
+using Newtonsoft.Json;
+using QuickFix.Fields;
 using TradingBot.Exchanges.Concrete.AutorestClient.Models;
+using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
+using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Models.Api;
 using TradingBot.Trading;
 using Instrument = TradingBot.Trading.Instrument;
 using Order = TradingBot.Exchanges.Concrete.AutorestClient.Models.Order;
 using Position = TradingBot.Exchanges.Concrete.AutorestClient.Models.Position;
+using OrdStatus = TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.OrdStatus;
+using Side = TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.Side;
+using TradeType = TradingBot.Trading.TradeType;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
-    internal static class BitMexModelConverter
+    internal class BitMexModelConverter: ExchangeConverters
     {
         private const decimal SatoshiRate = 100000000;
 
-        public static PositionModel ExchangePositionToModel(Position position, ICurrencyMappingProvider configuration)
+        public BitMexModelConverter(IReadOnlyCollection<CurrencySymbol> currencySymbols,
+            string exchangeName): base(currencySymbols, exchangeName)
+        {
+
+        }
+
+        public static PositionModel ExchangePositionToModel(Position position)
         {
             return new PositionModel
             {
@@ -31,9 +46,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             };
         }
 
-        public static ExecutedTrade OrderToTrade(Order order, ICurrencyMappingProvider configuration)
+        public static ExecutedTrade OrderToTrade(Order order)
         {
-
             var execTime = order.TransactTime ?? DateTime.UtcNow;
             var execPrice = (decimal)(order.Price ?? 0);
             var execVolume = (decimal)(order.OrderQty ?? 0);
@@ -45,23 +59,31 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return new ExecutedTrade(instr, execTime, execPrice, execVolume, tradeType, order.OrderID, status) { Message = order.Text };
         }
 
-        public static string ConvertSymbolFromLykkeToBitMex(string symbol, ICurrencyMappingProvider configuration)
+
+        public ExecutedTrade OrderToTrade(WebSocketClient.Model.RowItem row)
         {
-            if (!configuration.CurrencyMapping.TryGetValue(symbol, out var result))
-            {
-                throw new ArgumentException($"Symbol {symbol} is not mapped to BitMex value");
-            }
-            return result;
+            var lykkeInstrument = this.ExchangeSymbolToLykkeInstrument(row.Symbol);
+            return new ExecutedTrade(
+                lykkeInstrument,
+                row.Timestamp,
+                row.Price ?? row.AvgPx ?? 0,
+                row.OrderQty ?? row.CumQty ?? 0,
+                row.Side.HasValue ? ConvertSideToModel(row.Side.Value) : TradeType.Unknown,
+                row.OrderID,
+                row.OrdStatus.HasValue ? ConvertExecutionStatusToModel(row.OrdStatus.Value) : ExecutionStatus.Unknown);
         }
 
-        public static Instrument ConvertSymbolFromBitMexToLykke(string symbol, ICurrencyMappingProvider configuration)
+        public Acknowledgement OrderToAck(WebSocketClient.Model.RowItem row)
         {
-            var result = configuration.CurrencyMapping.FirstOrDefault(kv => kv.Value == symbol).Key;
-            if (result == null)
+            var lykkeInstrument = this.ExchangeSymbolToLykkeInstrument(row.Symbol);
+            return new Acknowledgement()
             {
-                throw new ArgumentException($"Symbol {symbol} is not mapped to lykke value");
-            }
-            return new Instrument(BitMexExchange.Name, result);
+                Instrument = lykkeInstrument.Name,
+                Exchange = lykkeInstrument.Exchange,
+                ClientOrderId = row.ClOrdID,
+                ExchangeOrderId = row.OrderID,
+                Success = true
+            };
         }
 
         public static string ConvertOrderType(OrderType type)
@@ -110,6 +132,36 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             }
         }
 
+        public static TradeType ConvertSideToModel(Side side)
+        {
+            switch (side)
+            {
+                case Side.Buy:
+                    return TradeType.Buy;
+                case Side.Sell:
+                    return TradeType.Sell;
+                default:
+                    return TradeType.Unknown;
+            }
+        }
+
+        public static ExecutionStatus ConvertExecutionStatusToModel(OrdStatus status)
+        {
+            switch (status)
+            {
+                case OrdStatus.New:
+                    return ExecutionStatus.New;
+                case OrdStatus.PartiallyFilled:
+                    return ExecutionStatus.PartialFill;
+                case OrdStatus.Filled:
+                    return ExecutionStatus.Fill;
+                case OrdStatus.Canceled:
+                    return ExecutionStatus.Cancelled;
+                default:
+                    return ExecutionStatus.Unknown;
+            }
+        }
+
         public static ExecutionStatus ConvertExecutionStatus(string executionStatus)
         {
             switch (executionStatus)
@@ -122,9 +174,24 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                     return ExecutionStatus.PartialFill;
                 case "Canceled":
                     return ExecutionStatus.Cancelled;
+                case "Rejeсted":
+                    return ExecutionStatus.Rejected;
                 default:
                     return ExecutionStatus.Unknown;
             }
+        }
+
+
+        public static OrderBookItem ConvertBookItem(RowItem row)
+        {
+            return new OrderBookItem
+            {
+                Id = row.Id.ToString(CultureInfo.InvariantCulture),
+                IsBuy = row.Side == Side.Buy,
+                Price = row.Price ?? 0,
+                Symbol = row.Symbol,
+                Size = row.Size
+            };
         }
 
         public static TradeBalanceModel ExchangeBalanceToModel(Margin bitmexMargin)
@@ -139,5 +206,21 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             };
             return model;
         }
+
+        public TickPrice QuoteToModel(WebSocketClient.Model.RowItem row)
+        {
+            if (row.AskPrice.HasValue && row.BidPrice.HasValue)
+            {
+                var lykkeInstrument = this.ExchangeSymbolToLykkeInstrument(row.Symbol);
+                return new TickPrice(lykkeInstrument, row.Timestamp, row.AskPrice.Value, row.BidPrice.Value);
+            }
+            else
+            {
+                throw new ArgumentException($"Ask/bid price is not specified for a quote. Message: '{JsonConvert.SerializeObject(row)}'", nameof(row));
+            }
+        }
+
+
+
     }
 }

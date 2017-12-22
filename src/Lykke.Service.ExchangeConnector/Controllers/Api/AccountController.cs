@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
@@ -11,6 +13,7 @@ using TradingBot.Trading;
 
 namespace TradingBot.Controllers.Api
 {
+    [ApiKeyAuth]
     public sealed class AccountController : BaseApiController
     {
         private readonly TimeSpan _timeout;
@@ -28,12 +31,12 @@ namespace TradingBot.Controllers.Api
         /// <param name="exchangeName">The exchange name</param>
         /// <returns></returns>
         [HttpGet("balance")]
-        [ApiKeyAuth]
+        [SwaggerOperation("GetBalance")]
         [ProducesResponseType(typeof(IEnumerable<AccountBalance>), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
         [Produces("application/json")]
-        private async Task<IActionResult> GetBalance([FromQuery]string exchangeName)// Intentionally disabled
+        private async Task<IActionResult> GetBalance([Required][FromQuery]string exchangeName)// Intentionally disabled
         {
             if (string.IsNullOrWhiteSpace(exchangeName))
             {
@@ -54,7 +57,7 @@ namespace TradingBot.Controllers.Api
         /// </summary>
         /// <param name="exchangeName">The exchange name</param>
         /// <returns></returns>
-        [ApiKeyAuth]
+        [SwaggerOperation("GetTradeBalance")]
         [HttpGet("tradeBalance")]
         [ProducesResponseType(typeof(IEnumerable<TradeBalanceModel>), 200)]
         [ProducesResponseType(400)]

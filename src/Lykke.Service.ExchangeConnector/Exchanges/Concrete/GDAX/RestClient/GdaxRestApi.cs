@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Rest;
+using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Abstractions.Models;
-using TradingBot.Exchanges.Abstractions.RestClient;
 using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
 
 namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
@@ -15,52 +17,36 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
         public const string GdaxPublicApiUrl = @"https://api.gdax.com";
         public const string GdaxSandboxApiUrl = @"https://api-public.sandbox.gdax.com";
 
-        private const string _userAgentHeaderName = "User-Agent";
         private const string _balanceRequestUrl = @"/accounts";
         private const string _newOrderRequestUrl = @"/orders";
-        private const string _orderStatusRequestUrl = @"/orders/{0}&status=done&status=pending&status=open&status=cancelled";
         private const string _orderCancelRequestUrl = @"/orders/{0}";
         private const string _activeOrdersRequestUrl = @"/orders";
-        private const string _marginInfoRequstUrl = @"/v1/margin_infos";
+        private const string _orderBookRequestUrl = @"/products/{0}/book?level=3";
         
         private const string _defaultConnectorUserAgent = "Lykke";
+
+        private readonly RestApiClient _restClient;
         
-        private readonly ServiceClientCredentials _credentials;
-        private RestApiClient _restClient;
+        public GdaxRestApi(string apiKey, string apiSecret, string passPhrase) :
+            this (apiKey, apiSecret, passPhrase, GdaxPublicApiUrl, _defaultConnectorUserAgent)
+        { }
 
-        /// <summary>
-        /// Base GDAX Uri
-        /// </summary>
-        public Uri BaseUri
+        public GdaxRestApi(string apiKey, string apiSecret, string passPhrase, 
+            string publicApiUrl, string userAgent)
         {
-            get { return HttpClient.BaseAddress; }
-            set { HttpClient.BaseAddress = value; }
-        }
-        
-        /// <summary>
-        /// User agent for identification
-        /// </summary>
-        public string ConnectorUserAgent
-        {
-            get { return HttpClient.DefaultRequestHeaders.UserAgent.ToString(); }
-            set
-            {
-                HttpClient.DefaultRequestHeaders.UserAgent.Clear();
-                HttpClient.DefaultRequestHeaders.UserAgent.ParseAdd(value);
-            }
+            var credentials = !string.IsNullOrEmpty(apiKey) 
+                ? new GdaxRestClientCredentials(apiKey, apiSecret, passPhrase)
+                : null;
+
+            HttpClient.BaseAddress = new Uri(publicApiUrl);
+            
+            HttpClient.DefaultRequestHeaders.UserAgent.Clear();
+            HttpClient.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent);
+
+            _restClient = new RestApiClient(HttpClient, credentials);
         }
 
-        public GdaxRestApi(string apiKey, string apiSecret, string passPhrase)
-        {
-            _credentials = new GdaxRestClientCredentials(apiKey, apiSecret, passPhrase);
-
-            BaseUri = new Uri(GdaxPublicApiUrl);
-            ConnectorUserAgent = _defaultConnectorUserAgent;
-
-            _restClient = new RestApiClient(HttpClient, _credentials);
-        }
-
-        public async Task<GdaxOrderResponse> AddOrder(string productId, decimal amount, decimal price,
+        public async Task<GdaxOrderResponse> AddOrder(string symbol, decimal amount, decimal price,
             GdaxOrderSide side, GdaxOrderType type, CancellationToken cancellationToken = default,
             EventHandler<SentHttpRequest> sentHttpRequestHandler = default,
             EventHandler<ReceivedHttpResponse> receivedHttpRequestHandler = default)
@@ -69,7 +55,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
                 HttpMethod.Post, _newOrderRequestUrl,
                 new GdaxNewOrderPost
                 {
-                    ProductId = productId,
+                    ProductId = symbol,
                     Size = amount,
                     Price = price,
                     Side = side,
@@ -79,15 +65,17 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
             return response;
         }
 
-        public async Task<IReadOnlyCollection<Guid>> CancelOrder(Guid orderId, CancellationToken cancellationToken = default,
+        public async Task<bool> CancelOrder(Guid orderId, CancellationToken cancellationToken = default,
             EventHandler<SentHttpRequest> sentHttpRequestHandler = default,
             EventHandler<ReceivedHttpResponse> receivedHttpRequestHandler = default)
         {
-            var response = await _restClient.ExecuteRestMethod<IReadOnlyCollection<Guid>>(HttpMethod.Delete, 
+            var response = await _restClient.ExecuteRestMethod<IReadOnlyList<GdaxError>>(HttpMethod.Delete, 
                 string.Format(_orderCancelRequestUrl, orderId), new GdaxPostContentBase(), cancellationToken, 
                 sentHttpRequestHandler, receivedHttpRequestHandler);
+            if (response[0] == null)
+                return true;
 
-            return response;
+            return false;
         }
 
         public async Task<IReadOnlyList<GdaxOrderResponse>> GetOpenOrders(CancellationToken cancellationToken = default,
@@ -120,6 +108,35 @@ namespace TradingBot.Exchanges.Concrete.GDAX.RestClient
                 _balanceRequestUrl, new GdaxPostContentBase(), cancellationToken, sentHttpRequestHandler, receivedHttpRequestHandler);
 
             return response;
+        }
+
+        public async Task<GdaxOrderBook> GetFullOrderBook(string pair, 
+            CancellationToken cancellationToken = default,
+            EventHandler<SentHttpRequest> sentHttpRequestHandler = default,
+            EventHandler<ReceivedHttpResponse> receivedHttpRequestHandler = default)
+        {
+            var response = await _restClient.ExecuteRestMethod<GdaxOrderBookRawResponse>(HttpMethod.Get,
+                string.Format(_orderBookRequestUrl, pair), new GdaxPostContentBase(), cancellationToken, sentHttpRequestHandler,
+                receivedHttpRequestHandler);
+
+            var orderBook = new GdaxOrderBook
+            {
+                Sequence = response.Sequence,
+                Asks = response.Asks.Select(ask => new GdaxOrderBookEntityRow
+                {
+                    Price = decimal.Parse(ask[0], CultureInfo.InvariantCulture),
+                    Size = decimal.Parse(ask[1], CultureInfo.InvariantCulture),
+                    OrderId = Guid.Parse(ask[2])
+                }).ToList(),
+                Bids = response.Bids.Select(bid => new GdaxOrderBookEntityRow
+                {
+                    Price = decimal.Parse(bid[0], CultureInfo.InvariantCulture),
+                    Size = decimal.Parse(bid[1], CultureInfo.InvariantCulture),
+                    OrderId = Guid.Parse(bid[2])
+                }).ToList()
+            };
+
+            return orderBook;
         }
     }
 }

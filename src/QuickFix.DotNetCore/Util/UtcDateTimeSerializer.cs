@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 
 namespace QuickFix.Util
 {
@@ -15,7 +16,7 @@ namespace QuickFix.Util
         /// </summary>
         /// <param name="d"></param>
         /// <returns></returns>
-        static public string ToString(DateTime d)
+        public static string ToString(DateTime d)
         {
             return d.ToString(FORMAT);
         }
@@ -25,20 +26,14 @@ namespace QuickFix.Util
         /// </summary>
         /// <param name="s"></param>
         /// <returns></returns>
-        static public DateTime FromString(string s)
+        public static DateTime FromString(string s)
         {
-            try
-            {
-                DateTime d = DateTime.ParseExact(s, FORMAT,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    System.Globalization.DateTimeStyles.AdjustToUniversal);
-                return d;
-            }
-            catch (Exception)
+            if (!DateTime.TryParseExact(s, FORMAT, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out var d))
             {
                 return new DateTime(0L, DateTimeKind.Utc); // MinValue in UTC
-                //return DateTime.MinValue;
             }
+            return d;
+
         }
     }
 }

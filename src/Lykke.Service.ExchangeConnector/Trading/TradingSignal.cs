@@ -71,7 +71,7 @@ namespace TradingBot.Trading
 
         public override string ToString()
         {
-            return $"Id: {OrderId}, Time: {Time}, Command: {Command}, TradeType: {TradeType}, Price: {Price}, Count: {Volume}";
+            return $"Id: {OrderId}, Time: {Time}, Instrument: {Instrument}, Command: {Command}, TradeType: {TradeType}, Price: {Price}, Count: {Volume}";
         }
 
         public bool IsTimeInThreshold(TimeSpan threshold)

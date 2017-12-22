@@ -5,6 +5,7 @@ using System.Net;
 using System.Threading.Tasks;
 
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using TradingBot.Communications;
 using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Configuration;
@@ -36,10 +37,10 @@ namespace TradingBot.Controllers.Api
         /// </summary>
         /// <response code="200">Active orders</response>
         /// <response code="500">Unexpected error</response>
+        [SwaggerOperation("GetOpenedOrders")]
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<ExecutedTrade>), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
-        [Produces("application/json")]
         private async Task<IEnumerable<ExecutedTrade>> Index([FromQuery, Required] string exchangeName) // Intentionally disabled
         {
             try
@@ -61,10 +62,10 @@ namespace TradingBot.Controllers.Api
         /// <param name="exchangeName">The exchange name</param>
         /// <response code="200">The order is found</response>
         /// <response code="500">The order either not exist or other server error</response>
+        [SwaggerOperation("GetOrder")]
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(ExecutedTrade), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
-        [Produces("application/json")]
         public async Task<ExecutedTrade> GetOrder(string id, [FromQuery, Required] string exchangeName, [FromQuery, Required] string instrument)
         {
             try
@@ -87,11 +88,11 @@ namespace TradingBot.Controllers.Api
         /// <remarks>In the location header of successful response placed an URL for getting info about the order</remarks>
         /// <response code="200">The order is successfully placed and an order status is returned</response>
         /// <response code="400">Can't place the order. The reason is in the response</response>
+        [SwaggerOperation("CreateOrder")]
         [HttpPost]
         [ProducesResponseType(typeof(ExecutedTrade), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 400)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
-        [Produces("application/json")]
         public async Task<IActionResult> Post([FromBody] OrderModel orderModel)
         {
             try
@@ -173,11 +174,11 @@ namespace TradingBot.Controllers.Api
         /// <param name="exchangeName">The exchange name</param>
         /// <response code="200">The order is successfully canceled</response>
         /// <response code="400">Can't cancel the order. The reason is in the response</response>
+        [SwaggerOperation("CancelOrder")]
         [HttpDelete("{id}")]
         [ProducesResponseType(typeof(ExecutedTrade), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 400)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
-        [Produces("application/json")]
         public async Task<IActionResult> CancelOrder(string id, [FromQuery, Required]string exchangeName)
         {
             try
