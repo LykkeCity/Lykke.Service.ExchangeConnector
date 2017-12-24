@@ -6,25 +6,24 @@ using Lykke.Logs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.WindowsAzure.Storage.Table;
 using TradingBot.Communications;
-using TradingBot.Repositories;
 
 namespace TradingBot.Controllers
 {
     public class LogsController : Controller
     {
-        private readonly IApplicationFacade _app;
         private readonly int entriesCount = 50;
         private readonly INoSQLTableStorage<LogEntity> _logsStorage;
         private readonly INoSQLTableStorage<FixMessageTableEntity> _fixMessagesStorage;
+        private readonly TranslatedSignalsRepository _translatedSignalsRepository;
 
         public LogsController(
-            IApplicationFacade app,
             INoSQLTableStorage<LogEntity> logsStorage,
-            INoSQLTableStorage<FixMessageTableEntity> fixMessagesStorage)
+            INoSQLTableStorage<FixMessageTableEntity> fixMessagesStorage,
+            TranslatedSignalsRepository translatedSignalsRepository)
         {
-            _app = app;
             _logsStorage = logsStorage;
             _fixMessagesStorage = fixMessagesStorage;
+            _translatedSignalsRepository = translatedSignalsRepository;
         }
 
         public async Task<IActionResult> Index()
@@ -59,7 +58,7 @@ namespace TradingBot.Controllers
 
         public async Task<IActionResult> TranslatedSignals()
         {
-            return View(await _app.TranslatedSignalsRepository.GetTop(entriesCount));
+            return View(await _translatedSignalsRepository.GetTop(entriesCount));
         }
     }
 }

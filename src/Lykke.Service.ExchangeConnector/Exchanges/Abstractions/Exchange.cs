@@ -16,13 +16,13 @@ namespace TradingBot.Exchanges.Abstractions
     {
         protected readonly ILog LykkeLog;
 
-        private readonly List<Handler<TickPrice>> _tickPriceHandlers = new List<Handler<TickPrice>>();
+        private readonly List<IHandler<TickPrice>> _tickPriceHandlers = new List<IHandler<TickPrice>>();
 
-        private readonly List<Handler<OrderBook>> _orderBookHandlers = new List<Handler<OrderBook>>();
+        private readonly List<IHandler<OrderBook>> _orderBookHandlers = new List<IHandler<OrderBook>>();
 
-        private readonly List<Handler<ExecutedTrade>> _executedTradeHandlers = new List<Handler<ExecutedTrade>>();
+        private readonly List<IHandler<ExecutedTrade>> _executedTradeHandlers = new List<IHandler<ExecutedTrade>>();
 
-        private readonly List<Handler<Acknowledgement>> _acknowledgementsHandlers = new List<Handler<Acknowledgement>>();
+        private readonly List<IHandler<Acknowledgement>> _acknowledgementsHandlers = new List<IHandler<Acknowledgement>>();
 
         public string Name { get; }
 
@@ -50,22 +50,22 @@ namespace TradingBot.Exchanges.Abstractions
                 .Select(x => new Instrument(Name, x.LykkeSymbol)).ToList();
         }
 
-        public void AddTickPriceHandler(Handler<TickPrice> handler)
+        public void AddTickPriceHandler(IHandler<TickPrice> handler)
         {
             _tickPriceHandlers.Add(handler);
         }
 
-        public void AddOrderBookHandler(Handler<OrderBook> handler)
+        public void AddOrderBookHandler(IHandler<OrderBook> handler)
         {
             _orderBookHandlers.Add(handler);
         }
 
-        public void AddExecutedTradeHandler(Handler<ExecutedTrade> handler)
+        public void AddExecutedTradeHandler(IHandler<ExecutedTrade> handler)
         {
             _executedTradeHandlers.Add(handler);
         }
 
-        public void AddAcknowledgementsHandler(Handler<Acknowledgement> handler)
+        public void AddAcknowledgementsHandler(IHandler<Acknowledgement> handler)
         {
             _acknowledgementsHandlers.Add(handler);
         }

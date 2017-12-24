@@ -17,14 +17,11 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         private readonly BitMexModelConverter _mapper;
         private Func<ExecutedTrade, Task> _tradeHandler;
 
-        public BitMexExecutionHarvester(string exchangeName,
-            BitMexExchangeConfiguration configuration,
-            IBitmexSocketSubscriber socketSubscriber,
-            ILog log)
+        public BitMexExecutionHarvester(BitMexExchangeConfiguration configuration, IBitmexSocketSubscriber socketSubscriber, ILog log)
         {
-            _log = log;
+            _log = log.CreateComponentScope(nameof(BitMexExecutionHarvester));
             socketSubscriber.Subscribe(BitmexTopic.execution, HandleExecutionResponseAsync);
-            _mapper = new BitMexModelConverter(configuration.SupportedCurrencySymbols, exchangeName);
+            _mapper = new BitMexModelConverter(configuration.SupportedCurrencySymbols, BitMexExchange.Name);
         }
 
         public void AddExecutedTradeHandler(Func<ExecutedTrade, Task> handler)

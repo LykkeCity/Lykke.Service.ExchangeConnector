@@ -10,8 +10,6 @@ namespace TradingBot.Infrastructure.Configuration
 
         public RabbitMqMultyExchangeConfiguration RabbitMq { get; set; }
 
-        public OrderBookRabbitMqConfiguration OrderBooksRabbitMq { get; set; }
-
         public AzureTableConfiguration AzureStorage { get; set; }
     }
 

@@ -12,7 +12,7 @@ using TradingBot.Trading;
 
 namespace TradingBot.Communications
 {
-    public class AzureTablePricesPublisher : Handler<TickPrice>
+    public class AzureTablePricesPublisher : IHandler<TickPrice>
     {
 		private readonly ILogger logger = Logging.CreateLogger<AzureTablePricesPublisher>();
 
@@ -31,7 +31,7 @@ namespace TradingBot.Communications
 		private DateTime currentPriceMinute;
         private readonly ConcurrentDictionary<string, TickPrice> lastTickPrices = new ConcurrentDictionary<string, TickPrice>();
 
-		public override async Task Handle(TickPrice tickPrice)
+		public async Task Handle(TickPrice tickPrice)
 		{
 		    if (lastTickPrices.TryGetValue(tickPrice.Instrument.Name, out var lastTickPrice))
 		    {

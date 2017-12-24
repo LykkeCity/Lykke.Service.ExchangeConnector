@@ -24,10 +24,10 @@ namespace TradingBot.Controllers.Api
 
         private readonly TranslatedSignalsRepository _translatedSignalsRepository;
 
-        public OrdersController(IApplicationFacade app, AppSettings appSettings)
+        public OrdersController(IApplicationFacade app, AppSettings appSettings, TranslatedSignalsRepository translatedSignalsRepository)
             : base(app)
         {
-            _translatedSignalsRepository = Application.TranslatedSignalsRepository;
+            _translatedSignalsRepository = translatedSignalsRepository;
             _timeout = appSettings.AspNet.ApiTimeout;
         }
 
