@@ -21,13 +21,14 @@
     <PackageReference Include="Castle.Core" Version="4.2.1" />
     <PackageReference Include="Lykke.AzureQueueIntegration" Version="2.0.1" />
     <PackageReference Include="Lykke.AzureStorage" Version="3.1.0" />
-    <PackageReference Include="Lykke.Common" Version="3.0.2" />
+    <PackageReference Include="Lykke.Common" Version="3.1.0" />
     <PackageReference Include="Lykke.Common.ApiLibrary" Version="1.0.20" />
+    <PackageReference Include="Lykke.Fix" Version="1.0.4" />
     <PackageReference Include="Lykke.PusherClient" Version="1.0.3" />
     <PackageReference Include="Lykke.RabbitMqBroker" Version="4.0.5" />
-    <PackageReference Include="Lykke.Logs" Version="3.4.1" />
+    <PackageReference Include="Lykke.Logs" Version="3.5.0" />
     <PackageReference Include="Lykke.RabbitMqBroker" Version="4.3.0" />
-    <PackageReference Include="Lykke.SettingsReader" Version="1.0.43" />
+    <PackageReference Include="Lykke.SettingsReader" Version="1.0.44" />
     <PackageReference Include="Lykke.SlackNotification.AzureQueue" Version="2.0.1" />
     <PackageReference Include="Lykke.WampSharp" Version="1.0.2" />
     <PackageReference Include="Lykke.WampSharp.Default.Client" Version="1.0.2" />
@@ -48,7 +49,7 @@
     <PackageReference Include="Microsoft.Rest.ClientRuntime" Version="2.3.10" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="Polly" Version="5.6.1" />
-    <PackageReference Include="SonarAnalyzer.CSharp" Version="6.7.0.4267" />
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="6.7.1.4347" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Exchanges\Concrete\Bitstamp\" />
@@ -59,7 +60,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Lykke.ExternalExchangesApi\Lykke.ExternalExchangesApi.csproj" />
-    <ProjectReference Include="..\QuickFix.DotNetCore\QuickFix.DotNetCore.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="Dockerfile">
