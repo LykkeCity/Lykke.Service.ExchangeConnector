@@ -48,7 +48,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.LykkeApiTests
             Assert.True(listForPrices.Any());
         }
 
-        class TickPriceHandler : Handler<TickPrice>
+        class TickPriceHandler : IHandler<TickPrice>
         {
             private readonly List<TickPrice> list;
 
@@ -57,7 +57,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.LykkeApiTests
                 this.list = list;
             }
             
-            public override Task Handle(TickPrice message)
+            public Task Handle(TickPrice message)
             {
                 list.Add(message);
                 return Task.FromResult(0);

@@ -7,7 +7,7 @@ using TradingBot.Trading;
 
 namespace TradingBot.Handlers
 {
-    public class RabbitMqHandler<T> : Handler<T>, IDisposable
+    internal class RabbitMqHandler<T> : IHandler<T>, IDisposable
     {
         private readonly RabbitMqPublisher<T> _rabbitPublisher;
         private readonly object _sync = new object();
@@ -31,7 +31,7 @@ namespace TradingBot.Handlers
                 .Start();
         }
 
-        public override Task Handle(T message)
+        public Task Handle(T message)
         {
             lock (_sync)
             { 

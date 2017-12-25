@@ -1,16 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
-using Castle.Core;
 using Common.Log;
 using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient;
 using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient.Model;
 using Lykke.ExternalExchangesApi.Shared;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.Shared;
-using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 

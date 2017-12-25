@@ -68,22 +68,22 @@ namespace TradingBot.Exchanges.Concrete.Icm
                     "RabbitMQ connection is desibled");
             }
         }
-        
+
         protected override void StopImpl()
         {
             rabbit?.Stop();
             initiator?.Stop();
             initiator?.Dispose();
         }
-        
+
         private void StartFixConnection()
         {
             var settings = new SessionSettings(config.GetFixConfigAsReader());
 
             _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartFixConnection), string.Join("/n", config.FixConfiguration), "Starting fix connection with configuration").Wait();
-            
+
             var repository = new AzureFixMessagesRepository(_tableStorage);
-            
+
             connector = new IcmConnector(config, repository, LykkeLog);
             var storeFactory = new FileStoreFactory(settings);
             var logFactory = new LykkeLogFactory(_log);
@@ -91,9 +91,9 @@ namespace TradingBot.Exchanges.Concrete.Icm
             connector.OnTradeExecuted += CallExecutedTradeHandlers;
             connector.Connected += OnConnected;
             connector.Disconnected += OnStopped;
-            
+
             initiator = new SocketInitiator(connector, storeFactory, settings, logFactory);
-            
+
             _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartFixConnection), string.Empty, "SocketInitiator is about to start").Wait();
             initiator.Start();
         }
@@ -101,13 +101,12 @@ namespace TradingBot.Exchanges.Concrete.Icm
         /// <summary>
         /// For ICM we use internal RabbitMQ exchange with pricefeed
         /// </summary>
-        private void StartRabbitConnection()
+        private void StartRabbitConnection() //HACK Must be deleted from here!
         {
             var rabbitSettings = new RabbitMqSubscriptionSettings()
             {
-                ConnectionString = config.RabbitMq.GetConnectionString(),
-                ExchangeName = config.RabbitMq.Exchange,
-                QueueName = config.RabbitMq.Exchange + ".ExchangeConnector"
+                ConnectionString = config.RabbitMq.ConnectionString,
+                QueueName = config.RabbitMq.Queue
             };
             var errorStrategy = new DefaultErrorHandlingStrategy(_log, rabbitSettings);
             rabbit = new RabbitMqSubscriber<OrderBook>(rabbitSettings, errorStrategy)

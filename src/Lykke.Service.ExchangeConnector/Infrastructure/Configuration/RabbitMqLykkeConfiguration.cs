@@ -1,6 +1,6 @@
 ﻿namespace TradingBot.Infrastructure.Configuration
 {
-    public class RabbitMqLykkeConfiguration : RabbitMqConfigurationBase
+    public class RabbitMqLykkeConfiguration
     {
         public RabbitMqExchangeConfiguration OrderBook { get; set; }
         

@@ -1,19 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using TradingBot.Communications;
+using Common;
 using TradingBot.Exchanges.Abstractions;
 
 namespace TradingBot
 {
-    public interface IApplicationFacade : IDisposable
+    public interface IApplicationFacade : IStopable
     {
         IReadOnlyCollection<IExchange> GetExchanges();
 
         IExchange GetExchange(string name);
 
-        TranslatedSignalsRepository TranslatedSignalsRepository { get; }
         Task Start();
-        void Stop();
+
     }
 }

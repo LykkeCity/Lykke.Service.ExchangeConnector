@@ -1,5 +1,9 @@
 ﻿using Autofac;
 using Autofac.Extras.DynamicProxy;
+using Common;
+using Common.Log;
+using Lykke.RabbitMqBroker;
+using Lykke.RabbitMqBroker.Subscriber;
 using TradingBot.Communications;
 using TradingBot.Exchanges;
 using TradingBot.Exchanges.Abstractions;
@@ -9,26 +13,34 @@ using TradingBot.Exchanges.Concrete.GDAX;
 using TradingBot.Exchanges.Concrete.HistoricalData;
 using TradingBot.Exchanges.Concrete.Icm;
 using TradingBot.Exchanges.Concrete.Jfd;
-using TradingBot.Exchanges.Concrete.Jfd.FixClient;
 using TradingBot.Exchanges.Concrete.Kraken;
 using TradingBot.Exchanges.Concrete.LykkeExchange;
 using TradingBot.Exchanges.Concrete.StubImplementation;
+using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Monitoring;
+using TradingBot.Trading;
 
 namespace TradingBot.Modules
 {
     internal sealed class ServiceModule : Module
     {
-        private readonly ExchangesConfiguration _config;
+        private readonly AppSettings _config;
+        private readonly ILog _log;
 
-        public ServiceModule(ExchangesConfiguration config)
+        public ServiceModule(AppSettings config, ILog log)
         {
             _config = config;
+            _log = log;
         }
 
         protected override void Load(ContainerBuilder builder)
         {
+            builder.RegisterType<RabbitMqHandlersFactory>()
+                .As<IRabbitMqHandlersFactory>();
+
+            builder.RegisterGeneric(typeof(RabbitMqHandler<>));
+
             builder.RegisterType<InverseDateTimeRowKeyProvider>();
 
             builder.RegisterType<TranslatedSignalsRepository>();
@@ -84,21 +96,30 @@ namespace TradingBot.Modules
             builder.RegisterType<JfdModelConverter>()
                 .SingleInstance();
 
-            foreach (var cfg in _config)
+            builder.RegisterType<TradingSignalsHandler>()
+                .WithParameter("apiTimeout", _config.AspNet.ApiTimeout)
+                .WithParameter("enabled", _config.RabbitMq.Signals.Enabled)
+                .AsSelf()
+                .SingleInstance();
+
+            foreach (var cfg in _config.Exchanges)
             {
                 builder.RegisterInstance(cfg)
                     .As(cfg.GetType());
             }
 
-            RegisterExchange<IcmExchange>(builder, _config.Icm.Enabled);
-            RegisterExchange<KrakenExchange>(builder, _config.Kraken.Enabled);
-            RegisterExchange<StubExchange>(builder, _config.Stub.Enabled);
-            RegisterExchange<HistoricalDataExchange>(builder, _config.HistoricalData.Enabled);
-            RegisterExchange<LykkeExchange>(builder, _config.Lykke.Enabled);
-            RegisterExchange<BitMexExchange>(builder, _config.BitMex.Enabled);
-            RegisterExchange<BitfinexExchange>(builder, _config.Bitfinex.Enabled);
-            RegisterExchange<GdaxExchange>(builder, _config.Gdax.Enabled);
-            RegisterExchange<JfdExchange>(builder, _config.Jfd.Enabled);
+            RegisterExchange<IcmExchange>(builder, _config.Exchanges.Icm.Enabled);
+            RegisterExchange<KrakenExchange>(builder, _config.Exchanges.Kraken.Enabled);
+            RegisterExchange<StubExchange>(builder, _config.Exchanges.Stub.Enabled);
+            RegisterExchange<HistoricalDataExchange>(builder, _config.Exchanges.HistoricalData.Enabled);
+            RegisterExchange<LykkeExchange>(builder, _config.Exchanges.Lykke.Enabled);
+            RegisterExchange<BitMexExchange>(builder, _config.Exchanges.BitMex.Enabled);
+            RegisterExchange<BitfinexExchange>(builder, _config.Exchanges.Bitfinex.Enabled);
+            RegisterExchange<GdaxExchange>(builder, _config.Exchanges.Gdax.Enabled);
+            RegisterExchange<JfdExchange>(builder, _config.Exchanges.Jfd.Enabled);
+
+
+            RegisterTradeSignalProduces(builder);
         }
 
         private static void RegisterExchange<T>(ContainerBuilder container, bool enabled)
@@ -114,6 +135,26 @@ namespace TradingBot.Modules
                     .InterceptedBy(typeof(ExchangeCallsInterceptor));
             }
 
+        }
+
+        private void RegisterTradeSignalProduces(ContainerBuilder container)
+        {
+            var subscriberSettings = new RabbitMqSubscriptionSettings
+            {
+                ConnectionString = _config.RabbitMq.Signals.ConnectionString,
+                ExchangeName = _config.RabbitMq.Signals.Exchange,
+                QueueName = _config.RabbitMq.Signals.Queue,
+                IsDurable = false
+            };
+
+            var errorStrategy = new DefaultErrorHandlingStrategy(_log, subscriberSettings);
+            var subscriber = new RabbitMqSubscriber<TradingSignal>(subscriberSettings, errorStrategy)
+                .SetMessageDeserializer(new GenericRabbitModelConverter<TradingSignal>())
+                .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
+                .SetConsole(new LogToConsole())
+                .SetLogger(_log);
+
+            container.Register(c => subscriber);
         }
     }
 }

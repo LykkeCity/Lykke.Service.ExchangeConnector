@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Common.Log;
 using AzureStorage.Tables;
@@ -16,13 +17,15 @@ namespace TradingBot.Exchanges
         private readonly AppSettings _config;
         private readonly IReloadingManager<TradingBotSettings> _settingsManager;
         private readonly IReadOnlyCollection<Exchange> _implementations;
+        private readonly IRabbitMqHandlersFactory _handlersFactory;
         private readonly ILog _log;
 
-        public ExchangeFactory(AppSettings config, IReloadingManager<TradingBotSettings> settingsManager, IReadOnlyCollection<Exchange> implementations, ILog log)
+        public ExchangeFactory(AppSettings config, IReloadingManager<TradingBotSettings> settingsManager, IReadOnlyCollection<Exchange> implementations, IRabbitMqHandlersFactory handlersFactory, ILog log)
         {
             _config = config;
             _settingsManager = settingsManager;
             _implementations = implementations;
+            _handlersFactory = handlersFactory;
             _log = log;
         }
 
@@ -38,25 +41,28 @@ namespace TradingBot.Exchanges
                 }
             }
 
-            if (_config.RabbitMq.Enabled && _implementations.Any(x => x.Config.PubQuotesToRabbit))
+            foreach (var exchange in _implementations)
             {
-                foreach (var exchange in _implementations.Where(x => x.Config.PubQuotesToRabbit))
+                if (_config.RabbitMq.TickPrices.Enabled)
                 {
-                    var pricesHandler = new RabbitMqHandler<TickPrice>(_config.RabbitMq.GetConnectionString(), _config.RabbitMq.TickPrices.Exchange);
-                    var tradesHandler = new RabbitMqHandler<ExecutedTrade>(_config.RabbitMq.GetConnectionString(), _config.RabbitMq.Trades.Exchange);
-                    var acknowledgementsHandler = new RabbitMqHandler<Acknowledgement>(_config.RabbitMq.GetConnectionString(), _config.RabbitMq.Acknowledgements.Exchange);
-                    
+                    var pricesHandler = _handlersFactory.Create<TickPrice>(_config.RabbitMq.TickPrices.ConnectionString, _config.RabbitMq.TickPrices.Exchange, true, _log);
                     exchange.AddTickPriceHandler(pricesHandler);
+                }
+                if (_config.RabbitMq.Trades.Enabled)
+                {
+                    var tradesHandler = _handlersFactory.Create<ExecutedTrade>(_config.RabbitMq.Trades.ConnectionString, _config.RabbitMq.Trades.Exchange, true, _log);
                     exchange.AddExecutedTradeHandler(tradesHandler);
+                }
+
+                if (_config.RabbitMq.Acknowledgements.Enabled)
+                {
+                    var acknowledgementsHandler = _handlersFactory.Create<Acknowledgement>(_config.RabbitMq.Acknowledgements.ConnectionString, _config.RabbitMq.Acknowledgements.Exchange, true, _log);
                     exchange.AddAcknowledgementsHandler(acknowledgementsHandler);
                 }
-            }
 
-            if (_config.OrderBooksRabbitMq.Enabled)
-            {
-                foreach (var exchange in _implementations)
+                if (_config.RabbitMq.OrderBooks.Enabled)
                 {
-                    var orderBookHandler = new RabbitMqHandler<OrderBook>(_config.OrderBooksRabbitMq.GetConnectionString(), _config.OrderBooksRabbitMq.Exchange, _config.OrderBooksRabbitMq.Durable, _log);
+                    var orderBookHandler = _handlersFactory.Create<OrderBook>(_config.RabbitMq.OrderBooks.ConnectionString, _config.RabbitMq.OrderBooks.Exchange, true, _log);
                     exchange.AddOrderBookHandler(orderBookHandler);
                 }
             }
