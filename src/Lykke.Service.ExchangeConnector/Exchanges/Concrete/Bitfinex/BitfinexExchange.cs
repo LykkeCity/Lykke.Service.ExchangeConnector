@@ -41,8 +41,6 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
             _converters = new ExchangeConverters(configuration.SupportedCurrencySymbols, Name);
 
-            _orderBooksHarvester.AddHandler(CallOrderBookHandlers);
-            _orderBooksHarvester.AddTickPriceHandler(CallTickPricesHandlers);
             orderBooksHarvester.MaxOrderBookRate = configuration.MaxOrderBookRate;
         }
 

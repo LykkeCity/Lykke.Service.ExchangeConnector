@@ -36,7 +36,6 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             _modelConverter = new JfdModelConverter(config);
             _log = log.CreateComponentScope(nameof(JfdExchange));
             harvester.MaxOrderBookRate = config.MaxOrderBookRate;
-            harvester.AddHandler(CallOrderBookHandlers);
         }
 
         protected override void StartImpl()

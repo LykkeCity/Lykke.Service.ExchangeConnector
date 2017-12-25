@@ -5,8 +5,6 @@ namespace TradingBot.Infrastructure.Configuration
     public class OandaConfiguration : IExchangeConfiguration
     {
         public bool Enabled { get; set; }
-        
-        public bool SaveQuotesToAzure { get; set; }
 
         public bool SaveOrderBooksToAzure { get; set; }
 

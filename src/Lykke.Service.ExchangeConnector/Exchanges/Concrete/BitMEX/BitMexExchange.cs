@@ -23,7 +23,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
     internal class BitMexExchange : Exchange
     {
         private readonly BitMexOrderBooksHarvester _orderBooksHarvester;
-        private readonly IBitmexSocketSubscriber _socketSubscriber;
+        private readonly BitMexOrderHarvester _orderHarvester;
+        private readonly BitMexPriceHarvester _priceHarvester;
         private readonly IBitMEXAPI _exchangeApi;
         public new const string Name = "bitmex";
 
@@ -37,19 +38,17 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             : base(Name, configuration, translatedSignalsRepository, log)
         {
             _orderBooksHarvester = orderBooksHarvester;
-            _socketSubscriber = socketSubscriber;
+            _orderHarvester = orderHarvester;
+            _priceHarvester = priceHarvester;
+
 
             var credenitals = new BitMexServiceClientCredentials(configuration.ApiKey, configuration.ApiSecret);
             _exchangeApi = new BitMEXAPI(credenitals)
             {
                 BaseUri = new Uri(configuration.EndpointUrl)
             };
-
-            orderBooksHarvester.AddHandler(CallOrderBookHandlers);
+            
             orderBooksHarvester.MaxOrderBookRate = configuration.MaxOrderBookRate;
-            orderHarvester.AddAcknowledgementHandler(CallAcknowledgementsHandlers);
-            orderHarvester.AddExecutedTradeHandler(CallExecutedTradeHandlers);
-            priceHarvester.AddHandler(CallTickPricesHandlers);
         }
 
         public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
@@ -142,8 +141,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 throw new ApiException(error.ErrorProperty.Message);
             }
 
-            var model = ((IReadOnlyCollection<Position>)response).Select(r => 
-                BitMexModelConverter.ExchangePositionToModel(r)).ToArray();
+            var model = ((IReadOnlyCollection<Position>)response).Select(BitMexModelConverter.ExchangePositionToModel).ToArray();
             return model;
         }
 
@@ -163,15 +161,19 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
         protected override void StartImpl()
         {
-            OnConnected();
+      
+            _priceHarvester.Start();
+            _orderHarvester.Start();
             _orderBooksHarvester.Start();
-            _socketSubscriber.Start();
+            OnConnected();
         }
 
         protected override void StopImpl()
         {
-            _socketSubscriber.Stop();
+            _priceHarvester.Stop();
+            _orderHarvester.Stop();
             _orderBooksHarvester.Stop();
+            OnStopped();
         }
     }
 }

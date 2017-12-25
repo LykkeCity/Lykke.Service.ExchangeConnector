@@ -6,8 +6,6 @@ namespace TradingBot.Infrastructure.Configuration
     public class HistoricalDataConfig : IExchangeConfiguration
     {
         public bool Enabled { get; set; }
-        
-        public bool SaveQuotesToAzure { get; set; }
 
         public bool SaveOrderBooksToAzure { get; set; }
 

@@ -9,8 +9,6 @@ namespace TradingBot.Infrastructure.Configuration
 
         public string Password { get; set; }
 
-        public bool SaveQuotesToAzure { get; set; }
-
         public bool SaveOrderBooksToAzure { get; set; }
 
         public bool PubQuotesToRabbit { get; set; }

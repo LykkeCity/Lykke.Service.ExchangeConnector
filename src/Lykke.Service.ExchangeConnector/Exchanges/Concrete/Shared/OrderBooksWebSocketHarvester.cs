@@ -1,6 +1,8 @@
 ﻿using Common.Log;
 using TradingBot.Communications;
+using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.Shared
 {
@@ -9,8 +11,8 @@ namespace TradingBot.Exchanges.Concrete.Shared
         protected IMessenger<TRequest, TResponse> Messenger;
 
         protected OrderBooksWebSocketHarvester(string exchangeName, IExchangeConfiguration exchangeConfiguration, IMessenger<TRequest, TResponse> messanger, ILog log,
-            OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
-            : base(exchangeName, exchangeConfiguration, log, orderBookSnapshotsRepository, orderBookEventsRepository)
+            OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository, IHandler<OrderBook> orderBookHandler)
+            : base(exchangeName, exchangeConfiguration, log, orderBookSnapshotsRepository, orderBookEventsRepository, orderBookHandler)
         {
             Messenger = messanger;
         }
