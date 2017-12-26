@@ -37,7 +37,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
             _log = log.CreateComponentScope(nameof(JfdTradeSessionConnector));
             var settings = new SessionSettings(config.FixConfig);
             var storeFactory = new FileStoreFactory(settings);
-            var logFactory = new LykkeLogFactory(_log, false, false);
+            var logFactory = new LykkeLogFactory(_log);
             _socketInitiator = new SocketInitiator(this, storeFactory, settings, logFactory);
             _ordersHandler = new OrdersHandler(log);
             _positionsHandler = new PositionsHandler(log);
@@ -62,12 +62,11 @@ namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
 
         public void FromAdmin(Message message, SessionID sessionId)
         {
-            var msgType = message.Header.GetField(new MsgType()).Obj;
-            if (MsgType.REJECT.Equals(msgType))
+            if (message is Reject reject)
             {
                 lock (_rejectLock)
                 {
-                    var seqNum = message.Header.GetField(new MsgSeqNum()).Obj;
+                    var seqNum = reject.RefSeqNum.Obj;
                     if (_rejectList.TryGetValue(seqNum, out var request))
                     {
                         var reason = message.IsSetField(new Text()) ? message.GetField(new Text()).Obj : "Request rejected. No additional information";

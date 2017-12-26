@@ -25,7 +25,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
             Message = message;
             _messageHandler = messageHandler;
             CancellationToken = cancellationToken;
-            Id = message.GetType().Name + DateTime.UtcNow.Ticks;
+            Id = message.GetType().Name + Guid.NewGuid();
             Log = Log = log.CreateComponentScope(GetType().Name);
             cancellationToken.Register(() => TaskCompletionSource.TrySetCanceled(cancellationToken));
             if (cancellationToken.IsCancellationRequested)

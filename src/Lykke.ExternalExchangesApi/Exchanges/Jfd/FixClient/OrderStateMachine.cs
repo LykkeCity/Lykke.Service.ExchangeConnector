@@ -24,10 +24,10 @@ namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
                 switch (message.OrdStatus.Obj)
                 {
                     case OrdStatus.FILLED:
+                    case OrdStatus.CANCELED:
                         TaskCompletionSource.TrySetResult(message);
                         Status = RequestStatus.Completed;
                         break;
-                    case OrdStatus.CANCELED:
                     case OrdStatus.REJECTED:
                         TaskCompletionSource.TrySetException(new InvalidOperationException(message.Text.Obj));
                         Status = RequestStatus.Completed;

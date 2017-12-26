@@ -158,7 +158,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             var inst = _modelConverter.ConvertJfdSymbol(report.Symbol);
             var time = report.TransactTime.Obj;
             var price = report.LastPx.Obj;
-            var volume = report.LastQty.Obj;
+            var volume = report.CumQty.Obj;
             var type = _modelConverter.ConvertSide(report.Side);
             var id = report.OrderID.Obj;
             var status = _modelConverter.ConvertStatus(report.OrdStatus);

@@ -34,7 +34,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
             _log = log.CreateComponentScope(GetType().Name);
             var settings = new SessionSettings(config.FixConfig);
             var storeFactory = new FileStoreFactory(settings);
-            var logFactory = new LykkeLogFactory(_log, false, false);
+            var logFactory = new LykkeLogFactory(_log);
             _socketInitiator = new SocketInitiator(this, storeFactory, settings, logFactory);
 
         }
