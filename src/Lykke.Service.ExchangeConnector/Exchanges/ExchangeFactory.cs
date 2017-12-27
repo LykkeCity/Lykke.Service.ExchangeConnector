@@ -33,7 +33,7 @@ namespace TradingBot.Exchanges
                 foreach (var exchange in _implementations.Where(x => x.Config.SaveQuotesToAzure))
                 {
                     var exchangeStorage = AzureTableStorage<PriceTableEntity>.Create(
-                        _settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), exchange.Name, new LogToConsole());
+                        _settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.EntitiesConnString), exchange.Name, new LogToConsole());
                     exchange.AddTickPriceHandler(new AzureTablePricesPublisher(exchangeStorage, exchange.Name));
                 }
             }
