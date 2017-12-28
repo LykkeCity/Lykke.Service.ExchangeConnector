@@ -55,7 +55,7 @@ namespace TradingBot
                 nameof(Start),
                 $"Price cycle starting for exchanges: {string.Join(", ", _exchanges.Keys)}...");
 
-            if (_config.RabbitMq.Enabled)
+            if (_config.RabbitMq.Signals.Enabled)
             {
                 SetupTradingSignalsSubscription(_config.RabbitMq); // can take too long
             }
@@ -88,7 +88,7 @@ namespace TradingBot
 
             var subscriberSettings = new RabbitMqSubscriptionSettings()
             {
-                ConnectionString = rabbitConfig.GetConnectionString(),
+                ConnectionString = rabbitConfig.Signals.ConnectionString,
                 ExchangeName = rabbitConfig.Signals.Exchange,
                 QueueName = rabbitConfig.Signals.Queue,
                 IsDurable = false

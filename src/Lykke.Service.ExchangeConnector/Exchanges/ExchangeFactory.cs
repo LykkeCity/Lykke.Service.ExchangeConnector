@@ -38,13 +38,13 @@ namespace TradingBot.Exchanges
                 }
             }
 
-            if (_config.RabbitMq.Enabled && _implementations.Any(x => x.Config.PubQuotesToRabbit))
+            if (_config.RabbitMq.TickPrices.Enabled && _implementations.Any(x => x.Config.PubQuotesToRabbit))
             {
                 foreach (var exchange in _implementations.Where(x => x.Config.PubQuotesToRabbit))
                 {
-                    var pricesHandler = new RabbitMqHandler<TickPrice>(_config.RabbitMq.GetConnectionString(), _config.RabbitMq.TickPrices.Exchange);
-                    var tradesHandler = new RabbitMqHandler<ExecutedTrade>(_config.RabbitMq.GetConnectionString(), _config.RabbitMq.Trades.Exchange);
-                    var acknowledgementsHandler = new RabbitMqHandler<Acknowledgement>(_config.RabbitMq.GetConnectionString(), _config.RabbitMq.Acknowledgements.Exchange);
+                    var pricesHandler = new RabbitMqHandler<TickPrice>(_config.RabbitMq.TickPrices.ConnectionString, _config.RabbitMq.TickPrices.Exchange);
+                    var tradesHandler = new RabbitMqHandler<ExecutedTrade>(_config.RabbitMq.Trades.ConnectionString, _config.RabbitMq.Trades.Exchange);
+                    var acknowledgementsHandler = new RabbitMqHandler<Acknowledgement>(_config.RabbitMq.Acknowledgements.ConnectionString, _config.RabbitMq.Acknowledgements.Exchange);
                     
                     exchange.AddTickPriceHandler(pricesHandler);
                     exchange.AddExecutedTradeHandler(tradesHandler);
@@ -52,11 +52,13 @@ namespace TradingBot.Exchanges
                 }
             }
 
-            if (_config.OrderBooksRabbitMq.Enabled)
+            if (_config.RabbitMq.OrderBooks.Enabled)
             {
                 foreach (var exchange in _implementations)
                 {
-                    var orderBookHandler = new RabbitMqHandler<OrderBook>(_config.OrderBooksRabbitMq.GetConnectionString(), _config.OrderBooksRabbitMq.Exchange, _config.OrderBooksRabbitMq.Durable, _log);
+                    var orderBookHandler = new RabbitMqHandler<OrderBook>(_config.RabbitMq.OrderBooks.ConnectionString, 
+                        _config.RabbitMq.OrderBooks.Exchange, 
+                        log: _log);
                     exchange.AddOrderBookHandler(orderBookHandler);
                 }
             }
