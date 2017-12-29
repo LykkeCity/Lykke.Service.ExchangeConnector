@@ -19,15 +19,15 @@ namespace TradingBot.Handlers
     {
         private readonly IReadOnlyDictionary<string, Exchange> exchanges;
         private readonly ILog logger;
-        private readonly IHandler<Acknowledgement> _acknowledHandler;
-        private readonly IHandler<ExecutedTrade> _tradeHandler;
+        private readonly IHandler<OrderStatusUpdate> _acknowledHandler;
+        private readonly IHandler<OrderStatusUpdate> _tradeHandler;
         private readonly TranslatedSignalsRepository translatedSignalsRepository;
         private readonly TimeSpan tradingSignalsThreshold = TimeSpan.FromMinutes(10);
         private readonly TimeSpan apiTimeout;
         private readonly RabbitMqSubscriber<TradingSignal> _messageProducer;
         private readonly bool _enabled;
 
-        public TradingSignalsHandler(IEnumerable<Exchange> exchanges, ILog logger, IHandler<Acknowledgement> acknowledHandler, IHandler<ExecutedTrade> tradeHandler, TranslatedSignalsRepository translatedSignalsRepository, TimeSpan apiTimeout, RabbitMqSubscriber<TradingSignal> messageProducer, bool enabled)
+        public TradingSignalsHandler(IEnumerable<Exchange> exchanges, ILog logger, IHandler<OrderStatusUpdate> acknowledHandler, IHandler<OrderStatusUpdate> tradeHandler, TranslatedSignalsRepository translatedSignalsRepository, TimeSpan apiTimeout, RabbitMqSubscriber<TradingSignal> messageProducer, bool enabled)
         {
             this.exchanges = exchanges.ToDictionary(k => k.Name);
             this.logger = logger;

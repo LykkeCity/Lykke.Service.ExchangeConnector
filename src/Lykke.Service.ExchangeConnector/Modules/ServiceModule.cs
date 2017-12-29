@@ -113,8 +113,8 @@ namespace TradingBot.Modules
             RegisterTradeSignalSubscriber(builder);
 
             RegisterRabbitMqHandler<TickPrice>(builder, _config.RabbitMq.TickPrices, "tickHandler");
-            RegisterRabbitMqHandler<ExecutedTrade>(builder, _config.RabbitMq.Trades);
-            RegisterRabbitMqHandler<Acknowledgement>(builder, _config.RabbitMq.Acknowledgements);
+            RegisterRabbitMqHandler<OrderStatusUpdate>(builder, _config.RabbitMq.Trades);
+            RegisterRabbitMqHandler<OrderStatusUpdate>(builder, _config.RabbitMq.Acknowledgements);
             RegisterRabbitMqHandler<OrderBook>(builder, _config.RabbitMq.OrderBooks);
 
             builder.RegisterType<TickPriceHandlerDecorator>()

@@ -30,7 +30,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
         private SocketInitiator initiator;
         private IcmConnector connector;
         private readonly INoSQLTableStorage<FixMessageTableEntity> _tableStorage;
-        private readonly IHandler<ExecutedTrade> _tradeHandler;
+        private readonly IHandler<OrderStatusUpdate> _tradeHandler;
         private readonly IHandler<TickPrice> _tickPriceHandler;
         public new static readonly string Name = "icm";
 
@@ -38,7 +38,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             IcmConfig config,
             TranslatedSignalsRepository translatedSignalsRepository,
             INoSQLTableStorage<FixMessageTableEntity> tableStorage,
-            IHandler<ExecutedTrade> tradeHandler,
+            IHandler<OrderStatusUpdate> tradeHandler,
             IHandler<TickPrice> tickPriceHandler,
                 Common.Log.ILog log)
             : base(Name, config, translatedSignalsRepository, log)

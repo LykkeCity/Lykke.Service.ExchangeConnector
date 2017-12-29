@@ -28,12 +28,12 @@ namespace Lykke.Service.ExchangeConnector.Tests.LykkeApiTests
         };
 
         private LykkeExchange Exchange;
-        private IHandler<ExecutedTrade> _tradeHandler;
+        private IHandler<OrderStatusUpdate> _tradeHandler;
 
         public LykkeApiTests()
         {
             var tickPriceHandler = new Mock<IHandler<TickPrice>>().Object;
-            _tradeHandler = new Mock<IHandler<ExecutedTrade>>().Object;
+            _tradeHandler = new Mock<IHandler<OrderStatusUpdate>>().Object;
             Exchange = new LykkeExchange(config, null, tickPriceHandler, _tradeHandler, new LogToConsole());
         }
 

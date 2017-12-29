@@ -19,7 +19,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 	    
 	    private readonly StubExchangeConfiguration config;
         private readonly IHandler<TickPrice> _tickPriceHandler;
-        private readonly IHandler<ExecutedTrade> _tradeHandler;
+        private readonly IHandler<OrderStatusUpdate> _tradeHandler;
 
         protected IReadOnlyDictionary<string, Position> Positions { get; }
 
@@ -27,7 +27,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
         
         private readonly object syncRoot = new object();
 
-        public StubExchange(StubExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository,IHandler<TickPrice> tickPriceHandler, IHandler<ExecutedTrade> tradeHandler, ILog log)
+        public StubExchange(StubExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository,IHandler<TickPrice> tickPriceHandler, IHandler<OrderStatusUpdate> tradeHandler, ILog log)
 	        : base(Name, config, translatedSignalsRepository, log)
         {
             this.config = config;
