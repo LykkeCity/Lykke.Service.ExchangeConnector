@@ -5,8 +5,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
 using TradingBot.Exchanges.Abstractions;
+using TradingBot.Infrastructure.Configuration;
 using TradingBot.Exchanges;
+using Lykke.RabbitMqBroker;
+using Lykke.RabbitMqBroker.Subscriber;
 using TradingBot.Communications;
+using TradingBot.Handlers;
+using TradingBot.Trading;
 
 namespace TradingBot
 {
@@ -14,14 +19,21 @@ namespace TradingBot
     {
         private readonly ILog _log;
         private readonly Timer _timer;
-        private readonly IReadOnlyCollection<Exchange> _exchanges;
+        private readonly Dictionary<string, Exchange> _exchanges;
+        private readonly AppSettings _config;
+        private RabbitMqSubscriber<TradingSignal> _signalSubscriber;
 
 
-        public ExchangeConnectorApplication(TranslatedSignalsRepository translatedSignalsRepository, ExchangeFactory exchange, ILog log)
+        public TranslatedSignalsRepository TranslatedSignalsRepository { get; }
+
+        public ExchangeConnectorApplication(AppSettings config, TranslatedSignalsRepository translatedSignalsRepository, ExchangeFactory exchange, ILog log)
         {
+            _config = config;
             _log = log;
 
-            _exchanges = exchange.CreateExchanges();
+            TranslatedSignalsRepository = translatedSignalsRepository;
+            _exchanges = exchange.CreateExchanges()
+                .ToDictionary(x => x.Name, x => x);
             _timer = new Timer(OnHeartbeat);
         }
 
@@ -41,21 +53,21 @@ namespace TradingBot
                 nameof(TradingBot),
                 nameof(ExchangeConnectorApplication),
                 nameof(Start),
-                $"Price cycle starting for exchanges: {string.Join(", ", _exchanges.Select(e => e.Name))}...");
+                $"Price cycle starting for exchanges: {string.Join(", ", _exchanges.Keys)}...");
 
-
-            foreach (var exchange in _exchanges)
+            if (_config.RabbitMq.Signals.Enabled)
             {
-                try
-                {
+                SetupTradingSignalsSubscription(_config.RabbitMq); // can take too long
+            }
 
-                    exchange.Start();
-                }
-                catch (Exception ex)
-                {
-                    await _log.WriteErrorAsync(nameof(ExchangeConnectorApplication), nameof(Start), "Starting exchange", ex);
-                    throw;
-                }
+            try
+            {
+                _exchanges.Values.ToList().ForEach(x => x.Start());
+            }
+            catch (Exception ex)
+            {
+                await _log.WriteErrorAsync(nameof(ExchangeConnectorApplication), nameof(Start), "Starting exchange", ex);
+                throw;
             }
 
             _timer.Change(TimeSpan.Zero, TimeSpan.FromSeconds(15));
@@ -70,7 +82,27 @@ namespace TradingBot
                 $"Exchange connector heartbeat: {DateTime.Now}. Exchanges statuses: {string.Join(", ", GetExchanges().Select(x => $"{x.Name}: {x.State}"))}");
         }
 
+        private void SetupTradingSignalsSubscription(RabbitMqMultyExchangeConfiguration rabbitConfig)
+        {
+            var handler = new TradingSignalsHandler(_exchanges, _log, TranslatedSignalsRepository, _config.AspNet.ApiTimeout);
 
+            var subscriberSettings = new RabbitMqSubscriptionSettings()
+            {
+                ConnectionString = rabbitConfig.Signals.ConnectionString,
+                ExchangeName = rabbitConfig.Signals.Exchange,
+                QueueName = rabbitConfig.Signals.Queue,
+                IsDurable = false
+            };
+            
+            var errorStrategy = new DefaultErrorHandlingStrategy(_log, subscriberSettings);
+            _signalSubscriber = new RabbitMqSubscriber<TradingSignal>(subscriberSettings, errorStrategy)
+                .SetMessageDeserializer(new GenericRabbitModelConverter<TradingSignal>())
+                .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
+                .SetConsole(new LogToConsole())
+                .SetLogger(new LogToConsole())
+                .Subscribe(handler.Handle)
+                .Start();
+        }
 
         public void Stop()
         {
@@ -83,25 +115,27 @@ namespace TradingBot
 
             _timer.Change(Timeout.Infinite, Timeout.Infinite);
 
-            foreach (var exchange in _exchanges)
+            foreach (var exchange in _exchanges.Values)
             {
-                exchange.Stop();
+                exchange?.Stop();
             }
+            _signalSubscriber?.Stop();
         }
 
         public IReadOnlyCollection<IExchange> GetExchanges()
         {
-            return _exchanges;
+            return _exchanges.Values;
         }
 
         public IExchange GetExchange(string name)
         {
-            return _exchanges.FirstOrDefault(e => e.Name == name) ?? throw new ArgumentException(@"Invalid exchangeName", nameof(name));
+            return _exchanges.ContainsKey(name) ? _exchanges[name] : throw new ArgumentException(@"Invalid exchangeName", nameof(name));
         }
 
         public void Dispose()
         {
             _timer?.Dispose();
+            _signalSubscriber?.Dispose();
         }
     }
 }

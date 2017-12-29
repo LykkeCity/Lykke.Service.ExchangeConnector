@@ -114,6 +114,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             var rabbitSettings = new RabbitMqSubscriptionSettings()
             {
                 ConnectionString = config.RabbitMq.ConnectionString,
+                ExchangeName = config.RabbitMq.Exchange,
                 QueueName = config.RabbitMq.Queue
             };
             var errorStrategy = new DefaultErrorHandlingStrategy(_log, rabbitSettings);

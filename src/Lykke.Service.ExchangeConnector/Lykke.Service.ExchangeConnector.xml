@@ -462,9 +462,10 @@
             <param name="mu">yearly trend</param>
             <param name="random">the source of randomness</param>
         </member>
-        <member name="M:TradingBot.Infrastructure.Configuration.RabbitMqConfigurationBase.GetConnectionString">
+        <member name="T:TradingBot.Helpers.AsyncEvent`1">
             <summary>
-            see https://www.rabbitmq.com/uri-spec.html
+            Asynchronous event handler delegate.
+            Source: https://stackoverflow.com/a/30739162
             </summary>
         </member>
         <member name="P:TradingBot.Models.Api.OrderModel.DateTime">

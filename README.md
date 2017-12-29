@@ -1,3 +1,3 @@
-# TradingBot
+# Exchange Connector
 
-AlgoTrading platform
+Provides a unified API for several crypto exchanges.

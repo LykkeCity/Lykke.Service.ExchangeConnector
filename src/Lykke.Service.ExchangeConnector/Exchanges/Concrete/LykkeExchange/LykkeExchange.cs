@@ -162,7 +162,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         {
             var rabbitSettings = new RabbitMqSubscriptionSettings()
             {
-                ConnectionString = Config.RabbitMq.OrderBook.ConnectionString,
+                ConnectionString = Config.RabbitMq.Orders.ConnectionString,
                 ExchangeName = Config.RabbitMq.Orders.Exchange,
                 QueueName = Config.RabbitMq.Orders.Queue
             };

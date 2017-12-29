@@ -123,7 +123,7 @@ namespace TradingBot
                 {
                     var slackService = services.UseSlackNotificationsSenderViaAzureQueue(topSettings.SlackNotifications.AzureQueue, log);
                     var tableStorage = AzureTableStorage<LogEntity>.Create(
-                        settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), settings.AzureStorage.LogTableName, log);
+                        settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.LogsConnString), settings.AzureStorage.LogTableName, log);
                     builder.RegisterInstance(tableStorage).As<INoSQLTableStorage<LogEntity>>().SingleInstance();
                     var persistenceManager = new LykkeLogToAzureStoragePersistenceManager(appName, tableStorage, log);
                     var slackNotificationsManager = new LykkeLogToAzureSlackNotificationsManager(appName, slackService, log);
@@ -146,26 +146,26 @@ namespace TradingBot
                 builder.RegisterInstance(log).As<ILog>().SingleInstance();
 
                 _pricesStorage = AzureTableStorage<PriceTableEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "tickPrices", log);
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.EntitiesConnString), "tickPrices", log);
 
                 var fixMessagesStorage = AzureTableStorage<FixMessageTableEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "fixMessages", log);
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.EntitiesConnString), "fixMessages", log);
                 builder.RegisterInstance(fixMessagesStorage).As<INoSQLTableStorage<FixMessageTableEntity>>().SingleInstance();
 
                 var signalsStorage = AzureTableStorage<TranslatedSignalTableEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), settings.AzureStorage.TranslatedSignalsTableName, log);
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.EntitiesConnString), settings.AzureStorage.TranslatedSignalsTableName, log);
                 builder.RegisterInstance(signalsStorage).As<INoSQLTableStorage<TranslatedSignalTableEntity>>().SingleInstance();
 
                 var orderBookSnapshotStorage = AzureTableStorage<OrderBookSnapshotEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "orderBookSnapshots", log);
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.EntitiesConnString), "orderBookSnapshots", log);
                 builder.RegisterInstance(orderBookSnapshotStorage).As<INoSQLTableStorage<OrderBookSnapshotEntity>>().SingleInstance();
 
                 var orderBookEventsStorage = AzureTableStorage<OrderBookEventEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), "orderBookEvents", log);
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.EntitiesConnString), "orderBookEvents", log);
                 builder.RegisterInstance(orderBookEventsStorage).As<INoSQLTableStorage<OrderBookEventEntity>>().SingleInstance();
 
                 var azureBlobStorage = AzureBlobStorage.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString));
+                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.EntitiesConnString));
                 builder.RegisterInstance(azureBlobStorage).As<IBlobStorage>().SingleInstance();
 
                 builder.RegisterModule(new ServiceModule(settings, log));
