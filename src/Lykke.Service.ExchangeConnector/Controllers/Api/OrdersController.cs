@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Threading.Tasks;
-
+using Lykke.ExternalExchangesApi.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using TradingBot.Communications;
 using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Models;
 using TradingBot.Models.Api;
 using TradingBot.Trading;
@@ -39,9 +38,9 @@ namespace TradingBot.Controllers.Api
         /// <response code="500">Unexpected error</response>
         [SwaggerOperation("GetOpenedOrders")]
         [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<ExecutedTrade>), 200)]
+        [ProducesResponseType(typeof(IEnumerable<OrderStatusUpdate>), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
-        private async Task<IEnumerable<ExecutedTrade>> Index([FromQuery, Required] string exchangeName) // Intentionally disabled
+        private async Task<IEnumerable<OrderStatusUpdate>> Index([FromQuery, Required] string exchangeName) // Intentionally disabled
         {
             try
             {
@@ -64,9 +63,9 @@ namespace TradingBot.Controllers.Api
         /// <response code="500">The order either not exist or other server error</response>
         [SwaggerOperation("GetOrder")]
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(ExecutedTrade), 200)]
+        [ProducesResponseType(typeof(OrderStatusUpdate), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
-        public async Task<ExecutedTrade> GetOrder(string id, [FromQuery, Required] string exchangeName, [FromQuery, Required] string instrument)
+        public async Task<OrderStatusUpdate> GetOrder(string id, [FromQuery, Required] string exchangeName, [FromQuery, Required] string instrument)
         {
             try
             {
@@ -90,7 +89,7 @@ namespace TradingBot.Controllers.Api
         /// <response code="400">Can't place the order. The reason is in the response</response>
         [SwaggerOperation("CreateOrder")]
         [HttpPost]
-        [ProducesResponseType(typeof(ExecutedTrade), 200)]
+        [ProducesResponseType(typeof(OrderStatusUpdate), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 400)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
         public async Task<IActionResult> Post([FromBody] OrderModel orderModel)
@@ -136,8 +135,8 @@ namespace TradingBot.Controllers.Api
 
                     translatedSignal.SetExecutionResult(result);
 
-                    if (result.Status == ExecutionStatus.Rejected || result.Status == ExecutionStatus.Cancelled)
-                        throw new StatusCodeException(HttpStatusCode.BadRequest, $"Exchange return status: {result.Status}", null);
+                    if (result.ExecutionStatus == OrderExecutionStatus.Rejected || result.ExecutionStatus == OrderExecutionStatus.Cancelled)
+                        throw new StatusCodeException(HttpStatusCode.BadRequest, $"Exchange return status: {result.ExecutionStatus}", null);
 
                     return Ok(result);
                 }
@@ -176,7 +175,7 @@ namespace TradingBot.Controllers.Api
         /// <response code="400">Can't cancel the order. The reason is in the response</response>
         [SwaggerOperation("CancelOrder")]
         [HttpDelete("{id}")]
-        [ProducesResponseType(typeof(ExecutedTrade), 200)]
+        [ProducesResponseType(typeof(OrderStatusUpdate), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 400)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
         public async Task<IActionResult> CancelOrder(string id, [FromQuery, Required]string exchangeName)
@@ -201,8 +200,8 @@ namespace TradingBot.Controllers.Api
                     var result = await Application.GetExchange(exchangeName)
                         .CancelOrderAndWaitExecution(tradingSignal, translatedSignal, _timeout);
 
-                    if (result.Status == ExecutionStatus.Rejected)
-                        throw new StatusCodeException(HttpStatusCode.BadRequest, $"Exchange return status: {result.Status}", null);
+                    if (result.ExecutionStatus == OrderExecutionStatus.Rejected)
+                        throw new StatusCodeException(HttpStatusCode.BadRequest, $"Exchange return status: {result.ExecutionStatus}", null);
 
                     return Ok(result);
                 }

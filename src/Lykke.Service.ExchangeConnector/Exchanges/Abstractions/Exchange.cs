@@ -20,9 +20,9 @@ namespace TradingBot.Exchanges.Abstractions
 
         private readonly List<IHandler<OrderBook>> _orderBookHandlers = new List<IHandler<OrderBook>>();
 
-        private readonly List<IHandler<ExecutedTrade>> _executedTradeHandlers = new List<IHandler<ExecutedTrade>>();
+        private readonly List<IHandler<OrderStatusUpdate>> _executedTradeHandlers = new List<IHandler<OrderStatusUpdate>>();
 
-        private readonly List<IHandler<Acknowledgement>> _acknowledgementsHandlers = new List<IHandler<Acknowledgement>>();
+        private readonly List<IHandler<OrderStatusUpdate>> _acknowledgementsHandlers = new List<IHandler<OrderStatusUpdate>>();
 
         public string Name { get; }
 
@@ -60,12 +60,12 @@ namespace TradingBot.Exchanges.Abstractions
             _orderBookHandlers.Add(handler);
         }
 
-        public void AddExecutedTradeHandler(IHandler<ExecutedTrade> handler)
+        public void AddExecutedTradeHandler(IHandler<OrderStatusUpdate> handler)
         {
             _executedTradeHandlers.Add(handler);
         }
 
-        public void AddAcknowledgementsHandler(IHandler<Acknowledgement> handler)
+        public void AddAcknowledgementsHandler(IHandler<OrderStatusUpdate> handler)
         {
             _acknowledgementsHandlers.Add(handler);
         }
@@ -116,25 +116,25 @@ namespace TradingBot.Exchanges.Abstractions
             return Task.WhenAll(_orderBookHandlers.Select(x => x.Handle(orderBook)));
         }
 
-        public Task CallExecutedTradeHandlers(ExecutedTrade trade)
+        public Task CallExecutedTradeHandlers(OrderStatusUpdate trade)
         {
             return Task.WhenAll(_executedTradeHandlers.Select(x => x.Handle(trade)));
         }
 
-        public Task CallAcknowledgementsHandlers(Acknowledgement ack)
+        public Task CallAcknowledgementsHandlers(OrderStatusUpdate ack)
         {
             return Task.WhenAll(_acknowledgementsHandlers.Select(x => x.Handle(ack)));
         }
 
-        public abstract Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal,
+        public abstract Task<OrderStatusUpdate> AddOrderAndWaitExecution(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal,
             TimeSpan timeout);
 
-        public abstract Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal,
+        public abstract Task<OrderStatusUpdate> CancelOrderAndWaitExecution(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal,
             TimeSpan timeout);
 
-        public virtual Task<ExecutedTrade> GetOrder(string id, Instrument instrument, TimeSpan timeout)
+        public virtual Task<OrderStatusUpdate> GetOrder(string id, Instrument instrument, TimeSpan timeout)
         {
             throw new NotSupportedException($"{Name} does not support receiving order information by {nameof(id)} and {nameof(instrument)}");
         }
@@ -149,7 +149,7 @@ namespace TradingBot.Exchanges.Abstractions
             throw new NotSupportedException();
         }
 
-        public virtual Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout)
+        public virtual Task<IEnumerable<OrderStatusUpdate>> GetOpenOrders(TimeSpan timeout)
         {
             throw new NotSupportedException();
         }

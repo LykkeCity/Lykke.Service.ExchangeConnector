@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using AzureStorage;
 using Common;
+using Lykke.ExternalExchangesApi.Helpers;
 using Microsoft.Extensions.Logging;
 using TradingBot.Handlers;
-using TradingBot.Helpers;
 using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
 

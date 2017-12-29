@@ -8,49 +8,49 @@ namespace TradingBot.Trading
 {
     public class Position
     {
-        private readonly ILogger logger = Logging.CreateLogger<Position>();
+        private readonly ILogger _logger = Logging.CreateLogger<Position>();
         
         public Instrument Instrument { get; }
 
         public Position(Instrument instrument, decimal initialValue)
         {
             Instrument = instrument;
-            this.initialValue = initialValue;
-            this.currentValue = initialValue;
-            this.assetsVolume = 0m;
+            _initialValue = initialValue;
+            _currentValue = initialValue;
+            _assetsVolume = 0m;
         }
 
         /// <summary>
         /// Initial amount of assets (base asset of the Instrument)
         /// </summary>
-        private readonly decimal initialValue; // TODO: position may not have initialValue, and be a part of Portfolio with initial value
+        private readonly decimal _initialValue; // TODO: position may not have initialValue, and be a part of Portfolio with initial value
 
-        private decimal currentValue;
+        private decimal _currentValue;
 
-        private decimal assetsVolume;
+        private decimal _assetsVolume;
         
-        public decimal AssetsVolume => assetsVolume;
+        public decimal AssetsVolume => _assetsVolume;
 
-        public decimal AveragePrice => (initialValue - currentValue) / assetsVolume;
+        public decimal AveragePrice => (_initialValue - _currentValue) / _assetsVolume;
         
-        public decimal RealizedPnL => (currentValue - initialValue) / initialValue; // TODO~!!!!
+        public decimal RealizedPnL => (_currentValue - _initialValue) / _initialValue; // TODO~!!!!
 
 //        private decimal realizedProfit;
         
-        private readonly LinkedList<ExecutedTrade> longSide = new LinkedList<ExecutedTrade>();
-        private readonly LinkedList<ExecutedTrade> shortSide = new LinkedList<ExecutedTrade>();
+        private readonly LinkedList<OrderStatusUpdate> _longSide = new LinkedList<OrderStatusUpdate>();
+        private readonly LinkedList<OrderStatusUpdate> _shortSide = new LinkedList<OrderStatusUpdate>();
 
         public decimal GetPnL(decimal price) // TODO: price should be Ask or Bid in dependence of position
         {
             //return (assetsVolume * price + currentValue - initialValue) / initialValue;
 
             decimal total = 0;
-            foreach (var trade in longSide)
+            foreach (var trade in _longSide)
             {
                 total += (price - trade.Price) * trade.Volume;
             }
 
-            foreach (var trade in shortSide)
+            foreach (var trade in _shortSide)
             {
                 total += (trade.Price - price) * trade.Volume;
             }
@@ -58,21 +58,21 @@ namespace TradingBot.Trading
             return total;
         }
 
-        private decimal BalancedVolume => Math.Min(longSide.Sum(x => x.Volume), shortSide.Sum(x => x.Volume));
+        private decimal BalancedVolume => Math.Min(_longSide.Sum(x => x.Volume), _shortSide.Sum(x => x.Volume));
 
         
-        public void AddTrade(ExecutedTrade trade) // todo: make a thread-safe method
+        public void AddTrade(OrderStatusUpdate trade) // todo: make a thread-safe method
         {
             if (trade.Type == TradeType.Buy)
             {
-                longSide.AddLast(trade);
-                logger.LogDebug($"Long side of inventory increased: {trade}. Total Long: {longSide.Sum(x => x.Volume)}. Total PnL: {GetPnL(trade.Price)}");
+                _longSide.AddLast(trade);
+                _logger.LogDebug($"Long side of inventory increased: {trade}. Total Long: {_longSide.Sum(x => x.Volume)}. Total PnL: {GetPnL(trade.Price)}");
             }
             else if (trade.Type == TradeType.Sell)
             {
-                shortSide.AddLast(trade);
+                _shortSide.AddLast(trade);
                 
-                logger.LogDebug($"Short side of inventory increased: {trade}. Total Short: {shortSide.Sum(x => x.Volume)}. Total PnL: {GetPnL(trade.Price)}");
+                _logger.LogDebug($"Short side of inventory increased: {trade}. Total Short: {_shortSide.Sum(x => x.Volume)}. Total PnL: {GetPnL(trade.Price)}");
             }
         }
 
@@ -80,10 +80,10 @@ namespace TradingBot.Trading
 
         public Position AddAnother(Position another)
         {
-            return new Position(Instrument, initialValue + another.initialValue)
+            return new Position(Instrument, _initialValue + another._initialValue)
             {
-                currentValue = currentValue + another.currentValue,
-                assetsVolume = assetsVolume + another.assetsVolume
+                _currentValue = _currentValue + another._currentValue,
+                _assetsVolume = _assetsVolume + another._assetsVolume
             };
         }
     }

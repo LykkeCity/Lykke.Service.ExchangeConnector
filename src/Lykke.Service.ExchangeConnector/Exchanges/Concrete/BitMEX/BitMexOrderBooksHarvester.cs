@@ -3,12 +3,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using Common.Log;
 using Lykke.ExternalExchangesApi.Shared;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model;
 using TradingBot.Communications;
-using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient;
-using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
-using Action = TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.Action;
+using Action = Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model.Action;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
@@ -20,7 +20,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             OrderBookSnapshotsRepository orderBookSnapshotsRepository,
             OrderBookEventsRepository orderBookEventsRepository,
             IBitmexSocketSubscriber socketSubscriber) :
-            base(exchangeName, configuration, new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookSnapshotsRepository, orderBookEventsRepository)
+            base(exchangeName, configuration, 
+                new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookSnapshotsRepository, orderBookEventsRepository)
         {
             socketSubscriber.Subscribe(BitmexTopic.orderBookL2, HandleResponseAsync);
         }

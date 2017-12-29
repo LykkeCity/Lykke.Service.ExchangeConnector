@@ -1,12 +1,7 @@
 ﻿using System.Collections.Generic;
 
-namespace TradingBot.Exchanges.Concrete.AutorestClient
+namespace Lykke.ExternalExchangesApi.Exchanges.BitMex
 {
-    public partial class BitMEXAPI
-    {
-        
-    }
-
     public static class ListExt
     {
         public static void Add(this List<KeyValuePair<string, string>> list, string key, object value)

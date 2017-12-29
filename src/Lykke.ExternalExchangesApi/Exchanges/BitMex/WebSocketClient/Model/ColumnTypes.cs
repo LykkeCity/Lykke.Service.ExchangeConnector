@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model
+namespace Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model
 {
     public class ColumnTypes
     {

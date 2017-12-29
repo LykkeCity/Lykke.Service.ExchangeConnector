@@ -2,17 +2,19 @@
 using System.Collections.Generic;
 using System.Globalization;
 using Newtonsoft.Json;
-using TradingBot.Exchanges.Concrete.AutorestClient.Models;
-using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Models.Api;
 using TradingBot.Trading;
 using Instrument = TradingBot.Trading.Instrument;
-using Order = TradingBot.Exchanges.Concrete.AutorestClient.Models.Order;
-using Position = TradingBot.Exchanges.Concrete.AutorestClient.Models.Position;
-using OrdStatus = TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.OrdStatus;
-using Side = TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.Side;
+using Order = Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models.Order;
+using Position = Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models.Position;
+using OrdStatus = Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model.OrdStatus;
+using Side = Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model.Side;
+using RowItem = Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model.RowItem;
 using TradeType = TradingBot.Trading.TradeType;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
@@ -44,7 +46,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             };
         }
 
-        public static ExecutedTrade OrderToTrade(Order order)
+        public static OrderStatusUpdate OrderToTrade(Order order)
         {
             var execTime = order.TransactTime ?? DateTime.UtcNow;
             var execPrice = (decimal)(order.Price ?? 0);
@@ -54,30 +56,29 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             //  var instr = ConvertSymbolFromBitMexToLykke(order.Symbol, configuration);
             var instr = new Instrument(BitMexExchange.Name, "USDBTC"); //HACK Hard code!
 
-            return new ExecutedTrade(instr, execTime, execPrice, execVolume, tradeType, order.OrderID, status) { Message = order.Text };
+            return new OrderStatusUpdate(instr, execTime, execPrice, execVolume, tradeType, order.OrderID, status) { Message = order.Text };
         }
 
 
-        public ExecutedTrade OrderToTrade(WebSocketClient.Model.RowItem row)
+        public OrderStatusUpdate OrderToTrade(RowItem row)
         {
             var lykkeInstrument = this.ExchangeSymbolToLykkeInstrument(row.Symbol);
-            return new ExecutedTrade(
+            return new OrderStatusUpdate(
                 lykkeInstrument,
                 row.Timestamp,
                 row.Price ?? row.AvgPx ?? 0,
                 row.OrderQty ?? row.CumQty ?? 0,
                 row.Side.HasValue ? ConvertSideToModel(row.Side.Value) : TradeType.Unknown,
                 row.OrderID,
-                row.OrdStatus.HasValue ? ConvertExecutionStatusToModel(row.OrdStatus.Value) : ExecutionStatus.Unknown);
+                row.OrdStatus.HasValue ? ConvertExecutionStatusToModel(row.OrdStatus.Value) : OrderExecutionStatus.Unknown);
         }
 
-        public Acknowledgement OrderToAck(WebSocketClient.Model.RowItem row)
+        public OrderStatusUpdate OrderToAck(RowItem row)
         {
             var lykkeInstrument = this.ExchangeSymbolToLykkeInstrument(row.Symbol);
-            return new Acknowledgement()
+            return new OrderStatusUpdate
             {
-                Instrument = lykkeInstrument.Name,
-                Exchange = lykkeInstrument.Exchange,
+                Instrument = lykkeInstrument,
                 ClientOrderId = row.ClOrdID,
                 ExchangeOrderId = row.OrderID,
                 Success = true
@@ -143,39 +144,39 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             }
         }
 
-        public static ExecutionStatus ConvertExecutionStatusToModel(OrdStatus status)
+        public static OrderExecutionStatus ConvertExecutionStatusToModel(OrdStatus status)
         {
             switch (status)
             {
                 case OrdStatus.New:
-                    return ExecutionStatus.New;
+                    return OrderExecutionStatus.New;
                 case OrdStatus.PartiallyFilled:
-                    return ExecutionStatus.PartialFill;
+                    return OrderExecutionStatus.PartialFill;
                 case OrdStatus.Filled:
-                    return ExecutionStatus.Fill;
+                    return OrderExecutionStatus.Fill;
                 case OrdStatus.Canceled:
-                    return ExecutionStatus.Cancelled;
+                    return OrderExecutionStatus.Cancelled;
                 default:
-                    return ExecutionStatus.Unknown;
+                    return OrderExecutionStatus.Unknown;
             }
         }
 
-        public static ExecutionStatus ConvertExecutionStatus(string executionStatus)
+        public static OrderExecutionStatus ConvertExecutionStatus(string executionStatus)
         {
             switch (executionStatus)
             {
                 case "New":
-                    return ExecutionStatus.New;
+                    return OrderExecutionStatus.New;
                 case "Filled":
-                    return ExecutionStatus.Fill;
+                    return OrderExecutionStatus.Fill;
                 case "Partially Filled":
-                    return ExecutionStatus.PartialFill;
+                    return OrderExecutionStatus.PartialFill;
                 case "Canceled":
-                    return ExecutionStatus.Cancelled;
+                    return OrderExecutionStatus.Cancelled;
                 case "Rejeсted":
-                    return ExecutionStatus.Rejected;
+                    return OrderExecutionStatus.Rejected;
                 default:
-                    return ExecutionStatus.Unknown;
+                    return OrderExecutionStatus.Unknown;
             }
         }
 
@@ -205,7 +206,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return model;
         }
 
-        public TickPrice QuoteToModel(WebSocketClient.Model.RowItem row)
+        public TickPrice QuoteToModel(RowItem row)
         {
             if (row.AskPrice.HasValue && row.BidPrice.HasValue)
             {

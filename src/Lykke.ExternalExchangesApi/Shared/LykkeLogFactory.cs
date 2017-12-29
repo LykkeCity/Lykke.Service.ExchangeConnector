@@ -1,15 +1,15 @@
 ﻿using QuickFix;
 
-namespace TradingBot.Exchanges.Concrete.Shared
+namespace Lykke.ExternalExchangesApi.Shared
 {
     public sealed class LykkeLogFactory : ILogFactory
     {
-        private readonly Common.Log.ILog lykkeLog;
+        private readonly global::Common.Log.ILog lykkeLog;
         private readonly bool _logIncoming;
         private readonly bool _logOutgoing;
         private readonly bool _logEvent;
 
-        public LykkeLogFactory(Common.Log.ILog lykkeLog, bool logIncoming = true, bool logOutgoing = true, bool logEvent = true)
+        public LykkeLogFactory(global::Common.Log.ILog lykkeLog, bool logIncoming = true, bool logOutgoing = true, bool logEvent = true)
         {
             this.lykkeLog = lykkeLog;
             _logIncoming = logIncoming;

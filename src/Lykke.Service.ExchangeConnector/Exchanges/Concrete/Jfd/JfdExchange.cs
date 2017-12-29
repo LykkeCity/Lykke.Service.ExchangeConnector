@@ -7,9 +7,9 @@ using Common.Log;
 using Lykke.ExternalExchangesApi.Exchanges.Jfd;
 using QuickFix.Fields;
 using QuickFix.FIX44;
+using Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
-using TradingBot.Exchanges.Concrete.Jfd.FixClient;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Models.Api;
 using TradingBot.Repositories;
@@ -53,7 +53,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             OnStopped();
         }
 
-        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<OrderStatusUpdate> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
 
             var newOrderSingle = new NewOrderSingle
@@ -115,7 +115,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             return ConvertPositionReport(reports);
         }
 
-        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override Task<OrderStatusUpdate> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             throw new NotImplementedException();
         }
@@ -153,7 +153,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             return result;
         }
 
-        private ExecutedTrade ConvertExecutionReport(ExecutionReport report)
+        private OrderStatusUpdate ConvertExecutionReport(ExecutionReport report)
         {
             var inst = _modelConverter.ConvertJfdSymbol(report.Symbol);
             var time = report.TransactTime.Obj;
@@ -163,7 +163,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             var id = report.OrderID.Obj;
             var status = _modelConverter.ConvertStatus(report.OrdStatus);
 
-            var executedTrade = new ExecutedTrade(inst, time, price, volume, type, id, status);
+            var executedTrade = new OrderStatusUpdate(inst, time, price, volume, type, id, status);
             return executedTrade;
         }
 

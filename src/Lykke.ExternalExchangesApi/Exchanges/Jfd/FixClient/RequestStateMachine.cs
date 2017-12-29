@@ -5,7 +5,7 @@ using Common.Log;
 using QuickFix;
 using ILog = Common.Log.ILog;
 
-namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
+namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
 {
     internal abstract class RequestStateMachine<T> : IRequest
     {

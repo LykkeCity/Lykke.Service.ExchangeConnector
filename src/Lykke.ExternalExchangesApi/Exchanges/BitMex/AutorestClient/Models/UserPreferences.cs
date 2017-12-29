@@ -4,13 +4,11 @@
 // regenerated.
 // </auto-generated>
 
-namespace TradingBot.Exchanges.Concrete.AutorestClient.Models
-{
-    using Newtonsoft.Json;
-    using System.Collections;
-    using System.Collections.Generic;
-    using System.Linq;
+using System.Collections.Generic;
+using Newtonsoft.Json;
 
+namespace Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models
+{
     public partial class UserPreferences
     {
         /// <summary>

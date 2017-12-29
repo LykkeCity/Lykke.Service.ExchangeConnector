@@ -4,6 +4,7 @@ using Common;
 using Common.Log;
 using Lykke.RabbitMqBroker;
 using Lykke.RabbitMqBroker.Subscriber;
+using Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient;
 using TradingBot.Communications;
 using TradingBot.Exchanges;
 using TradingBot.Exchanges.Abstractions;

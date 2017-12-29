@@ -53,14 +53,14 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             return new Instrument(JfdExchange.Name, result.LykkeSymbol);
         }
 
-        public ExecutionStatus ConvertStatus(OrdStatus status)
+        public OrderExecutionStatus ConvertStatus(OrdStatus status)
         {
             switch (status.Obj)
             {
                 case OrdStatus.PARTIALLY_FILLED:
-                    return ExecutionStatus.PartialFill;
+                    return OrderExecutionStatus.PartialFill;
                 case OrdStatus.FILLED:
-                    return ExecutionStatus.Fill;
+                    return OrderExecutionStatus.Fill;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(status), status.Obj.ToString());
             }

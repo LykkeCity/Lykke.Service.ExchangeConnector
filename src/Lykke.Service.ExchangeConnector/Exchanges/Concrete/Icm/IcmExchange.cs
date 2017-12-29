@@ -16,6 +16,7 @@ using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 using TradingBot.Repositories;
 using OrderBook = TradingBot.Exchanges.Concrete.Icm.Entities.OrderBook;
+using Lykke.ExternalExchangesApi.Shared;
 
 namespace TradingBot.Exchanges.Concrete.Icm
 {
@@ -128,22 +129,22 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 .Start();
         }
 
-        public override Task<ExecutedTrade> GetOrder(string orderId, Instrument instrument, TimeSpan timeout)
+        public override Task<OrderStatusUpdate> GetOrder(string orderId, Instrument instrument, TimeSpan timeout)
         {
             return connector.GetOrderInfoAndWaitResponse(instrument, orderId);
         }
 
-        public override Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout)
+        public override Task<IEnumerable<OrderStatusUpdate>> GetOpenOrders(TimeSpan timeout)
         {
             return connector.GetAllOrdersInfo(timeout);
         }
 
-        public override Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override Task<OrderStatusUpdate> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             return connector.AddOrderAndWaitResponse(signal, translatedSignal, timeout);
         }
 
-        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override Task<OrderStatusUpdate> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             return connector.CancelOrderAndWaitResponse(signal, translatedSignal, timeout);
         }

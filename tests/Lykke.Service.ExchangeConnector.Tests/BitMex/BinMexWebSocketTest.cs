@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model;
 using Xunit;
 using Xunit.Abstractions;
 

@@ -1,4 +1,5 @@
 ﻿using Common.Log;
+using Lykke.ExternalExchangesApi.Shared;
 using TradingBot.Communications;
 using TradingBot.Infrastructure.Configuration;
 

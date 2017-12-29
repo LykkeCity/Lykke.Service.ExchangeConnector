@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Autofac;
 using Common;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Exceptions;
 using Lykke.RabbitMqBroker.Subscriber;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
@@ -112,12 +113,12 @@ namespace TradingBot.Handlers
 
                 var executedTrade = await exchange.AddOrderAndWaitExecution(signal, translatedSignal, apiTimeout);
 
-                bool orderAdded = executedTrade.Status == ExecutionStatus.New ||
-                                  executedTrade.Status == ExecutionStatus.Pending;
+                bool orderAdded = executedTrade.ExecutionStatus == OrderExecutionStatus.New ||
+                                  executedTrade.ExecutionStatus == OrderExecutionStatus.Pending;
 
-                bool orderFilled = executedTrade.Status == ExecutionStatus.Fill ||
-                                   executedTrade.Status == ExecutionStatus.PartialFill;
-
+                bool orderFilled = executedTrade.ExecutionStatus == OrderExecutionStatus.Fill ||
+                                   executedTrade.ExecutionStatus == OrderExecutionStatus.PartialFill;
+    
                 if (orderAdded || orderFilled)
                 {
                     await logger.WriteInfoAsync(nameof(TradingSignalsHandler),
@@ -170,7 +171,7 @@ namespace TradingBot.Handlers
             {
                 var executedTrade = await exchange.CancelOrderAndWaitExecution(signal, translatedSignal, apiTimeout);
 
-                if (executedTrade.Status == ExecutionStatus.Cancelled)
+                if (executedTrade.ExecutionStatus == OrderExecutionStatus.Cancelled)
                 {
                     logger.WriteInfoAsync(nameof(TradingSignalsHandler),
                         nameof(HandleCancellation),
@@ -185,7 +186,7 @@ namespace TradingBot.Handlers
                 }
                 else
                 {
-                    var message = $"Executed trade status {executedTrade.Status} after calling 'exchange.CancelOrderAndWaitExecution'";
+                    var message = $"Executed trade status {executedTrade.ExecutionStatus} after calling 'exchange.CancelOrderAndWaitExecution'";
                     translatedSignal.Failure(message);
                     await logger.WriteWarningAsync(nameof(TradingSignalsHandler),
                         nameof(HandleCancellation),
@@ -203,14 +204,13 @@ namespace TradingBot.Handlers
             }
         }
 
-        private static Acknowledgement CreateAcknowledgement(Exchange exchange, bool success,
+        private static OrderStatusUpdate CreateAcknowledgement(IExchange exchange, bool success,
             TradingSignal arrivedSignal, TranslatedSignalTableEntity translatedSignal, Exception exception = null)
         {
-            var ack = new Acknowledgement()
+            var ack = new OrderStatusUpdate
             {
                 Success = success,
-                Exchange = exchange.Name,
-                Instrument = arrivedSignal.Instrument.Name,
+                Instrument = arrivedSignal.Instrument,
                 ClientOrderId = arrivedSignal.OrderId,
                 ExchangeOrderId = translatedSignal.ExternalId,
                 Message = translatedSignal.ErrorMessage
@@ -221,19 +221,19 @@ namespace TradingBot.Handlers
                 switch (exception)
                 {
                     case InsufficientFundsException _:
-                        ack.FailureType = AcknowledgementFailureType.InsufficientFunds;
+                        ack.FailureType = OrderStatusUpdateFailureType.InsufficientFunds;
                         break;
                     case ApiException _:
-                        ack.FailureType = AcknowledgementFailureType.ExchangeError;
+                        ack.FailureType = OrderStatusUpdateFailureType.ExchangeError;
                         break;
                     default:
-                        ack.FailureType = AcknowledgementFailureType.ConnectorError;
+                        ack.FailureType = OrderStatusUpdateFailureType.ConnectorError;
                         break;
                 }
             }
             else
             {
-                ack.FailureType = AcknowledgementFailureType.None;
+                ack.FailureType = OrderStatusUpdateFailureType.None;
             }
 
             return ack;

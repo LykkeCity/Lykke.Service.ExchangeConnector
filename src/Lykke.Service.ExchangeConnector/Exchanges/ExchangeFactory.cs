@@ -50,13 +50,13 @@ namespace TradingBot.Exchanges
                 }
                 if (_config.RabbitMq.Trades.Enabled)
                 {
-                    var tradesHandler = _handlersFactory.Create<ExecutedTrade>(_config.RabbitMq.Trades.ConnectionString, _config.RabbitMq.Trades.Exchange, true, _log);
+                    var tradesHandler = _handlersFactory.Create<OrderStatusUpdate>(_config.RabbitMq.Trades.ConnectionString, _config.RabbitMq.Trades.Exchange, true, _log);
                     exchange.AddExecutedTradeHandler(tradesHandler);
                 }
 
                 if (_config.RabbitMq.Acknowledgements.Enabled)
                 {
-                    var acknowledgementsHandler = _handlersFactory.Create<Acknowledgement>(_config.RabbitMq.Acknowledgements.ConnectionString, _config.RabbitMq.Acknowledgements.Exchange, true, _log);
+                    var acknowledgementsHandler = _handlersFactory.Create<OrderStatusUpdate>(_config.RabbitMq.Acknowledgements.ConnectionString, _config.RabbitMq.Acknowledgements.Exchange, true, _log);
                     exchange.AddAcknowledgementsHandler(acknowledgementsHandler);
                 }
 

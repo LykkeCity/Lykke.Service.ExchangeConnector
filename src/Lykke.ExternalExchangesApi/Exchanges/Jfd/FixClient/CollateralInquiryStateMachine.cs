@@ -5,7 +5,7 @@ using Common.Log;
 using QuickFix.Fields;
 using QuickFix.FIX44;
 
-namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
+namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
 {
     internal sealed class CollateralInquiryStateMachine : RequestStateMachine<IReadOnlyCollection<CollateralReport>>
     {

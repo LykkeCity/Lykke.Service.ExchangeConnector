@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Common.Log;
 using Lykke.ExternalExchangesApi.Shared;
 using Moq;
-using TradingBot.Exchanges.Concrete.Shared;
+using Lykke.ExternalExchangesApi.Shared;
 using TradingBot.Infrastructure.WebSockets;
 using Xunit;
 

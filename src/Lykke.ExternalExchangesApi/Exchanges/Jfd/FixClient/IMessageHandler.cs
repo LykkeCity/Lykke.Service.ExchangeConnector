@@ -1,6 +1,6 @@
 ﻿using QuickFix;
 
-namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
+namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
 {
     internal interface IMessageHandler
     {

@@ -3,7 +3,7 @@ using Common.Log;
 using QuickFix.FIX44;
 using Message = QuickFix.Message;
 
-namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
+namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
 {
     internal sealed class CollateralHandler : MessageHandlerBase<CollateralInquiryStateMachine>
     {

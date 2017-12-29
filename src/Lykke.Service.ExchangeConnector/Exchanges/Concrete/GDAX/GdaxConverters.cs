@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
+using Lykke.ExternalExchangesApi.Exchanges.GDAX.RestClient.Entities;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
@@ -16,7 +16,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 
         }
 
-        public ExecutedTrade OrderToTrade(GdaxOrderResponse order)
+        public OrderStatusUpdate OrderToTrade(GdaxOrderResponse order)
         {
             var id = order.Id;
             var execTime = order.CreatedAt;
@@ -26,7 +26,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             var status = GdaxOrderStatusToExecutionStatus(order);
             var instr = ExchangeSymbolToLykkeInstrument(order.ProductId);
 
-            return new ExecutedTrade(instr, execTime, execPrice, execVolume,
+            return new OrderStatusUpdate(instr, execTime, execPrice, execVolume,
                 tradeType, id.ToString(), status);
         }
 
@@ -69,23 +69,23 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             }
         }
 
-        public ExecutionStatus GdaxOrderStatusToExecutionStatus(GdaxOrderResponse order)
+        public OrderExecutionStatus GdaxOrderStatusToExecutionStatus(GdaxOrderResponse order)
         {
             switch (order.Status)
             {
                 case "open":
-                    return ExecutionStatus.New;
+                    return OrderExecutionStatus.New;
                 case "pending":
-                    return ExecutionStatus.Pending;
+                    return OrderExecutionStatus.Pending;
                 case "active":  // Is this correct - Investigate
-                    return ExecutionStatus.PartialFill;
+                    return OrderExecutionStatus.PartialFill;
                 case "cancelled":  // do we have such status? Investigate
-                    return ExecutionStatus.Cancelled;
+                    return OrderExecutionStatus.Cancelled;
                 case "done":
-                    return ExecutionStatus.Fill;
+                    return OrderExecutionStatus.Fill;
             }
 
-            return ExecutionStatus.Unknown;
+            return OrderExecutionStatus.Unknown;
         }
 
         public AccountBalance GdaxBalanceToAccountBalance(GdaxBalanceResponse gdaxBalance)

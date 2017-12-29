@@ -2,8 +2,8 @@
 using System.Threading.Tasks;
 using Common.Log;
 using Lykke.ExternalExchangesApi.Shared;
-using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient;
-using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 

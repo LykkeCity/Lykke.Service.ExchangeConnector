@@ -3,11 +3,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Common.Log;
 using Newtonsoft.Json;
-using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient;
-using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
-using Action = TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.Action;
+using Action = Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model.Action;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {

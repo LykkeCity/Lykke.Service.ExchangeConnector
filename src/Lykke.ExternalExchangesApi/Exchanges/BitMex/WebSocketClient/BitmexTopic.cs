@@ -1,4 +1,4 @@
-﻿namespace TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient
+﻿namespace Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient
 {
     public enum BitmexTopic
     {

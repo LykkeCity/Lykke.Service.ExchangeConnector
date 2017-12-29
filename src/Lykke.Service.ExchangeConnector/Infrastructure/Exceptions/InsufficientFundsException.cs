@@ -1,4 +1,5 @@
 ﻿using System;
+using Lykke.ExternalExchangesApi.Exceptions;
 
 namespace TradingBot.Infrastructure.Exceptions
 {

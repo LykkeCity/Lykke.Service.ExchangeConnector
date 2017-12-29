@@ -3,7 +3,7 @@ using Common.Log;
 using ILog = Common.Log.ILog;
 using Message = QuickFix.Message;
 
-namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
+namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
 {
     internal abstract class MessageHandlerBase<T> : IMessageHandler
     {

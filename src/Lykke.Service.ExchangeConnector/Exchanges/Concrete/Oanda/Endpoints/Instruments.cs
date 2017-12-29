@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using TradingBot.Exchanges.Abstractions;
+using Lykke.ExternalExchangesApi.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Oanda.Entities.Instruments;
 
 namespace TradingBot.Exchanges.Concrete.Oanda.Endpoints

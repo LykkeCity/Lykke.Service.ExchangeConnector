@@ -63,7 +63,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 				        
 					    lock (syncRoot)
 					    {
-						    var trades = new List<ExecutedTrade>();
+						    var trades = new List<OrderStatusUpdate>();
 						    var executedOrders = new List<TradingSignal>();
 					    
 						    foreach (var tradingSignal in ActualSignals[instrument.Name].Where(x => x.Volume > 0))
@@ -71,14 +71,14 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 							    if (tradingSignal.TradeType == TradeType.Buy
                                         && currentTickPrice.Ask <= tradingSignal.Price)
 							    {
-								    var trade = new ExecutedTrade(
+								    var trade = new OrderStatusUpdate(
 									    instrument,
 									    DateTime.UtcNow, 
                                             tradingSignal.Price.Value,
 									    tradingSignal.Volume,
 									    TradeType.Buy,
 									    tradingSignal.OrderId,
-									    ExecutionStatus.Fill);
+									    OrderExecutionStatus.Fill);
 							    
 								    trades.Add(trade);
 								    executedOrders.Add(tradingSignal);
@@ -89,13 +89,13 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 							    else if (tradingSignal.TradeType == TradeType.Sell
                                              && currentTickPrice.Bid >= tradingSignal.Price)
 							    {
-								    var trade = new ExecutedTrade(instrument,
+								    var trade = new OrderStatusUpdate(instrument,
 									    DateTime.UtcNow,
                                             tradingSignal.Price.Value,
 									    tradingSignal.Volume,
 									    TradeType.Sell,
 									    tradingSignal.OrderId,
-									    ExecutionStatus.Fill);
+									    OrderExecutionStatus.Fill);
     
 								    trades.Add(trade);
 								    executedOrders.Add(tradingSignal);
@@ -172,9 +172,9 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
             Thread.Sleep(TimeSpan.FromSeconds(Random.Next(1, 11)));
         }
 
-	    public override Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+	    public override Task<OrderStatusUpdate> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
 	    {
-	        translatedSignal.RequestSent("stub exchange don't send actual request");
+	        translatedSignal.RequestSentMessage("stub exchange don't send actual request");
 //
 //	        SimulateWork();
 //	        SimulateException();
@@ -186,13 +186,13 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 	            ActualSignals[signal.Instrument.Name].AddLast(s);
 	            translatedSignal.ExternalId = s.OrderId;
 	            
-	            return Task.FromResult(new ExecutedTrade(s.Instrument, DateTime.UtcNow, s.Price ?? 0, s.Volume, s.TradeType, s.OrderId, ExecutionStatus.New));
+	            return Task.FromResult(new OrderStatusUpdate(s.Instrument, DateTime.UtcNow, s.Price ?? 0, s.Volume, s.TradeType, s.OrderId, OrderExecutionStatus.New));
 	        }
 	    }
 
-        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override Task<OrderStatusUpdate> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            translatedSignal.RequestSent("stub exchange don't send actual request");
+            translatedSignal.RequestSentMessage("stub exchange don't send actual request");
 //	        SimulateWork();
 //	        SimulateException();
             translatedSignal.ResponseReceived("stub exchange don't recevie actual response");
@@ -208,8 +208,8 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
                 }
             }
 
-            return Task.FromResult(new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId,
-                isCanceled ? ExecutionStatus.Cancelled : ExecutionStatus.Unknown));
+            return Task.FromResult(new OrderStatusUpdate(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId,
+                isCanceled ? OrderExecutionStatus.Cancelled : OrderExecutionStatus.Unknown));
         }
     }
 }

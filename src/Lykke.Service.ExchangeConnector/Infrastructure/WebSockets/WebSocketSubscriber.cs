@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Common.Log;
 using Lykke.ExternalExchangesApi.Shared;
 using Polly;
-using TradingBot.Exchanges.Concrete.Shared;
 
 namespace TradingBot.Infrastructure.WebSockets
 {

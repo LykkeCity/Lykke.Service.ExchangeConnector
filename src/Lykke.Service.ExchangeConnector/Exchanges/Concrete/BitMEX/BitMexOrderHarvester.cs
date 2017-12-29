@@ -3,11 +3,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Common.Log;
 using Newtonsoft.Json;
-using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient;
-using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
-using Action = TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.Action;
+using Action = Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model.Action;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
@@ -15,8 +15,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
     {
         private readonly ILog _log;
         private readonly BitMexModelConverter _mapper;
-        private Func<Acknowledgement, Task> _ackHandler;
-        private Func<ExecutedTrade, Task> _tradeHandler;
+        private Func<OrderStatusUpdate, Task> _ackHandler;
+        private Func<OrderStatusUpdate, Task> _tradeHandler;
 
         public BitMexOrderHarvester(string exchangeName,
             BitMexExchangeConfiguration configuration,
@@ -28,12 +28,12 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             _mapper = new BitMexModelConverter(configuration.SupportedCurrencySymbols, exchangeName);
         }
 
-        public void AddAcknowledgementHandler(Func<Acknowledgement, Task> handler)
+        public void AddAcknowledgementHandler(Func<OrderStatusUpdate, Task> handler)
         {
             _ackHandler = handler;
         }
 
-        public void AddExecutedTradeHandler(Func<ExecutedTrade, Task> handler)
+        public void AddExecutedTradeHandler(Func<OrderStatusUpdate, Task> handler)
         {
             _tradeHandler = handler;
         }
@@ -66,7 +66,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                     {
                         var trade = _mapper.OrderToTrade(row);
                         
-                        if (trade.Status == ExecutionStatus.Unknown)
+                        if (trade.ExecutionStatus == OrderExecutionStatus.Unknown)
                         {
                             await _log.WriteWarningAsync(nameof(BitMexOrderHarvester), nameof(HandleResponseAsync),
                                 $"Can't convert trade status {row.OrdStatus} into ExecutionStatus. Converted item: {trade}. Don't call handlers.");

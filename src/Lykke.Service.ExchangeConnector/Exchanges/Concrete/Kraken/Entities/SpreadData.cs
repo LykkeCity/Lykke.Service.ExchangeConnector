@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using TradingBot.Helpers;
+using Lykke.ExternalExchangesApi.Helpers;
 
 namespace TradingBot.Exchanges.Concrete.Kraken.Entities
 {
