@@ -23,7 +23,7 @@ namespace TradingBot.Handlers
                 foreach (var exchange in config.SaveQuotesToAzure.Where(kv => kv.Value))
                 {
                     var exchangeStorage = AzureTableStorage<PriceTableEntity>.Create(
-                        settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.StorageConnectionString), exchange.Key, log);
+                        settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.EntitiesConnString), exchange.Key, log);
                     _publishers.Add(exchange.Key, new AzureTablePricesPublisher(exchangeStorage, exchange.Key, log));
                 }
             }

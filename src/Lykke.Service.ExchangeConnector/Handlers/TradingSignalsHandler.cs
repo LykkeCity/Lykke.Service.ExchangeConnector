@@ -27,7 +27,13 @@ namespace TradingBot.Handlers
         private readonly RabbitMqSubscriber<TradingSignal> _messageProducer;
         private readonly bool _enabled;
 
-        public TradingSignalsHandler(IEnumerable<Exchange> exchanges, ILog logger, IHandler<OrderStatusUpdate> acknowledHandler, IHandler<OrderStatusUpdate> tradeHandler, TranslatedSignalsRepository translatedSignalsRepository, TimeSpan apiTimeout, RabbitMqSubscriber<TradingSignal> messageProducer, bool enabled)
+        public TradingSignalsHandler(IEnumerable<Exchange> exchanges, ILog logger, 
+            IHandler<OrderStatusUpdate> acknowledHandler, 
+            IHandler<OrderStatusUpdate> tradeHandler, 
+            TranslatedSignalsRepository translatedSignalsRepository, 
+            TimeSpan apiTimeout, 
+            RabbitMqSubscriber<TradingSignal> messageProducer, 
+            bool enabled)
         {
             this.exchanges = exchanges.ToDictionary(k => k.Name);
             this.logger = logger;

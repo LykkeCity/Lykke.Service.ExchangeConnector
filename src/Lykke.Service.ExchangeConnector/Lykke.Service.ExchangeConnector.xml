@@ -462,12 +462,6 @@
             <param name="mu">yearly trend</param>
             <param name="random">the source of randomness</param>
         </member>
-        <member name="T:TradingBot.Helpers.AsyncEvent`1">
-            <summary>
-            Asynchronous event handler delegate.
-            Source: https://stackoverflow.com/a/30739162
-            </summary>
-        </member>
         <member name="P:TradingBot.Models.Api.OrderModel.DateTime">
             <summary>
             Date and time must be in 5 minutes threshold from UTC now
