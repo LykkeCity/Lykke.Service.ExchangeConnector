@@ -2,12 +2,12 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model;
 using Newtonsoft.Json;
-using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient;
-using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
-using Action = TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model.Action;
+using Action = Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model.Action;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
@@ -15,7 +15,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
     {
         private readonly ILog _log;
         private readonly BitMexModelConverter _mapper;
-        private Func<ExecutedTrade, Task> _tradeHandler;
+        private Func<OrderStatusUpdate, Task> _tradeHandler;
 
         public BitMexExecutionHarvester(BitMexExchangeConfiguration configuration, IBitmexSocketSubscriber socketSubscriber, ILog log)
         {
@@ -24,7 +24,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             _mapper = new BitMexModelConverter(configuration.SupportedCurrencySymbols, BitMexExchange.Name);
         }
 
-        public void AddExecutedTradeHandler(Func<ExecutedTrade, Task> handler)
+        public void AddExecutedTradeHandler(Func<OrderStatusUpdate, Task> handler)
         {
             _tradeHandler = handler;
         }
@@ -49,7 +49,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                     var acks = table.Data.Select(row => _mapper.OrderToTrade(row));
                     foreach (var ack in acks)
                     {
-                        if (ack.Status == ExecutionStatus.New)
+                        if (ack.ExecutionStatus == OrderExecutionStatus.New)
                         {
                             continue;
                         }
