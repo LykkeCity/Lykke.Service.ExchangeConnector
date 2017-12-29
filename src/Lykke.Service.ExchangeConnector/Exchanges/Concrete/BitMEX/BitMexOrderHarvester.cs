@@ -1,42 +1,42 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Autofac;
+using Common;
 using Common.Log;
 using Newtonsoft.Json;
 using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient;
 using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model;
+using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 using Action = Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model.Action;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
-    internal class BitMexOrderHarvester
+    internal class BitMexOrderHarvester : IStartable, IStopable
     {
+        private readonly IBitmexSocketSubscriber _socketSubscriber;
         private readonly ILog _log;
         private readonly BitMexModelConverter _mapper;
-        private Func<OrderStatusUpdate, Task> _ackHandler;
-        private Func<OrderStatusUpdate, Task> _tradeHandler;
+        private readonly IHandler<OrderStatusUpdate> _ackHandler;
+        private readonly IHandler<OrderStatusUpdate> _tradeHandler;
 
-        public BitMexOrderHarvester(string exchangeName,
+        public BitMexOrderHarvester(
             BitMexExchangeConfiguration configuration,
             IBitmexSocketSubscriber socketSubscriber,
+            IHandler<OrderStatusUpdate> ackHandler,
+            IHandler<OrderStatusUpdate> tradeHandler,
             ILog log)
         {
+            _socketSubscriber = socketSubscriber;
             _log = log;
-            socketSubscriber.Subscribe(BitmexTopic.order, HandleResponseAsync);
-            _mapper = new BitMexModelConverter(configuration.SupportedCurrencySymbols, exchangeName);
+            _ackHandler = ackHandler;
+            _tradeHandler = tradeHandler;
+            _mapper = new BitMexModelConverter(configuration.SupportedCurrencySymbols, BitMexExchange.Name);
         }
 
-        public void AddAcknowledgementHandler(Func<OrderStatusUpdate, Task> handler)
-        {
-            _ackHandler = handler;
-        }
 
-        public void AddExecutedTradeHandler(Func<OrderStatusUpdate, Task> handler)
-        {
-            _tradeHandler = handler;
-        }
 
         private async Task HandleResponseAsync(TableResponse table)
         {
@@ -58,14 +58,14 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                     var acks = table.Data.Select(row => _mapper.OrderToAck(row));
                     foreach (var ack in acks)
                     {
-                        await _ackHandler(ack);
+                        await _ackHandler.Handle(ack);
                     }
                     break;
                 case Action.Update:
                     foreach (var row in table.Data)
                     {
                         var trade = _mapper.OrderToTrade(row);
-                        
+
                         if (trade.ExecutionStatus == OrderExecutionStatus.Unknown)
                         {
                             await _log.WriteWarningAsync(nameof(BitMexOrderHarvester), nameof(HandleResponseAsync),
@@ -73,12 +73,9 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                         }
                         else
                         {
-                            await _tradeHandler(trade);   
+                            await _tradeHandler.Handle(trade);
                         }
                     }
-                    break;
-                case Action.Delete:
-                default:
                     break;
             }
         }
@@ -90,6 +87,22 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                    && table.Data.All(item =>
                        !string.IsNullOrEmpty(item.Symbol)
                        && !string.IsNullOrEmpty(item.OrderID));
+        }
+
+        public void Start()
+        {
+            _socketSubscriber.Subscribe(BitmexTopic.order, HandleResponseAsync);
+            _socketSubscriber.Start();
+        }
+
+        public void Dispose()
+        {
+            Stop();
+        }
+
+        public void Stop()
+        {
+            _socketSubscriber.Stop();
         }
     }
 }

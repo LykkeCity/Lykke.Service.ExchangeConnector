@@ -8,6 +8,7 @@ using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient.Model;
 using Lykke.ExternalExchangesApi.Shared;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.Shared;
+using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 
@@ -17,20 +18,21 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
     {
         private readonly BitfinexExchangeConfiguration _configuration;
         private readonly Dictionary<long, Channel> _channels;
-        private readonly List<Func<TickPrice, Task>> _tickPriceHandlers;
+        private readonly IHandler<TickPrice> _tickPriceHandler;
 
-        public BitfinexOrderBooksHarvester(string exchangeName, BitfinexExchangeConfiguration configuration, ILog log, OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
-        : base(exchangeName, configuration, new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookSnapshotsRepository, orderBookEventsRepository)
+        public BitfinexOrderBooksHarvester(BitfinexExchangeConfiguration configuration,
+            OrderBookSnapshotsRepository orderBookSnapshotsRepository,
+            OrderBookEventsRepository orderBookEventsRepository,
+            IHandler<OrderBook> orderBookHandler,
+            IHandler<TickPrice> tickPriceHandler,
+            ILog log)
+        : base(BitfinexExchange.Name, configuration, new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookSnapshotsRepository, orderBookEventsRepository, orderBookHandler)
         {
             _configuration = configuration;
             _channels = new Dictionary<long, Channel>();
-            _tickPriceHandlers = new List<Func<TickPrice, Task>>();
+            _tickPriceHandler = tickPriceHandler;
         }
 
-        public void AddTickPriceHandler(Func<TickPrice, Task> handler)
-        {
-            _tickPriceHandlers.Add(handler);
-        }
 
         protected override async Task MessageLoopImpl()
         {
@@ -185,7 +187,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         private Task CallTickPricesHandlers(TickPrice tickPrice)
         {
-            return Task.WhenAll(_tickPriceHandlers.Select(handler => handler(tickPrice)));
+            return _tickPriceHandler.Handle(tickPrice);
         }
 
         private class Channel

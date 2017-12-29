@@ -19,18 +19,24 @@ namespace TradingBot.Handlers
     {
         private readonly IReadOnlyDictionary<string, Exchange> exchanges;
         private readonly ILog logger;
+        private readonly IHandler<Acknowledgement> _acknowledHandler;
+        private readonly IHandler<ExecutedTrade> _tradeHandler;
         private readonly TranslatedSignalsRepository translatedSignalsRepository;
         private readonly TimeSpan tradingSignalsThreshold = TimeSpan.FromMinutes(10);
         private readonly TimeSpan apiTimeout;
         private readonly RabbitMqSubscriber<TradingSignal> _messageProducer;
+        private readonly bool _enabled;
 
-        public TradingSignalsHandler(IEnumerable<Exchange> exchanges, ILog logger, TranslatedSignalsRepository translatedSignalsRepository, TimeSpan apiTimeout, RabbitMqSubscriber<TradingSignal> messageProducer, bool enabled)
+        public TradingSignalsHandler(IEnumerable<Exchange> exchanges, ILog logger, IHandler<Acknowledgement> acknowledHandler, IHandler<ExecutedTrade> tradeHandler, TranslatedSignalsRepository translatedSignalsRepository, TimeSpan apiTimeout, RabbitMqSubscriber<TradingSignal> messageProducer, bool enabled)
         {
             this.exchanges = exchanges.ToDictionary(k => k.Name);
             this.logger = logger;
+            _acknowledHandler = acknowledHandler;
+            _tradeHandler = tradeHandler;
             this.translatedSignalsRepository = translatedSignalsRepository;
             this.apiTimeout = apiTimeout;
             _messageProducer = messageProducer;
+            _enabled = enabled;
             if (enabled)
             {
                 messageProducer.Subscribe(Handle);
@@ -138,7 +144,7 @@ namespace TradingBot.Handlers
 
                 logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), signal.ToString(),
                     "About to call AcknowledgementsHandlers").Wait();
-                await exchange.CallAcknowledgementsHandlers(CreateAcknowledgement(exchange, orderAdded, signal, translatedSignal));
+                await _acknowledHandler.Handle(CreateAcknowledgement(exchange, orderAdded, signal, translatedSignal));
                 logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), signal.ToString(),
                     "AcknowledgementsHandlers are called").Wait();
 
@@ -146,7 +152,7 @@ namespace TradingBot.Handlers
                 {
                     logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), signal.ToString(),
                         "About to call ExecutedTradeHandlers").Wait();
-                    await exchange.CallExecutedTradeHandlers(executedTrade);
+                    await _tradeHandler.Handle(executedTrade);
                     logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), signal.ToString(),
                         "ExecutedTradeHandlers are called").Wait();
                 }
@@ -160,7 +166,7 @@ namespace TradingBot.Handlers
 
                 translatedSignal.Failure(e);
 
-                await exchange.CallAcknowledgementsHandlers(CreateAcknowledgement(exchange, false, signal, translatedSignal, e));
+                await _acknowledHandler.Handle(CreateAcknowledgement(exchange, false, signal, translatedSignal, e));
             }
         }
 
@@ -179,7 +185,7 @@ namespace TradingBot.Handlers
                         "Canceled order. About to call ExecutedTradeHandlers").Wait();
 
 
-                    await exchange.CallExecutedTradeHandlers(executedTrade);
+                    await _tradeHandler.Handle(executedTrade);
 
                     logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCancellation), signal.ToString(),
                         "ExecutedTradeHandlers are called").Wait();
@@ -241,7 +247,10 @@ namespace TradingBot.Handlers
 
         public void Start()
         {
-            _messageProducer.Start();
+            if (_enabled)
+            {
+                _messageProducer.Start();
+            }
         }
 
         public void Dispose()
@@ -251,7 +260,10 @@ namespace TradingBot.Handlers
 
         public void Stop()
         {
-            _messageProducer.Stop();
+            if (_enabled)
+            {
+                _messageProducer.Stop();
+            }
         }
     }
 }

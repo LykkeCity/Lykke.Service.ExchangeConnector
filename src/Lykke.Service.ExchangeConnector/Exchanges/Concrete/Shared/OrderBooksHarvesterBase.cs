@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Common.Log;
 using Polly;
 using TradingBot.Communications;
+using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Trading;
@@ -26,7 +27,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
         private readonly TimeSpan _heartBeatPeriod = TimeSpan.FromSeconds(30);
         private CancellationTokenSource _cancellationTokenSource;
         private Task _messageLoopTask;
-        private Func<OrderBook, Task> _newOrderBookHandler;
+        private readonly IHandler<OrderBook> _newOrderBookHandler;
         private DateTime _lastPublishTime = DateTime.MinValue;
         private long _lastSecPublicationsNum;
         private int _orderBooksReceivedInLastTimeFrame;
@@ -40,11 +41,13 @@ namespace TradingBot.Exchanges.Concrete.Shared
         public int MaxOrderBookRate { get; set; }
 
         protected OrderBooksHarvesterBase(string exchangeName, IExchangeConfiguration exchangeConfiguration, ILog log,
-            OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
+            OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository,
+            IHandler<OrderBook> newOrderBookHandler)
         {
             ExchangeConfiguration = exchangeConfiguration;
             OrderBookSnapshotsRepository = orderBookSnapshotsRepository;
             OrderBookEventsRepository = orderBookEventsRepository;
+            _newOrderBookHandler = newOrderBookHandler;
             ExchangeName = exchangeName;
 
             Log = log.CreateComponentScope(GetType().Name);
@@ -96,12 +99,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
             }
         }
 
-        public void AddHandler(Func<OrderBook, Task> handler)
-        {
-            _newOrderBookHandler = handler;
-        }
-
-        public void Start()
+        public virtual void Start()
         {
             Log.WriteInfoAsync(nameof(Start), "Starting", $"Starting {GetType().Name}").Wait();
 
@@ -113,10 +111,10 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         protected virtual void StartReading()
         {
-            _messageLoopTask = Task.Run(async () => await MessageLoop());
+            _messageLoopTask = Task.Run(MessageLoop, CancellationToken);
         }
 
-        public void Stop()
+        public virtual void Stop()
         {
             Log.WriteInfoAsync(nameof(Stop), "Stopping", $"Stopping {GetType().Name}").Wait();
             _cancellationTokenSource?.Cancel();
@@ -171,7 +169,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
             foreach (var orderBook in orderBooks)
             {
-                await _newOrderBookHandler(orderBook);
+                await _newOrderBookHandler.Handle(orderBook);
             }
         }
 

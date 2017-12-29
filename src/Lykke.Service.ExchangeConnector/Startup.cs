@@ -15,7 +15,6 @@ using Lykke.SlackNotification.AzureQueue;
 using AzureStorage;
 using AzureStorage.Blob;
 using AzureStorage.Tables;
-using Lykke.RabbitMqBroker.Subscriber;
 using Newtonsoft.Json;
 using Swashbuckle.AspNetCore.Swagger;
 using TradingBot.Communications;
@@ -25,7 +24,6 @@ using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Modules;
-using TradingBot.Trading;
 
 namespace TradingBot
 {
@@ -197,8 +195,6 @@ namespace TradingBot
         private void StartHandler()
         {
             ApplicationContainer.Resolve<IApplicationFacade>().Start().GetAwaiter().GetResult();
-            ApplicationContainer.Resolve<TradingSignalsHandler>().Start();
-
             _log.WriteMonitorAsync("", "", "Started").GetAwaiter().GetResult();
 
         }

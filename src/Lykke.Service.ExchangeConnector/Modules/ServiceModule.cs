@@ -1,6 +1,5 @@
 ﻿using Autofac;
 using Autofac.Extras.DynamicProxy;
-using Common;
 using Common.Log;
 using Lykke.RabbitMqBroker;
 using Lykke.RabbitMqBroker.Subscriber;
@@ -37,8 +36,6 @@ namespace TradingBot.Modules
 
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterType<RabbitMqHandlersFactory>()
-                .As<IRabbitMqHandlersFactory>();
 
             builder.RegisterGeneric(typeof(RabbitMqHandler<>));
 
@@ -71,27 +68,21 @@ namespace TradingBot.Modules
                 .SingleInstance();
 
             builder.RegisterType<BitMexOrderHarvester>()
-                .WithParameter(new NamedParameter("exchangeName", BitMexExchange.Name))
                 .SingleInstance();
 
             builder.RegisterType<BitMexPriceHarvester>()
-                .WithParameter(new NamedParameter("exchangeName", BitMexExchange.Name))
                 .SingleInstance();
 
             builder.RegisterType<BitMexOrderBooksHarvester>()
-                .WithParameter(new NamedParameter("exchangeName", BitMexExchange.Name))
                 .SingleInstance();
 
             builder.RegisterType<BitfinexOrderBooksHarvester>()
-                .WithParameter(new NamedParameter("exchangeName", BitfinexExchange.Name))
                 .SingleInstance();
 
             builder.RegisterType<GdaxOrderBooksHarvester>()
-                .WithParameter(new NamedParameter("exchangeName", GdaxExchange.Name))
                 .SingleInstance();
 
             builder.RegisterType<JfdOrderBooksHarvester>()
-                .WithParameter("exchangeName", JfdExchange.Name)
                 .SingleInstance();
 
             builder.RegisterType<JfdModelConverter>()
@@ -100,7 +91,7 @@ namespace TradingBot.Modules
             builder.RegisterType<TradingSignalsHandler>()
                 .WithParameter("apiTimeout", _config.AspNet.ApiTimeout)
                 .WithParameter("enabled", _config.RabbitMq.Signals.Enabled)
-                .AsSelf()
+                .As<IStartable>()
                 .SingleInstance();
 
             foreach (var cfg in _config.Exchanges)
@@ -119,8 +110,17 @@ namespace TradingBot.Modules
             RegisterExchange<GdaxExchange>(builder, _config.Exchanges.Gdax.Enabled);
             RegisterExchange<JfdExchange>(builder, _config.Exchanges.Jfd.Enabled);
 
+            RegisterTradeSignalSubscriber(builder);
 
-            RegisterTradeSignalProduces(builder);
+            RegisterRabbitMqHandler<TickPrice>(builder, _config.RabbitMq.TickPrices, "tickHandler");
+            RegisterRabbitMqHandler<ExecutedTrade>(builder, _config.RabbitMq.Trades);
+            RegisterRabbitMqHandler<Acknowledgement>(builder, _config.RabbitMq.Acknowledgements);
+            RegisterRabbitMqHandler<OrderBook>(builder, _config.RabbitMq.OrderBooks);
+
+            builder.RegisterType<TickPriceHandlerDecorator>()
+                .WithParameter((info, context) => info.Name == "rabbitMqHandler", (info, context) => context.ResolveNamed<IHandler<TickPrice>>("tickHandler"))
+                .SingleInstance()
+                .As<IHandler<TickPrice>>();
         }
 
         private static void RegisterExchange<T>(ContainerBuilder container, bool enabled)
@@ -132,13 +132,22 @@ namespace TradingBot.Modules
                     .As<Exchange>()
                     .SingleInstance()
                     .EnableClassInterceptors()
-                    .SingleInstance()
                     .InterceptedBy(typeof(ExchangeCallsInterceptor));
             }
 
         }
 
-        private void RegisterTradeSignalProduces(ContainerBuilder container)
+        private static void RegisterRabbitMqHandler<T>(ContainerBuilder container, RabbitMqExchangeConfiguration exchangeConfiguration, string regKey = "")
+        {
+            container.RegisterType<RabbitMqHandler<T>>()
+                .WithParameter("connectionString", exchangeConfiguration.ConnectionString)
+                .WithParameter("exchangeName", exchangeConfiguration.Exchange)
+                .WithParameter("enabled", exchangeConfiguration.Enabled)
+                .Named<IHandler<T>>(regKey)
+                .As<IHandler<T>>();
+        }
+
+        private void RegisterTradeSignalSubscriber(ContainerBuilder container)
         {
             var subscriberSettings = new RabbitMqSubscriptionSettings
             {

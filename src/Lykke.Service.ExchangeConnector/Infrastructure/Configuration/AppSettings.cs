@@ -1,4 +1,5 @@
-﻿using Lykke.AzureQueueIntegration;
+﻿using System.Collections.Generic;
+using Lykke.AzureQueueIntegration;
 
 namespace TradingBot.Infrastructure.Configuration
 {
@@ -9,6 +10,8 @@ namespace TradingBot.Infrastructure.Configuration
         public ExchangesConfiguration Exchanges { get; set; }
 
         public RabbitMqMultyExchangeConfiguration RabbitMq { get; set; }
+
+        public IReadOnlyDictionary<string, bool> SaveQuotesToAzure { get; set; }
 
         public AzureTableConfiguration AzureStorage { get; set; }
     }

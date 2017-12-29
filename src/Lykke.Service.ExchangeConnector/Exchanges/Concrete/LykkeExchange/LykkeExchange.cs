@@ -14,6 +14,7 @@ using Newtonsoft.Json;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.LykkeExchange.Entities;
+using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Wamp;
 using TradingBot.Repositories;
@@ -26,6 +27,8 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
 {
     internal class LykkeExchange : Exchange
     {
+        private readonly IHandler<TickPrice> _tickPriceHandler;
+        private readonly IHandler<OrderStatusUpdate> _tradeHandler;
         public new static readonly string Name = "lykke";
         private new LykkeExchangeConfiguration Config => (LykkeExchangeConfiguration) base.Config;
         private readonly ApiClient apiClient;
@@ -37,9 +40,11 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         private readonly Dictionary<string, decimal> _lastBids;
         private readonly Dictionary<string, decimal> _lastAsks;
 
-        public LykkeExchange(LykkeExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log)
+        public LykkeExchange(LykkeExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, IHandler<TickPrice> tickPriceHandler, IHandler<OrderStatusUpdate> tradeHandler, ILog log)
             : base(Name, config, translatedSignalsRepository, log)
         {
+            _tickPriceHandler = tickPriceHandler;
+            _tradeHandler = tradeHandler;
             var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Add("api-key", Config.ApiKey);
             apiClient = new ApiClient(httpClient, log);
@@ -93,7 +98,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                         _lastAsks[instrument.Name] = tickPrice.Ask;
                         _lastBids[instrument.Name] = tickPrice.Bid;
                         
-                        await CallTickPricesHandlers(tickPrice);
+                        await _tickPriceHandler.Handle(tickPrice);
                     }
                 }
                 catch (Exception e)
@@ -147,7 +152,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     if (bestBid > 0 && bestAsk > 0)
                     {
                         var tickPrice = new TickPrice(instrument, orderBook.Timestamp, bestAsk, bestBid);
-                        await CallTickPricesHandlers(tickPrice);
+                        await _tickPriceHandler.Handle(tickPrice);
                     }
                 }
             }
@@ -180,7 +185,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     await LykkeLog.WriteInfoAsync(nameof(LykkeExchange), nameof(HandleOrderStatus), order.ToString(),
                         "Order canceled. Calling ExecutedTradeHandlers");
                     
-                    await CallExecutedTradeHandlers(new OrderStatusUpdate(new Instrument(Name, order.Order.AssetPairId),
+                    await _tradeHandler.Handle(new OrderStatusUpdate(new Instrument(Name, order.Order.AssetPairId),
                         DateTime.UtcNow,
                         order.Order.Price ?? 0, 
                         Math.Abs(order.Order.Volume), 
@@ -193,7 +198,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     await LykkeLog.WriteInfoAsync(nameof(LykkeExchange), nameof(HandleOrderStatus), order.ToString(),
                         "Order executed. Calling ExecutedTradeHandlers");
                     
-                    await CallExecutedTradeHandlers(new OrderStatusUpdate(new Instrument(Name, order.Order.AssetPairId),
+                    await _tradeHandler.Handle(new OrderStatusUpdate(new Instrument(Name, order.Order.AssetPairId),
                         order.Trades.Last().Timestamp,
                         order.Order.Price ?? order.Trades.Last().Price ?? 0,
                         Math.Abs(order.Order.Volume - order.Order.RemainingVolume),
@@ -238,7 +243,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     ask: candle.L,
                     bid: candle.H);
 
-                await CallTickPricesHandlers(tickPrice);
+                await _tickPriceHandler.Handle(tickPrice);
             }
         }
 

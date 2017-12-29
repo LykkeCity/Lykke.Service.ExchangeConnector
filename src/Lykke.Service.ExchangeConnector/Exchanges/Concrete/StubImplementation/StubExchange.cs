@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Common.Log;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
+using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 using TradingBot.Repositories;
@@ -17,17 +18,21 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 	    public new static readonly string Name = "stub";
 	    
 	    private readonly StubExchangeConfiguration config;
-	    
+        private readonly IHandler<TickPrice> _tickPriceHandler;
+        private readonly IHandler<ExecutedTrade> _tradeHandler;
+
         protected IReadOnlyDictionary<string, Position> Positions { get; }
 
         protected readonly Dictionary<string, LinkedList<TradingSignal>> ActualSignals;
         
         private readonly object syncRoot = new object();
 
-        public StubExchange(StubExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log)
+        public StubExchange(StubExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository,IHandler<TickPrice> tickPriceHandler, IHandler<ExecutedTrade> tradeHandler, ILog log)
 	        : base(Name, config, translatedSignalsRepository, log)
         {
             this.config = config;
+            _tickPriceHandler = tickPriceHandler;
+            _tradeHandler = tradeHandler;
 
             decimal initialValue = 100m;
             Positions = Instruments.ToDictionary(x => x.Name, x => new Position(x, initialValue));
@@ -117,7 +122,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 								    Positions[instrument.Name].AddTrade(x);
                                         try
                                         {
-								    await CallExecutedTradeHandlers(x);
+								    await _tradeHandler.Handle(x);
                                         }
                                         catch (Exception e)
                                         {
@@ -135,7 +140,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 					    }
 					    
 					    // TODO: deal with awaitable. I don't want to wait here for Azure and Rabbit connections
-                            await CallTickPricesHandlers(currentTickPrice);
+                            await _tickPriceHandler.Handle(currentTickPrice);
 				        }
 				        catch (Exception e)
 				        {

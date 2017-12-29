@@ -12,6 +12,7 @@ using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Icm.Converters;
 using TradingBot.Exchanges.Concrete.Shared;
+using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 using TradingBot.Repositories;
@@ -29,17 +30,23 @@ namespace TradingBot.Exchanges.Concrete.Icm
         private SocketInitiator initiator;
         private IcmConnector connector;
         private readonly INoSQLTableStorage<FixMessageTableEntity> _tableStorage;
+        private readonly IHandler<ExecutedTrade> _tradeHandler;
+        private readonly IHandler<TickPrice> _tickPriceHandler;
         public new static readonly string Name = "icm";
 
         public IcmExchange(
             IcmConfig config,
             TranslatedSignalsRepository translatedSignalsRepository,
             INoSQLTableStorage<FixMessageTableEntity> tableStorage,
-            Common.Log.ILog log)
+            IHandler<ExecutedTrade> tradeHandler,
+            IHandler<TickPrice> tickPriceHandler,
+                Common.Log.ILog log)
             : base(Name, config, translatedSignalsRepository, log)
         {
             this.config = config;
             _tableStorage = tableStorage;
+            _tradeHandler = tradeHandler;
+            _tickPriceHandler = tickPriceHandler;
             _log = log;
         }
 
@@ -57,7 +64,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
                     "Socket connection is disabled");
             }
 
-            if (config.RabbitMq.Enabled && (config.PubQuotesToRabbit || config.SaveQuotesToAzure))
+            if (config.RabbitMq.Enabled && (config.PubQuotesToRabbit))
             {
                 _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartImpl), string.Empty,
                     "RabbitMQ connection is enabled");
@@ -89,7 +96,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             var storeFactory = new FileStoreFactory(settings);
             var logFactory = new LykkeLogFactory(_log);
 
-            connector.OnTradeExecuted += CallExecutedTradeHandlers;
+            connector.OnTradeExecuted += _tradeHandler.Handle;
             connector.Connected += OnConnected;
             connector.Disconnected += OnStopped;
 
@@ -122,7 +129,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
                             var tickPrice = orderBook.ToTickPrice();
                             if (tickPrice != null)
                             {
-                                await CallTickPricesHandlers(tickPrice);
+                                await _tickPriceHandler.Handle(tickPrice);
                             }
                         }
                     })

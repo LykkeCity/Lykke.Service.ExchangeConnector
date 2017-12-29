@@ -11,6 +11,8 @@ using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Kraken.Endpoints;
 using TradingBot.Exchanges.Concrete.Kraken.Entities;
+using TradingBot.Handlers;
+using TradingBot.Helpers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 using TradingBot.Repositories;
@@ -22,6 +24,8 @@ namespace TradingBot.Exchanges.Concrete.Kraken
         public new static readonly string Name = "kraken";
 
         private readonly KrakenConfig config;
+        private readonly IHandler<TickPrice> _tickPriceHandler;
+        private readonly IHandler<OrderStatusUpdate> _tradeHandler;
 
         private readonly PublicData publicData;
         private readonly PrivateData privateData;
@@ -29,14 +33,16 @@ namespace TradingBot.Exchanges.Concrete.Kraken
         private Task pricesJob;
         private CancellationTokenSource ctSource;
 
-        public KrakenExchange(KrakenConfig config, TranslatedSignalsRepository translatedSignalsRepository, ILog log) :
+        public KrakenExchange(KrakenConfig config, TranslatedSignalsRepository translatedSignalsRepository, IHandler<TickPrice> tickPriceHandler, IHandler<OrderStatusUpdate> tradeHandler, ILog log) :
             base(Name, config, translatedSignalsRepository, log)
         {
             this.config = config;
+            _tickPriceHandler = tickPriceHandler;
+            _tradeHandler = tradeHandler;
 
             var httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds(3) }; // TODO: HttpClient have to be Singleton
             publicData = new PublicData(new ApiClient(httpClient, log));
-            privateData = new PrivateData(new ApiClient(new HttpClient() { Timeout = TimeSpan.FromSeconds(30) }, log), config.ApiKey, config.PrivateKey, 
+            privateData = new PrivateData(new ApiClient(new HttpClient() { Timeout = TimeSpan.FromSeconds(30) }, log), config.ApiKey, config.PrivateKey,
                 new NonceProvider(), Config.SupportedCurrencySymbols);
         }
 
@@ -51,7 +57,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                         OnConnected();
                 });
 
-            if (config.PubQuotesToRabbit || config.SaveQuotesToAzure)
+            if (config.PubQuotesToRabbit)
             {
                 pricesJob = Task.Run(async () =>
                 {
@@ -80,8 +86,8 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                                 }
 
                                 lasts[pair.LykkeSymbol] = result.Last;
-                                var prices = result.Data.Single().Value.Select(x => 
-                                    new TickPrice(Instruments.Single(i => i.Name == pair.LykkeSymbol), 
+                                var prices = result.Data.Single().Value.Select(x =>
+                                    new TickPrice(Instruments.Single(i => i.Name == pair.LykkeSymbol),
                                     x.Time, x.Ask, x.Bid)).ToArray();
 
                                 if (prices.Any())
@@ -94,7 +100,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                                     {
                                         foreach (var tickPrice in prices)
                                         {
-                                            await CallTickPricesHandlers(tickPrice);    
+                                            await _tickPriceHandler.Handle(tickPrice);
                                         }
                                     }
                                 }
@@ -120,7 +126,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
         }
 
         private DateTime lastOrdersCheckTime = DateTime.UtcNow;
-        
+
         private async Task CheckExecutedOrders()
         {
             var newTime = DateTime.UtcNow;
@@ -129,7 +135,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
 
             foreach (var executedTrade in executed)
             {
-                await CallExecutedTradeHandlers(executedTrade);
+                await _tradeHandler.Handle(executedTrade);
             }
         }
 
@@ -197,8 +203,8 @@ namespace TradingBot.Exchanges.Concrete.Kraken
         public override async Task<IEnumerable<OrderStatusUpdate>> GetOpenOrders(TimeSpan timeout)
         {
             return (await privateData.GetOpenOrders(new CancellationTokenSource(timeout).Token))
-                .Select(x => new OrderStatusUpdate(new Instrument(Name, x.Value.DescriptionInfo.Pair), 
-                    DateTimeUtils.FromUnix(x.Value.StartTime), 
+                .Select(x => new OrderStatusUpdate(new Instrument(Name, x.Value.DescriptionInfo.Pair),
+                    DateTimeUtils.FromUnix(x.Value.StartTime),
                     x.Value.Price,
                     x.Value.Volume,
                     x.Value.DescriptionInfo.Type == TradeDirection.Buy ? TradeType.Buy : TradeType.Sell,
@@ -209,8 +215,8 @@ namespace TradingBot.Exchanges.Concrete.Kraken
         public async Task<IEnumerable<OrderStatusUpdate>> GetExecutedOrders(DateTime start, TimeSpan timeout)
         {
             return (await privateData.GetClosedOrders(start, new CancellationTokenSource(timeout).Token)).Closed
-                .Select(x => new OrderStatusUpdate(new Instrument(Name, x.Value.DescriptionInfo.Pair), 
-                    DateTimeUtils.FromUnix(x.Value.StartTime), 
+                .Select(x => new OrderStatusUpdate(new Instrument(Name, x.Value.DescriptionInfo.Pair),
+                    DateTimeUtils.FromUnix(x.Value.StartTime),
                     x.Value.Price,
                     x.Value.Volume,
                     x.Value.DescriptionInfo.Type == TradeDirection.Buy ? TradeType.Buy : TradeType.Sell,

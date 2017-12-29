@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Common.Log;
 using TradingBot.Communications;
-using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Models.Api;
 using TradingBot.Trading;
@@ -15,14 +14,6 @@ namespace TradingBot.Exchanges.Abstractions
     internal abstract class Exchange : IExchange
     {
         protected readonly ILog LykkeLog;
-
-        private readonly List<IHandler<TickPrice>> _tickPriceHandlers = new List<IHandler<TickPrice>>();
-
-        private readonly List<IHandler<OrderBook>> _orderBookHandlers = new List<IHandler<OrderBook>>();
-
-        private readonly List<IHandler<OrderStatusUpdate>> _executedTradeHandlers = new List<IHandler<OrderStatusUpdate>>();
-
-        private readonly List<IHandler<OrderStatusUpdate>> _acknowledgementsHandlers = new List<IHandler<OrderStatusUpdate>>();
 
         public string Name { get; }
 
@@ -48,26 +39,6 @@ namespace TradingBot.Exchanges.Abstractions
 
             Instruments = config.SupportedCurrencySymbols
                 .Select(x => new Instrument(Name, x.LykkeSymbol)).ToList();
-        }
-
-        public void AddTickPriceHandler(IHandler<TickPrice> handler)
-        {
-            _tickPriceHandlers.Add(handler);
-        }
-
-        public void AddOrderBookHandler(IHandler<OrderBook> handler)
-        {
-            _orderBookHandlers.Add(handler);
-        }
-
-        public void AddExecutedTradeHandler(IHandler<OrderStatusUpdate> handler)
-        {
-            _executedTradeHandlers.Add(handler);
-        }
-
-        public void AddAcknowledgementsHandler(IHandler<OrderStatusUpdate> handler)
-        {
-            _acknowledgementsHandlers.Add(handler);
         }
 
         public void Start()
@@ -104,26 +75,6 @@ namespace TradingBot.Exchanges.Abstractions
         {
             State = ExchangeState.Stopped;
             Stopped?.Invoke();
-        }
-
-        protected Task CallTickPricesHandlers(TickPrice tickPrice)
-        {
-            return Task.WhenAll(_tickPriceHandlers.Select(x => x.Handle(tickPrice)));
-        }
-
-        protected Task CallOrderBookHandlers(OrderBook orderBook)
-        {
-            return Task.WhenAll(_orderBookHandlers.Select(x => x.Handle(orderBook)));
-        }
-
-        public Task CallExecutedTradeHandlers(OrderStatusUpdate trade)
-        {
-            return Task.WhenAll(_executedTradeHandlers.Select(x => x.Handle(trade)));
-        }
-
-        public Task CallAcknowledgementsHandlers(OrderStatusUpdate ack)
-        {
-            return Task.WhenAll(_acknowledgementsHandlers.Select(x => x.Handle(ack)));
         }
 
         public abstract Task<OrderStatusUpdate> AddOrderAndWaitExecution(TradingSignal signal,

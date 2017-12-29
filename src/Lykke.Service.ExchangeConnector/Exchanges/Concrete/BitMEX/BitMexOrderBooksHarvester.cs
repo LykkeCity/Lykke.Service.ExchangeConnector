@@ -7,34 +7,55 @@ using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient;
 using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.Shared;
+using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Trading;
 using Action = Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model.Action;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
     internal sealed class BitMexOrderBooksHarvester : OrderBooksWebSocketHarvester<object, string>
     {
-        public BitMexOrderBooksHarvester(string exchangeName,
+        private readonly IBitmexSocketSubscriber _socketSubscriber;
+
+        public BitMexOrderBooksHarvester(
             BitMexExchangeConfiguration configuration,
             ILog log,
             OrderBookSnapshotsRepository orderBookSnapshotsRepository,
             OrderBookEventsRepository orderBookEventsRepository,
-            IBitmexSocketSubscriber socketSubscriber) :
-            base(exchangeName, configuration, 
-                new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookSnapshotsRepository, orderBookEventsRepository)
+            IBitmexSocketSubscriber socketSubscriber,
+            IHandler<OrderBook> orderBookHandler) :
+            base(BitMexExchange.Name, configuration, 
+                new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookSnapshotsRepository, orderBookEventsRepository, orderBookHandler)
         {
-            socketSubscriber.Subscribe(BitmexTopic.orderBookL2, HandleResponseAsync);
+            _socketSubscriber = socketSubscriber;
+
         }
 
-        protected override async Task MessageLoopImpl()
+
+        protected override Task MessageLoopImpl()
         {
             // OrderBookHarvester reading cycle is not used
+            return Task.CompletedTask;
         }
 
         protected override void StartReading()
         {
             // Do not start message reading loop
             // Only measure loop is started
+        }
+
+        public override void Start()
+        {
+            _socketSubscriber.Subscribe(BitmexTopic.orderBookL2, HandleResponseAsync);
+            _socketSubscriber.Start();
+            base.Start();
+        }
+
+        public override void Stop()
+        {
+            _socketSubscriber.Stop();
+            base.Stop();
         }
 
         private async Task HandleResponseAsync(TableResponse table)

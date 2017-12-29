@@ -13,8 +13,10 @@ using Lykke.ExternalExchangesApi.Exchanges.GDAX.WssClient;
 using Lykke.ExternalExchangesApi.Exchanges.GDAX.WssClient.Entities;
 using Lykke.ExternalExchangesApi.Helpers;
 using TradingBot.Exchanges.Concrete.Shared;
+using TradingBot.Handlers;
 using TradingBot.Helpers;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.GDAX
 {
@@ -27,9 +29,10 @@ namespace TradingBot.Exchanges.Concrete.GDAX
         private readonly IDictionary<string, Queue<GdaxQueueOrderItem>> _queuedOrderBookItems;
         private readonly GdaxConverters _converters;
 
-        public GdaxOrderBooksHarvester(string exchangeName, GdaxExchangeConfiguration configuration, ILog log,
-            OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
-            : base(exchangeName, configuration, log, orderBookSnapshotsRepository, orderBookEventsRepository)
+        public GdaxOrderBooksHarvester(GdaxExchangeConfiguration configuration, ILog log,
+            OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository,
+            IHandler<OrderBook> orderBookHandler)
+            : base(GdaxExchange.Name, configuration, log, orderBookSnapshotsRepository, orderBookEventsRepository, orderBookHandler)
         {
             _configuration = configuration;
             _symbolsLastSequenceNumbers = new ConcurrentDictionary<string, long>();
@@ -37,7 +40,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 
             _websocketApi = CreateWebSocketsApiClient();
             _restApi = CreateRestApiClient();
-            _converters = new GdaxConverters(_configuration.SupportedCurrencySymbols, 
+            _converters = new GdaxConverters(_configuration.SupportedCurrencySymbols,
                 ExchangeName);
         }
 
@@ -82,7 +85,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
                 }
                 catch (Exception ex)
                 {
-                    await Log.WriteErrorAsync(nameof(GdaxOrderBooksHarvester), 
+                    await Log.WriteErrorAsync(nameof(GdaxOrderBooksHarvester),
                         "Could not close web sockets connection properly", ex);
                 }
             }
@@ -106,7 +109,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 
         private GdaxWebSocketApi CreateWebSocketsApiClient()
         {
-            var websocketApi = new GdaxWebSocketApi(new LogToConsole(), 
+            var websocketApi = new GdaxWebSocketApi(new LogToConsole(),
                 _configuration.ApiKey, _configuration.ApiSecret, _configuration.PassPhrase,
                 _configuration.WssEndpointUrl);
             websocketApi.Ticker += OnWebSocketTickerAsync;
@@ -175,17 +178,17 @@ namespace TradingBot.Exchanges.Concrete.GDAX
                 });
         }
 
-        private async Task HandleOrderEventAsync(string productId, long orderEventSequenceNumber, 
+        private async Task HandleOrderEventAsync(string productId, long orderEventSequenceNumber,
             OrderBookEventType eventType, OrderBookItem orderBookItem)
         {
             // Queue this item if the order book is not fully populated yet
-            var orderBookExists = 
+            var orderBookExists =
                 _symbolsLastSequenceNumbers.TryGetValue(productId, out long seqNumberInOrderBook) &&
                 TryGetOrderBookSnapshot(productId, out var _);
 
             if (!orderBookExists)
             {
-                QueueItem(productId, new GdaxQueueOrderItem(orderEventSequenceNumber, 
+                QueueItem(productId, new GdaxQueueOrderItem(orderEventSequenceNumber,
                     eventType, orderBookItem));
                 return;
             }
@@ -219,7 +222,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
         {
             if (_queuedOrderBookItems.TryGetValue(productId, out var productOrdersQueue))
                 while (productOrdersQueue.Count > 0)
-                    yield return productOrdersQueue.Dequeue();            
+                    yield return productOrdersQueue.Dequeue();
         }
     }
 }
