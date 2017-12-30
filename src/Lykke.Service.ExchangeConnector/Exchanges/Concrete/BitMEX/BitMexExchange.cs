@@ -49,13 +49,13 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             {
                 BaseUri = new Uri(configuration.EndpointUrl)
             };
-            
+
             orderBooksHarvester.MaxOrderBookRate = configuration.MaxOrderBookRate;
         }
 
         public override async Task<ExecutionReport> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-          //  var symbol = BitMexModelConverter.ConvertSymbolFromLykkeToBitMex(instrument.Name, _configuration);
+            //  var symbol = BitMexModelConverter.ConvertSymbolFromLykkeToBitMex(instrument.Name, _configuration);
             var symbol = "XBTUSD"; //HACK Hard code!
             var volume = BitMexModelConverter.ConvertVolume(signal.Volume);
             var orderType = BitMexModelConverter.ConvertOrderType(signal.OrderType);
@@ -71,16 +71,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             }
 
             var order = (Order)response;
-
-            var execStatus = BitMexModelConverter.ConvertExecutionStatus(order.OrdStatus);
-            var execPrice = (decimal)(order.Price ?? 0d);
-            var execVolume = (decimal)(order.OrderQty ?? 0d);
-            var exceTime = order.TransactTime ?? DateTime.UtcNow;
-            var execType = BitMexModelConverter.ConvertTradeType(order.Side);
-
-            translatedSignal.ExternalId = order.OrderID;
-
-            return new ExecutionReport(signal.Instrument, exceTime, execPrice, execVolume, execType, order.OrderID, execStatus) { Message = order.Text };
+            return BitMexModelConverter.OrderToTrade(order);
         }
 
         public override async Task<ExecutionReport> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
@@ -117,7 +108,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 throw new ApiException(error.ErrorProperty.Message);
             }
 
-            var trades = ((IReadOnlyCollection<Order>)response).Select( 
+            var trades = ((IReadOnlyCollection<Order>)response).Select(
                 BitMexModelConverter.OrderToTrade);
             return trades;
         }
