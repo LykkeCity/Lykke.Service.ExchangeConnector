@@ -31,6 +31,7 @@ namespace TradingBot.Trading
         [JsonConverter(typeof(StringEnumConverter))]
         public OrderExecutionStatus ExecutionStatus { get; internal set; }
 
+        [JsonConverter(typeof(StringEnumConverter))]
         public OrderStatusUpdateFailureType FailureType { get; internal set; }
 
         public string Message { get; internal set; }
