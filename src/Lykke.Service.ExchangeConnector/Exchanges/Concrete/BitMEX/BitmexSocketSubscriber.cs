@@ -10,7 +10,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient;
 using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model;
-using Lykke.ExternalExchangesApi.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.WebSockets;
 

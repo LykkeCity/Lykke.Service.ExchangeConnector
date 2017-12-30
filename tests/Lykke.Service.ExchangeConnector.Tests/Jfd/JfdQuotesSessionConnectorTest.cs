@@ -283,6 +283,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
         private class TestOutput : ILog
         {
             private readonly ITestOutputHelper _underlying;
+#pragma warning disable S4144 // Methods should not have identical implementations
 
             public TestOutput(ITestOutputHelper underlying)
             {
@@ -359,6 +360,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
                 _underlying.WriteLine(exception.ToString());
                 return Task.CompletedTask;
             }
+#pragma warning restore S4144 // Methods should not have identical implementations
+
         }
     }
 }

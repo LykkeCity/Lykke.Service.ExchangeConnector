@@ -19,28 +19,25 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         private readonly IBitmexSocketSubscriber _socketSubscriber;
         private readonly ILog _log;
         private readonly BitMexModelConverter _mapper;
-        private readonly IHandler<OrderStatusUpdate> _ackHandler;
-        private readonly IHandler<OrderStatusUpdate> _tradeHandler;
+        private readonly IHandler<ExecutionReport> _tradeHandler;
 
         public BitMexOrderHarvester(
             BitMexExchangeConfiguration configuration,
             IBitmexSocketSubscriber socketSubscriber,
-            IHandler<OrderStatusUpdate> ackHandler,
-            IHandler<OrderStatusUpdate> tradeHandler,
+            IHandler<ExecutionReport> tradeHandler,
             ILog log)
         {
             _socketSubscriber = socketSubscriber;
             _log = log;
-            _ackHandler = ackHandler;
             _tradeHandler = tradeHandler;
-            _mapper = new BitMexModelConverter(configuration.SupportedCurrencySymbols, BitMexExchange.Name);
+            _mapper = new BitMexModelConverter(configuration.SupportedCurrencySymbols);
         }
 
 
 
         private async Task HandleResponseAsync(TableResponse table)
         {
-            if (_ackHandler == null || _tradeHandler == null)
+            if (_tradeHandler == null)
             {
                 throw new InvalidOperationException("Acknowledgement handler or executed trader is not set.");
             }
@@ -55,12 +52,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             switch (table.Action)
             {
                 case Action.Insert:
-                    var acks = table.Data.Select(row => _mapper.OrderToAck(row));
-                    foreach (var ack in acks)
-                    {
-                        await _ackHandler.Handle(ack);
-                    }
-                    break;
                 case Action.Update:
                     foreach (var row in table.Data)
                     {

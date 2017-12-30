@@ -4,7 +4,6 @@ using Common.Log;
 using Lykke.ExternalExchangesApi.Shared;
 using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient;
 using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model;
-using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX

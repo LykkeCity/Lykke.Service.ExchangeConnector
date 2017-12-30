@@ -16,7 +16,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 
         }
 
-        public OrderStatusUpdate OrderToTrade(GdaxOrderResponse order)
+        public ExecutionReport OrderToTrade(GdaxOrderResponse order)
         {
             var id = order.Id;
             var execTime = order.CreatedAt;
@@ -26,7 +26,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             var status = GdaxOrderStatusToExecutionStatus(order);
             var instr = ExchangeSymbolToLykkeInstrument(order.ProductId);
 
-            return new OrderStatusUpdate(instr, execTime, execPrice, execVolume,
+            return new ExecutionReport(instr, execTime, execPrice, execVolume,
                 tradeType, id.ToString(), status);
         }
 

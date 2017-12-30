@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Common.Log;
-using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient;
 using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient.Model;
 using Lykke.ExternalExchangesApi.Shared;
 using TradingBot.Communications;
@@ -55,6 +54,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
                 }
                 catch
                 {
+                    // Nothing to do here
                 }
             }
         }
@@ -85,14 +85,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         {
             foreach (var instrument in instruments)
             {
-                var request = new SubscribeRequest
-                {
-                    Event = "subscribe",
-                    Channel = WsChannel.book,
-                    Pair = instrument,
-                    Prec = "R0",
-                    Freq = "F0"
-                };
+                var request = SubscribeOrderBooksRequest.BuildRequest(instrument, "F0", "R0");
                 await Messenger.SendRequestAsync(request, CancellationToken);
                 var response = await GetResponse();
                 await HandleResponse(response);
@@ -103,12 +96,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         {
             foreach (var instrument in instruments)
             {
-                var request = new SubscribeRequest
-                {
-                    Event = "subscribe",
-                    Channel = WsChannel.ticker,
-                    Pair = instrument
-                };
+                var request = SublscribeTickeRequest.BuildRequest(instrument);
                 await Messenger.SendRequestAsync(request, CancellationToken);
                 var response = await GetResponse();
                 await HandleResponse(response);

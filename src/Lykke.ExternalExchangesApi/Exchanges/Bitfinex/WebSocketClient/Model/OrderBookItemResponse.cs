@@ -1,7 +1,4 @@
-﻿using System;
-using System.Globalization;
-
-namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient.Model
+﻿namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient.Model
 {
     public class OrderBookItemResponse
     {

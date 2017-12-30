@@ -77,15 +77,15 @@ namespace TradingBot.Exchanges.Abstractions
             Stopped?.Invoke();
         }
 
-        public abstract Task<OrderStatusUpdate> AddOrderAndWaitExecution(TradingSignal signal,
+        public abstract Task<ExecutionReport> AddOrderAndWaitExecution(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal,
             TimeSpan timeout);
 
-        public abstract Task<OrderStatusUpdate> CancelOrderAndWaitExecution(TradingSignal signal,
+        public abstract Task<ExecutionReport> CancelOrderAndWaitExecution(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal,
             TimeSpan timeout);
 
-        public virtual Task<OrderStatusUpdate> GetOrder(string id, Instrument instrument, TimeSpan timeout)
+        public virtual Task<ExecutionReport> GetOrder(string id, Instrument instrument, TimeSpan timeout)
         {
             throw new NotSupportedException($"{Name} does not support receiving order information by {nameof(id)} and {nameof(instrument)}");
         }
@@ -100,7 +100,7 @@ namespace TradingBot.Exchanges.Abstractions
             throw new NotSupportedException();
         }
 
-        public virtual Task<IEnumerable<OrderStatusUpdate>> GetOpenOrders(TimeSpan timeout)
+        public virtual Task<IEnumerable<ExecutionReport>> GetOpenOrders(TimeSpan timeout)
         {
             throw new NotSupportedException();
         }

@@ -14,6 +14,8 @@ using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Trading;
 using TradingBot.Communications;
 using TradingBot.Repositories;
+using ExecType = QuickFix.Fields.ExecType;
+using ExecutionReport = TradingBot.Trading.ExecutionReport;
 using Message = QuickFix.Message;
 using TradeType = TradingBot.Trading.TradeType;
 using TimeInForce = TradingBot.Trading.TimeInForce;
@@ -36,7 +38,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
         public event Action Connected;
         public event Action Disconnected;
-        public event Func<OrderStatusUpdate, Task> OnTradeExecuted;
+        public event Func<ExecutionReport, Task> OnTradeExecuted;
 
         public IcmConnector(IcmConfig config, AzureFixMessagesRepository repository, ILog logger)
         {
@@ -99,7 +101,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             {
                 switch (message)
                 {
-                    case ExecutionReport executionReport:
+                    case QuickFix.FIX44.ExecutionReport executionReport:
                         HandleExecutionReport(executionReport);
                         break;
                     case SecurityList securityList:
@@ -304,7 +306,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             { "XAU/USDm", "XAUUSD" }
         };
 
-        private void HandleExecutionReport(ExecutionReport report)
+        private void HandleExecutionReport(QuickFix.FIX44.ExecutionReport report)
         {
             logger.WriteInfoAsync(nameof(IcmConnector), nameof(HandleExecutionReport), string.Empty, "Execution report was received").Wait();
 
@@ -356,7 +358,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
 
 
-            var executedTrade = new OrderStatusUpdate(
+            var executedTrade = new ExecutionReport(
                 new Instrument(IcmExchange.Name, report.IsSetField(Tags.Symbol) ? symbolsMapBack[report.Symbol.Obj] : ""),
                 report.IsSetField(Tags.TransactTime) ? report.TransactTime.Obj : DateTime.UtcNow,
                 orderExecutionStatus == OrderExecutionStatus.Fill || orderExecutionStatus == OrderExecutionStatus.PartialFill ? report.AvgPx.Obj : report.Price.Obj,
@@ -388,14 +390,14 @@ namespace TradingBot.Exchanges.Concrete.Icm
                     }
                     else
                     {
-                        orderExecutions[id] = new TaskCompletionSource<OrderStatusUpdate>();
+                        orderExecutions[id] = new TaskCompletionSource<ExecutionReport>();
                         orderExecutions[id].SetResult(executedTrade);
                     }
                 }
             }
         }
 
-        private void GetIds(ExecutionReport report, out string id, out string icmId)
+        private void GetIds(QuickFix.FIX44.ExecutionReport report, out string id, out string icmId)
         {
             icmId = null;
             id = null;
@@ -601,10 +603,10 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
 
 
-        public async Task<OrderStatusUpdate> AddOrderAndWaitResponse(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public async Task<ExecutionReport> AddOrderAndWaitResponse(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var id = signal.OrderId;
-            var tcs = new TaskCompletionSource<OrderStatusUpdate>();
+            var tcs = new TaskCompletionSource<ExecutionReport>();
 
             lock (orderExecutions)
             {
@@ -621,13 +623,13 @@ namespace TradingBot.Exchanges.Concrete.Icm
             var signalSended = AddOrder(signal, translatedSignal);
 
             if (!signalSended)
-                return new OrderStatusUpdate(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, OrderExecutionStatus.Rejected);
+                return new ExecutionReport(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, OrderExecutionStatus.Rejected);
 
             var sw = Stopwatch.StartNew();
             var task = tcs.Task;
             await Task.WhenAny(task, Task.Delay(timeout)).ConfigureAwait(false);
 
-            OrderStatusUpdate result = null;
+            ExecutionReport result = null;
 
             if (task.IsCompleted)
             {
@@ -642,7 +644,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
                         if (orderExecutions[id].Task.IsCompleted &&
                             orderExecutions[id].Task.Result.ExecutionStatus == OrderExecutionStatus.New) // thats the old one, let's change
                         {
-                            tcs = new TaskCompletionSource<OrderStatusUpdate>();
+                            tcs = new TaskCompletionSource<ExecutionReport>();
                             orderExecutions[id] = tcs;
                             task = tcs.Task;
                         }
@@ -705,10 +707,10 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return SendRequest(request);
         }
 
-        public async Task<OrderStatusUpdate> CancelOrderAndWaitResponse(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public async Task<ExecutionReport> CancelOrderAndWaitResponse(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var id = signal.OrderId;
-            var tcs = new TaskCompletionSource<OrderStatusUpdate>();
+            var tcs = new TaskCompletionSource<ExecutionReport>();
 
             lock (orderExecutions)
             {
@@ -725,7 +727,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             var signalSended = CancelOrder(signal, translatedSignal);
 
             if (!signalSended)
-                return new OrderStatusUpdate(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, OrderExecutionStatus.Rejected);
+                return new ExecutionReport(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, OrderExecutionStatus.Rejected);
 
             await Task.WhenAny(tcs.Task, Task.Delay(timeout)).ConfigureAwait(false);
 
@@ -738,12 +740,12 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return tcs.Task.Result;
         }
 
-        private readonly Dictionary<string, TaskCompletionSource<OrderStatusUpdate>> orderExecutions = new Dictionary<string, TaskCompletionSource<OrderStatusUpdate>>();
+        private readonly Dictionary<string, TaskCompletionSource<ExecutionReport>> orderExecutions = new Dictionary<string, TaskCompletionSource<ExecutionReport>>();
 
         private readonly ConcurrentDictionary<string, TradingSignal> orderSignals = new ConcurrentDictionary<string, TradingSignal>();
 
 
-        public Task<OrderStatusUpdate> GetOrderInfoAndWaitResponse(Instrument instrument, string orderId)
+        public Task<ExecutionReport> GetOrderInfoAndWaitResponse(Instrument instrument, string orderId)
         {
             lock (orderExecutions)
             {
@@ -755,7 +757,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
                     }
                     else
                     {
-                        orderExecutions[orderId] = new TaskCompletionSource<OrderStatusUpdate>();
+                        orderExecutions[orderId] = new TaskCompletionSource<ExecutionReport>();
                     }
                 }
             }
@@ -768,7 +770,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
         private readonly LinkedList<TaskCompletionSource<ListStatus>> listStatuses = new LinkedList<TaskCompletionSource<ListStatus>>();
 
-        public async Task<IEnumerable<OrderStatusUpdate>> GetAllOrdersInfo(TimeSpan timeout)
+        public async Task<IEnumerable<ExecutionReport>> GetAllOrdersInfo(TimeSpan timeout)
         {
             var tcs = new TaskCompletionSource<ListStatus>();
 
@@ -808,13 +810,13 @@ namespace TradingBot.Exchanges.Concrete.Icm
             var listStatus = tcs.Task.Result;
             int ordersCount = listStatus.TotNoOrders.Obj;
 
-            var result = new List<OrderStatusUpdate>();
+            var result = new List<ExecutionReport>();
 
             for (int i = 1; i <= ordersCount; i++)
             {
                 var orderGroup = listStatus.GetGroup(i, Tags.NoOrders);
 
-                var executedTrade = new OrderStatusUpdate(
+                var executedTrade = new ExecutionReport(
                     new Instrument("icm", orderGroup.GetField(Tags.Symbol)),
                     orderGroup.GetField(new TransactTime()).Obj,
                     orderGroup.GetField(new AvgPx()).Obj,

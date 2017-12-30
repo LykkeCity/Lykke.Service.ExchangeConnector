@@ -54,13 +54,13 @@ namespace TradingBot.Exchanges.Concrete.Bitstamp
         }
 
 
-        public override Task<OrderStatusUpdate> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal,
+        public override Task<ExecutionReport> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal,
             TimeSpan timeout)
         {
             throw new NotImplementedException();
         }
 
-        public override Task<OrderStatusUpdate> CancelOrderAndWaitExecution(TradingSignal signal,
+        public override Task<ExecutionReport> CancelOrderAndWaitExecution(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             throw new NotImplementedException();

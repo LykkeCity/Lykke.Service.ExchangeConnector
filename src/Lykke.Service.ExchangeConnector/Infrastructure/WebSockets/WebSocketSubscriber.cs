@@ -7,7 +7,7 @@ using Polly;
 
 namespace TradingBot.Infrastructure.WebSockets
 {
-    class WebSocketSubscriber : IDisposable
+    internal class WebSocketSubscriber : IDisposable
     {
         protected readonly ILog Log;
         protected readonly IMessenger<object, string> Messenger;
@@ -18,8 +18,8 @@ namespace TradingBot.Infrastructure.WebSockets
         private CancellationTokenSource _cancellationTokenSource;
         private readonly Timer _heartBeatMonitoringTimer;
         private readonly TimeSpan _heartBeatPeriod;
-        private static readonly object _sync = new object();
-        private volatile State _state = State.Stopped;
+        private readonly object _sync = new object();
+        private State _state = State.Stopped;
 
         public WebSocketSubscriber(IMessenger<object, string> messenger, ILog log, TimeSpan? heartbeatPeriod = null)
         {
@@ -108,7 +108,7 @@ namespace TradingBot.Infrastructure.WebSockets
 
         }
 
-        protected async Task MessageLoopImpl()
+        private async Task MessageLoopImpl()
         {
             try
             {
@@ -122,10 +122,6 @@ namespace TradingBot.Infrastructure.WebSockets
                     await HandleResponse(response, CancellationToken);
                 }
             }
-            catch (TaskCanceledException)
-            {
-                // Ignore task canceled exception which is happening on stopping
-            }
             finally
             {
                 try
@@ -134,6 +130,7 @@ namespace TradingBot.Infrastructure.WebSockets
                 }
                 catch (Exception)
                 {
+                    // Nothig can do here
                 }
             }
         }

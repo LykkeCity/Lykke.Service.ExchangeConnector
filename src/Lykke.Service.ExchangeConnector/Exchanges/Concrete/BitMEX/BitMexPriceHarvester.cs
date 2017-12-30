@@ -29,7 +29,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             _socketSubscriber = socketSubscriber;
             _log = log;
             _tickPriceHandler = tickPriceHandler;
-            _mapper = new BitMexModelConverter(configuration.SupportedCurrencySymbols, BitMexExchange.Name);
+            _mapper = new BitMexModelConverter(configuration.SupportedCurrencySymbols);
         }
 
         private async Task HandleResponseAsync(TableResponse table)

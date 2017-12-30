@@ -2,7 +2,6 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
-using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient;
 using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient.Model;
 using Lykke.ExternalExchangesApi.Shared;
 using Newtonsoft.Json;
@@ -45,13 +44,8 @@ namespace TradingBot.Tests.BitMex
 
             Assert.NotNull(info);
 
-            var request = new SubscribeRequest
-            {
-                Event = "subscribe",
-                Channel = WsChannel.book,
-                Pair = "BTCUSD",
-                Prec = "R0"
-            };
+            var request = SubscribeOrderBooksRequest.BuildRequest("BTCUSD", "", "R0");
+
             await _clientWebSocket.SendRequestAsync(request, CancellationToken.None);
 
             var successfull = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
@@ -77,19 +71,15 @@ namespace TradingBot.Tests.BitMex
 
             Assert.NotNull(info);
 
-            var request = new SubscribeRequest
-            {
-                Event = "subscribe",
-                Channel = WsChannel.ticker,
-                Pair = "BTCUSD"
-            };
+            var request = SublscribeTickeRequest.BuildRequest("BTCUSD");
+
             await _clientWebSocket.SendRequestAsync(request, CancellationToken.None);
-            
+
             var successfull = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
             var respose = JsonConvert.DeserializeObject<SubscribedResponse>(successfull);
             var ticker = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
             TickerResponse.Parse(ticker);
-            
+
             Assert.NotNull(respose);
         }
 

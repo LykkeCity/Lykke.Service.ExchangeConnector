@@ -5,7 +5,7 @@ using Newtonsoft.Json.Converters;
 
 namespace TradingBot.Trading
 {
-    public class OrderStatusUpdate
+    public class ExecutionReport
     {
         public string ClientOrderId { get; internal set; }
 
@@ -24,7 +24,7 @@ namespace TradingBot.Trading
 
         public decimal Fee { get; internal set; }
 
-        public string OrderId { get; internal set; }
+        public string FeeCurrency { get; internal set; }
 
         public bool Success { get; internal set; }
 
@@ -35,14 +35,19 @@ namespace TradingBot.Trading
 
         public string Message { get; internal set; }
 
-        [JsonConstructor]
-        public OrderStatusUpdate()
+        [JsonConverter(typeof(StringEnumConverter))]
+        public OrderType OrderType { get; internal set; }
+
+        [JsonConverter(typeof(StringEnumConverter))]
+        public ExecType ExecType { get; internal set; }
+
+        public ExecutionReport()
         {
-            
+
         }
 
         [JsonConstructor]
-        public OrderStatusUpdate(Instrument instrument, DateTime time, decimal price, 
+        public ExecutionReport(Instrument instrument, DateTime time, decimal price,
             decimal volume, TradeType type, string orderId, OrderExecutionStatus executionStatus)
         {
             Instrument = instrument;
@@ -51,7 +56,7 @@ namespace TradingBot.Trading
             Volume = volume;
             Type = type;
             Fee = 0; // TODO
-            OrderId = orderId;
+            ExchangeOrderId = orderId;
             ExecutionStatus = executionStatus;
         }
 

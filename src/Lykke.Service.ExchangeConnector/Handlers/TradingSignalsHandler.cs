@@ -19,8 +19,8 @@ namespace TradingBot.Handlers
     {
         private readonly IReadOnlyDictionary<string, Exchange> exchanges;
         private readonly ILog logger;
-        private readonly IHandler<OrderStatusUpdate> _acknowledHandler;
-        private readonly IHandler<OrderStatusUpdate> _tradeHandler;
+        private readonly IHandler<ExecutionReport> _acknowledHandler;
+        private readonly IHandler<ExecutionReport> _tradeHandler;
         private readonly TranslatedSignalsRepository translatedSignalsRepository;
         private readonly TimeSpan tradingSignalsThreshold = TimeSpan.FromMinutes(10);
         private readonly TimeSpan apiTimeout;
@@ -28,8 +28,8 @@ namespace TradingBot.Handlers
         private readonly bool _enabled;
 
         public TradingSignalsHandler(IEnumerable<Exchange> exchanges, ILog logger, 
-            IHandler<OrderStatusUpdate> acknowledHandler, 
-            IHandler<OrderStatusUpdate> tradeHandler, 
+            IHandler<ExecutionReport> acknowledHandler, 
+            IHandler<ExecutionReport> tradeHandler, 
             TranslatedSignalsRepository translatedSignalsRepository, 
             TimeSpan apiTimeout, 
             RabbitMqSubscriber<TradingSignal> messageProducer, 
@@ -90,7 +90,7 @@ namespace TradingBot.Handlers
                         break;
 
                     default:
-                        throw new ArgumentOutOfRangeException();
+                        throw new ArgumentOutOfRangeException(nameof(signal));
                 }
             }
             catch (Exception e)
@@ -216,10 +216,10 @@ namespace TradingBot.Handlers
             }
         }
 
-        private static OrderStatusUpdate CreateAcknowledgement(IExchange exchange, bool success,
+        private static ExecutionReport CreateAcknowledgement(IExchange exchange, bool success,
             TradingSignal arrivedSignal, TranslatedSignalTableEntity translatedSignal, Exception exception = null)
         {
-            var ack = new OrderStatusUpdate
+            var ack = new ExecutionReport
             {
                 Success = success,
                 Instrument = arrivedSignal.Instrument,

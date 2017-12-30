@@ -95,7 +95,7 @@ namespace TradingBot.Repositories
             RowKey = rowKey.ToString();
         }
 
-        public void SetExecutionResult(OrderStatusUpdate executedTrade)
+        public void SetExecutionResult(ExecutionReport executedTrade)
         {
             OrderExecutionStatus = executedTrade.ExecutionStatus;
             ErrorMessage = executedTrade.Message;

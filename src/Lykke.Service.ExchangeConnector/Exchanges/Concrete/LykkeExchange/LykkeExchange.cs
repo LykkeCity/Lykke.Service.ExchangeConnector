@@ -28,7 +28,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
     internal class LykkeExchange : Exchange
     {
         private readonly IHandler<TickPrice> _tickPriceHandler;
-        private readonly IHandler<OrderStatusUpdate> _tradeHandler;
+        private readonly IHandler<ExecutionReport> _tradeHandler;
         public new static readonly string Name = "lykke";
         private new LykkeExchangeConfiguration Config => (LykkeExchangeConfiguration) base.Config;
         private readonly ApiClient apiClient;
@@ -40,7 +40,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         private readonly Dictionary<string, decimal> _lastBids;
         private readonly Dictionary<string, decimal> _lastAsks;
 
-        public LykkeExchange(LykkeExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, IHandler<TickPrice> tickPriceHandler, IHandler<OrderStatusUpdate> tradeHandler, ILog log)
+        public LykkeExchange(LykkeExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, IHandler<TickPrice> tickPriceHandler, IHandler<ExecutionReport> tradeHandler, ILog log)
             : base(Name, config, translatedSignalsRepository, log)
         {
             _tickPriceHandler = tickPriceHandler;
@@ -185,7 +185,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     await LykkeLog.WriteInfoAsync(nameof(LykkeExchange), nameof(HandleOrderStatus), order.ToString(),
                         "Order canceled. Calling ExecutedTradeHandlers");
                     
-                    await _tradeHandler.Handle(new OrderStatusUpdate(new Instrument(Name, order.Order.AssetPairId),
+                    await _tradeHandler.Handle(new ExecutionReport(new Instrument(Name, order.Order.AssetPairId),
                         DateTime.UtcNow,
                         order.Order.Price ?? 0, 
                         Math.Abs(order.Order.Volume), 
@@ -198,7 +198,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     await LykkeLog.WriteInfoAsync(nameof(LykkeExchange), nameof(HandleOrderStatus), order.ToString(),
                         "Order executed. Calling ExecutedTradeHandlers");
                     
-                    await _tradeHandler.Handle(new OrderStatusUpdate(new Instrument(Name, order.Order.AssetPairId),
+                    await _tradeHandler.Handle(new ExecutionReport(new Instrument(Name, order.Order.AssetPairId),
                         order.Trades.Last().Timestamp,
                         order.Order.Price ?? order.Trades.Last().Price ?? 0,
                         Math.Abs(order.Order.Volume - order.Order.RemainingVolume),
@@ -262,7 +262,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             return content;
         }
 
-        public override async Task<OrderStatusUpdate> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal,
+        public override async Task<ExecutionReport> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal,
             TimeSpan timeout)
         {
             var cts = new CancellationTokenSource(timeout);
@@ -286,7 +286,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
 
                     if (marketOrderResponse != null && marketOrderResponse.Error == null)
                     {
-                        return new OrderStatusUpdate(signal.Instrument, DateTime.UtcNow, marketOrderResponse.Result,
+                        return new ExecutionReport(signal.Instrument, DateTime.UtcNow, marketOrderResponse.Result,
                             signal.Volume, signal.TradeType,
                             signal.OrderId, OrderExecutionStatus.Fill);
                     }
@@ -314,7 +314,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     if (orderPlaced)
                     {
                         translatedSignal.ExternalId = orderId.ToString();
-                        return new OrderStatusUpdate(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume,
+                        return new ExecutionReport(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume,
                             signal.TradeType,
                             orderId.ToString(), OrderExecutionStatus.New);
                     }
@@ -328,7 +328,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             }
         }
 
-        public override async Task<OrderStatusUpdate> CancelOrderAndWaitExecution(TradingSignal signal,
+        public override async Task<ExecutionReport> CancelOrderAndWaitExecution(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var cts = new CancellationTokenSource(timeout);
@@ -339,7 +339,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                 translatedSignal.RequestSent, translatedSignal.ResponseReceived,
                 cts.Token);
             
-            return new OrderStatusUpdate(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
+            return new ExecutionReport(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
                 signal.OrderId, OrderExecutionStatus.Cancelled);
         }
 

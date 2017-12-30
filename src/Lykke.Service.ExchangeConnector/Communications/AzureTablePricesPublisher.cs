@@ -7,7 +7,6 @@ using Common;
 using Lykke.ExternalExchangesApi.Helpers;
 using Common.Log;
 using TradingBot.Handlers;
-using TradingBot.Helpers;
 using TradingBot.Trading;
 
 namespace TradingBot.Communications
@@ -30,48 +29,48 @@ namespace TradingBot.Communications
         private DateTime currentPriceMinute;
         private readonly ConcurrentDictionary<string, TickPrice> lastTickPrices = new ConcurrentDictionary<string, TickPrice>();
 
-        public async Task Handle(TickPrice tickPrice)
+        public async Task Handle(TickPrice message)
         {
-            if (lastTickPrices.TryGetValue(tickPrice.Instrument.Name, out var lastTickPrice))
+            if (lastTickPrices.TryGetValue(message.Instrument.Name, out var lastTickPrice))
             {
                 if (lastTickPrice != null &&
-                    lastTickPrice.Ask == tickPrice.Ask && lastTickPrice.Bid == tickPrice.Bid)
+                    lastTickPrice.Ask == message.Ask && lastTickPrice.Bid == message.Bid)
                 {
                     return; // skip the same tickPrice, we not going to save it to the database
                 }
                 else
                 {
-                    lastTickPrices.TryUpdate(tickPrice.Instrument.Name, newValue: tickPrice, comparisonValue: lastTickPrice);
+                    lastTickPrices.TryUpdate(message.Instrument.Name, newValue: message, comparisonValue: lastTickPrice);
                 }
             }
             else
             {
-                lastTickPrices.TryAdd(tickPrice.Instrument.Name, tickPrice);
+                lastTickPrices.TryAdd(message.Instrument.Name, message);
             }
 
 
             if (currentPriceMinute == default)
-                currentPriceMinute = tickPrice.Time.TruncSeconds();
+                currentPriceMinute = message.Time.TruncSeconds();
 
-            var timeMunite = tickPrice.Time.TruncSeconds();
+            var timeMunite = message.Time.TruncSeconds();
 
             bool nextMinute = timeMunite > currentPriceMinute;
             bool fieldOverflow = pricesQueue.Count >= MaxQueueCount;
 
             if (nextMinute || fieldOverflow)
             {
-                var tablePrice = new PriceTableEntity(tickPrice.Instrument.Name,
+                var tablePrice = new PriceTableEntity(message.Instrument.Name,
                                                         currentPriceMinute,
                                                         pricesQueue.ToArray());
 
                 pricesQueue.Clear();
-                pricesQueue.Enqueue(tickPrice);
-                currentPriceMinute = fieldOverflow ? tickPrice.Time.RoundToSecond() : timeMunite;
+                pricesQueue.Enqueue(message);
+                currentPriceMinute = fieldOverflow ? message.Time.RoundToSecond() : timeMunite;
 
                 try
                 {
                     await tableStorage.InsertAsync(tablePrice);
-                    await _log.WriteInfoAsync(nameof(AzureTablePricesPublisher), nameof(Handle), string.Empty, $"Prices for {tickPrice.Instrument} published to Azure table {tableName}");
+                    await _log.WriteInfoAsync(nameof(AzureTablePricesPublisher), nameof(Handle), string.Empty, $"Prices for {message.Instrument} published to Azure table {tableName}");
                 }
                 catch (Microsoft.WindowsAzure.Storage.StorageException ex)
                     when (ex.Message == "Conflict")
@@ -86,7 +85,7 @@ namespace TradingBot.Communications
             }
             else
             {
-                pricesQueue.Enqueue(tickPrice);
+                pricesQueue.Enqueue(message);
             }
         }
 

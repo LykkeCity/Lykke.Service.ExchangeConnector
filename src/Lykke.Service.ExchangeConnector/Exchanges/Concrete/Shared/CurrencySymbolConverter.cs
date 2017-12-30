@@ -6,7 +6,7 @@ using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.Shared
 {
-    internal class ExchangeConverters
+    public class ExchangeConverters
     {
         private readonly IReadOnlyCollection<CurrencySymbol> _currencySymbols;
         private readonly string _exchangeName;

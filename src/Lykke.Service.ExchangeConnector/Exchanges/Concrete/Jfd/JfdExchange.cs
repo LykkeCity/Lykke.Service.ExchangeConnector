@@ -14,6 +14,7 @@ using TradingBot.Infrastructure.Configuration;
 using TradingBot.Models.Api;
 using TradingBot.Repositories;
 using TradingBot.Trading;
+using ExecutionReport = TradingBot.Trading.ExecutionReport;
 using ILog = Common.Log.ILog;
 using TimeInForce = QuickFix.Fields.TimeInForce;
 
@@ -52,7 +53,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             OnStopped();
         }
 
-        public override async Task<OrderStatusUpdate> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<ExecutionReport> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
 
             var newOrderSingle = new NewOrderSingle
@@ -114,7 +115,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             return ConvertPositionReport(reports);
         }
 
-        public override Task<OrderStatusUpdate> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override Task<ExecutionReport> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             throw new NotImplementedException();
         }
@@ -152,7 +153,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             return result;
         }
 
-        private OrderStatusUpdate ConvertExecutionReport(ExecutionReport report)
+        private ExecutionReport ConvertExecutionReport(QuickFix.FIX44.ExecutionReport report)
         {
             var inst = _modelConverter.ConvertJfdSymbol(report.Symbol);
             var time = report.TransactTime.Obj;
@@ -162,7 +163,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             var id = report.OrderID.Obj;
             var status = _modelConverter.ConvertStatus(report.OrdStatus);
 
-            var executedTrade = new OrderStatusUpdate(inst, time, price, volume, type, id, status);
+            var executedTrade = new ExecutionReport(inst, time, price, volume, type, id, status) { ClientOrderId = report.ClOrdID.Obj };
             return executedTrade;
         }
 

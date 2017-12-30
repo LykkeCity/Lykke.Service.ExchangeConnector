@@ -33,10 +33,10 @@ namespace TradingBot.Exchanges.Concrete.GDAX
         private CancellationTokenSource _webSocketCtSource;
         private readonly GdaxOrderBooksHarvester _orderBooksHarvester;
         private readonly IHandler<TickPrice> _tickPriceHandler;
-        private readonly IHandler<OrderStatusUpdate> _tradeHandler;
+        private readonly IHandler<ExecutionReport> _tradeHandler;
 
         public GdaxExchange(GdaxExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository,
-            GdaxOrderBooksHarvester orderBookHarvester, IHandler<TickPrice> tickPriceHandler, IHandler<OrderStatusUpdate> tradeHandler, ILog log)
+            GdaxOrderBooksHarvester orderBookHarvester, IHandler<TickPrice> tickPriceHandler, IHandler<ExecutionReport> tradeHandler, ILog log)
             : base(Name, configuration, translatedSignalsRepository, log)
         {
             _configuration = configuration;
@@ -69,7 +69,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             return websocketApi;
         }
 
-        public override async Task<OrderStatusUpdate> AddOrderAndWaitExecution(TradingSignal signal,
+        public override async Task<ExecutionReport> AddOrderAndWaitExecution(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var symbol = _converters.LykkeSymbolToExchangeSymbol(signal.Instrument.Name);
@@ -93,7 +93,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             }
         }
 
-        public override async Task<OrderStatusUpdate> CancelOrderAndWaitExecution(
+        public override async Task<ExecutionReport> CancelOrderAndWaitExecution(
             TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             if (!Guid.TryParse(signal.OrderId, out var id))
@@ -116,7 +116,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             }
         }
 
-        public override async Task<OrderStatusUpdate> GetOrder(string id, Instrument instrument, TimeSpan timeout)
+        public override async Task<ExecutionReport> GetOrder(string id, Instrument instrument, TimeSpan timeout)
         {
             if (!Guid.TryParse(id, out var orderId))
                 throw new ApiException("GDAX order id can be only Guid");
@@ -134,7 +134,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             }
         }
 
-        public override async Task<IEnumerable<OrderStatusUpdate>> GetOpenOrders(TimeSpan timeout)
+        public override async Task<IEnumerable<ExecutionReport>> GetOpenOrders(TimeSpan timeout)
         {
             var cts = CreateCancellationTokenSource(timeout);
             try
@@ -242,7 +242,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
         private async Task OnWebSocketOrderReceivedAsync(object sender,
             GdaxWssOrderReceived order)
         {
-            await _tradeHandler.Handle(new OrderStatusUpdate(new Instrument(Name, order.ProductId),
+            await _tradeHandler.Handle(new ExecutionReport(new Instrument(Name, order.ProductId),
                 order.Time, order.Price ?? 0, order.Size,
                 order.Side == GdaxOrderSide.Buy ? TradeType.Buy : TradeType.Sell,
                 order.OrderId.ToString(), OrderExecutionStatus.New));
@@ -250,7 +250,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 
         private async Task OnOrderChangedAsync(object sender, GdaxWssOrderChange order)
         {
-            await _tradeHandler.Handle(new OrderStatusUpdate(new Instrument(Name, order.ProductId),
+            await _tradeHandler.Handle(new ExecutionReport(new Instrument(Name, order.ProductId),
                 order.Time, order.Price ?? 0, order.NewSize,
                 order.Side == GdaxOrderSide.Buy ? TradeType.Buy : TradeType.Sell,
                 order.OrderId.ToString(),
@@ -259,7 +259,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
 
         private async Task OnWebSocketOrderDoneAsync(object sender, GdaxWssOrderDone order)
         {
-            await _tradeHandler.Handle(new OrderStatusUpdate(new Instrument(Name, order.ProductId),
+            await _tradeHandler.Handle(new ExecutionReport(new Instrument(Name, order.ProductId),
                 order.Time, order.Price ?? 0, order.RemainingSize,
                 order.Side == GdaxOrderSide.Buy ? TradeType.Buy : TradeType.Sell,
                 order.OrderId.ToString(),

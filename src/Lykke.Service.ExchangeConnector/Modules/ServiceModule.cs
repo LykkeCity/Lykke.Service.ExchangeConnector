@@ -3,7 +3,6 @@ using Autofac.Extras.DynamicProxy;
 using Common.Log;
 using Lykke.RabbitMqBroker;
 using Lykke.RabbitMqBroker.Subscriber;
-using Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient;
 using TradingBot.Communications;
 using TradingBot.Exchanges;
 using TradingBot.Exchanges.Abstractions;
@@ -76,7 +75,18 @@ namespace TradingBot.Modules
             builder.RegisterType<BitMexOrderBooksHarvester>()
                 .SingleInstance();
 
+            builder.RegisterType<BitMexExecutionHarvester>()
+                .SingleInstance();
+
             builder.RegisterType<BitfinexOrderBooksHarvester>()
+                .SingleInstance();
+
+            builder.RegisterType<BitfinexExecutionHarvester>()
+                .SingleInstance();
+
+            builder.RegisterType<BitfinexWebSocketSubscriber>()
+                .WithParameter("authenticate", true)
+                .As<IBitfinexWebSocketSubscriber>()
                 .SingleInstance();
 
             builder.RegisterType<GdaxOrderBooksHarvester>()
@@ -113,8 +123,7 @@ namespace TradingBot.Modules
             RegisterTradeSignalSubscriber(builder);
 
             RegisterRabbitMqHandler<TickPrice>(builder, _config.RabbitMq.TickPrices, "tickHandler");
-            RegisterRabbitMqHandler<OrderStatusUpdate>(builder, _config.RabbitMq.Trades);
-            RegisterRabbitMqHandler<OrderStatusUpdate>(builder, _config.RabbitMq.Acknowledgements);
+            RegisterRabbitMqHandler<ExecutionReport>(builder, _config.RabbitMq.Trades);
             RegisterRabbitMqHandler<OrderBook>(builder, _config.RabbitMq.OrderBooks);
 
             builder.RegisterType<TickPriceHandlerDecorator>()

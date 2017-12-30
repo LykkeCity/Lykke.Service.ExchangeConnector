@@ -464,7 +464,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
         }
 
         [Fact]
-        public async Task SetupSubscriberToContinueOnFailedHandle()
+        public void SetupSubscriberToContinueOnFailedHandle()
         {
             // Setup
 

@@ -1,8 +1,4 @@
-﻿using System;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-
-namespace TradingBot.Trading
+﻿namespace TradingBot.Trading
 {
     public enum OrderExecutionStatus
     {

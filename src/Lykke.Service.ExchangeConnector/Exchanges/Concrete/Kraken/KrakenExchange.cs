@@ -12,7 +12,6 @@ using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Kraken.Endpoints;
 using TradingBot.Exchanges.Concrete.Kraken.Entities;
 using TradingBot.Handlers;
-using TradingBot.Helpers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 using TradingBot.Repositories;
@@ -25,7 +24,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
 
         private readonly KrakenConfig config;
         private readonly IHandler<TickPrice> _tickPriceHandler;
-        private readonly IHandler<OrderStatusUpdate> _tradeHandler;
+        private readonly IHandler<ExecutionReport> _tradeHandler;
 
         private readonly PublicData publicData;
         private readonly PrivateData privateData;
@@ -33,7 +32,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
         private Task pricesJob;
         private CancellationTokenSource ctSource;
 
-        public KrakenExchange(KrakenConfig config, TranslatedSignalsRepository translatedSignalsRepository, IHandler<TickPrice> tickPriceHandler, IHandler<OrderStatusUpdate> tradeHandler, ILog log) :
+        public KrakenExchange(KrakenConfig config, TranslatedSignalsRepository translatedSignalsRepository, IHandler<TickPrice> tickPriceHandler, IHandler<ExecutionReport> tradeHandler, ILog log) :
             base(Name, config, translatedSignalsRepository, log)
         {
             this.config = config;
@@ -171,7 +170,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                 });
         }
 
-        public override async Task<OrderStatusUpdate> AddOrderAndWaitExecution(TradingSignal signal,
+        public override async Task<ExecutionReport> AddOrderAndWaitExecution(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var cts = new CancellationTokenSource(timeout);
@@ -180,14 +179,14 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             string txId = orderInfo.TxId.FirstOrDefault();
             translatedSignal.ExternalId = txId;
 
-            return new OrderStatusUpdate(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, OrderExecutionStatus.New);
+            return new ExecutionReport(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId, OrderExecutionStatus.New);
         }
 
-        public override async Task<OrderStatusUpdate> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<ExecutionReport> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var result = await privateData.CancelOrder(signal.OrderId, translatedSignal);
 
-            var executedTrade = new OrderStatusUpdate(signal.Instrument,
+            var executedTrade = new ExecutionReport(signal.Instrument,
                 DateTime.UtcNow,
                 signal.Price ?? 0,
                 signal.Volume,
@@ -200,10 +199,10 @@ namespace TradingBot.Exchanges.Concrete.Kraken
             return executedTrade;
         }
 
-        public override async Task<IEnumerable<OrderStatusUpdate>> GetOpenOrders(TimeSpan timeout)
+        public override async Task<IEnumerable<ExecutionReport>> GetOpenOrders(TimeSpan timeout)
         {
             return (await privateData.GetOpenOrders(new CancellationTokenSource(timeout).Token))
-                .Select(x => new OrderStatusUpdate(new Instrument(Name, x.Value.DescriptionInfo.Pair),
+                .Select(x => new ExecutionReport(new Instrument(Name, x.Value.DescriptionInfo.Pair),
                     DateTimeUtils.FromUnix(x.Value.StartTime),
                     x.Value.Price,
                     x.Value.Volume,
@@ -212,10 +211,10 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                     ConvertStatus(x.Value.Status)));
         }
 
-        public async Task<IEnumerable<OrderStatusUpdate>> GetExecutedOrders(DateTime start, TimeSpan timeout)
+        public async Task<IEnumerable<ExecutionReport>> GetExecutedOrders(DateTime start, TimeSpan timeout)
         {
             return (await privateData.GetClosedOrders(start, new CancellationTokenSource(timeout).Token)).Closed
-                .Select(x => new OrderStatusUpdate(new Instrument(Name, x.Value.DescriptionInfo.Pair),
+                .Select(x => new ExecutionReport(new Instrument(Name, x.Value.DescriptionInfo.Pair),
                     DateTimeUtils.FromUnix(x.Value.StartTime),
                     x.Value.Price,
                     x.Value.Volume,

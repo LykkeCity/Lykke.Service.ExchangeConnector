@@ -14,7 +14,6 @@ using Lykke.ExternalExchangesApi.Exchanges.GDAX.WssClient.Entities;
 using Lykke.ExternalExchangesApi.Helpers;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Handlers;
-using TradingBot.Helpers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 

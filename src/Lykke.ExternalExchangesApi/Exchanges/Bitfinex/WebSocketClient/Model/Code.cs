@@ -10,6 +10,7 @@
         NotSubsribed = 10401,
         RestartServer = 20051,
         Pause = 20060,
-        Resume = 20061
+        Resume = 20061,
+        InvalidApiKey = 10100
     }
 }

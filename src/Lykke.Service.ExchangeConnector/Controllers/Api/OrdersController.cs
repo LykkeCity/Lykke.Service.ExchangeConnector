@@ -38,9 +38,9 @@ namespace TradingBot.Controllers.Api
         /// <response code="500">Unexpected error</response>
         [SwaggerOperation("GetOpenedOrders")]
         [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<OrderStatusUpdate>), 200)]
+        [ProducesResponseType(typeof(IEnumerable<ExecutionReport>), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
-        private async Task<IEnumerable<OrderStatusUpdate>> Index([FromQuery, Required] string exchangeName) // Intentionally disabled
+        private async Task<IEnumerable<ExecutionReport>> Index([FromQuery, Required] string exchangeName) // Intentionally disabled
         {
             try
             {
@@ -63,9 +63,9 @@ namespace TradingBot.Controllers.Api
         /// <response code="500">The order either not exist or other server error</response>
         [SwaggerOperation("GetOrder")]
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(OrderStatusUpdate), 200)]
+        [ProducesResponseType(typeof(ExecutionReport), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
-        public async Task<OrderStatusUpdate> GetOrder(string id, [FromQuery, Required] string exchangeName, [FromQuery, Required] string instrument)
+        public async Task<ExecutionReport> GetOrder(string id, [FromQuery, Required] string exchangeName, [FromQuery, Required] string instrument)
         {
             try
             {
@@ -89,7 +89,7 @@ namespace TradingBot.Controllers.Api
         /// <response code="400">Can't place the order. The reason is in the response</response>
         [SwaggerOperation("CreateOrder")]
         [HttpPost]
-        [ProducesResponseType(typeof(OrderStatusUpdate), 200)]
+        [ProducesResponseType(typeof(ExecutionReport), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 400)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
         public async Task<IActionResult> Post([FromBody] OrderModel orderModel)
@@ -175,7 +175,7 @@ namespace TradingBot.Controllers.Api
         /// <response code="400">Can't cancel the order. The reason is in the response</response>
         [SwaggerOperation("CancelOrder")]
         [HttpDelete("{id}")]
-        [ProducesResponseType(typeof(OrderStatusUpdate), 200)]
+        [ProducesResponseType(typeof(ExecutionReport), 200)]
         [ProducesResponseType(typeof(ResponseMessage), 400)]
         [ProducesResponseType(typeof(ResponseMessage), 500)]
         public async Task<IActionResult> CancelOrder(string id, [FromQuery, Required]string exchangeName)

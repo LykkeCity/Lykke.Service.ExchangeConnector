@@ -11,7 +11,6 @@ using QuickFix.Transport;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Icm.Converters;
-using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
@@ -30,7 +29,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
         private SocketInitiator initiator;
         private IcmConnector connector;
         private readonly INoSQLTableStorage<FixMessageTableEntity> _tableStorage;
-        private readonly IHandler<OrderStatusUpdate> _tradeHandler;
+        private readonly IHandler<ExecutionReport> _tradeHandler;
         private readonly IHandler<TickPrice> _tickPriceHandler;
         public new static readonly string Name = "icm";
 
@@ -38,7 +37,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             IcmConfig config,
             TranslatedSignalsRepository translatedSignalsRepository,
             INoSQLTableStorage<FixMessageTableEntity> tableStorage,
-            IHandler<OrderStatusUpdate> tradeHandler,
+            IHandler<ExecutionReport> tradeHandler,
             IHandler<TickPrice> tickPriceHandler,
                 Common.Log.ILog log)
             : base(Name, config, translatedSignalsRepository, log)
@@ -137,22 +136,22 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 .Start();
         }
 
-        public override Task<OrderStatusUpdate> GetOrder(string orderId, Instrument instrument, TimeSpan timeout)
+        public override Task<ExecutionReport> GetOrder(string id, Instrument instrument, TimeSpan timeout)
         {
-            return connector.GetOrderInfoAndWaitResponse(instrument, orderId);
+            return connector.GetOrderInfoAndWaitResponse(instrument, id);
         }
 
-        public override Task<IEnumerable<OrderStatusUpdate>> GetOpenOrders(TimeSpan timeout)
+        public override Task<IEnumerable<ExecutionReport>> GetOpenOrders(TimeSpan timeout)
         {
             return connector.GetAllOrdersInfo(timeout);
         }
 
-        public override Task<OrderStatusUpdate> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override Task<ExecutionReport> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             return connector.AddOrderAndWaitResponse(signal, translatedSignal, timeout);
         }
 
-        public override Task<OrderStatusUpdate> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override Task<ExecutionReport> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             return connector.CancelOrderAndWaitResponse(signal, translatedSignal, timeout);
         }

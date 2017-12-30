@@ -288,6 +288,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
             {
                 _underlying = underlying;
             }
+#pragma warning disable S4144 // Methods should not have identical implementations
+
             public Task WriteInfoAsync(string component, string process, string context, string info, DateTime? dateTime = null)
             {
                 _underlying.WriteLine(info);
@@ -359,6 +361,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
                 _underlying.WriteLine(exception.ToString());
                 return Task.CompletedTask;
             }
+#pragma warning restore S4144 // Methods should not have identical implementations
+
         }
     }
 }

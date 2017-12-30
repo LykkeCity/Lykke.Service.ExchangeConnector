@@ -11,7 +11,6 @@ using Lykke.ExternalExchangesApi.Exceptions;
 using Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient;
 using Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Models.Api;
 using TradingBot.Repositories;
 using TradingBot.Trading;
@@ -26,6 +25,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         private readonly BitMexOrderBooksHarvester _orderBooksHarvester;
         private readonly BitMexOrderHarvester _orderHarvester;
         private readonly BitMexPriceHarvester _priceHarvester;
+        private readonly BitMexExecutionHarvester _executionHarvester;
         private readonly IBitMEXAPI _exchangeApi;
         public new const string Name = "bitmex";
 
@@ -34,13 +34,14 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             BitMexOrderBooksHarvester orderBooksHarvester,
             BitMexOrderHarvester orderHarvester,
             BitMexPriceHarvester priceHarvester,
-            IBitmexSocketSubscriber socketSubscriber,
+            BitMexExecutionHarvester executionHarvester,
             ILog log)
             : base(Name, configuration, translatedSignalsRepository, log)
         {
             _orderBooksHarvester = orderBooksHarvester;
             _orderHarvester = orderHarvester;
             _priceHarvester = priceHarvester;
+            _executionHarvester = executionHarvester;
 
 
             var credenitals = new BitMexServiceClientCredentials(configuration.ApiKey, configuration.ApiSecret);
@@ -52,7 +53,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             orderBooksHarvester.MaxOrderBookRate = configuration.MaxOrderBookRate;
         }
 
-        public override async Task<OrderStatusUpdate> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<ExecutionReport> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
           //  var symbol = BitMexModelConverter.ConvertSymbolFromLykkeToBitMex(instrument.Name, _configuration);
             var symbol = "XBTUSD"; //HACK Hard code!
@@ -79,10 +80,10 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
             translatedSignal.ExternalId = order.OrderID;
 
-            return new OrderStatusUpdate(signal.Instrument, exceTime, execPrice, execVolume, execType, order.OrderID, execStatus) { Message = order.Text };
+            return new ExecutionReport(signal.Instrument, exceTime, execPrice, execVolume, execType, order.OrderID, execStatus) { Message = order.Text };
         }
 
-        public override async Task<OrderStatusUpdate> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<ExecutionReport> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var ct = new CancellationTokenSource(timeout);
             var id = signal.OrderId;
@@ -96,7 +97,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return BitMexModelConverter.OrderToTrade(res[0]);
         }
 
-        public override async Task<OrderStatusUpdate> GetOrder(string id, Instrument instrument, TimeSpan timeout)
+        public override async Task<ExecutionReport> GetOrder(string id, Instrument instrument, TimeSpan timeout)
         {
             var filterObj = new { orderID = id };
             var filterArg = JsonConvert.SerializeObject(filterObj);
@@ -106,7 +107,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return BitMexModelConverter.OrderToTrade(res[0]);
         }
 
-        public override async Task<IEnumerable<OrderStatusUpdate>> GetOpenOrders(TimeSpan timeout)
+        public override async Task<IEnumerable<ExecutionReport>> GetOpenOrders(TimeSpan timeout)
         {
             var filterObj = new { ordStatus = "New" };
             var filterArg = JsonConvert.SerializeObject(filterObj);
@@ -162,7 +163,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
         protected override void StartImpl()
         {
-      
+            _executionHarvester.Start();
             _priceHarvester.Start();
             _orderHarvester.Start();
             _orderBooksHarvester.Start();
@@ -171,6 +172,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
         protected override void StopImpl()
         {
+            _executionHarvester.Stop();
             _priceHarvester.Stop();
             _orderHarvester.Stop();
             _orderBooksHarvester.Stop();
