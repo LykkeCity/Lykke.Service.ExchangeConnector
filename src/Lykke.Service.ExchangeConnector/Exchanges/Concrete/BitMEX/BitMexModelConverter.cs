@@ -46,14 +46,21 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         public static ExecutionReport OrderToTrade(Order order)
         {
             var execTime = order.TransactTime ?? DateTime.UtcNow;
-            var execPrice = (decimal)(order.Price ?? 0);
-            var execVolume = (decimal)(order.OrderQty ?? 0);
+            var execPrice = (decimal)(order.AvgPx ?? 0);
+            var execVolume = (decimal)(order.CumQty ?? 0);
             var tradeType = ConvertTradeType(order.Side);
             var status = ConvertExecutionStatus(order.OrdStatus);
             //  var instr = ConvertSymbolFromBitMexToLykke(order.Symbol, configuration);
             var instr = new Instrument(BitMexExchange.Name, "USDBTC"); //HACK Hard code!
 
-            return new ExecutionReport(instr, execTime, execPrice, execVolume, tradeType, order.OrderID, status) { Message = order.Text, ClientOrderId = order.ClOrdID };
+            return new ExecutionReport(instr, execTime, execPrice, execVolume, tradeType, order.OrderID, status)
+            {
+                ClientOrderId = order.ClOrdID,
+                Message = order.Text,
+                Success = true,
+                OrderType = ConvertOrderType(order.OrdType),
+                ExecType = ExecType.Unknown
+            };
         }
 
 
