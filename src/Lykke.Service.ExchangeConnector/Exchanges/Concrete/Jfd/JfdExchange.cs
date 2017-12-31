@@ -10,10 +10,12 @@ using QuickFix.FIX44;
 using Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
+using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Models.Api;
 using TradingBot.Repositories;
 using TradingBot.Trading;
+using ExecType = TradingBot.Trading.ExecType;
 using ExecutionReport = TradingBot.Trading.ExecutionReport;
 using ILog = Common.Log.ILog;
 using TimeInForce = QuickFix.Fields.TimeInForce;
@@ -25,15 +27,17 @@ namespace TradingBot.Exchanges.Concrete.Jfd
         private readonly JfdExchangeConfiguration _config;
         private readonly JfdTradeSessionConnector _connector;
         private readonly JfdOrderBooksHarvester _harvester;
+        private readonly IHandler<ExecutionReport> _executionHandler;
         private readonly JfdModelConverter _modelConverter;
         private readonly ILog _log;
         public new const string Name = "jfd";
 
-        public JfdExchange(JfdExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, JfdOrderBooksHarvester harvester, ILog log) : base(Name, config, translatedSignalsRepository, log)
+        public JfdExchange(JfdExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, JfdOrderBooksHarvester harvester, IHandler<ExecutionReport> executionHandler, ILog log) : base(Name, config, translatedSignalsRepository, log)
         {
             _config = config;
             _connector = new JfdTradeSessionConnector(new JfdConnectorConfiguration(config.Password, config.GetTradingFixConfigAsReader()), log);
             _harvester = harvester;
+            _executionHandler = executionHandler;
             _modelConverter = new JfdModelConverter(config);
             _log = log.CreateComponentScope(nameof(JfdExchange));
             harvester.MaxOrderBookRate = config.MaxOrderBookRate;
@@ -58,7 +62,6 @@ namespace TradingBot.Exchanges.Concrete.Jfd
 
             var newOrderSingle = new NewOrderSingle
             {
-                //  NoPartyIDs = new NoPartyIDs(0),
                 HandlInst = new HandlInst(HandlInst.AUTOMATED_EXECUTION_ORDER_PRIVATE),
                 Symbol = _modelConverter.ConvertLykkeSymbol(signal.Instrument.Name),
                 Side = _modelConverter.ConvertSide(signal.TradeType),
@@ -73,6 +76,16 @@ namespace TradingBot.Exchanges.Concrete.Jfd
 
 
             var trade = ConvertExecutionReport(report);
+            try
+            {
+                var handlerTrade = ConvertExecutionReport(report);
+                handlerTrade.ExecType = ExecType.Trade;
+                await _executionHandler.Handle(handlerTrade);
+            }
+            catch (Exception ex)
+            {
+                await _log.WriteErrorAsync(nameof(AddOrderAndWaitExecution), "Posting order to Jfd", ex);
+            }
             return trade;
         }
 

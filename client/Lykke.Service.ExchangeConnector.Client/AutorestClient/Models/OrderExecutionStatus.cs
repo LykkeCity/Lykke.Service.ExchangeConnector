@@ -12,10 +12,10 @@ namespace Lykke.Service.ExchangeConnector.Client.Models
     using System.Runtime.Serialization;
 
     /// <summary>
-    /// Defines values for ExecutionStatus.
+    /// Defines values for OrderExecutionStatus.
     /// </summary>
     [JsonConverter(typeof(StringEnumConverter))]
-    public enum ExecutionStatus
+    public enum OrderExecutionStatus
     {
         [EnumMember(Value = "Unknown")]
         Unknown,
@@ -32,53 +32,53 @@ namespace Lykke.Service.ExchangeConnector.Client.Models
         [EnumMember(Value = "Pending")]
         Pending
     }
-    internal static class ExecutionStatusEnumExtension
+    internal static class OrderExecutionStatusEnumExtension
     {
-        internal static string ToSerializedValue(this ExecutionStatus? value)
+        internal static string ToSerializedValue(this OrderExecutionStatus? value)
         {
-            return value == null ? null : ((ExecutionStatus)value).ToSerializedValue();
+            return value == null ? null : ((OrderExecutionStatus)value).ToSerializedValue();
         }
 
-        internal static string ToSerializedValue(this ExecutionStatus value)
+        internal static string ToSerializedValue(this OrderExecutionStatus value)
         {
             switch( value )
             {
-                case ExecutionStatus.Unknown:
+                case OrderExecutionStatus.Unknown:
                     return "Unknown";
-                case ExecutionStatus.Fill:
+                case OrderExecutionStatus.Fill:
                     return "Fill";
-                case ExecutionStatus.PartialFill:
+                case OrderExecutionStatus.PartialFill:
                     return "PartialFill";
-                case ExecutionStatus.Cancelled:
+                case OrderExecutionStatus.Cancelled:
                     return "Cancelled";
-                case ExecutionStatus.Rejected:
+                case OrderExecutionStatus.Rejected:
                     return "Rejected";
-                case ExecutionStatus.New:
+                case OrderExecutionStatus.New:
                     return "New";
-                case ExecutionStatus.Pending:
+                case OrderExecutionStatus.Pending:
                     return "Pending";
             }
             return null;
         }
 
-        internal static ExecutionStatus? ParseExecutionStatus(this string value)
+        internal static OrderExecutionStatus? ParseOrderExecutionStatus(this string value)
         {
             switch( value )
             {
                 case "Unknown":
-                    return ExecutionStatus.Unknown;
+                    return OrderExecutionStatus.Unknown;
                 case "Fill":
-                    return ExecutionStatus.Fill;
+                    return OrderExecutionStatus.Fill;
                 case "PartialFill":
-                    return ExecutionStatus.PartialFill;
+                    return OrderExecutionStatus.PartialFill;
                 case "Cancelled":
-                    return ExecutionStatus.Cancelled;
+                    return OrderExecutionStatus.Cancelled;
                 case "Rejected":
-                    return ExecutionStatus.Rejected;
+                    return OrderExecutionStatus.Rejected;
                 case "New":
-                    return ExecutionStatus.New;
+                    return OrderExecutionStatus.New;
                 case "Pending":
-                    return ExecutionStatus.Pending;
+                    return OrderExecutionStatus.Pending;
             }
             return null;
         }

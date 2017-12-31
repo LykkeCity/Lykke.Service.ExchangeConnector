@@ -1091,7 +1091,7 @@ namespace Lykke.Service.ExchangeConnector.Client
                 _responseContent = await _httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
                 try
                 {
-                    _result.Body = SafeJsonConvert.DeserializeObject<ExecutedTrade>(_responseContent, DeserializationSettings);
+                    _result.Body = SafeJsonConvert.DeserializeObject<ExecutionReport>(_responseContent, DeserializationSettings);
                 }
                 catch (JsonException ex)
                 {
@@ -1263,7 +1263,7 @@ namespace Lykke.Service.ExchangeConnector.Client
                 _responseContent = await _httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
                 try
                 {
-                    _result.Body = SafeJsonConvert.DeserializeObject<ExecutedTrade>(_responseContent, DeserializationSettings);
+                    _result.Body = SafeJsonConvert.DeserializeObject<ExecutionReport>(_responseContent, DeserializationSettings);
                 }
                 catch (JsonException ex)
                 {
@@ -1443,7 +1443,7 @@ namespace Lykke.Service.ExchangeConnector.Client
                 _responseContent = await _httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
                 try
                 {
-                    _result.Body = SafeJsonConvert.DeserializeObject<ExecutedTrade>(_responseContent, DeserializationSettings);
+                    _result.Body = SafeJsonConvert.DeserializeObject<ExecutionReport>(_responseContent, DeserializationSettings);
                 }
                 catch (JsonException ex)
                 {

@@ -9,7 +9,7 @@ using Microsoft.Rest;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
-    public class BitMexServiceClientCredentials : ServiceClientCredentials
+    internal sealed class BitMexServiceClientCredentials : ServiceClientCredentials
     {
         private readonly string _apiKey;
         private readonly string _apiSecret;

@@ -478,6 +478,76 @@
         <member name="P:TradingBot.Models.IsAliveResponseModel.Env">
             <summary>Environment variables</summary>
         </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.ClientOrderId">
+            <summary>
+            A client assigned ID of the order
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.ExchangeOrderId">
+            <summary>
+            An exchange assigned ID of the order
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.Instrument">
+            <summary>
+            An instrument description
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.Type">
+            <summary>
+            A trade direction
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.Time">
+            <summary>
+            Transaction time
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.Price">
+            <summary>
+            An actual price of the execution or order
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.Volume">
+            <summary>
+            Trade volume
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.Fee">
+            <summary>
+            Execution fee
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.FeeCurrency">
+            <summary>
+            Fee currency
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.Success">
+            <summary>
+            Indicates that operation was successful
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.ExecutionStatus">
+            <summary>
+            Current status of the order
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.Message">
+            <summary>
+            An arbitrary message from the exchange related to the execution|order 
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.OrderType">
+            <summary>
+            A type of the order
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.ExecType">
+            <summary>
+            A type of the execution. ExecType = Trade means it is an execution, otherwise it is an order
+            </summary>
+        </member>
         <member name="F:TradingBot.Trading.Position._initialValue">
             <summary>
             Initial amount of assets (base asset of the Instrument)

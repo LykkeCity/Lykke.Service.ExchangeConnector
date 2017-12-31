@@ -7,7 +7,7 @@ using Microsoft.Rest;
 
 namespace Lykke.ExternalExchangesApi.Exchanges.GDAX.RestClient
 {
-    public sealed class GdaxRestClientCredentials : ServiceClientCredentials
+    internal sealed class GdaxRestClientCredentials : ServiceClientCredentials
     {
         private const string _accessKeyHeader = "CB-ACCESS-KEY";
         private const string _accessSignatureHeader = "CB-ACCESS-SIGN";
