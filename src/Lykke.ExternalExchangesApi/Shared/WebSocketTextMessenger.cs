@@ -15,7 +15,7 @@ namespace Lykke.ExternalExchangesApi.Shared
         private readonly string _endpointUrl;
         private readonly ILog _log;
         private ClientWebSocket _clientWebSocket;
-        private readonly TimeSpan _responseTimeout = TimeSpan.FromSeconds(1000);
+        private readonly TimeSpan _responseTimeout = TimeSpan.FromSeconds(10);
 
         public WebSocketTextMessenger(string endpointUrl, ILog log)
         {

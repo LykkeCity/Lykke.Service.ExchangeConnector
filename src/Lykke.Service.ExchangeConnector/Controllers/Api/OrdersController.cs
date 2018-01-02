@@ -135,9 +135,6 @@ namespace TradingBot.Controllers.Api
 
                     translatedSignal.SetExecutionResult(result);
 
-                    if (result.ExecutionStatus == OrderExecutionStatus.Rejected || result.ExecutionStatus == OrderExecutionStatus.Cancelled)
-                        throw new StatusCodeException(HttpStatusCode.BadRequest, $"Exchange return status: {result.ExecutionStatus}", null);
-
                     return Ok(result);
                 }
                 catch (Exception e)

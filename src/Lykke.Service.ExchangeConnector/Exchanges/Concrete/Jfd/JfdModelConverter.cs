@@ -1,18 +1,20 @@
 ﻿using System;
 using System.Linq;
 using QuickFix.Fields;
+using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
+using ExecType = TradingBot.Trading.ExecType;
 using TimeInForce = TradingBot.Trading.TimeInForce;
 using TradeType = TradingBot.Trading.TradeType;
 
 namespace TradingBot.Exchanges.Concrete.Jfd
 {
-    internal sealed class JfdModelConverter
+    internal sealed class JfdModelConverter : ExchangeConverters
     {
         private readonly IExchangeConfiguration _configuration;
 
-        public JfdModelConverter(JfdExchangeConfiguration configuration)
+        public JfdModelConverter(JfdExchangeConfiguration configuration) : base(configuration.SupportedCurrencySymbols, JfdExchange.Name)
         {
             _configuration = configuration;
         }
@@ -42,7 +44,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             return ConvertJfdSymbol(jfdSymbol.Obj);
         }
 
-        public Instrument ConvertJfdSymbol(string jfdSymbol)
+        private Instrument ConvertJfdSymbol(string jfdSymbol)
         {
             var jfdNorm = jfdSymbol.Replace("/", string.Empty);
             var result = _configuration.SupportedCurrencySymbols.FirstOrDefault(symb => symb.ExchangeSymbol == jfdNorm);
@@ -53,7 +55,39 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             return new Instrument(JfdExchange.Name, result.LykkeSymbol);
         }
 
-        public OrderExecutionStatus ConvertStatus(OrdStatus status)
+        public ExecutionReport ConvertExecutionReport(QuickFix.FIX44.ExecutionReport report)
+        {
+            var executedTrade = new ExecutionReport
+            {
+                Instrument = ConvertJfdSymbol(report.Symbol),
+                Time = report.TransactTime.Obj,
+                Volume = report.CumQty.Obj,
+                Type = ConvertSide(report.Side),
+                ExchangeOrderId = report.OrderID.Obj,
+                ExecutionStatus = ConvertStatus(report.OrdStatus),
+                ClientOrderId = report.ClOrdID.Obj,
+                ExecType = ConvertExecType(report.ExecType),
+                OrderType = ConverOrderType(report.OrdType),
+                Price = report.AvgPx.Obj,
+                FailureType = OrderStatusUpdateFailureType.None,
+                Success = !new[] { OrderExecutionStatus.Cancelled, OrderExecutionStatus.Rejected }.Contains(ConvertStatus(report.OrdStatus)),
+                Message = report.IsSetText() ? report.Text.Obj : string.Empty
+            };
+            return executedTrade;
+        }
+
+        private static ExecType ConvertExecType(QuickFix.Fields.ExecType reportExecType)
+        {
+            switch (reportExecType.Obj)
+            {
+                case QuickFix.Fields.ExecType.TRADE:
+                    return ExecType.Trade;
+                default:
+                    return ExecType.Unknown;
+            }
+        }
+
+        private static OrderExecutionStatus ConvertStatus(OrdStatus status)
         {
             switch (status.Obj)
             {
@@ -61,13 +95,19 @@ namespace TradingBot.Exchanges.Concrete.Jfd
                     return OrderExecutionStatus.PartialFill;
                 case OrdStatus.FILLED:
                     return OrderExecutionStatus.Fill;
+                case OrdStatus.NEW:
+                    return OrderExecutionStatus.New;
+                case OrdStatus.CANCELED:
+                    return OrderExecutionStatus.Cancelled;
+                case OrdStatus.REJECTED:
+                    return OrderExecutionStatus.Rejected;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(status), status.Obj.ToString());
+                    return OrderExecutionStatus.Unknown;
             }
         }
 
 
-        public OrdType ConvertType(OrderType orderType)
+        public OrdType ConverOrderType(OrderType orderType)
         {
             char typeName;
 
@@ -84,6 +124,20 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             }
 
             return new OrdType(typeName);
+        }
+
+
+        public OrderType ConverOrderType(OrdType orderType)
+        {
+            switch (orderType.Obj)
+            {
+                case OrdType.MARKET:
+                    return OrderType.Market;
+                case OrdType.LIMIT:
+                    return OrderType.Limit;
+                default:
+                    return OrderType.Unknown;
+            }
         }
 
         public QuickFix.Fields.TimeInForce ConvertTimeInForce(TimeInForce timeInForce)

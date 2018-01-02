@@ -66,7 +66,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
                 Symbol = _modelConverter.ConvertLykkeSymbol(signal.Instrument.Name),
                 Side = _modelConverter.ConvertSide(signal.TradeType),
                 OrderQty = new OrderQty(signal.Volume),
-                OrdType = _modelConverter.ConvertType(signal.OrderType),
+                OrdType = _modelConverter.ConverOrderType(signal.OrderType),
                 TimeInForce = new TimeInForce(TimeInForce.IMMEDIATE_OR_CANCEL),
                 TransactTime = new TransactTime(DateTime.UtcNow)
             };
@@ -75,10 +75,10 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             var report = await _connector.AddOrderAsync(newOrderSingle, cts.Token);
 
 
-            var trade = ConvertExecutionReport(report);
+            var trade = _modelConverter.ConvertExecutionReport(report);
             try
             {
-                var handlerTrade = ConvertExecutionReport(report);
+                var handlerTrade = _modelConverter.ConvertExecutionReport(report);
                 handlerTrade.ExecType = ExecType.Trade;
                 await _executionHandler.Handle(handlerTrade);
             }
@@ -166,19 +166,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             return result;
         }
 
-        private ExecutionReport ConvertExecutionReport(QuickFix.FIX44.ExecutionReport report)
-        {
-            var inst = _modelConverter.ConvertJfdSymbol(report.Symbol);
-            var time = report.TransactTime.Obj;
-            var price = report.LastPx.Obj;
-            var volume = report.CumQty.Obj;
-            var type = _modelConverter.ConvertSide(report.Side);
-            var id = report.OrderID.Obj;
-            var status = _modelConverter.ConvertStatus(report.OrdStatus);
 
-            var executedTrade = new ExecutionReport(inst, time, price, volume, type, id, status) { ClientOrderId = report.ClOrdID.Obj };
-            return executedTrade;
-        }
 
 
         private static IReadOnlyCollection<TradeBalanceModel> ConvertCollateral(IEnumerable<CollateralReport> collateralReports)

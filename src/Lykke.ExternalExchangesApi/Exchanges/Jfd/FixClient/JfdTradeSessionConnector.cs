@@ -36,7 +36,7 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
             _log = log.CreateComponentScope(nameof(JfdTradeSessionConnector));
             var settings = new SessionSettings(config.FixConfig);
             var storeFactory = new FileStoreFactory(settings);
-            var logFactory = new LykkeLogFactory(_log);
+            var logFactory = new LykkeLogFactory(_log, false, false);
             _socketInitiator = new SocketInitiator(this, storeFactory, settings, logFactory);
             _ordersHandler = new OrdersHandler(log);
             _positionsHandler = new PositionsHandler(log);

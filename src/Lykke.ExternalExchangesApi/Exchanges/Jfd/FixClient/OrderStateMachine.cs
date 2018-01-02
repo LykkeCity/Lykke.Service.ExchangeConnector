@@ -25,11 +25,8 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
                 {
                     case OrdStatus.FILLED:
                     case OrdStatus.CANCELED:
-                        TaskCompletionSource.TrySetResult(message);
-                        Status = RequestStatus.Completed;
-                        break;
                     case OrdStatus.REJECTED:
-                        TaskCompletionSource.TrySetException(new InvalidOperationException(message.Text.Obj));
+                        TaskCompletionSource.TrySetResult(message);
                         Status = RequestStatus.Completed;
                         break;
                     case OrdStatus.PARTIALLY_FILLED:
@@ -49,7 +46,5 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
             }
 
         }
-
-
     }
 }
