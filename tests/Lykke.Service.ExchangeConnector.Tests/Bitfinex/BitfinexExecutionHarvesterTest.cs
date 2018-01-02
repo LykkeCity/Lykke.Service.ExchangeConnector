@@ -35,7 +35,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Bitfinex
             };
 
             var subscriber = new BitfinexWebSocketSubscriber(bitfinexExchangeConfiguration, true, log);
-            _harvester = new BitfinexExecutionHarvester(subscriber, bitfinexExchangeConfiguration, _testHandler, log);
+            _harvester = new BitfinexExecutionHarvester(subscriber, new BitfinexModelConverter(bitfinexExchangeConfiguration), _testHandler, log);
         }
 
 

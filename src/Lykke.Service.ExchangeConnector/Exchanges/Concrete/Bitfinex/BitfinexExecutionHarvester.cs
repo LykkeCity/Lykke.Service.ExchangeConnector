@@ -4,7 +4,6 @@ using Common;
 using Common.Log;
 using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient.Model;
 using TradingBot.Handlers;
-using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Concrete.Bitfinex
@@ -16,10 +15,10 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         private readonly IHandler<ExecutionReport> _handler;
         private readonly ILog _log;
 
-        public BitfinexExecutionHarvester(IBitfinexWebSocketSubscriber socketSubscriber, BitfinexExchangeConfiguration configuration, IHandler<ExecutionReport> handler, ILog log)
+        public BitfinexExecutionHarvester(IBitfinexWebSocketSubscriber socketSubscriber, BitfinexModelConverter bitfinexModelConverter, IHandler<ExecutionReport> handler, ILog log)
         {
             _socketSubscriber = socketSubscriber;
-            _bitfinexModelConverter = new BitfinexModelConverter(configuration.SupportedCurrencySymbols);
+            _bitfinexModelConverter = bitfinexModelConverter;
             _handler = handler;
             _log = log;
         }

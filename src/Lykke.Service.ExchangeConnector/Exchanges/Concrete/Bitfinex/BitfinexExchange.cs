@@ -34,7 +34,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             BitfinexExecutionHarvester executionHarvester, ILog log)
             : base(Name, configuration, translatedSignalsRepository, log)
         {
-            _modelConverter = new BitfinexModelConverter(configuration.SupportedCurrencySymbols);
+            _modelConverter = new BitfinexModelConverter(configuration);
             _orderBooksHarvester = orderBooksHarvester;
             _executionHarvester = executionHarvester;
             var credenitals = new BitfinexServiceClientCredentials(configuration.ApiKey, configuration.ApiSecret);

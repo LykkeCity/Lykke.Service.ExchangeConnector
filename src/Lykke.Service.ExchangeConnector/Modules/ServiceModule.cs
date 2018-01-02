@@ -96,12 +96,30 @@ namespace TradingBot.Modules
                 .SingleInstance();
 
             builder.RegisterType<JfdModelConverter>()
+                .SingleInstance();         
+            
+            builder.RegisterType<AzureFixMessagesRepository>()
+                .As<IAzureFixMessagesRepository>()
+                .SingleInstance();    
+            
+            builder.RegisterType<IcmConnector>()
+                .As<IIcmConnector>()
+                .SingleInstance();   
+            
+            builder.RegisterType<IcmTickPriceHarvester>()
+                .SingleInstance();   
+            
+            builder.RegisterType<BitfinexModelConverter>()
+                .SingleInstance(); 
+            
+            builder.RegisterType<IcmModelConverter>()
                 .SingleInstance();
 
             builder.RegisterType<TradingSignalsHandler>()
                 .WithParameter("apiTimeout", _config.AspNet.ApiTimeout)
                 .WithParameter("enabled", _config.RabbitMq.Signals.Enabled)
                 .As<IStartable>()
+                .AsSelf()
                 .SingleInstance();
 
             foreach (var cfg in _config.Exchanges)

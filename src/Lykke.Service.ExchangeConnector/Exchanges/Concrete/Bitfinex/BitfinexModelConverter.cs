@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient.Model;
 using TradingBot.Exchanges.Concrete.Shared;
@@ -11,7 +10,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
     internal sealed class BitfinexModelConverter : ExchangeConverters
     {
 
-        public BitfinexModelConverter(IReadOnlyCollection<CurrencySymbol> currencySymbols) : base(currencySymbols, BitfinexExchange.Name)
+        public BitfinexModelConverter(BitfinexExchangeConfiguration configuration) : base(configuration.SupportedCurrencySymbols, BitfinexExchange.Name)
         {
         }
 

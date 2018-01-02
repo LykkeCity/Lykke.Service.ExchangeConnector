@@ -1,57 +1,45 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using AzureStorage;
 using Common.Log;
-using Lykke.RabbitMqBroker;
-using Lykke.RabbitMqBroker.Subscriber;
-using QuickFix;
-using QuickFix.Transport;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
-using TradingBot.Exchanges.Concrete.Icm.Converters;
-using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 using TradingBot.Repositories;
-using OrderBook = TradingBot.Exchanges.Concrete.Icm.Entities.OrderBook;
-using Lykke.ExternalExchangesApi.Shared;
 
 namespace TradingBot.Exchanges.Concrete.Icm
 {
     internal class IcmExchange : Exchange
     {
-        private readonly Common.Log.ILog _log;
-        private readonly IcmConfig config;
+        private readonly ILog _log;
+        private readonly IcmConfig _config;
+        private readonly IcmTickPriceHarvester _tickPriceHarvester;
 
-        private RabbitMqSubscriber<OrderBook> rabbit;
-        private SocketInitiator initiator;
-        private IcmConnector connector;
-        private readonly INoSQLTableStorage<FixMessageTableEntity> _tableStorage;
-        private readonly IHandler<ExecutionReport> _tradeHandler;
-        private readonly IHandler<TickPrice> _tickPriceHandler;
+        private readonly IIcmConnector _connector;
         public new static readonly string Name = "icm";
 
-        public IcmExchange(
+        public IcmExchange(IcmTickPriceHarvester tickPriceHarvester,
+            IIcmConnector connector,
             IcmConfig config,
             TranslatedSignalsRepository translatedSignalsRepository,
-            INoSQLTableStorage<FixMessageTableEntity> tableStorage,
-            IHandler<ExecutionReport> tradeHandler,
-            IHandler<TickPrice> tickPriceHandler,
-                Common.Log.ILog log)
+            ILog log)
             : base(Name, config, translatedSignalsRepository, log)
         {
-            this.config = config;
-            _tableStorage = tableStorage;
-            _tradeHandler = tradeHandler;
-            _tickPriceHandler = tickPriceHandler;
+            _config = config;
+            _tickPriceHarvester = tickPriceHarvester;
             _log = log;
+            _connector = connector;
+
+            _connector.Connected += OnConnected;
+            _connector.Disconnected += OnStopped;
+
+
         }
 
         protected override void StartImpl()
         {
-            if (config.SocketConnection)
+            if (_config.SocketConnection)
             {
                 _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartImpl), string.Empty,
                     "Socket connection is enabled");
@@ -63,7 +51,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
                     "Socket connection is disabled");
             }
 
-            if (config.RabbitMq.Enabled && (config.PubQuotesToRabbit))
+            if (_config.RabbitMq.Enabled && (_config.PubQuotesToRabbit))
             {
                 _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartImpl), string.Empty,
                     "RabbitMQ connection is enabled");
@@ -72,37 +60,20 @@ namespace TradingBot.Exchanges.Concrete.Icm
             else
             {
                 _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartImpl), string.Empty,
-                    "RabbitMQ connection is desibled");
+                    "RabbitMQ connection is disabled");
             }
         }
 
         protected override void StopImpl()
         {
-            rabbit?.Stop();
-            initiator?.Stop();
-            initiator?.Dispose();
+            _connector.Stop();
+            _tickPriceHarvester.Stop();
         }
 
         private void StartFixConnection()
         {
-            var settings = new SessionSettings(config.GetFixConfigAsReader());
-
-            _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartFixConnection), string.Join("/n", config.FixConfiguration), "Starting fix connection with configuration").Wait();
-
-            var repository = new AzureFixMessagesRepository(_tableStorage);
-
-            connector = new IcmConnector(config, repository, LykkeLog);
-            var storeFactory = new FileStoreFactory(settings);
-            var logFactory = new LykkeLogFactory(_log);
-
-            connector.OnTradeExecuted += _tradeHandler.Handle;
-            connector.Connected += OnConnected;
-            connector.Disconnected += OnStopped;
-
-            initiator = new SocketInitiator(connector, storeFactory, settings, logFactory);
-
-            _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartFixConnection), string.Empty, "SocketInitiator is about to start").Wait();
-            initiator.Start();
+            _connector.Start();
+            _tickPriceHarvester.Start();
         }
 
         /// <summary>
@@ -110,50 +81,27 @@ namespace TradingBot.Exchanges.Concrete.Icm
         /// </summary>
         private void StartRabbitConnection() //HACK Must be deleted from here!
         {
-            var rabbitSettings = new RabbitMqSubscriptionSettings()
-            {
-                ConnectionString = config.RabbitMq.ConnectionString,
-                ExchangeName = config.RabbitMq.Exchange,
-                QueueName = config.RabbitMq.Queue
-            };
-            var errorStrategy = new DefaultErrorHandlingStrategy(_log, rabbitSettings);
-            rabbit = new RabbitMqSubscriber<OrderBook>(rabbitSettings, errorStrategy)
-                .SetMessageDeserializer(new GenericRabbitModelConverter<OrderBook>())
-                .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
-                .SetConsole(new LogToConsole())
-                .SetLogger(_log)
-                .Subscribe(async orderBook =>
-                    {
-                        if (Instruments.Any(x => x.Name == orderBook.Asset))
-                        {
-                            var tickPrice = orderBook.ToTickPrice();
-                            if (tickPrice != null)
-                            {
-                                await _tickPriceHandler.Handle(tickPrice);
-                            }
-                        }
-                    })
-                .Start();
+
         }
 
         public override Task<ExecutionReport> GetOrder(string id, Instrument instrument, TimeSpan timeout)
         {
-            return connector.GetOrderInfoAndWaitResponse(instrument, id);
+            return _connector.GetOrderInfoAndWaitResponse(instrument, id);
         }
 
         public override Task<IEnumerable<ExecutionReport>> GetOpenOrders(TimeSpan timeout)
         {
-            return connector.GetAllOrdersInfo(timeout);
+            return _connector.GetAllOrdersInfo(timeout);
         }
 
         public override Task<ExecutionReport> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            return connector.AddOrderAndWaitResponse(signal, translatedSignal, timeout);
+            return _connector.AddOrderAndWaitResponse(signal, translatedSignal, timeout);
         }
 
         public override Task<ExecutionReport> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            return connector.CancelOrderAndWaitResponse(signal, translatedSignal, timeout);
+            return _connector.CancelOrderAndWaitResponse(signal, translatedSignal, timeout);
         }
     }
 }
