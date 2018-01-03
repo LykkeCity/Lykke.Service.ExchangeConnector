@@ -17,7 +17,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
         private readonly RabbitMqSubscriber<OrderBook> _rabbit;
         private readonly bool _enabled;
 
-        public IcmTickPriceHarvester(IcmConfig config, IcmModelConverter modelConverter, IHandler<TickPrice> tickPriceHandler, ILog log)
+        public IcmTickPriceHarvester(IcmExchangeConfiguration config, IcmModelConverter modelConverter, IHandler<TickPrice> tickPriceHandler, ILog log)
         {
             _log = log;
             _enabled = config.RabbitMq.Enabled;
@@ -25,7 +25,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             {
                 return;
             }
-            var instruments = config.SupportedCurrencySymbols.Select(x => new Instrument(IcmExchange.Name, x.LykkeSymbol)).ToList();
+            var instruments = config.SupportedCurrencySymbols.Select(x => new Instrument(IcmExchange.Name, x.LykkeSymbol).Name).ToHashSet();
             var rabbitSettings = new RabbitMqSubscriptionSettings
             {
                 ConnectionString = config.RabbitMq.ConnectionString,
@@ -40,7 +40,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 .SetLogger(_log)
                 .Subscribe(async orderBook =>
                 {
-                    if (instruments.Any(x => x.Name == orderBook.Asset))
+                    if (instruments.Contains(orderBook.Asset))
                     {
                         var tickPrice = modelConverter.ToTickPrice(orderBook);
                         if (tickPrice != null)

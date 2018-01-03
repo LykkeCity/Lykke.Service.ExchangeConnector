@@ -1,20 +1,21 @@
 ﻿using System.Threading;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Shared;
 using QuickFix.FIX44;
 using Message = QuickFix.Message;
 
 namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
 {
-    internal sealed class PositionsHandler : MessageHandlerBase<PositionsStateMachine>
+    internal sealed class JfdPositionsHandler : MessageHandlerBase<JfdPositionsStateMachine>
     {
-        public PositionsHandler(ILog log) : base(log)
+        public JfdPositionsHandler(ILog log, string exchangeName) : base(log, exchangeName)
         {
 
         }
 
-        public PositionsStateMachine RegisterMessage(RequestForPositions request, CancellationToken cancellationToken)
+        public JfdPositionsStateMachine RegisterMessage(RequestForPositions request, CancellationToken cancellationToken)
         {
-            var or = new PositionsStateMachine(request, cancellationToken, this, Log);
+            var or = new JfdPositionsStateMachine(request, cancellationToken, this, Log);
             Requests[or.Id] = or;
             return or;
         }

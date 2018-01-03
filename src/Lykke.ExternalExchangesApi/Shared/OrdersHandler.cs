@@ -3,11 +3,11 @@ using Common.Log;
 using QuickFix.FIX44;
 using Message = QuickFix.Message;
 
-namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
+namespace Lykke.ExternalExchangesApi.Shared
 {
     internal sealed class OrdersHandler : MessageHandlerBase<OrderStateMachine>
     {
-        public OrdersHandler(ILog log) : base(log)
+        public OrdersHandler(ILog log, string exchangeName) : base(log, exchangeName)
         {
         }
 
@@ -20,8 +20,7 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
 
         public override bool HandleMessage(Message message)
         {
-            var or = message as ExecutionReport;
-            if (or == null)
+            if (!(message is ExecutionReport or))
             {
                 return false;
             }

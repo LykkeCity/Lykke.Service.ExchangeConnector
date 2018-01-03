@@ -1,8 +1,8 @@
 ﻿using QuickFix;
 
-namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
+namespace Lykke.ExternalExchangesApi.Shared
 {
-    internal interface IMessageHandler
+    public interface IMessageHandler
     {
         bool HandleMessage(Message message);
         void RejectMessage(string id);

@@ -1,20 +1,21 @@
 ﻿using System.Threading;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Shared;
 using QuickFix.FIX44;
 using Message = QuickFix.Message;
 
 namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
 {
-    internal sealed class CollateralHandler : MessageHandlerBase<CollateralInquiryStateMachine>
+    internal sealed class JfdCollateralHandler : MessageHandlerBase<JfdCollateralInquiryStateMachine>
     {
 
-        public CollateralHandler(ILog log) : base(log)
+        public JfdCollateralHandler(ILog log, string exchangeName) : base(log, exchangeName)
         {
         }
 
-        public CollateralInquiryStateMachine RegisterMessage(CollateralInquiry request, CancellationToken cancellationToken)
+        public JfdCollateralInquiryStateMachine RegisterMessage(CollateralInquiry request, CancellationToken cancellationToken)
         {
-            var or = new CollateralInquiryStateMachine(request, cancellationToken, this, Log);
+            var or = new JfdCollateralInquiryStateMachine(request, cancellationToken, this, Log);
             Requests[or.Id] = or;
             return or;
         }

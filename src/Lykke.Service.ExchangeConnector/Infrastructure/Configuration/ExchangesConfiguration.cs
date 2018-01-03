@@ -5,7 +5,7 @@ namespace TradingBot.Infrastructure.Configuration
 {
     public sealed class ExchangesConfiguration : IEnumerable<IExchangeConfiguration>
     {
-        public IcmConfig Icm { get; set; }
+        public IcmExchangeConfiguration Icm { get; set; }
 
         public KrakenConfig Kraken { get; set; }
 

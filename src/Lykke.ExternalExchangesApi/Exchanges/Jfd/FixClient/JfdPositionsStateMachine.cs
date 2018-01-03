@@ -2,19 +2,20 @@
 using System.Collections.Generic;
 using System.Threading;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Shared;
 using QuickFix.Fields;
 using QuickFix.FIX44;
 
 namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
 {
-    internal sealed class PositionsStateMachine : RequestStateMachine<IReadOnlyCollection<PositionReport>>
+    internal sealed class JfdPositionsStateMachine : RequestStateMachine<IReadOnlyCollection<PositionReport>>
     {
         private bool _ackReceived;
         private int _promisedReports;
         private readonly List<PositionReport> _positions = new List<PositionReport>();
 
 
-        public PositionsStateMachine(RequestForPositions positionsRequest, CancellationToken cancellationToken, IMessageHandler messageHandler, ILog log) : base(positionsRequest, cancellationToken, messageHandler, log)
+        public JfdPositionsStateMachine(RequestForPositions positionsRequest, CancellationToken cancellationToken, IMessageHandler messageHandler, ILog log) : base(positionsRequest, cancellationToken, messageHandler, log)
         {
             positionsRequest.PosReqID = new PosReqID(Id);
         }

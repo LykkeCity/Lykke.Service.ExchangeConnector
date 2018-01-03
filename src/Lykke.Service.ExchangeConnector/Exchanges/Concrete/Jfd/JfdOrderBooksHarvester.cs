@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Common.Log;
 using Lykke.ExternalExchangesApi.Exchanges.Jfd;
 using Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient;
+using Lykke.ExternalExchangesApi.Shared;
 using QuickFix.Fields;
 using QuickFix.FIX44;
 using TradingBot.Communications;
@@ -34,9 +35,9 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             _modelConverter = modelConverter;
         }
 
-        private static JfdConnectorConfiguration GetConnectorConfig(JfdExchangeConfiguration exchangeConfiguration)
+        private static FixConnectorConfiguration GetConnectorConfig(JfdExchangeConfiguration exchangeConfiguration)
         {
-            return new JfdConnectorConfiguration(exchangeConfiguration.Password, exchangeConfiguration.GetQuotingFixConfigAsReader());
+            return new FixConnectorConfiguration(exchangeConfiguration.Password, exchangeConfiguration.GetQuotingFixConfigAsReader());
         }
 
         protected override async Task MessageLoopImpl()

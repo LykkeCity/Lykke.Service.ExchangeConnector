@@ -1,4 +1,4 @@
-﻿namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
+﻿namespace Lykke.ExternalExchangesApi.Shared
 {
     internal enum RequestStatus
     {

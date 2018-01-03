@@ -2,18 +2,19 @@
 using System.Collections.Generic;
 using System.Threading;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Shared;
 using QuickFix.Fields;
 using QuickFix.FIX44;
 
 namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
 {
-    internal sealed class CollateralInquiryStateMachine : RequestStateMachine<IReadOnlyCollection<CollateralReport>>
+    internal sealed class JfdCollateralInquiryStateMachine : RequestStateMachine<IReadOnlyCollection<CollateralReport>>
     {
         private bool _ackReceived;
         private int _promisedReports;
         private readonly List<CollateralReport> _positions = new List<CollateralReport>();
 
-        public CollateralInquiryStateMachine(CollateralInquiry positionsRequest, CancellationToken cancellationToken, IMessageHandler handler, ILog log) : base(positionsRequest, cancellationToken, handler, log)
+        public JfdCollateralInquiryStateMachine(CollateralInquiry positionsRequest, CancellationToken cancellationToken, IMessageHandler handler, ILog log) : base(positionsRequest, cancellationToken, handler, log)
         {
             positionsRequest.CollInquiryID = new CollInquiryID(Id);
         }

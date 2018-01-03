@@ -15,7 +15,7 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
 {
     public sealed class JfdQuotesSessionConnector : IApplication, IMessenger<MarketDataRequest, Message>
     {
-        private readonly JfdConnectorConfiguration _config;
+        private readonly FixConnectorConfiguration _config;
         private readonly ILog _log;
         private SessionID _sessionId;
         private readonly SocketInitiator _socketInitiator;
@@ -23,11 +23,11 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
         private TaskCompletionSource<bool> _connectionCompletionSource;
         private readonly BlockingCollection<Message> _responsesQueue = new BlockingCollection<Message>();
 
-        public JfdConnectorState State { get; private set; }
+        public FixConnectorState State { get; private set; }
 
 
 
-        public JfdQuotesSessionConnector(JfdConnectorConfiguration config, ILog log)
+        public JfdQuotesSessionConnector(FixConnectorConfiguration config, ILog log)
         {
             _config = config;
             _log = log.CreateComponentScope(GetType().Name);
@@ -45,11 +45,11 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
             if (message is Logon logon)
             {
                 logon.Password = new Password(_config.Password);
-                State = JfdConnectorState.Connecting;
+                State = FixConnectorState.Connecting;
             }
             else if (message is Logout)
             {
-                State = JfdConnectorState.Disconnecting;
+                State = FixConnectorState.Disconnecting;
             }
         }
 
@@ -91,20 +91,20 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
 
         public void OnLogout(SessionID sessionId)
         {
-            if (State == JfdConnectorState.Connecting)
+            if (State == FixConnectorState.Connecting)
             {
                 _connectionCompletionSource.TrySetException(new InvalidOperationException("Logon rejected. See the log for details"));
             }
             else
             {
-                State = JfdConnectorState.Disconnected;
+                State = FixConnectorState.Disconnected;
             }
         }
 
         public void OnLogon(SessionID sessionId)
         {
             _sessionId = sessionId;
-            State = JfdConnectorState.Connected;
+            State = FixConnectorState.Connected;
             _connectionCompletionSource.TrySetResult(true);
         }
 
@@ -143,7 +143,7 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
 
         private void EnsureCanHandleRequest()
         {
-            if (State != JfdConnectorState.Connected)
+            if (State != FixConnectorState.Connected)
             {
                 throw new InvalidOperationException($"Can't handle request. Connector state {State}");
             }
@@ -179,7 +179,7 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
 
         public Task ConnectAsync(CancellationToken cancellationToken)
         {
-            if (!(State == JfdConnectorState.Disconnected || State == JfdConnectorState.NotConnected))
+            if (!(State == FixConnectorState.Disconnected || State == FixConnectorState.NotConnected))
             {
                 throw new InvalidOperationException($"Unable to connect. Current state {State}");
             }
@@ -194,11 +194,11 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            if (State == JfdConnectorState.Connecting || State == JfdConnectorState.Connected)
+            if (State == FixConnectorState.Connecting || State == FixConnectorState.Connected)
             {
                 _socketInitiator?.Stop();
             }
-            State = JfdConnectorState.Disconnected;
+            State = FixConnectorState.Disconnected;
             return Task.CompletedTask;
         }
     }

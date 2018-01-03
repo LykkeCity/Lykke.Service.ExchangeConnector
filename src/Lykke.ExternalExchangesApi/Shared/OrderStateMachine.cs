@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Threading;
+using Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient;
 using QuickFix.Fields;
 using QuickFix.FIX44;
 using ILog = Common.Log.ILog;
 
-namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
+namespace Lykke.ExternalExchangesApi.Shared
 {
     internal sealed class OrderStateMachine : RequestStateMachine<ExecutionReport>
     {

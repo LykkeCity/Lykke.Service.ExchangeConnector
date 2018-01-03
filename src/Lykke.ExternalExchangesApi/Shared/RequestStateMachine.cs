@@ -2,10 +2,11 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient;
 using QuickFix;
 using ILog = Common.Log.ILog;
 
-namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
+namespace Lykke.ExternalExchangesApi.Shared
 {
     internal abstract class RequestStateMachine<T> : IRequest
     {

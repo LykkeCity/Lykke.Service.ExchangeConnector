@@ -3,12 +3,10 @@ using System.IO;
 
 namespace TradingBot.Infrastructure.Configuration
 {
-    public class IcmConfig : IExchangeConfiguration
+    public class IcmExchangeConfiguration : IExchangeConfiguration
     {
         public bool Enabled { get; set; }
         
-        public string Username { get; set; }
-
         public string Password { get; set; }
 
         public bool SaveOrderBooksToAzure { get; set; }
@@ -23,7 +21,9 @@ namespace TradingBot.Infrastructure.Configuration
         
         public string[] FixConfiguration { get; set; }
 
-        public IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; set; }
+        IReadOnlyCollection<CurrencySymbol> IExchangeConfiguration.SupportedCurrencySymbols => SupportedCurrencySymbols;
+
+        public IReadOnlyCollection<IcmCurrencySymbol> SupportedCurrencySymbols { get; set; }
 
         public TextReader GetFixConfigAsReader()
         {

@@ -2,17 +2,18 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
-using QuickFix.Fields;
-using QuickFix.FIX44;
-using Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient;
+using Lykke.ExternalExchangesApi.Exchanges.Icm.FixClient;
 using Lykke.ExternalExchangesApi.Shared;
+using QuickFix.Fields;
+using QuickFix.Fields.Converters;
+using QuickFix.FIX44;
 using TradingBot.Infrastructure.Configuration;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Lykke.Service.ExchangeConnector.Tests.Jfd
+namespace Lykke.Service.ExchangeConnector.Tests.Icm
 {
-    public sealed class JfdTradingSessionConnectorTest : IDisposable
+    public sealed class IcmTradingSessionConnectorTest : IDisposable
     {
         private readonly ITestOutputHelper _output;
         private const string TargetIp = "";
@@ -22,9 +23,9 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
         private const string OrderTargetCompId = "";
         private const string Password = "";
 
-        private readonly JfdTradeSessionConnector _connector;
+        private readonly IcmTradeSessionConnector _connector;
 
-        public JfdTradingSessionConnectorTest(ITestOutputHelper output)
+        public IcmTradingSessionConnectorTest(ITestOutputHelper output)
         {
             _output = output;
             var config = new JfdExchangeConfiguration()
@@ -39,9 +40,9 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
                     "ConnectionType=initiator",
                     "ReconnectInterval=60",
                     "BeginString=FIX.4.4",
-                    "DataDictionary=FIX44.jfd.xml",
+                    "DataDictionary=FIX44.xml",
                     "HeartBtInt=15",
-                    "SSLEnable=Y",
+                    "SSLEnable=N",
                     "SSLProtocols=Tls",
                     "SSLValidateCertificates=N",
                     $"SocketConnectHost={TargetIp}",
@@ -54,18 +55,9 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
                 }
             };
             var connectorConfig = new FixConnectorConfiguration(config.Password, config.GetTradingFixConfigAsReader());
-            _connector = new JfdTradeSessionConnector(connectorConfig, new TestOutput(new TestOutputHelperWrapper(_output)));
+            _connector = new IcmTradeSessionConnector(connectorConfig, new TestOutput(new TestOutputHelperWrapper(_output)));
         }
 
-        [Fact]
-        public void TestLogon()
-        {
-            _connector.Start();
-
-            WaitForState(FixConnectorState.Connected, 600);
-
-            Thread.Sleep(1000000);
-        }
 
         [Fact]
         public void TestLogonWithInvalidPassword()
@@ -82,11 +74,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
                     "ConnectionType=initiator",
                     "ReconnectInterval=60",
                     "BeginString=FIX.4.4",
-                    "DataDictionary=FIX44.jfd.xml",
+                    "DataDictionary=FIX44.xml",
                     "HeartBtInt=15",
-                    "SSLEnable=Y",
-                    "SSLProtocols=Tls",
-                    "SSLValidateCertificates=N",
                     $"SocketConnectHost={TargetIp}",
                     $"SocketConnectPort={TargetPort}",
                     "[SESSION]",
@@ -97,7 +86,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
                 }
             };
             var connectorConfig = new FixConnectorConfiguration(config.Password, config.GetTradingFixConfigAsReader());
-            var connector = new JfdTradeSessionConnector(connectorConfig, new TestOutput(new TestOutputHelperWrapper(_output)));
+            var connector = new IcmTradeSessionConnector(connectorConfig, new TestOutput(new TestOutputHelperWrapper(_output)));
             connector.Start();
 
             WaitForState(FixConnectorState.Connected, 5);
@@ -122,19 +111,27 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
             _connector.Start();
             WaitForState(FixConnectorState.Connected, 30);
 
-            var pr = new RequestForPositions()
+            var request = new RequestForPositions
             {
+                PosReqID = new PosReqID(nameof(RequestForPositions) + Guid.NewGuid()),
                 PosReqType = new PosReqType(PosReqType.POSITIONS),
+                SubscriptionRequestType = new SubscriptionRequestType(SubscriptionRequestType.SNAPSHOT),
                 NoPartyIDs = new NoPartyIDs(1),
+                Account = new Account("account"),
+                AccountType = new AccountType(AccountType.ACCOUNT_IS_CARRIED_ON_CUSTOMER_SIDE_OF_BOOKS),
+                ClearingBusinessDate = new ClearingBusinessDate(DateTimeConverter.ConvertDateOnly(DateTime.UtcNow.Date)),
                 TransactTime = new TransactTime(DateTime.UtcNow)
             };
+
             var partyGroup = new RequestForPositions.NoPartyIDsGroup
             {
-                PartyID = new PartyID("8")
+                PartyID = new PartyID("FB"),
+                PartyRole = new PartyRole(PartyRole.CLIENT_ID)
             };
-            pr.AddGroup(partyGroup);
 
-            var resp = await _connector.GetPositionsAsync(pr, CancellationToken.None);
+            request.AddGroup(partyGroup);
+
+            var resp = await _connector.GetPositionsAsync(request, CancellationToken.None);
 
             Assert.NotEmpty(resp);
         }
@@ -147,15 +144,14 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
 
             var newOrderSingle = new NewOrderSingle
             {
-                //  NoPartyIDs = new NoPartyIDs(0),
-                HandlInst = new HandlInst(HandlInst.AUTOMATED_EXECUTION_ORDER_PRIVATE),
-                Symbol = new Symbol("EURUSD"),
-                Side = new Side(Side.BUY),
-                OrderQty = new OrderQty(100),
-                OrdType = new OrdType(OrdType.LIMIT),
-                TimeInForce = new TimeInForce(TimeInForce.IMMEDIATE_OR_CANCEL),
+                Symbol = new Symbol(@"XAG/USDm"),
+               Currency = new Currency("USD"),
+                Side = new Side(Side.SELL),
+                OrderQty = new OrderQty(10),
+                OrdType = new OrdType(OrdType.MARKET),
+                TimeInForce = new TimeInForce(TimeInForce.GOOD_TILL_CANCEL),
                 TransactTime = new TransactTime(DateTime.UtcNow),
-                Price = new Price(42)
+                Price = new Price(1.44m)
             };
 
             var resp = await _connector.AddOrderAsync(newOrderSingle, CancellationToken.None);
@@ -194,37 +190,13 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
                     {
                         await _connector.AddOrderAsync(newOrderSingle, CancellationToken.None);
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
-
+                        // OK
                     }
                 }
 
             }
-
-
-        }
-
-        [Fact]
-        public async Task ShouldGetCollateral()
-        {
-            _connector.Start();
-            WaitForState(FixConnectorState.Connected, 30);
-
-            var pr = new CollateralInquiry()
-            {
-                NoPartyIDs = new NoPartyIDs(1)
-            };
-
-            var partyGroup = new CollateralInquiry.NoPartyIDsGroup
-            {
-                PartyID = new PartyID("*")
-            };
-            pr.AddGroup(partyGroup);
-
-
-            var resp = await _connector.GetCollateralAsync(pr, CancellationToken.None);
-            Assert.NotEmpty(resp);
 
 
         }

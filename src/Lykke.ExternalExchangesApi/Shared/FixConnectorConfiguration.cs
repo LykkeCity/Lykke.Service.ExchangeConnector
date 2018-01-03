@@ -1,13 +1,13 @@
 ﻿using System.IO;
 
-namespace Lykke.ExternalExchangesApi.Exchanges.Jfd
+namespace Lykke.ExternalExchangesApi.Shared
 {
-    public class JfdConnectorConfiguration
+    public class FixConnectorConfiguration
     {
         public string Password { get; }
         public TextReader FixConfig { get; }
 
-        public JfdConnectorConfiguration(string password, TextReader fixConfig)
+        public FixConnectorConfiguration(string password, TextReader fixConfig)
         {
             Password = password;
             FixConfig = fixConfig;

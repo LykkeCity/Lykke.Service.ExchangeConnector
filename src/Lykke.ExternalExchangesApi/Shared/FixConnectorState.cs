@@ -1,6 +1,6 @@
-﻿namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
+﻿namespace Lykke.ExternalExchangesApi.Shared
 {
-    public enum JfdConnectorState
+    public enum FixConnectorState
     {
         NotConnected,
         Connecting,

@@ -130,11 +130,6 @@
             31.07.2011 23:00:00.885,1.13733,1.1370200000000001,2.25,1.13
             </summary>
         </member>
-        <member name="M:TradingBot.Exchanges.Concrete.Icm.IcmExchange.StartRabbitConnection">
-            <summary>
-            For ICM we use internal RabbitMQ exchange with pricefeed
-            </summary>
-        </member>
         <member name="T:TradingBot.Exchanges.Concrete.Kraken.Endpoints.PublicData">
             <summary>
             Endpoint to Public data from API

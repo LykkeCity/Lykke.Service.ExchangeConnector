@@ -2,14 +2,13 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
-using Lykke.ExternalExchangesApi.Exchanges.Jfd;
 using Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient;
 using QuickFix.Fields;
 using QuickFix.FIX44;
 using TradingBot.Infrastructure.Configuration;
 using Xunit;
 using Xunit.Abstractions;
-using Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient;
+using Lykke.ExternalExchangesApi.Shared;
 
 namespace Lykke.Service.ExchangeConnector.Tests.Jfd
 {
@@ -54,7 +53,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
                     "EndTime=23:00:00"
                 }
             };
-            var jfdConfig = new JfdConnectorConfiguration(config.Password, config.GetQuotingFixConfigAsReader());
+            var jfdConfig = new FixConnectorConfiguration(config.Password, config.GetQuotingFixConfigAsReader());
             _connector = new JfdQuotesSessionConnector(jfdConfig, _output);
         }
 
@@ -63,7 +62,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
         public async Task ShouldReceiveOrderBooks()
         {
             await _connector.ConnectAsync(CancellationToken.None);
-            WaitForState(JfdConnectorState.Connected, 30);
+            WaitForState(FixConnectorState.Connected, 30);
             var symbols = new[] { "USDCHF", "EURUSD" };
             var request = new MarketDataRequest()
             {
@@ -123,7 +122,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
         public async Task ShouldReceiveOrderBooksForLongTime()
         {
             await _connector.ConnectAsync(CancellationToken.None);
-            WaitForState(JfdConnectorState.Connected, 30);
+            WaitForState(FixConnectorState.Connected, 30);
             var symbols = new[] { "USDCHF", "EURUSD" };
             var request = new MarketDataRequest()
             {
@@ -182,7 +181,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
         public async Task RequestInvalidSymbol()
         {
             await _connector.ConnectAsync(CancellationToken.None);
-            WaitForState(JfdConnectorState.Connected, 30);
+            WaitForState(FixConnectorState.Connected, 30);
             var symbols = new[] { "AAABBB" };
             var request = new MarketDataRequest()
             {
@@ -239,7 +238,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
 
 
 
-        private void WaitForState(JfdConnectorState state, int timeout)
+        private void WaitForState(FixConnectorState state, int timeout)
         {
             for (int i = 0; i < timeout; i++)
             {
@@ -256,7 +255,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
         public void Dispose()
         {
             _connector.StopAsync(CancellationToken.None).GetAwaiter().GetResult();
-            WaitForState(JfdConnectorState.Disconnected, 30);
+            WaitForState(FixConnectorState.Disconnected, 30);
             _connector?.Dispose();
         }
 

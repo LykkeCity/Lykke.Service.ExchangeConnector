@@ -1,6 +1,7 @@
 ﻿using Autofac;
 using Autofac.Extras.DynamicProxy;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Exchanges.Icm.FixClient;
 using Lykke.RabbitMqBroker;
 using Lykke.RabbitMqBroker.Subscriber;
 using TradingBot.Communications;
@@ -102,11 +103,10 @@ namespace TradingBot.Modules
                 .As<IAzureFixMessagesRepository>()
                 .SingleInstance();    
             
-            builder.RegisterType<IcmConnector>()
-                .As<IIcmConnector>()
-                .SingleInstance();   
-            
             builder.RegisterType<IcmTickPriceHarvester>()
+                .SingleInstance();  
+            
+            builder.RegisterType<IcmTradeSessionConnector>()
                 .SingleInstance();   
             
             builder.RegisterType<BitfinexModelConverter>()
