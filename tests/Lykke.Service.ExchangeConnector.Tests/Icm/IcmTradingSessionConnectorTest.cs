@@ -144,10 +144,10 @@ namespace Lykke.Service.ExchangeConnector.Tests.Icm
 
             var newOrderSingle = new NewOrderSingle
             {
-                Symbol = new Symbol(@"XAG/USDm"),
-               Currency = new Currency("USD"),
+                Symbol = new Symbol(@"EUR/USDm"),
+               Currency = new Currency("EUR"),
                 Side = new Side(Side.SELL),
-                OrderQty = new OrderQty(10),
+                OrderQty = new OrderQty(1000),
                 OrdType = new OrdType(OrdType.MARKET),
                 TimeInForce = new TimeInForce(TimeInForce.GOOD_TILL_CANCEL),
                 TransactTime = new TransactTime(DateTime.UtcNow),
