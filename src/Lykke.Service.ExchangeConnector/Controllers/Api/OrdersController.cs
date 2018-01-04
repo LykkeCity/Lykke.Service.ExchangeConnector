@@ -9,7 +9,6 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 using TradingBot.Communications;
 using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Models;
 using TradingBot.Models.Api;
 using TradingBot.Trading;
 using TradingBot.Repositories;
@@ -34,12 +33,8 @@ namespace TradingBot.Controllers.Api
         /// Returns information about all OPEN orders on the exchange
         /// <param name="exchangeName">The name of the exchange</param>
         /// </summary>
-        /// <response code="200">Active orders</response>
-        /// <response code="500">Unexpected error</response>
         [SwaggerOperation("GetOpenedOrders")]
         [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<ExecutionReport>), 200)]
-        [ProducesResponseType(typeof(ResponseMessage), 500)]
         private async Task<IEnumerable<ExecutionReport>> Index([FromQuery, Required] string exchangeName) // Intentionally disabled
         {
             try
@@ -59,12 +54,8 @@ namespace TradingBot.Controllers.Api
         /// <param name="id">The order id</param>
         /// <param name="instrument">The instrument name of the order</param>
         /// <param name="exchangeName">The exchange name</param>
-        /// <response code="200">The order is found</response>
-        /// <response code="500">The order either not exist or other server error</response>
         [SwaggerOperation("GetOrder")]
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(ExecutionReport), 200)]
-        [ProducesResponseType(typeof(ResponseMessage), 500)]
         public async Task<ExecutionReport> GetOrder(string id, [FromQuery, Required] string exchangeName, [FromQuery, Required] string instrument)
         {
             try
@@ -85,20 +76,15 @@ namespace TradingBot.Controllers.Api
         ///<param name="orderModel">A new order</param>
         /// </summary>
         /// <remarks>In the location header of successful response placed an URL for getting info about the order</remarks>
-        /// <response code="200">The order is successfully placed and an order status is returned</response>
-        /// <response code="400">Can't place the order. The reason is in the response</response>
         [SwaggerOperation("CreateOrder")]
         [HttpPost]
-        [ProducesResponseType(typeof(ExecutionReport), 200)]
-        [ProducesResponseType(typeof(ResponseMessage), 400)]
-        [ProducesResponseType(typeof(ResponseMessage), 500)]
-        public async Task<IActionResult> Post([FromBody] OrderModel orderModel)
+        public async Task<ExecutionReport> Post([FromBody] OrderModel orderModel)
         {
             try
             {
                 if (orderModel == null)
                 {
-                    return BadRequest("Order has to be specified");
+                    throw new StatusCodeException(HttpStatusCode.BadRequest, "Order has to be specified");
                 }
                 if (string.IsNullOrEmpty(orderModel.ExchangeName))
                 {
@@ -135,7 +121,7 @@ namespace TradingBot.Controllers.Api
 
                     translatedSignal.SetExecutionResult(result);
 
-                    return Ok(result);
+                    return result;
                 }
                 catch (Exception e)
                 {
@@ -168,20 +154,15 @@ namespace TradingBot.Controllers.Api
         /// <remarks></remarks>
         /// <param name="id">The order id to cancel</param>
         /// <param name="exchangeName">The exchange name</param>
-        /// <response code="200">The order is successfully canceled</response>
-        /// <response code="400">Can't cancel the order. The reason is in the response</response>
         [SwaggerOperation("CancelOrder")]
         [HttpDelete("{id}")]
-        [ProducesResponseType(typeof(ExecutionReport), 200)]
-        [ProducesResponseType(typeof(ResponseMessage), 400)]
-        [ProducesResponseType(typeof(ResponseMessage), 500)]
-        public async Task<IActionResult> CancelOrder(string id, [FromQuery, Required]string exchangeName)
+        public async Task<ExecutionReport> CancelOrder(string id, [FromQuery, Required]string exchangeName)
         {
             try
             {
                 if (string.IsNullOrEmpty(exchangeName))
                 {
-                    return BadRequest("Exchange has to be specified");
+                    throw new StatusCodeException(HttpStatusCode.InternalServerError, "Exchange has to be specified");
                 }
 
                 var instrument = new Instrument(exchangeName, string.Empty);
@@ -200,7 +181,7 @@ namespace TradingBot.Controllers.Api
                     if (result.ExecutionStatus == OrderExecutionStatus.Rejected)
                         throw new StatusCodeException(HttpStatusCode.BadRequest, $"Exchange return status: {result.ExecutionStatus}", null);
 
-                    return Ok(result);
+                    return result;
                 }
                 catch (Exception e)
                 {

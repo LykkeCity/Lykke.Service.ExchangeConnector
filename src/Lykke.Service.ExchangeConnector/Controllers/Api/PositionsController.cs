@@ -8,7 +8,6 @@ using Lykke.ExternalExchangesApi.Exceptions;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Models;
 using TradingBot.Models.Api;
 
 namespace TradingBot.Controllers.Api
@@ -29,23 +28,18 @@ namespace TradingBot.Controllers.Api
         /// Returns information about opened positions
         /// </summary>
         /// <param name="exchangeName">The exchange name</param>
-        /// <response code="200">Active positions</response>
-        /// <response code="500">Unexpected error</response>
         [SwaggerOperation("GetOpenedPosition")]
         [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<PositionModel>), 200)]
-        [ProducesResponseType(typeof(ResponseMessage), 500)]
-        [ProducesResponseType(400)]
-        public async Task<IActionResult> Index([FromQuery, Required] string exchangeName)
+        public Task<IReadOnlyCollection<PositionModel>> Index([FromQuery, Required] string exchangeName)
         {
             try
             {
                 if (string.IsNullOrWhiteSpace(exchangeName))
                 {
-                    return BadRequest($"Invalid {nameof(exchangeName)}");
+                    throw new StatusCodeException(HttpStatusCode.InternalServerError, $"Invalid {nameof(exchangeName)}");
                 }
                 var exchange = Application.GetExchange(exchangeName);
-                return Ok(await exchange.GetPositions(_timeout));
+                return exchange.GetPositions(_timeout);
 
             }
             catch (Exception e)

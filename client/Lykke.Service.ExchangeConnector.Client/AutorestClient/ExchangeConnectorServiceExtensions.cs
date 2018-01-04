@@ -87,7 +87,7 @@ namespace Lykke.Service.ExchangeConnector.Client
             /// <param name='cancellationToken'>
             /// The cancellation token.
             /// </param>
-            public static async Task<object> GetRatingAsync(this IExchangeConnectorService operations, CancellationToken cancellationToken = default(CancellationToken))
+            public static async Task<IList<ExchangeRatingModel>> GetRatingAsync(this IExchangeConnectorService operations, CancellationToken cancellationToken = default(CancellationToken))
             {
                 using (var _result = await operations.GetRatingWithHttpMessagesAsync(null, cancellationToken).ConfigureAwait(false))
                 {
@@ -130,7 +130,7 @@ namespace Lykke.Service.ExchangeConnector.Client
             /// <param name='cancellationToken'>
             /// The cancellation token.
             /// </param>
-            public static async Task<object> GetOrderAsync(this IExchangeConnectorService operations, string id, string exchangeName = default(string), string instrument = default(string), CancellationToken cancellationToken = default(CancellationToken))
+            public static async Task<ExecutionReport> GetOrderAsync(this IExchangeConnectorService operations, string id, string exchangeName = default(string), string instrument = default(string), CancellationToken cancellationToken = default(CancellationToken))
             {
                 using (var _result = await operations.GetOrderWithHttpMessagesAsync(id, exchangeName, instrument, null, cancellationToken).ConfigureAwait(false))
                 {
@@ -153,7 +153,7 @@ namespace Lykke.Service.ExchangeConnector.Client
             /// <param name='cancellationToken'>
             /// The cancellation token.
             /// </param>
-            public static async Task<object> CancelOrderAsync(this IExchangeConnectorService operations, string id, string exchangeName = default(string), CancellationToken cancellationToken = default(CancellationToken))
+            public static async Task<ExecutionReport> CancelOrderAsync(this IExchangeConnectorService operations, string id, string exchangeName = default(string), CancellationToken cancellationToken = default(CancellationToken))
             {
                 using (var _result = await operations.CancelOrderWithHttpMessagesAsync(id, exchangeName, null, cancellationToken).ConfigureAwait(false))
                 {
@@ -177,7 +177,7 @@ namespace Lykke.Service.ExchangeConnector.Client
             /// <param name='cancellationToken'>
             /// The cancellation token.
             /// </param>
-            public static async Task<object> CreateOrderAsync(this IExchangeConnectorService operations, OrderModel orderModel = default(OrderModel), CancellationToken cancellationToken = default(CancellationToken))
+            public static async Task<ExecutionReport> CreateOrderAsync(this IExchangeConnectorService operations, OrderModel orderModel = default(OrderModel), CancellationToken cancellationToken = default(CancellationToken))
             {
                 using (var _result = await operations.CreateOrderWithHttpMessagesAsync(orderModel, null, cancellationToken).ConfigureAwait(false))
                 {
@@ -197,7 +197,7 @@ namespace Lykke.Service.ExchangeConnector.Client
             /// <param name='cancellationToken'>
             /// The cancellation token.
             /// </param>
-            public static async Task<object> GetOpenedPositionAsync(this IExchangeConnectorService operations, string exchangeName = default(string), CancellationToken cancellationToken = default(CancellationToken))
+            public static async Task<IList<PositionModel>> GetOpenedPositionAsync(this IExchangeConnectorService operations, string exchangeName = default(string), CancellationToken cancellationToken = default(CancellationToken))
             {
                 using (var _result = await operations.GetOpenedPositionWithHttpMessagesAsync(exchangeName, null, cancellationToken).ConfigureAwait(false))
                 {

@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using Lykke.ExternalExchangesApi.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using TradingBot.Infrastructure.Monitoring;
-using TradingBot.Models;
 using TradingBot.Models.Api;
 
 namespace TradingBot.Controllers.Api
@@ -22,7 +23,6 @@ namespace TradingBot.Controllers.Api
         /// Get a list of all connected exchanges
         /// </summary>
         /// <remarks>The names of available exchanges participates in API calls for exchange-specific methods</remarks>
-        /// <response code="200">An array of strings which are the names of exchanges</response>
         [HttpGet]
         [SwaggerOperation("GetSupportedExchanges")]
         public IEnumerable<string> List()
@@ -34,27 +34,23 @@ namespace TradingBot.Controllers.Api
         /// Get information about a specific exchange
         /// </summary>
         /// <param name="exchangeName">Name of the specific exchange</param>
-        /// <response code="200">An information about the exchange, such as available trading instruments</response>
-        /// <response code="400">Bad request response is returned in case of specifying name of unavailable exchange</response>
         [SwaggerOperation("GetExchangeInfo")]
         [HttpGet("{exchangeName}")]
-        [ProducesResponseType(typeof(ExchangeInformationModel), 200)]
-        [Produces("application/json")]
-        public IActionResult Index(string exchangeName)
+        public ExchangeInformationModel Index(string exchangeName)
         {
             var exchange = Application.GetExchange(exchangeName);
 
             if (exchange == null)
             {
-                return BadRequest(new ResponseMessage($"There isn't connected exchange with the name of {exchangeName}. Try GET api/exchanges for the list of all connected exchanges."));
+                throw new StatusCodeException(HttpStatusCode.InternalServerError, $"There isn't connected exchange with the name of {exchangeName}. Try GET api/exchanges for the list of all connected exchanges.");
             }
 
-            return Ok(new ExchangeInformationModel
+            return new ExchangeInformationModel
             {
                 Name = exchangeName,
                 State = exchange.State,
                 Instruments = exchange.Instruments
-            });
+            };
         }
 
 
@@ -63,13 +59,10 @@ namespace TradingBot.Controllers.Api
         /// </summary>
         /// <returns>A collection of ratings for each enabled exchange</returns>
         [HttpGet("rating")]
-        [ProducesResponseType(typeof(IEnumerable<ExchangeRatingModel>), 200)]
-        [ProducesResponseType(typeof(ResponseMessage), 500)]
-        [Produces("application/json")]
         [SwaggerOperation("GetRating")]
-        public IActionResult GetRating()
+        public IReadOnlyCollection<ExchangeRatingModel> GetRating()
         {
-            return Ok(_ratingValuer.Rating);
+            return _ratingValuer.Rating;
         }
     }
 }

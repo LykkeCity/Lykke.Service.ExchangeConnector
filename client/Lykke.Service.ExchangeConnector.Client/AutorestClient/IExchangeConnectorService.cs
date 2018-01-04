@@ -92,7 +92,7 @@ namespace Lykke.Service.ExchangeConnector.Client
         /// <param name='cancellationToken'>
         /// The cancellation token.
         /// </param>
-        Task<HttpOperationResponse<object>> GetRatingWithHttpMessagesAsync(Dictionary<string, List<string>> customHeaders = null, CancellationToken cancellationToken = default(CancellationToken));
+        Task<HttpOperationResponse<IList<ExchangeRatingModel>>> GetRatingWithHttpMessagesAsync(Dictionary<string, List<string>> customHeaders = null, CancellationToken cancellationToken = default(CancellationToken));
 
         /// <summary>
         /// Checks service is alive
@@ -123,7 +123,7 @@ namespace Lykke.Service.ExchangeConnector.Client
         /// <param name='cancellationToken'>
         /// The cancellation token.
         /// </param>
-        Task<HttpOperationResponse<object>> GetOrderWithHttpMessagesAsync(string id, string exchangeName = default(string), string instrument = default(string), Dictionary<string, List<string>> customHeaders = null, CancellationToken cancellationToken = default(CancellationToken));
+        Task<HttpOperationResponse<ExecutionReport>> GetOrderWithHttpMessagesAsync(string id, string exchangeName = default(string), string instrument = default(string), Dictionary<string, List<string>> customHeaders = null, CancellationToken cancellationToken = default(CancellationToken));
 
         /// <summary>
         /// Cancels the existing order
@@ -140,7 +140,7 @@ namespace Lykke.Service.ExchangeConnector.Client
         /// <param name='cancellationToken'>
         /// The cancellation token.
         /// </param>
-        Task<HttpOperationResponse<object>> CancelOrderWithHttpMessagesAsync(string id, string exchangeName = default(string), Dictionary<string, List<string>> customHeaders = null, CancellationToken cancellationToken = default(CancellationToken));
+        Task<HttpOperationResponse<ExecutionReport>> CancelOrderWithHttpMessagesAsync(string id, string exchangeName = default(string), Dictionary<string, List<string>> customHeaders = null, CancellationToken cancellationToken = default(CancellationToken));
 
         /// <summary>
         /// Places a new order on the exchange
@@ -158,7 +158,7 @@ namespace Lykke.Service.ExchangeConnector.Client
         /// <param name='cancellationToken'>
         /// The cancellation token.
         /// </param>
-        Task<HttpOperationResponse<object>> CreateOrderWithHttpMessagesAsync(OrderModel orderModel = default(OrderModel), Dictionary<string, List<string>> customHeaders = null, CancellationToken cancellationToken = default(CancellationToken));
+        Task<HttpOperationResponse<ExecutionReport>> CreateOrderWithHttpMessagesAsync(OrderModel orderModel = default(OrderModel), Dictionary<string, List<string>> customHeaders = null, CancellationToken cancellationToken = default(CancellationToken));
 
         /// <summary>
         /// Returns information about opened positions
@@ -172,7 +172,7 @@ namespace Lykke.Service.ExchangeConnector.Client
         /// <param name='cancellationToken'>
         /// The cancellation token.
         /// </param>
-        Task<HttpOperationResponse<object>> GetOpenedPositionWithHttpMessagesAsync(string exchangeName = default(string), Dictionary<string, List<string>> customHeaders = null, CancellationToken cancellationToken = default(CancellationToken));
+        Task<HttpOperationResponse<IList<PositionModel>>> GetOpenedPositionWithHttpMessagesAsync(string exchangeName = default(string), Dictionary<string, List<string>> customHeaders = null, CancellationToken cancellationToken = default(CancellationToken));
 
     }
 }
