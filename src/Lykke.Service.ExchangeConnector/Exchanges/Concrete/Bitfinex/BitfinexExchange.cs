@@ -28,7 +28,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         private readonly IBitfinexApi _exchangeApi;
         public new const string Name = "bitfinex";
 
-        public BitfinexExchange(BitfinexExchangeConfiguration configuration, 
+        public BitfinexExchange(BitfinexExchangeConfiguration configuration,
             TranslatedSignalsRepository translatedSignalsRepository,
             BitfinexOrderBooksHarvester orderBooksHarvester,
             BitfinexExecutionHarvester executionHarvester, ILog log)
@@ -197,7 +197,12 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             var status = ConvertExecutionStatus(order);
             var instr = _modelConverter.ExchangeSymbolToLykkeInstrument(order.Symbol);
 
-            return new ExecutionReport(instr, execTime, execPrice, execVolume, tradeType, id, status);
+            return new ExecutionReport(instr, execTime, execPrice, execVolume, tradeType, id, status)
+            {
+                ExecType = ExecType.Trade,
+                Success = true,
+                FailureType = OrderStatusUpdateFailureType.None
+            };
         }
 
         protected override void StartImpl()

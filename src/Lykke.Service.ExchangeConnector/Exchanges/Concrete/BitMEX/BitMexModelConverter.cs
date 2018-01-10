@@ -59,7 +59,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 Message = order.Text,
                 Success = true,
                 OrderType = ConvertOrderType(order.OrdType),
-                ExecType = ExecType.Unknown
+                ExecType = ExecType.Trade,
+                FailureType = OrderStatusUpdateFailureType.None
             };
         }
 
