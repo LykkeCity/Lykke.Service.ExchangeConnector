@@ -7,6 +7,7 @@ using Lykke.ExternalExchangesApi.Shared;
 using QuickFix;
 using QuickFix.Fields;
 using QuickFix.FIX44;
+using QuickFix.Lykke;
 using QuickFix.Transport;
 using Message = QuickFix.Message;
 using ILog = Common.Log.ILog;

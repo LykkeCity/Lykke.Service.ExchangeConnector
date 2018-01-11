@@ -4,6 +4,7 @@ using Common.Log;
 using QuickFix;
 using QuickFix.Fields;
 using QuickFix.FIX44;
+using QuickFix.Lykke;
 using QuickFix.Transport;
 using ILog = Common.Log.ILog;
 using Message = QuickFix.Message;
@@ -29,7 +30,7 @@ namespace Lykke.ExternalExchangesApi.Shared
             Log = log.CreateComponentScope(GetType().Name);
             var settings = new SessionSettings(config.FixConfig);
             var storeFactory = new FileStoreFactory(settings);
-            var logFactory = new LykkeLogFactory(Log, false, false);
+            var logFactory = new LykkeLogFactory(Log);
             _socketInitiator = new SocketInitiator(this, storeFactory, settings, logFactory);
         }
 

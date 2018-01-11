@@ -21,14 +21,14 @@
     <PackageReference Include="Castle.Core" Version="4.2.1" />
     <PackageReference Include="Lykke.AzureQueueIntegration" Version="2.0.1" />
     <PackageReference Include="Lykke.AzureStorage" Version="3.2.0" />
-    <PackageReference Include="Lykke.Common" Version="3.2.0" />
+    <PackageReference Include="Lykke.Common" Version="4.1.0" />
     <PackageReference Include="Lykke.Common.ApiLibrary" Version="1.1.0" />
-    <PackageReference Include="Lykke.Fix" Version="1.0.5" />
+    <PackageReference Include="Lykke.Fix" Version="1.0.6" />
     <PackageReference Include="Lykke.PusherClient" Version="1.0.3" />
     <PackageReference Include="Lykke.RabbitMqBroker" Version="4.0.5" />
-    <PackageReference Include="Lykke.Logs" Version="3.5.0" />
+    <PackageReference Include="Lykke.Logs" Version="3.5.1" />
     <PackageReference Include="Lykke.RabbitMqBroker" Version="4.3.1" />
-    <PackageReference Include="Lykke.SettingsReader" Version="1.0.45" />
+    <PackageReference Include="Lykke.SettingsReader" Version="1.1.4" />
     <PackageReference Include="Lykke.SlackNotification.AzureQueue" Version="2.0.1" />
     <PackageReference Include="Lykke.WampSharp" Version="1.0.2" />
     <PackageReference Include="Lykke.WampSharp.Default.Client" Version="1.0.2" />
@@ -37,7 +37,7 @@
     <PackageReference Include="Lykke.WampSharp.WebSockets" Version="1.0.2" />
     <PackageReference Include="Microsoft.AspNetCore" Version="2.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.ApplicationInsights.HostingStartup" Version="2.0.1" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.0.2" />
     <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.0.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="2.0.0" />
@@ -48,7 +48,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="2.0.0" />
     <PackageReference Include="Microsoft.Rest.ClientRuntime" Version="2.3.10" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
-    <PackageReference Include="Polly" Version="5.6.1" />
+    <PackageReference Include="Polly" Version="5.7.0" />
     <PackageReference Include="SonarAnalyzer.CSharp" Version="6.7.1.4347" />
   </ItemGroup>
   <ItemGroup>
