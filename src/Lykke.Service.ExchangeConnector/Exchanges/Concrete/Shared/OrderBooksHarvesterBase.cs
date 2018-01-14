@@ -24,7 +24,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
         private readonly ConcurrentDictionary<string, OrderBookSnapshot> _orderBookSnapshots;
         private readonly ExchangeConverters _converters;
         private readonly Timer _heartBeatMonitoringTimer;
-        private readonly TimeSpan _heartBeatPeriod = TimeSpan.FromSeconds(30);
+        protected TimeSpan HeartBeatPeriod { get; set; } = TimeSpan.FromSeconds(30);
         private CancellationTokenSource _cancellationTokenSource;
         private Task _messageLoopTask;
         private readonly IHandler<OrderBook> _newOrderBookHandler;
@@ -80,7 +80,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         protected void RechargeHeartbeat()
         {
-            _heartBeatMonitoringTimer.Change(_heartBeatPeriod, Timeout.InfiniteTimeSpan);
+            _heartBeatMonitoringTimer.Change(HeartBeatPeriod, Timeout.InfiniteTimeSpan);
         }
 
         private async Task Measure()
@@ -131,9 +131,16 @@ namespace TradingBot.Exchanges.Concrete.Shared
             const int smallTimeout = 5;
             var retryPolicy = Policy
                 .Handle<Exception>(ex => !CancellationToken.IsCancellationRequested)
-                .WaitAndRetryForeverAsync(attempt => attempt % 60 == 0
-                    ? TimeSpan.FromMinutes(5)
-                    : TimeSpan.FromSeconds(smallTimeout)); // After every 60 attempts wait 5min 
+                .WaitAndRetryForeverAsync(attempt =>
+                {
+                    if (attempt % 60 == 0)
+                    {
+                        Log.WriteErrorAsync("Receiving messages from the socket", "Unable to recover the connection after 60 attempts. Will try in 5 min. ", null).GetAwaiter().GetResult();
+                    }
+                    return attempt % 60 == 0
+                        ? TimeSpan.FromMinutes(5)
+                        : TimeSpan.FromSeconds(smallTimeout);
+                }); // After every 60 attempts wait 5min 
 
             await retryPolicy.ExecuteAsync(async () =>
              {
@@ -141,6 +148,10 @@ namespace TradingBot.Exchanges.Concrete.Shared
                  try
                  {
                      await MessageLoopImpl();
+                 }
+                 catch (OperationCanceledException)
+                 {
+                     throw;
                  }
                  catch (Exception ex)
                  {

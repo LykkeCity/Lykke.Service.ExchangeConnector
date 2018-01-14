@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
-using Lykke.ExternalExchangesApi.Exchanges.Jfd;
 using Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient;
 using Lykke.ExternalExchangesApi.Shared;
 using QuickFix.Fields;
@@ -33,6 +33,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
         {
             _configuration = configuration;
             _modelConverter = modelConverter;
+            HeartBeatPeriod = Timeout.InfiniteTimeSpan; // FIX has its own heartbeat mechanism
         }
 
         private static FixConnectorConfiguration GetConnectorConfig(JfdExchangeConfiguration exchangeConfiguration)

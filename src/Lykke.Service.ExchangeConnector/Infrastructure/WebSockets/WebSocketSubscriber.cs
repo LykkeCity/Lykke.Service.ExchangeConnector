@@ -139,7 +139,14 @@ namespace TradingBot.Infrastructure.WebSockets
             const int smallTimeout = 5;
             var retryPolicy = Policy
                 .Handle<Exception>(ex => !(ex is AuthenticationException) && !CancellationToken.IsCancellationRequested)
-                .WaitAndRetryForeverAsync(attempt => attempt % 60 == 0 ? TimeSpan.FromMinutes(5) : TimeSpan.FromSeconds(smallTimeout)); // After every 60 attempts wait 5min 
+                .WaitAndRetryForeverAsync(attempt =>
+                {
+                    if (attempt % 60 == 0)
+                    {
+                        Log.WriteErrorAsync("Receiving messages from the socket", "Unable to recover the connection after 60 attempts. Will try in 5 min. ", null).GetAwaiter().GetResult();
+                    }
+                    return attempt % 60 == 0 ? TimeSpan.FromMinutes(5) : TimeSpan.FromSeconds(smallTimeout);
+                }); // After every 60 attempts wait 5min 
 
             await retryPolicy.ExecuteAsync(async () =>
             {
