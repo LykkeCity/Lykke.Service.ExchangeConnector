@@ -30,7 +30,7 @@ namespace Lykke.ExternalExchangesApi.Shared
             Log = log.CreateComponentScope(GetType().Name);
             var settings = new SessionSettings(config.FixConfig);
             var storeFactory = new FileStoreFactory(settings);
-            var logFactory = new LykkeLogFactory(Log);
+            var logFactory = new LykkeLogFactory(Log, false, false);
             _socketInitiator = new SocketInitiator(this, storeFactory, settings, logFactory);
         }
 
