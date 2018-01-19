@@ -63,43 +63,9 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
 
             //StartWampConnection(); // TODO: wamp sends strange tickprices with ask=bid, temporary switch to direct rabbitmq connection:
 
-            GetInitialTickPrices().Wait();
             StartRabbitMqTickPriceSubscription();
             StartRabbitMqOrdersSubscription();
             OnConnected();
-        }
-
-        private async Task GetInitialTickPrices()
-        {
-            foreach (var instrument in Instruments)
-            {
-                try
-                {
-                    var orderBook =
-                        await apiClient.MakeGetRequestAsync<List<OrderBook>>(
-                            $"{Config.EndpointUrl}/api/OrderBooks/{instrument.Name}", ctSource.Token);
-                    var tickPrices = orderBook.GroupBy(x => x.AssetPair)
-                        .Select(g => new TickPrice(
-                            new Instrument(Name, g.Key),
-                            g.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow,
-                            g.FirstOrDefault(ob => !ob.IsBuy)?.Prices.Select(x => x.Price).DefaultIfEmpty(0).Min() ?? 0,
-                            g.FirstOrDefault(ob => ob.IsBuy)?.Prices.Select(x => x.Price).DefaultIfEmpty(0).Max() ?? 0)
-                        )
-                        .Where(x => x.Ask > 0 && x.Bid > 0);
-
-                    foreach (var tickPrice in tickPrices)
-                    {
-                        _lastAsks[instrument.Name] = tickPrice.Ask;
-                        _lastBids[instrument.Name] = tickPrice.Bid;
-                        
-                        await CallTickPricesHandlers(tickPrice);
-                    }
-                }
-                catch (Exception e)
-                {
-                    await LykkeLog.WriteErrorAsync(nameof(LykkeExchange), nameof(GetInitialTickPrices), e);
-                }
-            }
         }
 
         private void StartRabbitMqTickPriceSubscription()
@@ -291,30 +257,37 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
 
                 case OrderType.Limit:
 
-                    var limitOrderResponse = await apiClient.MakePostRequestAsync<string>(
-                        $"{Config.EndpointUrl}/api/Orders/limit",
-                        CreateHttpContent(new LimitOrderRequest()
+                    try
+                    {
+                        var limitOrderResponse = await apiClient.MakePostRequestAsync<string>(
+                            $"{Config.EndpointUrl}/api/Orders/limit",
+                            CreateHttpContent(new LimitOrderRequest()
+                            {
+                                AssetPairId = signal.Instrument.Name,
+                                OrderAction = signal.TradeType,
+                                Volume = signal.Volume,
+                                Price = signal.Price ?? 0
+                            }),
+                            translatedSignal,
+                            cts.Token);
+                        
+                        var orderPlaced = limitOrderResponse != null && Guid.TryParse(limitOrderResponse, out var orderId);
+
+                        if (orderPlaced)
                         {
-                            AssetPairId = signal.Instrument.Name,
-                            OrderAction = signal.TradeType,
-                            Volume = signal.Volume,
-                            Price = signal.Price ?? 0
-                        }),
-                        translatedSignal,
-                        cts.Token);
-
-                    var orderPlaced = limitOrderResponse != null && Guid.TryParse(limitOrderResponse, out var orderId);
-
-                    if (orderPlaced)
-                    {
-                        translatedSignal.ExternalId = orderId.ToString();
-                        return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume,
-                            signal.TradeType,
-                            orderId.ToString(), ExecutionStatus.New);
+                            translatedSignal.ExternalId = orderId.ToString();
+                            return new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume,
+                                signal.TradeType,
+                                orderId.ToString(), ExecutionStatus.New);
+                        }
+                        else
+                        {
+                            throw new ApiException("Unexpected result from exchange");
+                        }
                     }
-                    else
+                    catch (ApiException e) when (e.Message.Contains("ReservedVolumeHigherThanBalance"))
                     {
-                        throw new ApiException("Unexpected result from exchange");
+                        throw new InsufficientFundsException($"Not enough funds to placing order {signal}", e);
                     }
 
                 default:
