@@ -1,5 +1,5 @@
 ﻿using System;
-using TradingBot.Exchanges.Abstractions;
+using Lykke.ExternalExchangesApi.Exchanges.Abstractions;
 
 namespace TradingBot.Exchanges.Concrete.Oanda.Endpoints
 {

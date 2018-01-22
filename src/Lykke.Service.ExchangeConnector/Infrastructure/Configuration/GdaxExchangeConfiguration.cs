@@ -8,8 +8,6 @@ namespace TradingBot.Infrastructure.Configuration
 
         public bool Enabled { get; set; }
 
-        public bool SaveQuotesToAzure { get; set; }
-
         public bool SaveOrderBooksToAzure { get; set; }
 
         public bool PubQuotesToRabbit { get; set; }

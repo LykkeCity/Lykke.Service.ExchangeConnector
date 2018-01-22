@@ -19,13 +19,13 @@ namespace TradingBot.Exchanges.Abstractions
 
         Task<IReadOnlyCollection<TradeBalanceModel>> GetTradeBalances(TimeSpan timeout);
         
-        Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout);
+        Task<ExecutionReport> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout);
 
-        Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout);
+        Task<ExecutionReport> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout);
 
-        Task<ExecutedTrade> GetOrder(string id, Instrument instrument, TimeSpan timeout);
+        Task<ExecutionReport> GetOrder(string id, Instrument instrument, TimeSpan timeout);
 
-        Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout);
+        Task<IEnumerable<ExecutionReport>> GetOpenOrders(TimeSpan timeout);
 
         Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout);
     }

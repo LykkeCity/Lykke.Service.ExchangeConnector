@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using TradingBot.Trading;
 using Xunit;
 
@@ -11,7 +11,7 @@ namespace TradingBot.Tests
         public void SerializeAndDeserializeTradingSignal()
         {
             var converter = new GenericRabbitModelConverter<TradingSignal>();
-            var signal = new TradingSignal(new Instrument("Exchange", "EURUSD"),  "", OrderCommand.Create, TradeType.Buy, 100.2m, 10.1m, DateTime.Now, OrderType.Limit);
+            var signal = new TradingSignal(new Instrument("Exchange", "EURUSD"),  "", OrderCommand.Create, TradeType.Buy, 100.2m, 10.1m, DateTime.UtcNow, OrderType.Limit);
 
             var serialized = converter.Serialize(signal);
             Assert.NotNull(serialized);

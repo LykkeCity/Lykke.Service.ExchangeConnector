@@ -4,14 +4,13 @@
 // regenerated.
 // </auto-generated>
 
-namespace TradingBot.Exchanges.Concrete.AutorestClient
-{
-    using Models;
-    using System.Collections;
-    using System.Collections.Generic;
-    using System.Threading;
-    using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models;
 
+namespace Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient
+{
     /// <summary>
     /// Extension methods for BitMEXAPI.
     /// </summary>

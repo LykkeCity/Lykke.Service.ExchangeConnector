@@ -2,7 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace TradingBot.Exchanges.Concrete.Shared
+namespace Lykke.ExternalExchangesApi.Shared
 {
     public interface IMessenger<in TRequest, TResponse> : IDisposable
     {

@@ -8,7 +8,6 @@ namespace TradingBot.Infrastructure.Configuration
         
         [Optional]
         public string Exchange { get; set; }
-        
         [Optional]
         public string Queue { get; set; }
         

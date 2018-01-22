@@ -1,29 +1,29 @@
 ﻿using System;
 using System.Threading.Tasks;
 using AzureStorage;
-using Microsoft.Extensions.Logging;
+using Common.Log;
 using QuickFix;
-using TradingBot.Infrastructure.Logging;
+using ILog = Common.Log.ILog;
 
 namespace TradingBot.Communications
 {
-    public class AzureFixMessagesRepository
+    internal sealed class AzureFixMessagesRepository : IAzureFixMessagesRepository
     {
-        private readonly ILogger logger = Logging.CreateLogger<AzureFixMessagesRepository>();
-
         private readonly INoSQLTableStorage<FixMessageTableEntity> _tableStorage;
-   
-        public AzureFixMessagesRepository(INoSQLTableStorage<FixMessageTableEntity> tableStorage)
+        private readonly ILog _log;
+
+        public AzureFixMessagesRepository(INoSQLTableStorage<FixMessageTableEntity> tableStorage, ILog log)
         {
             _tableStorage = tableStorage;
+            _log = log.CreateComponentScope(nameof(AzureFixMessagesRepository));
         }
 
         public void SaveMessage(Message message, FixMessageDirection direction)
         {
-            SaveMessageAsync(message, direction).Wait();
-		}
+            SaveMessageAsync(message, direction).GetAwaiter().GetResult();
+        }
 
-        public async Task SaveMessageAsync(Message message, FixMessageDirection direction)
+        private async Task SaveMessageAsync(Message message, FixMessageDirection direction)
         {
             try
             {
@@ -40,7 +40,7 @@ namespace TradingBot.Communications
             }
             catch (Exception ex)
             {
-                logger.LogError(0, ex, "Can't save FIX message into azure storage");
+                await _log.WriteErrorAsync(nameof(SaveMessageAsync), string.Empty, "Saving fix messages", ex);
             }
         }
     }

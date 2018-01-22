@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Common.Log;
 using Polly;
 using TradingBot.Communications;
+using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Trading;
@@ -23,10 +24,10 @@ namespace TradingBot.Exchanges.Concrete.Shared
         private readonly ConcurrentDictionary<string, OrderBookSnapshot> _orderBookSnapshots;
         private readonly ExchangeConverters _converters;
         private readonly Timer _heartBeatMonitoringTimer;
-        private readonly TimeSpan _heartBeatPeriod = TimeSpan.FromSeconds(30);
+        protected TimeSpan HeartBeatPeriod { get; set; } = TimeSpan.FromSeconds(30);
         private CancellationTokenSource _cancellationTokenSource;
         private Task _messageLoopTask;
-        private Func<OrderBook, Task> _newOrderBookHandler;
+        private readonly IHandler<OrderBook> _newOrderBookHandler;
         private DateTime _lastPublishTime = DateTime.MinValue;
         private long _lastSecPublicationsNum;
         private int _orderBooksReceivedInLastTimeFrame;
@@ -40,11 +41,13 @@ namespace TradingBot.Exchanges.Concrete.Shared
         public int MaxOrderBookRate { get; set; }
 
         protected OrderBooksHarvesterBase(string exchangeName, IExchangeConfiguration exchangeConfiguration, ILog log,
-            OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
+            OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository,
+            IHandler<OrderBook> newOrderBookHandler)
         {
             ExchangeConfiguration = exchangeConfiguration;
             OrderBookSnapshotsRepository = orderBookSnapshotsRepository;
             OrderBookEventsRepository = orderBookEventsRepository;
+            _newOrderBookHandler = newOrderBookHandler;
             ExchangeName = exchangeName;
 
             Log = log.CreateComponentScope(GetType().Name);
@@ -77,7 +80,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         protected void RechargeHeartbeat()
         {
-            _heartBeatMonitoringTimer.Change(_heartBeatPeriod, Timeout.InfiniteTimeSpan);
+            _heartBeatMonitoringTimer.Change(HeartBeatPeriod, Timeout.InfiniteTimeSpan);
         }
 
         private async Task Measure()
@@ -92,37 +95,32 @@ namespace TradingBot.Exchanges.Concrete.Shared
                     $"RabbitMq {pubInSec} per second", string.Empty);
                 _lastSecPublicationsNum = 0;
                 _publishedToRabbit = 0;
-                await Task.Delay(TimeSpan.FromSeconds(period), CancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(period), CancellationToken).ConfigureAwait(false);
             }
         }
 
-        public void AddHandler(Func<OrderBook, Task> handler)
-        {
-            _newOrderBookHandler = handler;
-        }
-
-        public void Start()
+        public virtual void Start()
         {
             Log.WriteInfoAsync(nameof(Start), "Starting", $"Starting {GetType().Name}").Wait();
 
             _cancellationTokenSource = new CancellationTokenSource();
             CancellationToken = _cancellationTokenSource.Token;
-            _measureTask = Task.Run(async () => await Measure());
+            _measureTask = Task.Run(Measure, _cancellationTokenSource.Token);
             StartReading();
         }
 
         protected virtual void StartReading()
         {
-            _messageLoopTask = Task.Run(async () => await MessageLoop());
+            _messageLoopTask = Task.Run(MessageLoop, CancellationToken);
         }
 
-        public void Stop()
+        public virtual void Stop()
         {
             Log.WriteInfoAsync(nameof(Stop), "Stopping", $"Stopping {GetType().Name}").Wait();
             _cancellationTokenSource?.Cancel();
-            SwallowCanceledException(() => 
+            SwallowCanceledException(() =>
                 _messageLoopTask?.GetAwaiter().GetResult());
-            SwallowCanceledException(() => 
+            SwallowCanceledException(() =>
                 _measureTask?.GetAwaiter().GetResult());
             _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = null;
@@ -132,10 +130,17 @@ namespace TradingBot.Exchanges.Concrete.Shared
         {
             const int smallTimeout = 5;
             var retryPolicy = Policy
-                .Handle<Exception>(ex => !(ex is OperationCanceledException))
-                .WaitAndRetryForeverAsync(attempt => attempt % 60 == 0
-                    ? TimeSpan.FromMinutes(5)
-                    : TimeSpan.FromSeconds(smallTimeout)); // After every 60 attempts wait 5min 
+                .Handle<Exception>(ex => !CancellationToken.IsCancellationRequested)
+                .WaitAndRetryForeverAsync(attempt =>
+                {
+                    if (attempt % 60 == 0)
+                    {
+                        Log.WriteErrorAsync("Receiving messages from the socket", "Unable to recover the connection after 60 attempts. Will try in 5 min. ", null).GetAwaiter().GetResult();
+                    }
+                    return attempt % 60 == 0
+                        ? TimeSpan.FromMinutes(5)
+                        : TimeSpan.FromSeconds(smallTimeout);
+                }); // After every 60 attempts wait 5min 
 
             await retryPolicy.ExecuteAsync(async () =>
              {
@@ -143,6 +148,10 @@ namespace TradingBot.Exchanges.Concrete.Shared
                  try
                  {
                      await MessageLoopImpl();
+                 }
+                 catch (OperationCanceledException)
+                 {
+                     throw;
                  }
                  catch (Exception ex)
                  {
@@ -171,7 +180,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
             foreach (var orderBook in orderBooks)
             {
-                await _newOrderBookHandler(orderBook);
+                await _newOrderBookHandler.Handle(orderBook);
             }
         }
 

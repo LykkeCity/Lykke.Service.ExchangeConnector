@@ -22,6 +22,12 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient.Model
 
             switch (eventType)
             {
+                case PongResponse.Tag:
+                    response = JsonConvert.DeserializeObject<PongResponse>(json);
+                    break;
+                case "auth":
+                    response = JsonConvert.DeserializeObject<AuthMessageResponse>(json);
+                    break;
                 case "error":
                     response = JsonConvert.DeserializeObject<ErrorEventMessageResponse>(json);
                     break;

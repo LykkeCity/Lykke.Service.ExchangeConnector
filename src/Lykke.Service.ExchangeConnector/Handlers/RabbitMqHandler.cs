@@ -7,13 +7,20 @@ using TradingBot.Trading;
 
 namespace TradingBot.Handlers
 {
-    public class RabbitMqHandler<T> : Handler<T>, IDisposable
+    internal class RabbitMqHandler<T> : IHandler<T>, IDisposable
     {
+        private readonly bool _enabled;
         private readonly RabbitMqPublisher<T> _rabbitPublisher;
         private readonly object _sync = new object();
 
-        public RabbitMqHandler(string connectionString, string exchangeName, bool durable = false, ILog log = null)
+        public RabbitMqHandler(string connectionString, string exchangeName, bool enabled, ILog log, bool durable = true)
         {
+            _enabled = enabled;
+            if (!enabled)
+            {
+                log.WriteInfoAsync($"{GetType()}", "Constructor", $"A rabbit mq handler for {typeof(T)} is disabled");
+                return;
+            }
             var publisherSettings = new RabbitMqSubscriptionSettings
             {
                 ConnectionString = connectionString,
@@ -24,25 +31,29 @@ namespace TradingBot.Handlers
             _rabbitPublisher = new RabbitMqPublisher<T>(publisherSettings)
                 .DisableInMemoryQueuePersistence()
                 .SetSerializer(new GenericRabbitModelConverter<T>())
-                .SetLogger(log ?? new LogToConsole())
+                .SetLogger(log)
                 .SetPublishStrategy(new DefaultFanoutPublishStrategy(publisherSettings))
                 .SetConsole(new LogToConsole())
                 .PublishSynchronously()
                 .Start();
         }
 
-        public override Task Handle(T message)
+        public Task Handle(T message)
         {
+            if (!_enabled)
+            {
+                return Task.CompletedTask;
+            }
             lock (_sync)
-            { 
+            {
                 return _rabbitPublisher.ProduceAsync(message);
             }
         }
 
         public void Dispose()
         {
-            _rabbitPublisher.Stop();
-            _rabbitPublisher.Dispose();
+            _rabbitPublisher?.Stop();
+            _rabbitPublisher?.Dispose();
         }
     }
 }

@@ -44,13 +44,8 @@ namespace TradingBot.Tests.BitMex
 
             Assert.NotNull(info);
 
-            var request = new SubscribeRequest
-            {
-                Event = "subscribe",
-                Channel = "book",
-                Pair = "BTCUSD",
-                Prec = "R0"
-            };
+            var request = SubscribeOrderBooksRequest.BuildRequest("BTCUSD", "", "R0");
+
             await _clientWebSocket.SendRequestAsync(request, CancellationToken.None);
 
             var successfull = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
@@ -76,19 +71,15 @@ namespace TradingBot.Tests.BitMex
 
             Assert.NotNull(info);
 
-            var request = new SubscribeRequest
-            {
-                Event = "subscribe",
-                Channel = "ticker",
-                Pair = "BTCUSD"
-            };
+            var request = SublscribeTickeRequest.BuildRequest("BTCUSD");
+
             await _clientWebSocket.SendRequestAsync(request, CancellationToken.None);
-            
+
             var successfull = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
             var respose = JsonConvert.DeserializeObject<SubscribedResponse>(successfull);
             var ticker = await _clientWebSocket.GetResponseAsync(CancellationToken.None);
             TickerResponse.Parse(ticker);
-            
+
             Assert.NotNull(respose);
         }
 

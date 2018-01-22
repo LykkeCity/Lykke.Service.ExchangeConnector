@@ -5,12 +5,14 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="..\..\src\Lykke.Service.ExchangeConnector\FIX44.jfd.xml" Link="Jfd\FIX44.jfd.xml" />
+    <Content Include="..\..\src\Lykke.Service.ExchangeConnector\FIX44.xml" Link="Icm\FIX44.xml" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Lykke.AzureStorage" Version="3.1.0" />
+    <PackageReference Include="Lykke.AzureStorage" Version="4.0.0" />
+    <PackageReference Include="Lykke.PusherClient" Version="1.0.3" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.5.0" />
-    <PackageReference Include="Moq" Version="4.7.145" />
-    <PackageReference Include="SonarAnalyzer.CSharp" Version="6.7.0.4267" />
+    <PackageReference Include="Moq" Version="4.8.1" />
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="6.7.1.4347" />
     <PackageReference Include="System.Net.WebSockets.Client" Version="4.3.2" />
     <PackageReference Include="xunit" Version="2.3.1" />
     <PackageReference Include="xunit.analyzers" Version="0.8.0" />

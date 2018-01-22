@@ -36,15 +36,12 @@
             Get a list of all connected exchanges
             </summary>
             <remarks>The names of available exchanges participates in API calls for exchange-specific methods</remarks>
-            <response code="200">An array of strings which are the names of exchanges</response>
         </member>
         <member name="M:TradingBot.Controllers.Api.ExchangesController.Index(System.String)">
             <summary>
             Get information about a specific exchange
             </summary>
             <param name="exchangeName">Name of the specific exchange</param>
-            <response code="200">An information about the exchange, such as available trading instruments</response>
-            <response code="400">Bad request response is returned in case of specifying name of unavailable exchange</response>
         </member>
         <member name="M:TradingBot.Controllers.Api.ExchangesController.GetRating">
             <summary>
@@ -67,8 +64,6 @@
             Returns information about all OPEN orders on the exchange
             <param name="exchangeName">The name of the exchange</param>
             </summary>
-            <response code="200">Active orders</response>
-            <response code="500">Unexpected error</response>
         </member>
         <member name="M:TradingBot.Controllers.Api.OrdersController.GetOrder(System.String,System.String,System.String)">
             <summary>
@@ -77,8 +72,6 @@
             <param name="id">The order id</param>
             <param name="instrument">The instrument name of the order</param>
             <param name="exchangeName">The exchange name</param>
-            <response code="200">The order is found</response>
-            <response code="500">The order either not exist or other server error</response>
         </member>
         <member name="M:TradingBot.Controllers.Api.OrdersController.Post(TradingBot.Models.Api.OrderModel)">
              <summary>
@@ -86,8 +79,6 @@
             <param name="orderModel">A new order</param>
              </summary>
              <remarks>In the location header of successful response placed an URL for getting info about the order</remarks>
-             <response code="200">The order is successfully placed and an order status is returned</response>
-             <response code="400">Can't place the order. The reason is in the response</response>
         </member>
         <member name="M:TradingBot.Controllers.Api.OrdersController.CancelOrder(System.String,System.String)">
             <summary>
@@ -96,114 +87,16 @@
             <remarks></remarks>
             <param name="id">The order id to cancel</param>
             <param name="exchangeName">The exchange name</param>
-            <response code="200">The order is successfully canceled</response>
-            <response code="400">Can't cancel the order. The reason is in the response</response>
         </member>
         <member name="M:TradingBot.Controllers.Api.PositionsController.Index(System.String)">
             <summary>
             Returns information about opened positions
             </summary>
             <param name="exchangeName">The exchange name</param>
-            <response code="200">Active positions</response>
-            <response code="500">Unexpected error</response>
         </member>
-        <member name="P:TradingBot.Exchanges.Abstractions.RestApiClient.HttpClient">
-            <summary>
-            Gets the used HttpClient
-            </summary>
-        </member>
-        <member name="P:TradingBot.Exchanges.Abstractions.RestApiClient.SerializationSettings">
-            <summary>
-            Gets or sets json serialization settings.
-            </summary>
-        </member>
-        <member name="P:TradingBot.Exchanges.Abstractions.RestApiClient.DeserializationSettings">
-            <summary>
-            Gets or sets json deserialization settings.
-            </summary>
-        </member>
-        <member name="T:TradingBot.Exchanges.Concrete.BitMEX.BitmexSocketSubscriberProxy">
+        <member name="T:TradingBot.Exchanges.Concrete.BitMEX.BitmexSocketSubscriberDecorator">
             <summary>
             Redirects calls to opened-data socket and authorized socket.
-            </summary>
-        </member>
-        <member name="P:TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities.GdaxActiveOrdersPost.OrderId">
-            <summary>
-            This class can be used to send a cancel message in addition to 
-            retrieving the current status of an order.
-            </summary>
-        </member>
-        <member name="F:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.Connected">
-            <summary>
-            Raised on established WebSocket connection with the server
-            </summary>
-        </member>
-        <member name="F:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.Disconnected">
-            <summary>
-            Raised when WebSocket connection is lost
-            </summary>
-        </member>
-        <member name="F:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.Subscribed">
-            <summary>
-            Raised on successful subscription
-            </summary>
-        </member>
-        <member name="F:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.OrderReceived">
-            <summary>
-            Raised when a valid order has been received and is now active. This message 
-            is emitted for every single valid order as soon as the matching engine receives 
-            it whether it fills immediately or not.
-            </summary>
-        </member>
-        <member name="F:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.OrderOpened">
-            <summary>
-            Raised when the order is now open on the order book. This message will only be 
-            sent for orders which are not fully filled immediately. RemainingSize will 
-            indicate how much of the order is unfilled and going on the book
-            </summary>
-        </member>
-        <member name="F:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.OrderDone">
-            <summary>
-            Raised when the order is no longer on the order book. Sent for all orders for which there 
-            was a received message. This message can result from an order being canceled or filled. 
-            There will be no more messages for this OrderId after a done message. RemainingSize indicates 
-            how much of the order went unfilled; this will be 0 for filled orders.
-            Market orders will not have a remaining_size or price field as they are never on the 
-            open order book at a given price.
-            </summary>
-        </member>
-        <member name="F:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.OrderMatched">
-            <summary>
-            Raised when a trade occurred between two orders. The aggressor or taker order is the one 
-            executing immediately after being received and the maker order is a resting order on the book. 
-            The side field indicates the maker order side. If the side is sell this indicates the maker 
-            was a sell order and the match is considered an up-tick. A buy side match is a down-tick.
-            </summary>
-        </member>
-        <member name="F:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.OrderChanged">
-            <summary>
-            Raised when an order has changed. This is the result of self-trade prevention adjusting the 
-            order size or available funds. Orders can only decrease in size or funds. Change messages are 
-            sent anytime an order changes in size; this includes resting orders (open) as well as received 
-            but not yet open. Change messages are also sent when a new market order goes through self trade 
-            prevention and the funds for the market order have changed.
-            </summary>
-        </member>
-        <member name="F:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.Ticker">
-            <summary>
-            The ticker provides real-time price updates every time a match happens. It batches updates 
-            in case of cascading matches, greatly reducing bandwidth requirements.
-            </summary>
-        </member>
-        <member name="F:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.Error">
-            <summary>
-            Most failure cases will cause an error message (a message with the type "error") to be emitted. 
-            This can be helpful for implementing a client or debugging issues.
-            </summary>
-        </member>
-        <member name="P:TradingBot.Exchanges.Concrete.GDAX.WssClient.GdaxWebSocketApi.BaseUri">
-            <summary>
-            Base GDAX WebSockets Uri
             </summary>
         </member>
         <member name="M:TradingBot.Exchanges.Concrete.HistoricalData.LineParsers.ParseMTLine(System.String)">
@@ -222,11 +115,6 @@
             Gmt time,Ask,Bid,AskVolume,BidVolume
             31.07.2011 23:00:00.652,1.13729,1.13699,2.25,1.13
             31.07.2011 23:00:00.885,1.13733,1.1370200000000001,2.25,1.13
-            </summary>
-        </member>
-        <member name="M:TradingBot.Exchanges.Concrete.Icm.IcmExchange.StartRabbitConnection">
-            <summary>
-            For ICM we use internal RabbitMQ exchange with pricefeed
             </summary>
         </member>
         <member name="T:TradingBot.Exchanges.Concrete.Kraken.Endpoints.PublicData">
@@ -556,12 +444,6 @@
             <param name="mu">yearly trend</param>
             <param name="random">the source of randomness</param>
         </member>
-        <member name="T:TradingBot.Helpers.AsyncEvent`1">
-            <summary>
-            Asynchronous event handler delegate.
-            Source: https://stackoverflow.com/a/30739162
-            </summary>
-        </member>
         <member name="P:TradingBot.Models.Api.OrderModel.DateTime">
             <summary>
             Date and time must be in 5 minutes threshold from UTC now
@@ -578,7 +460,77 @@
         <member name="P:TradingBot.Models.IsAliveResponseModel.Env">
             <summary>Environment variables</summary>
         </member>
-        <member name="F:TradingBot.Trading.Position.initialValue">
+        <member name="P:TradingBot.Trading.ExecutionReport.ClientOrderId">
+            <summary>
+            A client assigned ID of the order
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.ExchangeOrderId">
+            <summary>
+            An exchange assigned ID of the order
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.Instrument">
+            <summary>
+            An instrument description
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.Type">
+            <summary>
+            A trade direction
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.Time">
+            <summary>
+            Transaction time
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.Price">
+            <summary>
+            An actual price of the execution or order
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.Volume">
+            <summary>
+            Trade volume
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.Fee">
+            <summary>
+            Execution fee
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.FeeCurrency">
+            <summary>
+            Fee currency
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.Success">
+            <summary>
+            Indicates that operation was successful
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.ExecutionStatus">
+            <summary>
+            Current status of the order
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.Message">
+            <summary>
+            An arbitrary message from the exchange related to the execution|order 
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.OrderType">
+            <summary>
+            A type of the order
+            </summary>
+        </member>
+        <member name="P:TradingBot.Trading.ExecutionReport.ExecType">
+            <summary>
+            A type of the execution. ExecType = Trade means it is an execution, otherwise it is an order
+            </summary>
+        </member>
+        <member name="F:TradingBot.Trading.Position._initialValue">
             <summary>
             Initial amount of assets (base asset of the Instrument)
             </summary>

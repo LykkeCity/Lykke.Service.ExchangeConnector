@@ -4,12 +4,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Exceptions;
 using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
-using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Models.Api;
 using TradingBot.Repositories;
 using TradingBot.Trading;
@@ -23,35 +22,38 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 {
     internal class BitfinexExchange : Exchange
     {
+        private readonly BitfinexModelConverter _modelConverter;
         private readonly BitfinexOrderBooksHarvester _orderBooksHarvester;
+        private readonly BitfinexExecutionHarvester _executionHarvester;
         private readonly IBitfinexApi _exchangeApi;
-        private readonly ExchangeConverters _converters;
         public new const string Name = "bitfinex";
 
-        public BitfinexExchange(BitfinexExchangeConfiguration configuration, TranslatedSignalsRepository translatedSignalsRepository,
-            BitfinexOrderBooksHarvester orderBooksHarvester, ILog log)
+        public BitfinexExchange(BitfinexExchangeConfiguration configuration,
+            TranslatedSignalsRepository translatedSignalsRepository,
+            BitfinexOrderBooksHarvester orderBooksHarvester,
+            BitfinexExecutionHarvester executionHarvester, ILog log)
             : base(Name, configuration, translatedSignalsRepository, log)
         {
+            _modelConverter = new BitfinexModelConverter(configuration);
             _orderBooksHarvester = orderBooksHarvester;
+            _executionHarvester = executionHarvester;
             var credenitals = new BitfinexServiceClientCredentials(configuration.ApiKey, configuration.ApiSecret);
             _exchangeApi = new BitfinexApi(credenitals)
             {
                 BaseUri = new Uri(configuration.EndpointUrl)
             };
 
-            _converters = new ExchangeConverters(configuration.SupportedCurrencySymbols, Name);
 
-            _orderBooksHarvester.AddHandler(CallOrderBookHandlers);
-            _orderBooksHarvester.AddTickPriceHandler(CallTickPricesHandlers);
+
             orderBooksHarvester.MaxOrderBookRate = configuration.MaxOrderBookRate;
         }
 
-        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<ExecutionReport> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            var symbol = _converters.LykkeSymbolToExchangeSymbol(signal.Instrument.Name);
+            var symbol = _modelConverter.LykkeSymbolToExchangeSymbol(signal.Instrument.Name);
             var volume = signal.Volume;
-            var orderType = ConvertOrderType(signal.OrderType);
-            var side = ConvertTradeType(signal.TradeType);
+            var orderType = _modelConverter.ConvertOrderType(signal.OrderType);
+            var side = _modelConverter.ConvertTradeType(signal.TradeType);
             var price = signal.Price == 0 ? 1 : signal.Price ?? 1;
             var cts = new CancellationTokenSource(timeout);
 
@@ -66,7 +68,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             return trade;
         }
 
-        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<ExecutionReport> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
 
             var cts = new CancellationTokenSource(timeout);
@@ -83,7 +85,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             return trade;
         }
 
-        public override async Task<ExecutedTrade> GetOrder(string id, Instrument instrument, TimeSpan timeout)
+        public override async Task<ExecutionReport> GetOrder(string id, Instrument instrument, TimeSpan timeout)
         {
             if (!long.TryParse(id, out var orderId))
             {
@@ -99,7 +101,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             return trade;
         }
 
-        public override async Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout)
+        public override async Task<IEnumerable<ExecutionReport>> GetOpenOrders(TimeSpan timeout)
         {
 
             var cts = new CancellationTokenSource(timeout);
@@ -108,7 +110,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             {
                 throw new ApiException(error.Message);
             }
-            var trades = ((IReadOnlyCollection<Order>)response).Select(r => OrderToTrade(r));
+            var trades = ((IReadOnlyCollection<Order>)response).Select(OrderToTrade);
             return trades;
         }
 
@@ -131,7 +133,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             var result = response.Select(r =>
                 new PositionModel
                 {
-                    Symbol = _converters.ExchangeSymbolToLykkeInstrument(r.Symbol).Name,
+                    Symbol = _modelConverter.ExchangeSymbolToLykkeInstrument(r.Symbol).Name,
                     PositionVolume = r.Amount,
                     MaintMarginUsed = r.Amount * r.Base * marginByCurrency[r.Symbol].MarginRequirement / 100m,
                     RealisedPnL = 0, //TODO no specification,
@@ -185,80 +187,50 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             return new[] { balance };
         }
 
-        private ExecutedTrade OrderToTrade(Order order)
+        private ExecutionReport OrderToTrade(Order order)
         {
             var id = order.Id;
             var execTime = order.Timestamp;
             var execPrice = order.Price;
             var execVolume = order.ExecutedAmount;
-            var tradeType = ConvertTradeType(order.Side);
+            var tradeType = BitfinexModelConverter.ConvertTradeType(order.Side);
             var status = ConvertExecutionStatus(order);
-            var instr = _converters.ExchangeSymbolToLykkeInstrument(order.Symbol);
+            var instr = _modelConverter.ExchangeSymbolToLykkeInstrument(order.Symbol);
 
-            return new ExecutedTrade(instr, execTime, execPrice, execVolume, tradeType, id, status);
+            return new ExecutionReport(instr, execTime, execPrice, execVolume, tradeType, id, status)
+            {
+                ExecType = ExecType.Trade,
+                Success = true,
+                FailureType = OrderStatusUpdateFailureType.None
+            };
         }
 
         protected override void StartImpl()
         {
+            _executionHarvester.Start();
             _orderBooksHarvester.Start();
             OnConnected();
         }
 
         protected override void StopImpl()
         {
+            _executionHarvester.Stop();
             _orderBooksHarvester.Stop();
         }
 
-        private string ConvertOrderType(OrderType type)
-        {
-            switch (type)
-            {
-                case OrderType.Market:
-                    return "market";
-                case OrderType.Limit:
-                    return "limit";
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
-            }
-        }
 
-        private static string ConvertTradeType(TradeType signalTradeType)
-        {
-            switch (signalTradeType)
-            {
-                case TradeType.Buy:
-                    return "buy";
-                case TradeType.Sell:
-                    return "sell";
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(signalTradeType), signalTradeType, null);
-            }
-        }
 
-        private static TradeType ConvertTradeType(string signalTradeType)
-        {
-            switch (signalTradeType)
-            {
-                case "buy":
-                    return TradeType.Buy;
-                case "sell":
-                    return TradeType.Sell;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(signalTradeType), signalTradeType, null);
-            }
-        }
-
-        private static ExecutionStatus ConvertExecutionStatus(Order order)
+        private static OrderExecutionStatus ConvertExecutionStatus(Order order)
         {
             if (order.IsCancelled)
             {
-                return ExecutionStatus.Cancelled;
+                return OrderExecutionStatus.Cancelled;
             }
             if (order.IsLive)
             {
-                return ExecutionStatus.New;
+                return OrderExecutionStatus.New;
             }
-            return ExecutionStatus.Fill;
+            return OrderExecutionStatus.Fill;
         }
 
     }

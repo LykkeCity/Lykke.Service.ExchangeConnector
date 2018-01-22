@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Common.Log;
 using Newtonsoft.Json;
 using Polly;
-using TradingBot.Exchanges.Concrete.Shared;
 
 namespace Lykke.ExternalExchangesApi.Shared
 {
@@ -16,7 +15,7 @@ namespace Lykke.ExternalExchangesApi.Shared
         private readonly string _endpointUrl;
         private readonly ILog _log;
         private ClientWebSocket _clientWebSocket;
-        private readonly TimeSpan _responseTimeout = TimeSpan.FromMinutes(1);
+        private readonly TimeSpan _responseTimeout = TimeSpan.FromSeconds(10);
 
         public WebSocketTextMessenger(string endpointUrl, ILog log)
         {
@@ -37,39 +36,39 @@ namespace Lykke.ExternalExchangesApi.Shared
 
             const int attempts = 20;
             var retryPolicy = Policy
-                .Handle<Exception>(e => !(e is OperationCanceledException))
+                .Handle<Exception>(e => !cancellationToken.IsCancellationRequested)
                 .WaitAndRetryAsync(attempts, attempt => TimeSpan.FromSeconds(3));
             try
             {
-
                 await retryPolicy.ExecuteAsync(async () =>
                 {
                     try
                     {
                         _clientWebSocket = new ClientWebSocket();
-                        await _clientWebSocket.ConnectAsync(uri, cancellationToken);
-                        await _log.WriteInfoAsync(nameof(ConnectAsync), "Successfully connected to WebSocket",
-                            $"API endpoint {_endpointUrl}");
+                        using (var connectionTimeoutCts = new CancellationTokenSource(_responseTimeout))
+                        using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, connectionTimeoutCts.Token))
+                        {
+                            await _clientWebSocket.ConnectAsync(uri, linkedCts.Token);
+                        }
+                        await _log.WriteInfoAsync(nameof(ConnectAsync), "Successfully connected to WebSocket", $"API endpoint {_endpointUrl}");
                     }
                     catch (Exception ex)
                     {
                         if (!cancellationToken.IsCancellationRequested)
                         {
-                            await _log.WriteErrorAsync(nameof(ConnectAsync), $"Unable to connect to {_endpointUrl}",
-                                ex);
+                            await _log.WriteWarningAsync(nameof(ConnectAsync), $"Unable to connect to {_endpointUrl}. Retry in 3 sec.", ex.Message);
                         }
                         throw;
                     }
                 });
             }
-            catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
-            {
-                throw;
-            }
             catch (Exception ex)
             {
-                await _log.WriteErrorAsync(nameof(ConnectAsync),
-                    $"Unable to connect to {_endpointUrl} after {attempts} attempts", ex);
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    await _log.WriteErrorAsync(nameof(ConnectAsync),
+                        $"Unable to connect to {_endpointUrl} after {attempts} attempts", ex);
+                }
                 throw;
             }
         }
@@ -80,11 +79,11 @@ namespace Lykke.ExternalExchangesApi.Shared
             try
             {
                 var msg = EncodeRequest(request);
-                await _clientWebSocket.SendAsync(msg, WebSocketMessageType.Text, true, cancellationToken);
-            }
-            catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
-            {
-                throw;
+                using (var connectionTimeoutCts = new CancellationTokenSource(_responseTimeout))
+                using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, connectionTimeoutCts.Token))
+                {
+                    await _clientWebSocket.SendAsync(msg, WebSocketMessageType.Text, true, linkedCts.Token);
+                }
             }
             catch (Exception ex)
             {

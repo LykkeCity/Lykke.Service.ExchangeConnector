@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Common.Log;
 using TradingBot.Communications;
-using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Models.Api;
 using TradingBot.Trading;
@@ -15,14 +14,6 @@ namespace TradingBot.Exchanges.Abstractions
     internal abstract class Exchange : IExchange
     {
         protected readonly ILog LykkeLog;
-
-        private readonly List<Handler<TickPrice>> _tickPriceHandlers = new List<Handler<TickPrice>>();
-
-        private readonly List<Handler<OrderBook>> _orderBookHandlers = new List<Handler<OrderBook>>();
-
-        private readonly List<Handler<ExecutedTrade>> _executedTradeHandlers = new List<Handler<ExecutedTrade>>();
-
-        private readonly List<Handler<Acknowledgement>> _acknowledgementsHandlers = new List<Handler<Acknowledgement>>();
 
         public string Name { get; }
 
@@ -48,26 +39,6 @@ namespace TradingBot.Exchanges.Abstractions
 
             Instruments = config.SupportedCurrencySymbols
                 .Select(x => new Instrument(Name, x.LykkeSymbol)).ToList();
-        }
-
-        public void AddTickPriceHandler(Handler<TickPrice> handler)
-        {
-            _tickPriceHandlers.Add(handler);
-        }
-
-        public void AddOrderBookHandler(Handler<OrderBook> handler)
-        {
-            _orderBookHandlers.Add(handler);
-        }
-
-        public void AddExecutedTradeHandler(Handler<ExecutedTrade> handler)
-        {
-            _executedTradeHandlers.Add(handler);
-        }
-
-        public void AddAcknowledgementsHandler(Handler<Acknowledgement> handler)
-        {
-            _acknowledgementsHandlers.Add(handler);
         }
 
         public void Start()
@@ -106,35 +77,15 @@ namespace TradingBot.Exchanges.Abstractions
             Stopped?.Invoke();
         }
 
-        protected Task CallTickPricesHandlers(TickPrice tickPrice)
-        {
-            return Task.WhenAll(_tickPriceHandlers.Select(x => x.Handle(tickPrice)));
-        }
-
-        protected Task CallOrderBookHandlers(OrderBook orderBook)
-        {
-            return Task.WhenAll(_orderBookHandlers.Select(x => x.Handle(orderBook)));
-        }
-
-        public Task CallExecutedTradeHandlers(ExecutedTrade trade)
-        {
-            return Task.WhenAll(_executedTradeHandlers.Select(x => x.Handle(trade)));
-        }
-
-        public Task CallAcknowledgementsHandlers(Acknowledgement ack)
-        {
-            return Task.WhenAll(_acknowledgementsHandlers.Select(x => x.Handle(ack)));
-        }
-
-        public abstract Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal,
+        public abstract Task<ExecutionReport> AddOrderAndWaitExecution(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal,
             TimeSpan timeout);
 
-        public abstract Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal,
+        public abstract Task<ExecutionReport> CancelOrderAndWaitExecution(TradingSignal signal,
             TranslatedSignalTableEntity translatedSignal,
             TimeSpan timeout);
 
-        public virtual Task<ExecutedTrade> GetOrder(string id, Instrument instrument, TimeSpan timeout)
+        public virtual Task<ExecutionReport> GetOrder(string id, Instrument instrument, TimeSpan timeout)
         {
             throw new NotSupportedException($"{Name} does not support receiving order information by {nameof(id)} and {nameof(instrument)}");
         }
@@ -149,7 +100,7 @@ namespace TradingBot.Exchanges.Abstractions
             throw new NotSupportedException();
         }
 
-        public virtual Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout)
+        public virtual Task<IEnumerable<ExecutionReport>> GetOpenOrders(TimeSpan timeout)
         {
             throw new NotSupportedException();
         }

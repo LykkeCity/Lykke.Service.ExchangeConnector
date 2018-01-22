@@ -3,20 +3,20 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
-using Lykke.ExternalExchangesApi.Exchanges.Jfd;
+using Lykke.ExternalExchangesApi.Shared;
 using QuickFix;
 using QuickFix.Fields;
 using QuickFix.FIX44;
+using QuickFix.Lykke;
 using QuickFix.Transport;
-using TradingBot.Exchanges.Concrete.Shared;
 using Message = QuickFix.Message;
 using ILog = Common.Log.ILog;
 
-namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
+namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
 {
     public sealed class JfdQuotesSessionConnector : IApplication, IMessenger<MarketDataRequest, Message>
     {
-        private readonly JfdConnectorConfiguration _config;
+        private readonly FixConnectorConfiguration _config;
         private readonly ILog _log;
         private SessionID _sessionId;
         private readonly SocketInitiator _socketInitiator;
@@ -24,11 +24,11 @@ namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
         private TaskCompletionSource<bool> _connectionCompletionSource;
         private readonly BlockingCollection<Message> _responsesQueue = new BlockingCollection<Message>();
 
-        public JfdConnectorState State { get; private set; }
+        public FixConnectorState State { get; private set; }
 
 
 
-        public JfdQuotesSessionConnector(JfdConnectorConfiguration config, ILog log)
+        public JfdQuotesSessionConnector(FixConnectorConfiguration config, ILog log)
         {
             _config = config;
             _log = log.CreateComponentScope(GetType().Name);
@@ -46,11 +46,11 @@ namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
             if (message is Logon logon)
             {
                 logon.Password = new Password(_config.Password);
-                State = JfdConnectorState.Connecting;
+                State = FixConnectorState.Connecting;
             }
             else if (message is Logout)
             {
-                State = JfdConnectorState.Disconnecting;
+                State = FixConnectorState.Disconnecting;
             }
         }
 
@@ -92,20 +92,20 @@ namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
 
         public void OnLogout(SessionID sessionId)
         {
-            if (State == JfdConnectorState.Connecting)
+            if (State == FixConnectorState.Connecting)
             {
                 _connectionCompletionSource.TrySetException(new InvalidOperationException("Logon rejected. See the log for details"));
             }
             else
             {
-                State = JfdConnectorState.Disconnected;
+                State = FixConnectorState.Disconnected;
             }
         }
 
         public void OnLogon(SessionID sessionId)
         {
             _sessionId = sessionId;
-            State = JfdConnectorState.Connected;
+            State = FixConnectorState.Connected;
             _connectionCompletionSource.TrySetResult(true);
         }
 
@@ -144,7 +144,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
 
         private void EnsureCanHandleRequest()
         {
-            if (State != JfdConnectorState.Connected)
+            if (State != FixConnectorState.Connected)
             {
                 throw new InvalidOperationException($"Can't handle request. Connector state {State}");
             }
@@ -180,7 +180,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
 
         public Task ConnectAsync(CancellationToken cancellationToken)
         {
-            if (!(State == JfdConnectorState.Disconnected || State == JfdConnectorState.NotConnected))
+            if (!(State == FixConnectorState.Disconnected || State == FixConnectorState.NotConnected))
             {
                 throw new InvalidOperationException($"Unable to connect. Current state {State}");
             }
@@ -195,11 +195,11 @@ namespace TradingBot.Exchanges.Concrete.Jfd.FixClient
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            if (State == JfdConnectorState.Connecting || State == JfdConnectorState.Connected)
+            if (State == FixConnectorState.Connecting || State == FixConnectorState.Connected)
             {
                 _socketInitiator?.Stop();
             }
-            State = JfdConnectorState.Disconnected;
+            State = FixConnectorState.Disconnected;
             return Task.CompletedTask;
         }
     }

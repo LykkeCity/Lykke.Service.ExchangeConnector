@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
-using Lykke.ExternalExchangesApi.Exchanges.Jfd;
+using Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient;
+using Lykke.ExternalExchangesApi.Shared;
 using QuickFix.Fields;
 using QuickFix.FIX44;
 using TradingBot.Communications;
-using TradingBot.Exchanges.Concrete.Jfd.FixClient;
 using TradingBot.Exchanges.Concrete.Shared;
+using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Trading;
 using Message = QuickFix.Message;
 
 namespace TradingBot.Exchanges.Concrete.Jfd
@@ -18,16 +21,24 @@ namespace TradingBot.Exchanges.Concrete.Jfd
         private readonly IExchangeConfiguration _configuration;
         private readonly JfdModelConverter _modelConverter;
 
-        public JfdOrderBooksHarvester(string exchangeName, JfdExchangeConfiguration configuration, JfdModelConverter modelConverter, ILog log, OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository)
-            : base(exchangeName, configuration, new JfdQuotesSessionConnector(GetConnectorConfig(configuration), log), log, orderBookSnapshotsRepository, orderBookEventsRepository)
+        public JfdOrderBooksHarvester(
+            JfdExchangeConfiguration configuration,
+            JfdModelConverter modelConverter,
+            ILog log,
+            OrderBookSnapshotsRepository orderBookSnapshotsRepository,
+            OrderBookEventsRepository orderBookEventsRepository,
+            IHandler<OrderBook> orderBookHandler)
+            : base(JfdExchange.Name, configuration, new JfdQuotesSessionConnector(GetConnectorConfig(configuration), log), 
+                  log, orderBookSnapshotsRepository, orderBookEventsRepository, orderBookHandler)
         {
             _configuration = configuration;
             _modelConverter = modelConverter;
+            HeartBeatPeriod = Timeout.InfiniteTimeSpan; // FIX has its own heartbeat mechanism
         }
 
-        private static JfdConnectorConfiguration GetConnectorConfig(JfdExchangeConfiguration exchangeConfiguration)
+        private static FixConnectorConfiguration GetConnectorConfig(JfdExchangeConfiguration exchangeConfiguration)
         {
-            return new JfdConnectorConfiguration(exchangeConfiguration.Password, exchangeConfiguration.GetQuotingFixConfigAsReader());
+            return new FixConnectorConfiguration(exchangeConfiguration.Password, exchangeConfiguration.GetQuotingFixConfigAsReader());
         }
 
         protected override async Task MessageLoopImpl()

@@ -2,87 +2,116 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
+using Lykke.ExternalExchangesApi.Shared;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient;
-using TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model;
-using TradingBot.Exchanges.Concrete.Shared;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.WebSockets;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
-    class BitmexSocketSubscriber : WebSocketSubscriber, IBitmexSocketSubscriber
+    internal class BitmexSocketSubscriber : WebSocketSubscriber, IBitmexSocketSubscriber
     {
         private readonly bool _authorized;
         private readonly BitMexExchangeConfiguration _configuration;
-        private readonly Dictionary<string, Func<TableResponse, Task>> _handlers = new Dictionary<string, Func<TableResponse, Task>>();
+        private readonly Dictionary<BitmexTopic, Func<TableResponse, Task>> _handlers = new Dictionary<BitmexTopic, Func<TableResponse, Task>>();
+        private readonly Timer _pingTimer;
+        private const string Ping = "ping";
+        private const string Pong = "pong";
+        private readonly TimeSpan _pingPeriod = TimeSpan.FromSeconds(5);
+        private readonly ILog _log;
 
         public BitmexSocketSubscriber(IMessenger<object, string> messenger, BitMexExchangeConfiguration configuration, ILog log, bool authorized = false)
             : base(messenger, log)
         {
             _authorized = authorized;
             _configuration = configuration;
+            _log = log.CreateComponentScope(nameof(BitmexSocketSubscriber));
+            _pingTimer = new Timer(SendPing);
         }
 
-        public virtual IBitmexSocketSubscriber Subscribe(BitmexTopic topic, Func<TableResponse, Task> topicHandler)
+        private async void SendPing(object state)
         {
-            _handlers[topic.ToString().ToLowerInvariant()] = topicHandler;
-            return this;
+            try
+            {
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1)))
+                {
+                    await Messenger.SendRequestAsync(Ping, cts.Token);
+                    RechargePingPong();
+                }
+            }
+            catch (Exception e)
+            {
+                await _log.WriteWarningAsync(nameof(SendPing), "Unable to send a ping", e.Message);
+            }
         }
 
-        protected override async Task<Result> Connect(CancellationToken token)
+        public void Subscribe(BitmexTopic topic, Func<TableResponse, Task> topicHandler)
+        {
+            _handlers[topic] = topicHandler;
+        }
+
+        private void RechargePingPong()
+        {
+            _pingTimer.Change(_pingPeriod, Timeout.InfiniteTimeSpan);
+
+        }
+
+        protected override async Task Connect(CancellationToken token)
         {
             if (_authorized && (string.IsNullOrEmpty(_configuration.ApiKey) || string.IsNullOrEmpty(_configuration.ApiSecret)))
             {
                 var error = "ApiKey and ApiSecret must be specified to authorize BitMex web socket subscription.";
-                await Log.WriteFatalErrorAsync(nameof(BitmexSocketSubscriber), nameof(HandleResponse), new InvalidOperationException(error));
-                return new Result(isFailure: true, _continue: false, error: error);
+                await Log.WriteFatalErrorAsync(nameof(BitmexSocketSubscriber), nameof(Connect), new InvalidOperationException(error));
+                throw new AuthenticationException(error);
             }
 
             await base.Connect(token);
             if (_authorized)
             {
                 await Authorize(token);
-                await Subscribe(new[] { "order" }, token);
             }
-            await Subscribe(new[] { "orderBookL2", "quote" }, token);
-            return Result.Ok;
+            await Subscribe(_handlers.Keys, token);
+
         }
 
-        protected override async Task<Result> HandleResponse(string json, CancellationToken token)
+        protected override async Task HandleResponse(string json, CancellationToken token)
         {
+            if (json == Pong)
+            {
+                RechargePingPong();
+                return;
+            }
             var response = JObject.Parse(json);
 
-            JToken infoProp = response.GetValue("info", StringComparison.InvariantCultureIgnoreCase);
-            JToken errorProp = response.GetValue("error", StringComparison.InvariantCultureIgnoreCase);
-            JToken successProp = response.GetValue("success", StringComparison.InvariantCultureIgnoreCase);
-            JToken tableProp = response.GetValue("table", StringComparison.InvariantCultureIgnoreCase);
+            var infoProp = response.GetValue("info", StringComparison.InvariantCultureIgnoreCase);
+            var errorProp = response.GetValue("error", StringComparison.InvariantCultureIgnoreCase);
+            var successProp = response.GetValue("success", StringComparison.InvariantCultureIgnoreCase);
+            var tableProp = response.GetValue("table", StringComparison.InvariantCultureIgnoreCase);
 
             if (errorProp != null)
             {
                 var error = response.ToObject<ErrorResponse>();
-                if ((error.Status.HasValue && error.Status.Value == (int)HttpStatusCode.Unauthorized))
+                if (error.Status.HasValue && error.Status.Value == (int)HttpStatusCode.Unauthorized)
                 {
-                    await Log.WriteFatalErrorAsync(nameof(BitmexSocketSubscriber), nameof(HandleResponse), new AuthenticationException(error.Error));
-                    return new Result(isFailure: true, _continue: false, error: error.Error);
+                    throw new AuthenticationException(error.Error);
                 }
-                else
-                {
-                    throw new InvalidOperationException(error.Error);
-                }
+                throw new InvalidOperationException(error.Error);
             }
-            else if (infoProp != null || (successProp != null && successProp.Value<bool>()))
+
+            if (infoProp != null || successProp != null && successProp.Value<bool>())
             {
                 // Ignoring success and info messages
             }
             else if (tableProp != null)
             {
                 await HandleTableResponse(response.ToObject<TableResponse>());
+                RechargePingPong();
             }
             else
             {
@@ -90,7 +119,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 await Log.WriteWarningAsync(nameof(HandleResponse), "", $"Ignoring unknown response: {json}");
             }
 
-            return Result.Ok;
         }
 
         protected virtual Task Authorize(CancellationToken token)
@@ -106,36 +134,40 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return Messenger.SendRequestAsync(request, token);
         }
 
-        protected virtual async Task Subscribe(IEnumerable<string> topics, CancellationToken token)
+        private Task Subscribe(IEnumerable<BitmexTopic> topics, CancellationToken token)
         {
             var filter = new List<Tuple<string, string>>();
             foreach (var topic in topics)
             {
                 filter.AddRange(
-                    _configuration.SupportedCurrencySymbols.Select(i => new Tuple<string, string>(topic, i.ExchangeSymbol)));
+                    _configuration.SupportedCurrencySymbols.Select(i => new Tuple<string, string>(topic.ToString(), i.ExchangeSymbol)));
             }
 
             var request = SubscribeRequest.BuildRequest(filter.ToArray());
-            await Messenger.SendRequestAsync(request, token);
+            return Messenger.SendRequestAsync(request, token);
         }
 
         private async Task HandleTableResponse(TableResponse resp)
         {
-            if (!string.IsNullOrEmpty(resp.Table))
+            if (!string.IsNullOrEmpty(resp.Table)
+                && Enum.TryParse(typeof(BitmexTopic), resp.Table, true, out var table)
+                && _handlers.TryGetValue((BitmexTopic)table, out var respHandler))
             {
-                var table = resp.Table.ToLowerInvariant();
-                if (_handlers.TryGetValue(table, out var respHandler))
+                try
                 {
-                    try
-                    {
-                        await respHandler(resp);
-                    }
-                    catch (Exception ex)
-                    {
-                        await Log.WriteErrorAsync(nameof(HandleTableResponse), $"An exception occurred while handling message: '{JsonConvert.SerializeObject(resp)}'", ex);
-                    }
+                    await respHandler(resp);
+                }
+                catch (Exception ex)
+                {
+                    await Log.WriteErrorAsync(nameof(HandleTableResponse), $"An exception occurred while handling message: '{JsonConvert.SerializeObject(resp)}'", ex);
                 }
             }
+        }
+
+        public override void Stop()
+        {
+            _pingTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            base.Stop();
         }
     }
 }

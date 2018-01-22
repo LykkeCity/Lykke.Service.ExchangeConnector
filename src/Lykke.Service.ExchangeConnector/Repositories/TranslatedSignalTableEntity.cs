@@ -47,7 +47,7 @@ namespace TradingBot.Repositories
 
         public string ErrorMessage { get; set; }
         
-        public ExecutionStatus ExecutionStatus { get; set; }
+        public OrderExecutionStatus OrderExecutionStatus { get; set; }
         
         public string ClientIP { get; set; }
         
@@ -95,24 +95,27 @@ namespace TradingBot.Repositories
             RowKey = rowKey.ToString();
         }
 
-        public void SetExecutionResult(ExecutedTrade executedTrade)
+        public void SetExecutionResult(ExecutionReport executedTrade)
         {
-            ExecutionStatus = executedTrade.Status;
+            OrderExecutionStatus = executedTrade.ExecutionStatus;
             ErrorMessage = executedTrade.Message;
         }
 
-        public void RequestSent(string content)
+        public void RequestSentMessage(string content)
         {
             RequestToExchangeDateTime = DateTime.UtcNow;
             RequestSentToExchange = content;
         }
 
-        public void RequestSent(HttpMethod httpMethod, string url, HttpContent httpContent)
+        public string RequestSent(HttpMethod httpMethod, string url, HttpContent httpContent)
         {
             RequestToExchangeDateTime = DateTime.UtcNow;
-            RequestSentToExchange =
+            var sentRequest =
                 $"{httpMethod} {url} HEADERS: {string.Join("; ", httpContent.Headers.Select(x => $"{x.Key}: {string.Join(", ", x.Value)}"))} " +
                 $"BODY: {httpContent.ReadAsStringAsync().Result}";
+            RequestSentToExchange = sentRequest;
+
+            return sentRequest;
         }
 
         public void ResponseReceived(string content)

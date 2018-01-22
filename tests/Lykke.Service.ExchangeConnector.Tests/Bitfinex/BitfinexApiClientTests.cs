@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient;
 using TradingBot.Exchanges.Concrete.Bitfinex;
 using Xunit;
-using Order = TradingBot.Exchanges.Concrete.AutorestClient.Models.Order;
+using Order = Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models.Order;
 
 namespace TradingBot.Tests.Bitfinex
 {

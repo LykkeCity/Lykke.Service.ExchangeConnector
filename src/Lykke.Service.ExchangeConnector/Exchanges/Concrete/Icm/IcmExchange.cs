@@ -1,50 +1,51 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-using AzureStorage;
 using Common.Log;
-using Lykke.RabbitMqBroker;
-using Lykke.RabbitMqBroker.Subscriber;
-using QuickFix;
-using QuickFix.Transport;
+using Lykke.ExternalExchangesApi.Exchanges.Icm.FixClient;
+using Lykke.ExternalExchangesApi.Shared;
+using QuickFix.Fields;
+using QuickFix.Fields.Converters;
+using QuickFix.FIX44;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
-using TradingBot.Exchanges.Concrete.Icm.Converters;
-using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Models.Api;
 using TradingBot.Trading;
 using TradingBot.Repositories;
-using OrderBook = TradingBot.Exchanges.Concrete.Icm.Entities.OrderBook;
+using ExecutionReport = TradingBot.Trading.ExecutionReport;
 
 namespace TradingBot.Exchanges.Concrete.Icm
 {
     internal class IcmExchange : Exchange
     {
-        private readonly Common.Log.ILog _log;
-        private readonly IcmConfig config;
+        private readonly ILog _log;
+        private readonly IcmExchangeConfiguration _config;
+        private readonly IcmModelConverter _converter;
+        private readonly IcmTickPriceHarvester _tickPriceHarvester;
+        private readonly IcmTradeSessionConnector _tradeSessionConnector;
 
-        private RabbitMqSubscriber<OrderBook> rabbit;
-        private SocketInitiator initiator;
-        private IcmConnector connector;
-        private readonly INoSQLTableStorage<FixMessageTableEntity> _tableStorage;
         public new static readonly string Name = "icm";
 
-        public IcmExchange(
-            IcmConfig config,
+        public IcmExchange(IcmTickPriceHarvester tickPriceHarvester,
+
+            IcmExchangeConfiguration config,
             TranslatedSignalsRepository translatedSignalsRepository,
-            INoSQLTableStorage<FixMessageTableEntity> tableStorage,
-            Common.Log.ILog log)
+            IcmModelConverter converter,
+            ILog log)
             : base(Name, config, translatedSignalsRepository, log)
         {
-            this.config = config;
-            _tableStorage = tableStorage;
+            _config = config;
+            _converter = converter;
+            _tickPriceHarvester = tickPriceHarvester;
+            _tradeSessionConnector = new IcmTradeSessionConnector(new FixConnectorConfiguration(config.Password, config.GetFixConfigAsReader()), log);
             _log = log;
         }
 
         protected override void StartImpl()
         {
-            if (config.SocketConnection)
+            if (_config.SocketConnection)
             {
                 _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartImpl), string.Empty,
                     "Socket connection is enabled");
@@ -56,97 +57,71 @@ namespace TradingBot.Exchanges.Concrete.Icm
                     "Socket connection is disabled");
             }
 
-            if (config.RabbitMq.Enabled && (config.PubQuotesToRabbit || config.SaveQuotesToAzure))
+            if (_config.RabbitMq.Enabled && (_config.PubQuotesToRabbit))
             {
                 _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartImpl), string.Empty,
                     "RabbitMQ connection is enabled");
-                StartRabbitConnection();
             }
             else
             {
                 _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartImpl), string.Empty,
-                    "RabbitMQ connection is desibled");
+                    "RabbitMQ connection is disabled");
             }
         }
-        
+
         protected override void StopImpl()
         {
-            rabbit?.Stop();
-            initiator?.Stop();
-            initiator?.Dispose();
+            _tradeSessionConnector.Stop();
+            _tickPriceHarvester.Stop();
+            OnStopped();
         }
-        
+
         private void StartFixConnection()
         {
-            var settings = new SessionSettings(config.GetFixConfigAsReader());
-
-            _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartFixConnection), string.Join("/n", config.FixConfiguration), "Starting fix connection with configuration").Wait();
-            
-            var repository = new AzureFixMessagesRepository(_tableStorage);
-            
-            connector = new IcmConnector(config, repository, LykkeLog);
-            var storeFactory = new FileStoreFactory(settings);
-            var logFactory = new LykkeLogFactory(_log);
-
-            connector.OnTradeExecuted += CallExecutedTradeHandlers;
-            connector.Connected += OnConnected;
-            connector.Disconnected += OnStopped;
-            
-            initiator = new SocketInitiator(connector, storeFactory, settings, logFactory);
-            
-            _log.WriteInfoAsync(nameof(IcmExchange), nameof(StartFixConnection), string.Empty, "SocketInitiator is about to start").Wait();
-            initiator.Start();
+            _tradeSessionConnector.Start();
+            _tickPriceHarvester.Start();
+            OnConnected();
         }
 
-        /// <summary>
-        /// For ICM we use internal RabbitMQ exchange with pricefeed
-        /// </summary>
-        private void StartRabbitConnection()
+        public override async Task<ExecutionReport> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            var rabbitSettings = new RabbitMqSubscriptionSettings()
+            var cts = new CancellationTokenSource(timeout);
+            var request = _converter.CreateNewOrderSingle(signal);
+            var response = await _tradeSessionConnector.AddOrderAsync(request, cts.Token);
+            return _converter.ConvertExecutionReport(response);
+        }
+
+        public override async Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout)
+        {
+            var request = new RequestForPositions
             {
-                ConnectionString = config.RabbitMq.ConnectionString,
-                ExchangeName = config.RabbitMq.Exchange,
-                QueueName = config.RabbitMq.Exchange + ".ExchangeConnector"
+                PosReqID = new PosReqID(nameof(RequestForPositions) + Guid.NewGuid()),
+                PosReqType = new PosReqType(PosReqType.POSITIONS),
+                SubscriptionRequestType = new SubscriptionRequestType(SubscriptionRequestType.SNAPSHOT),
+                NoPartyIDs = new NoPartyIDs(1),
+                Account = new Account("account"),
+                AccountType = new AccountType(AccountType.ACCOUNT_IS_CARRIED_ON_CUSTOMER_SIDE_OF_BOOKS),
+                ClearingBusinessDate = new ClearingBusinessDate(DateTimeConverter.ConvertDateOnly(DateTime.UtcNow.Date)),
+                TransactTime = new TransactTime(DateTime.UtcNow)
             };
-            var errorStrategy = new DefaultErrorHandlingStrategy(_log, rabbitSettings);
-            rabbit = new RabbitMqSubscriber<OrderBook>(rabbitSettings, errorStrategy)
-                .SetMessageDeserializer(new GenericRabbitModelConverter<OrderBook>())
-                .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
-                .SetConsole(new LogToConsole())
-                .SetLogger(_log)
-                .Subscribe(async orderBook =>
-                    {
-                        if (Instruments.Any(x => x.Name == orderBook.Asset))
-                        {
-                            var tickPrice = orderBook.ToTickPrice();
-                            if (tickPrice != null)
-                            {
-                                await CallTickPricesHandlers(tickPrice);
-                            }
-                        }
-                    })
-                .Start();
+
+            var partyGroup = new RequestForPositions.NoPartyIDsGroup
+            {
+                PartyID = new PartyID("FB"),
+                PartyRole = new PartyRole(PartyRole.CLIENT_ID)
+            };
+
+            request.AddGroup(partyGroup);
+            var cts = new CancellationTokenSource(timeout);
+
+            var resp = await _tradeSessionConnector.GetPositionsAsync(request, cts.Token);
+
+            return _converter.ConvertPositionReport(resp);
         }
 
-        public override Task<ExecutedTrade> GetOrder(string orderId, Instrument instrument, TimeSpan timeout)
+        public override Task<ExecutionReport> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            return connector.GetOrderInfoAndWaitResponse(instrument, orderId);
-        }
-
-        public override Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout)
-        {
-            return connector.GetAllOrdersInfo(timeout);
-        }
-
-        public override Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
-        {
-            return connector.AddOrderAndWaitResponse(signal, translatedSignal, timeout);
-        }
-
-        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
-        {
-            return connector.CancelOrderAndWaitResponse(signal, translatedSignal, timeout);
+            throw new NotImplementedException();
         }
     }
 }

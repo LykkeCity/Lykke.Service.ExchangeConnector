@@ -1290,7 +1290,7 @@
     <field name="LastCapacity" required="N" />
     <field name="LeavesQty" required="Y" />
     <field name="CumQty" required="Y" />
-    <field name="AvgPx" required="Y" />
+    <field name="AvgPx" required="N" />
     <field name="DayOrderQty" required="N" />
     <field name="DayCumQty" required="N" />
     <field name="DayAvgPx" required="N" />

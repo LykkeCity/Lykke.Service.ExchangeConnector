@@ -1,10 +1,10 @@
-﻿namespace TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient
+﻿namespace Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient
 {
     public enum BitmexTopic
     {
-        Order,
-        Quote,
-        Execution,
-        OrderBookL2
+        order,
+        quote,
+        execution,
+        orderBookL2
     }
 }

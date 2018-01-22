@@ -1,10 +1,11 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
-using TradingBot.Exchanges.Concrete.GDAX.RestClient;
-using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
-using TradingBot.Exchanges.Concrete.GDAX.WssClient;
-using TradingBot.Exchanges.Concrete.GDAX.WssClient.Entities;
+using Lykke.ExternalExchangesApi.Exchanges.GDAX.RestClient;
+using Lykke.ExternalExchangesApi.Exchanges.GDAX.RestClient.Entities;
+using Lykke.ExternalExchangesApi.Exchanges.GDAX.WssClient;
+using Lykke.ExternalExchangesApi.Exchanges.GDAX.WssClient.Entities;
+using Lykke.ExternalExchangesApi.Helpers;
 using TradingBot.Infrastructure.Configuration;
 using Xunit;
 

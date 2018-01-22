@@ -7,23 +7,25 @@ using Common.Log;
 using Newtonsoft.Json;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
-using TradingBot.Exchanges.Concrete.AutorestClient;
-using TradingBot.Exchanges.Concrete.AutorestClient.Models;
+using Lykke.ExternalExchangesApi.Exceptions;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient;
+using Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Models.Api;
 using TradingBot.Repositories;
 using TradingBot.Trading;
 using Instrument = TradingBot.Trading.Instrument;
-using Order = TradingBot.Exchanges.Concrete.AutorestClient.Models.Order;
-using Position = TradingBot.Exchanges.Concrete.AutorestClient.Models.Position;
+using Order = Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models.Order;
+using Position = Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models.Position;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
 {
     internal class BitMexExchange : Exchange
     {
         private readonly BitMexOrderBooksHarvester _orderBooksHarvester;
-        private readonly IBitmexSocketSubscriber _socketSubscriber;
+        private readonly BitMexOrderHarvester _orderHarvester;
+        private readonly BitMexPriceHarvester _priceHarvester;
+        private readonly BitMexExecutionHarvester _executionHarvester;
         private readonly IBitMEXAPI _exchangeApi;
         public new const string Name = "bitmex";
 
@@ -32,12 +34,15 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             BitMexOrderBooksHarvester orderBooksHarvester,
             BitMexOrderHarvester orderHarvester,
             BitMexPriceHarvester priceHarvester,
-            IBitmexSocketSubscriber socketSubscriber,
+            BitMexExecutionHarvester executionHarvester,
             ILog log)
             : base(Name, configuration, translatedSignalsRepository, log)
         {
             _orderBooksHarvester = orderBooksHarvester;
-            _socketSubscriber = socketSubscriber;
+            _orderHarvester = orderHarvester;
+            _priceHarvester = priceHarvester;
+            _executionHarvester = executionHarvester;
+
 
             var credenitals = new BitMexServiceClientCredentials(configuration.ApiKey, configuration.ApiSecret);
             _exchangeApi = new BitMEXAPI(credenitals)
@@ -45,16 +50,12 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 BaseUri = new Uri(configuration.EndpointUrl)
             };
 
-            orderBooksHarvester.AddHandler(CallOrderBookHandlers);
             orderBooksHarvester.MaxOrderBookRate = configuration.MaxOrderBookRate;
-            orderHarvester.AddAcknowledgementHandler(CallAcknowledgementsHandlers);
-            orderHarvester.AddExecutedTradeHandler(CallExecutedTradeHandlers);
-            priceHarvester.AddHandler(CallTickPricesHandlers);
         }
 
-        public override async Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<ExecutionReport> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-          //  var symbol = BitMexModelConverter.ConvertSymbolFromLykkeToBitMex(instrument.Name, _configuration);
+            //  var symbol = BitMexModelConverter.ConvertSymbolFromLykkeToBitMex(instrument.Name, _configuration);
             var symbol = "XBTUSD"; //HACK Hard code!
             var volume = BitMexModelConverter.ConvertVolume(signal.Volume);
             var orderType = BitMexModelConverter.ConvertOrderType(signal.OrderType);
@@ -70,19 +71,10 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             }
 
             var order = (Order)response;
-
-            var execStatus = BitMexModelConverter.ConvertExecutionStatus(order.OrdStatus);
-            var execPrice = (decimal)(order.Price ?? 0d);
-            var execVolume = (decimal)(order.OrderQty ?? 0d);
-            var exceTime = order.TransactTime ?? DateTime.UtcNow;
-            var execType = BitMexModelConverter.ConvertTradeType(order.Side);
-
-            translatedSignal.ExternalId = order.OrderID;
-
-            return new ExecutedTrade(signal.Instrument, exceTime, execPrice, execVolume, execType, order.OrderID, execStatus) { Message = order.Text };
+            return BitMexModelConverter.OrderToTrade(order);
         }
 
-        public override async Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override async Task<ExecutionReport> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             var ct = new CancellationTokenSource(timeout);
             var id = signal.OrderId;
@@ -96,7 +88,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return BitMexModelConverter.OrderToTrade(res[0]);
         }
 
-        public override async Task<ExecutedTrade> GetOrder(string id, Instrument instrument, TimeSpan timeout)
+        public override async Task<ExecutionReport> GetOrder(string id, Instrument instrument, TimeSpan timeout)
         {
             var filterObj = new { orderID = id };
             var filterArg = JsonConvert.SerializeObject(filterObj);
@@ -106,7 +98,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return BitMexModelConverter.OrderToTrade(res[0]);
         }
 
-        public override async Task<IEnumerable<ExecutedTrade>> GetOpenOrders(TimeSpan timeout)
+        public override async Task<IEnumerable<ExecutionReport>> GetOpenOrders(TimeSpan timeout)
         {
             var filterObj = new { ordStatus = "New" };
             var filterArg = JsonConvert.SerializeObject(filterObj);
@@ -116,7 +108,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 throw new ApiException(error.ErrorProperty.Message);
             }
 
-            var trades = ((IReadOnlyCollection<Order>)response).Select( 
+            var trades = ((IReadOnlyCollection<Order>)response).Select(
                 BitMexModelConverter.OrderToTrade);
             return trades;
         }
@@ -142,8 +134,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 throw new ApiException(error.ErrorProperty.Message);
             }
 
-            var model = ((IReadOnlyCollection<Position>)response).Select(r => 
-                BitMexModelConverter.ExchangePositionToModel(r)).ToArray();
+            var model = ((IReadOnlyCollection<Position>)response).Select(BitMexModelConverter.ExchangePositionToModel).ToArray();
             return model;
         }
 
@@ -163,15 +154,20 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
         protected override void StartImpl()
         {
-            OnConnected();
+            _executionHarvester.Start();
+            _priceHarvester.Start();
+            _orderHarvester.Start();
             _orderBooksHarvester.Start();
-            _socketSubscriber.Start();
+            OnConnected();
         }
 
         protected override void StopImpl()
         {
-            _socketSubscriber.Stop();
+            _executionHarvester.Stop();
+            _priceHarvester.Stop();
+            _orderHarvester.Stop();
             _orderBooksHarvester.Stop();
+            OnStopped();
         }
     }
 }

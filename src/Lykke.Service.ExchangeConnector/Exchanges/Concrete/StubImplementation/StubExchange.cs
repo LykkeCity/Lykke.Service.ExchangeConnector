@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Common.Log;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
+using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 using TradingBot.Repositories;
@@ -17,17 +18,21 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 	    public new static readonly string Name = "stub";
 	    
 	    private readonly StubExchangeConfiguration config;
-	    
+        private readonly IHandler<TickPrice> _tickPriceHandler;
+        private readonly IHandler<ExecutionReport> _tradeHandler;
+
         protected IReadOnlyDictionary<string, Position> Positions { get; }
 
         protected readonly Dictionary<string, LinkedList<TradingSignal>> ActualSignals;
         
         private readonly object syncRoot = new object();
 
-        public StubExchange(StubExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, ILog log)
+        public StubExchange(StubExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository,IHandler<TickPrice> tickPriceHandler, IHandler<ExecutionReport> tradeHandler, ILog log)
 	        : base(Name, config, translatedSignalsRepository, log)
         {
             this.config = config;
+            _tickPriceHandler = tickPriceHandler;
+            _tradeHandler = tradeHandler;
 
             decimal initialValue = 100m;
             Positions = Instruments.ToDictionary(x => x.Name, x => new Position(x, initialValue));
@@ -63,7 +68,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 				        
 					    lock (syncRoot)
 					    {
-						    var trades = new List<ExecutedTrade>();
+						    var trades = new List<ExecutionReport>();
 						    var executedOrders = new List<TradingSignal>();
 					    
 						    foreach (var tradingSignal in ActualSignals[instrument.Name].Where(x => x.Volume > 0))
@@ -71,14 +76,14 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 							    if (tradingSignal.TradeType == TradeType.Buy
                                         && currentTickPrice.Ask <= tradingSignal.Price)
 							    {
-								    var trade = new ExecutedTrade(
+								    var trade = new ExecutionReport(
 									    instrument,
 									    DateTime.UtcNow, 
                                             tradingSignal.Price.Value,
 									    tradingSignal.Volume,
 									    TradeType.Buy,
 									    tradingSignal.OrderId,
-									    ExecutionStatus.Fill);
+									    OrderExecutionStatus.Fill);
 							    
 								    trades.Add(trade);
 								    executedOrders.Add(tradingSignal);
@@ -89,13 +94,13 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 							    else if (tradingSignal.TradeType == TradeType.Sell
                                              && currentTickPrice.Bid >= tradingSignal.Price)
 							    {
-								    var trade = new ExecutedTrade(instrument,
+								    var trade = new ExecutionReport(instrument,
 									    DateTime.UtcNow,
                                             tradingSignal.Price.Value,
 									    tradingSignal.Volume,
 									    TradeType.Sell,
 									    tradingSignal.OrderId,
-									    ExecutionStatus.Fill);
+									    OrderExecutionStatus.Fill);
     
 								    trades.Add(trade);
 								    executedOrders.Add(tradingSignal);
@@ -117,7 +122,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 								    Positions[instrument.Name].AddTrade(x);
                                         try
                                         {
-								    await CallExecutedTradeHandlers(x);
+								    await _tradeHandler.Handle(x);
                                         }
                                         catch (Exception e)
                                         {
@@ -135,7 +140,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 					    }
 					    
 					    // TODO: deal with awaitable. I don't want to wait here for Azure and Rabbit connections
-                            await CallTickPricesHandlers(currentTickPrice);
+                            await _tickPriceHandler.Handle(currentTickPrice);
 				        }
 				        catch (Exception e)
 				        {
@@ -172,9 +177,9 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
             Thread.Sleep(TimeSpan.FromSeconds(Random.Next(1, 11)));
         }
 
-	    public override Task<ExecutedTrade> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+	    public override Task<ExecutionReport> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
 	    {
-	        translatedSignal.RequestSent("stub exchange don't send actual request");
+	        translatedSignal.RequestSentMessage("stub exchange don't send actual request");
 //
 //	        SimulateWork();
 //	        SimulateException();
@@ -186,13 +191,13 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
 	            ActualSignals[signal.Instrument.Name].AddLast(s);
 	            translatedSignal.ExternalId = s.OrderId;
 	            
-	            return Task.FromResult(new ExecutedTrade(s.Instrument, DateTime.UtcNow, s.Price ?? 0, s.Volume, s.TradeType, s.OrderId, ExecutionStatus.New));
+	            return Task.FromResult(new ExecutionReport(s.Instrument, DateTime.UtcNow, s.Price ?? 0, s.Volume, s.TradeType, s.OrderId, OrderExecutionStatus.New));
 	        }
 	    }
 
-        public override Task<ExecutedTrade> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
+        public override Task<ExecutionReport> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            translatedSignal.RequestSent("stub exchange don't send actual request");
+            translatedSignal.RequestSentMessage("stub exchange don't send actual request");
 //	        SimulateWork();
 //	        SimulateException();
             translatedSignal.ResponseReceived("stub exchange don't recevie actual response");
@@ -208,8 +213,8 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
                 }
             }
 
-            return Task.FromResult(new ExecutedTrade(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId,
-                isCanceled ? ExecutionStatus.Cancelled : ExecutionStatus.Unknown));
+            return Task.FromResult(new ExecutionReport(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId,
+                isCanceled ? OrderExecutionStatus.Cancelled : OrderExecutionStatus.Unknown));
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using TradingBot.Exchanges.Concrete.GDAX.RestClient;
-using TradingBot.Exchanges.Concrete.GDAX.RestClient.Entities;
+using Lykke.ExternalExchangesApi.Exchanges.GDAX.RestClient;
+using Lykke.ExternalExchangesApi.Exchanges.GDAX.RestClient.Entities;
 using Xunit;
 
 namespace Lykke.Service.ExchangeConnector.Tests.GDAX

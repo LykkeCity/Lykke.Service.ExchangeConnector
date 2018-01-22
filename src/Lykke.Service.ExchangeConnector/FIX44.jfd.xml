@@ -3212,9 +3212,9 @@
     <field name="PosReqResult" required="Y" />
     <field name="PosReqStatus" required="Y" />
     <component name="Parties" required="Y" />
-    <field name="Account" required="Y" />
+    <field name="Account" required="N" />
     <field name="AcctIDSource" required="N" />
-    <field name="AccountType" required="Y" />
+    <field name="AccountType" required="N" />
     <component name="Instrument" required="N" />
     <field name="Currency" required="N" />
     <group name="NoLegs" required="N">
@@ -3237,18 +3237,18 @@
     <field name="TotalNumPosReports" required="N" />
     <field name="UnsolicitedIndicator" required="N" />
     <field name="PosReqResult" required="Y" />
-    <field name="ClearingBusinessDate" required="N" /> <!-- changed for compatibility with ICMarkets -->
+    <field name="ClearingBusinessDate" required="Y" />
     <field name="SettlSessID" required="N" />
     <field name="SettlSessSubID" required="N" />
     <component name="Parties" required="Y" />
-    <field name="Account" required="Y" />
+    <field name="Account" required="N" />
     <field name="AcctIDSource" required="N" />
-    <field name="AccountType" required="Y" />
+    <field name="AccountType" required="N" />
     <component name="Instrument" required="N" />
     <field name="Currency" required="N" />
-    <field name="SettlPrice" required="Y" />   
-    <field name="SettlPriceType" required="Y" />
-    <field name="PriorSettlPrice" required="N" />  <!-- changed for compatibility with ICMarkets -->  
+    <field name="SettlPrice" required="N" />   
+    <field name="SettlPriceType" required="N" />
+    <field name="PriorSettlPrice" required="N" /> 
     <group name="NoLegs" required="N">
       <component name="InstrumentLeg" required="N" />
     </group>
@@ -3258,12 +3258,13 @@
       <field name="UnderlyingSettlPriceType" required="Y" />
     </group>
     <component name="PositionQty" required="Y" />
-    <component name="PositionAmountData" required="Y" />
+    <component name="PositionAmountData" required="N" />
     <field name="RegistStatus" required="N" />
     <field name="DeliveryDate" required="N" />   
     <field name="Text" required="N" />   
     <field name="EncodedTextLen" required="N" />
     <field name="EncodedText" required="N" />
+    <field name="OZAccountCurrency" required="Y" />
   </message>
   <message name="AssignmentReport" msgtype="AW" msgcat="app">
     <field name="AsgnRptID" required="Y" />
@@ -3480,7 +3481,7 @@
   <message name="CollateralReport" msgtype="BA" msgcat="app">
     <field name="CollRptID" required="Y" />
     <field name="CollInquiryID" required="N" />
-    <field name="CollStatus" required="Y" />
+    <field name="CollStatus" required="N" />
     <field name="TotNumReports" required="N" />
     <field name="LastRptRequested" required="N" />
     <component name="Parties" required="N" />
@@ -3956,7 +3957,7 @@
         <!--Jfd customization-->
         <field name="OZUsedMargin" required="N" />
         <field name="OZUnrealizedProfitOrLoss" required="N" />
-        <field name="OZAccountCurrency" required="Y" />
+
       </group>
     </component>
     <component name="PositionAmountData">

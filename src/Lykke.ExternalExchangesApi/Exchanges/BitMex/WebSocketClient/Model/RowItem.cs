@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Globalization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-namespace TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model
+namespace Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model
 {
     public class RowItem
     {
@@ -42,7 +41,13 @@ namespace TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model
         public string OrderID { get; set; }
 
         [JsonProperty(PropertyName = "clOrdID")]
-        public string ClOrdID { get; set; }
+        public string ClOrdID { get; set; }   
+        
+        [JsonProperty(PropertyName = "text")]
+        public string Text { get; set; }   
+        
+        [JsonProperty(PropertyName = "ordType")]
+        public string OrdType { get; set; }
 
         [JsonProperty(PropertyName = "orderQty")]
         public decimal? OrderQty { get; set; }
@@ -52,7 +57,10 @@ namespace TradingBot.Exchanges.Concrete.BitMEX.WebSocketClient.Model
 
         [JsonProperty(PropertyName = "ordStatus")]
         [JsonConverter(typeof(StringEnumConverter))]
-        public OrdStatus? OrdStatus { get; set; }
+        public OrdStatus? OrdStatus { get; set; }      
+        
+        [JsonProperty(PropertyName = "execType")]
+        public string ExecType { get; set; }
 
         [JsonProperty(PropertyName = "avgPx")]
         public decimal? AvgPx { get; set; }

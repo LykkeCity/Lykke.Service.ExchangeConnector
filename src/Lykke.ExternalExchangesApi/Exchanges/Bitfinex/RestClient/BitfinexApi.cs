@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient.Model;
+using Lykke.ExternalExchangesApi.Shared;
 using Microsoft.Rest;
 using Microsoft.Rest.Serialization;
 using Newtonsoft.Json;
@@ -93,7 +94,7 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient
                 Side = side,
                 Type = type,
                 Request = NewOrderRequestUrl,
-                Nonce = Common.UnixTimeStampUtc().ToString()
+                Nonce = UnixTimeConverter.UnixTimeStampUtc().ToString()
             };
 
             var response = await GetRestResponse<Order>(newOrder, cancellationToken);
@@ -106,7 +107,7 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient
             var cancelPost = new BitfinexOrderStatusPost
             {
                 Request = OrderCancelRequestUrl,
-                Nonce = Common.UnixTimeStampUtc().ToString(),
+                Nonce = UnixTimeConverter.UnixTimeStampUtc().ToString(),
                 OrderId = orderId
             };
 
@@ -120,7 +121,7 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient
             var activeOrdersPost = new BitfinexPostBase
             {
                 Request = ActiveOrdersRequestUrl,
-                Nonce = Common.UnixTimeStampUtc().ToString()
+                Nonce = UnixTimeConverter.UnixTimeStampUtc().ToString()
             };
 
             var response = await GetRestResponse<IReadOnlyList<Order>>(activeOrdersPost, cancellationToken);
@@ -134,7 +135,7 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient
             var orderStatusPost = new BitfinexOrderStatusPost
             {
                 Request = OrderStatusRequestUrl,
-                Nonce = Common.UnixTimeStampUtc().ToString(),
+                Nonce = UnixTimeConverter.UnixTimeStampUtc().ToString(),
                 OrderId = orderId
             };
 
@@ -148,7 +149,7 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient
         {
             var balancePost = new BitfinexPostBase();
             balancePost.Request = BalanceRequestUrl;
-            balancePost.Nonce = Common.UnixTimeStampUtc().ToString();
+            balancePost.Nonce = UnixTimeConverter.UnixTimeStampUtc().ToString();
 
             var response = await GetRestResponse<IReadOnlyList<BitfinexBalanceResponse>>(balancePost, cancellationToken);
 
@@ -161,7 +162,7 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient
             var marginPost = new BitfinexPostBase
             {
                 Request = MarginInfoRequstUrl,
-                Nonce = Common.UnixTimeStampUtc().ToString()
+                Nonce = UnixTimeConverter.UnixTimeStampUtc().ToString()
             };
 
 
@@ -175,7 +176,7 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient
             var activePositionsPost = new BitfinexPostBase
             {
                 Request = ActivePositionsRequestUrl,
-                Nonce = Common.UnixTimeStampUtc().ToString()
+                Nonce = UnixTimeConverter.UnixTimeStampUtc().ToString()
             };
 
             var response = await GetRestResponse<IReadOnlyList<Position>>(activePositionsPost, cancellationToken);

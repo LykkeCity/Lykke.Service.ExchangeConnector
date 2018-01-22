@@ -18,6 +18,7 @@ using AzureStorage.Tables;
 using Newtonsoft.Json;
 using Swashbuckle.AspNetCore.Swagger;
 using TradingBot.Communications;
+using TradingBot.Handlers;
 using TradingBot.Repositories;
 using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Exceptions;
@@ -167,7 +168,7 @@ namespace TradingBot
                     settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.EntitiesConnString));
                 builder.RegisterInstance(azureBlobStorage).As<IBlobStorage>().SingleInstance();
 
-                builder.RegisterModule(new ServiceModule(settings.Exchanges));
+                builder.RegisterModule(new ServiceModule(settings, log));
 
                 builder.Populate(services);
 
@@ -206,6 +207,8 @@ namespace TradingBot
                 // NOTE: Service can't recieve and process requests here, so you can destroy all resources
 
                 ApplicationContainer.Resolve<IApplicationFacade>().Stop();
+                ApplicationContainer.Resolve<TradingSignalsHandler>().Stop();
+
             }
             catch (Exception ex)
             {

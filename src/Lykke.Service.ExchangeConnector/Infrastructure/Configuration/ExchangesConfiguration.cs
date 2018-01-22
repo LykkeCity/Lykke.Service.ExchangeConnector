@@ -5,20 +5,20 @@ namespace TradingBot.Infrastructure.Configuration
 {
     public sealed class ExchangesConfiguration : IEnumerable<IExchangeConfiguration>
     {
-        public IcmConfig Icm { get; set; }
-        
+        public IcmExchangeConfiguration Icm { get; set; }
+
         public KrakenConfig Kraken { get; set; }
-        
+
         public StubExchangeConfiguration Stub { get; set; }
-        
+
         public HistoricalDataConfig HistoricalData { get; set; }
-        
+
         public LykkeExchangeConfiguration Lykke { get; set; }
 
         public BitMexExchangeConfiguration BitMex { get; set; }
 
         public BitfinexExchangeConfiguration Bitfinex { get; set; }
-        
+
         public GdaxExchangeConfiguration Gdax { get; set; }
 
         public JfdExchangeConfiguration Jfd { get; set; }

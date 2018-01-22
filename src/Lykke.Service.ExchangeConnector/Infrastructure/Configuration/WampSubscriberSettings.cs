@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace TradingBot.Infrastructure.Configuration
+﻿namespace TradingBot.Infrastructure.Configuration
 {
     public class WampSubscriberSettings
     {
