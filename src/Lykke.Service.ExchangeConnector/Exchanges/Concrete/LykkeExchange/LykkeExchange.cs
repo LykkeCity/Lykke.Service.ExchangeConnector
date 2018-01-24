@@ -257,6 +257,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                             signal.Volume, signal.TradeType,
                             null, OrderExecutionStatus.Fill)
                         {
+                            Success = true,
                             ClientOrderId = signal.OrderId
                         };
                     }
@@ -290,6 +291,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                                 signal.TradeType,
                                 orderId.ToString(), OrderExecutionStatus.New)
                             {
+                                Success = true,
                                 ClientOrderId = signal.OrderId
                             };
                         }
