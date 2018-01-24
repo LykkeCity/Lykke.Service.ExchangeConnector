@@ -19,8 +19,7 @@ namespace TradingBot.Handlers
     {
         private readonly IReadOnlyDictionary<string, Exchange> exchanges;
         private readonly ILog logger;
-        private readonly IHandler<ExecutionReport> _acknowledHandler;
-        private readonly IHandler<ExecutionReport> _tradeHandler;
+        private readonly IHandler<ExecutionReport> _executionReportHandler;
         private readonly TranslatedSignalsRepository translatedSignalsRepository;
         private readonly TimeSpan tradingSignalsThreshold = TimeSpan.FromMinutes(5);
         private readonly TimeSpan apiTimeout;
@@ -28,8 +27,7 @@ namespace TradingBot.Handlers
         private readonly bool _enabled;
 
         public TradingSignalsHandler(IEnumerable<Exchange> exchanges, ILog logger, 
-            IHandler<ExecutionReport> acknowledHandler, 
-            IHandler<ExecutionReport> tradeHandler, 
+            IHandler<ExecutionReport> executionReportHandler, 
             TranslatedSignalsRepository translatedSignalsRepository, 
             TimeSpan apiTimeout, 
             RabbitMqSubscriber<TradingSignal> messageProducer, 
@@ -37,8 +35,7 @@ namespace TradingBot.Handlers
         {
             this.exchanges = exchanges.ToDictionary(k => k.Name);
             this.logger = logger;
-            _acknowledHandler = acknowledHandler;
-            _tradeHandler = tradeHandler;
+            _executionReportHandler = executionReportHandler;
             this.translatedSignalsRepository = translatedSignalsRepository;
             this.apiTimeout = apiTimeout;
             _messageProducer = messageProducer;
@@ -114,64 +111,25 @@ namespace TradingBot.Handlers
                 if (!signal.IsTimeInThreshold(tradingSignalsThreshold))
                 {
                     translatedSignal.Failure("The signal is too old");
-
-                    await logger.WriteInfoAsync(nameof(TradingSignalsHandler),
-                        nameof(HandleCreation),
-                        signal.ToString(),
-                        "Skipping old signal");
-
+                    await logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), signal.ToString(), "Skipping old signal");
                     return;
                 }
 
-                var executedTrade = await exchange.AddOrderAndWaitExecution(signal, translatedSignal, apiTimeout);
+                var executionReport = await exchange.AddOrderAndWaitExecution(signal, translatedSignal, apiTimeout);
 
-                bool orderAdded = executedTrade.ExecutionStatus == OrderExecutionStatus.New ||
-                                  executedTrade.ExecutionStatus == OrderExecutionStatus.Pending;
-
-                bool orderFilled = executedTrade.ExecutionStatus == OrderExecutionStatus.Fill ||
-                                   executedTrade.ExecutionStatus == OrderExecutionStatus.PartialFill;
-                if (orderAdded || orderFilled)
-                {
-                    await logger.WriteInfoAsync(nameof(TradingSignalsHandler),
-                        nameof(HandleCreation),
-                        signal.ToString(),
-                        "Created new order");
-                }
-                else
-                {
-                    await logger.WriteWarningAsync(nameof(TradingSignalsHandler),
-                        nameof(HandleCreation),
-                        signal.ToString(),
-                        $"Added order is in unexpected status: {executedTrade}");
-
-                    translatedSignal.Failure($"Added order is in unexpected status: {executedTrade}");
-                }
-    
-                
-                await _acknowledHandler.Handle(CreateAcknowledgement(exchange, orderAdded, signal, translatedSignal));
-                
-
-                if (orderFilled)
-                {
-                    await _tradeHandler.Handle(executedTrade);
-                }
+                await _executionReportHandler.Handle(executionReport);
             }
             catch (ApiException e)
             {
                 await logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), signal.ToString(), e.Message);
                 translatedSignal.Failure(e);
-                await _acknowledHandler.Handle(CreateAcknowledgement(exchange, false, signal, translatedSignal, e));
+                await _executionReportHandler.Handle(CreateFailuredExecutionReport(exchange, false, signal, translatedSignal, e));
             }
             catch (Exception e)
             {
-                await logger.WriteErrorAsync(nameof(TradingSignalsHandler),
-                    nameof(HandleCreation),
-                    signal.ToString(),
-                    e);
-                
+                await logger.WriteErrorAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), e);
                 translatedSignal.Failure(e);
-                
-                await _acknowledHandler.Handle(CreateAcknowledgement(exchange, false, signal, translatedSignal, e));
+                await _executionReportHandler.Handle(CreateFailuredExecutionReport(exchange, false, signal, translatedSignal, e));
             }
         }
 
@@ -181,45 +139,21 @@ namespace TradingBot.Handlers
             try
             {
                 var executedTrade = await exchange.CancelOrderAndWaitExecution(signal, translatedSignal, apiTimeout);
-
-                if (executedTrade.ExecutionStatus == OrderExecutionStatus.Cancelled)
-                {
-                    
-
-                    
-                    await _tradeHandler.Handle(executedTrade);
-
-                    
-                }
-                else
-                {
-                    var message =
-                        $"Executed trade status {executedTrade.ExecutionStatus} after calling 'exchange.CancelOrderAndWaitExecution'";
-                    translatedSignal.Failure(message);
-                    await logger.WriteWarningAsync(nameof(TradingSignalsHandler),
-                        nameof(HandleCancellation),
-                        signal.ToString(),
-                        message);
-                }
+                await _executionReportHandler.Handle(executedTrade);
             }
             catch (ApiException e)
             {
                 translatedSignal.Failure(e);
-                await logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCancellation),
-                    signal.ToString(),
-                    e.Message);
+                await logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCancellation), signal.ToString(), e.Message);
             }
             catch (Exception e)
             {
                 translatedSignal.Failure(e);
-                await logger.WriteErrorAsync(nameof(TradingSignalsHandler),
-                    nameof(HandleCancellation),
-                    signal.ToString(),
-                    e);
+                await logger.WriteErrorAsync(nameof(TradingSignalsHandler), nameof(HandleCancellation), signal.ToString(), e);
             }
         }
 
-        private static ExecutionReport CreateAcknowledgement(IExchange exchange, bool success,
+        private static ExecutionReport CreateFailuredExecutionReport(IExchange exchange, bool success,
             TradingSignal arrivedSignal, TranslatedSignalTableEntity translatedSignal, Exception exception = null)
         {
             var ack = new ExecutionReport

@@ -255,7 +255,10 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     {
                         return new ExecutionReport(signal.Instrument, DateTime.UtcNow, marketOrderResponse.Result,
                             signal.Volume, signal.TradeType,
-                            signal.OrderId, OrderExecutionStatus.Fill);
+                            null, OrderExecutionStatus.Fill)
+                        {
+                            ClientOrderId = signal.OrderId
+                        };
                     }
                     else
                     {
@@ -285,7 +288,10 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                             translatedSignal.ExternalId = orderId.ToString();
                             return new ExecutionReport(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume,
                                 signal.TradeType,
-                                orderId.ToString(), OrderExecutionStatus.New);
+                                orderId.ToString(), OrderExecutionStatus.New)
+                            {
+                                ClientOrderId = signal.OrderId
+                            };
                         }
                         else
                         {
