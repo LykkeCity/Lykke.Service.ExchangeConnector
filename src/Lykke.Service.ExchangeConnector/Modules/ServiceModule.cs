@@ -1,5 +1,4 @@
 ﻿using Autofac;
-using Autofac.Extras.DynamicProxy;
 using Common.Log;
 using Lykke.ExternalExchangesApi.Exchanges.Icm.FixClient;
 using Lykke.RabbitMqBroker;
@@ -18,7 +17,6 @@ using TradingBot.Exchanges.Concrete.LykkeExchange;
 using TradingBot.Exchanges.Concrete.StubImplementation;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Infrastructure.Monitoring;
 using TradingBot.Trading;
 
 namespace TradingBot.Modules
@@ -48,16 +46,6 @@ namespace TradingBot.Modules
             builder.RegisterType<OrderBookSnapshotsRepository>();
 
             builder.RegisterType<ExchangeFactory>();
-
-            builder.RegisterType<ExchangeCallsInterceptor>()
-                .SingleInstance();
-
-            builder.RegisterType<ExchangeStatisticsCollector>()
-                .SingleInstance();
-
-            builder.RegisterType<ExchangeRatingValuer>()
-                .As<IExchangeRatingValuer>()
-                .SingleInstance();
 
             builder.RegisterType<ExchangeConnectorApplication>()
                 .As<IApplicationFacade>()
@@ -97,21 +85,21 @@ namespace TradingBot.Modules
                 .SingleInstance();
 
             builder.RegisterType<JfdModelConverter>()
-                .SingleInstance();         
-            
+                .SingleInstance();
+
             builder.RegisterType<AzureFixMessagesRepository>()
                 .As<IAzureFixMessagesRepository>()
-                .SingleInstance();    
-            
+                .SingleInstance();
+
             builder.RegisterType<IcmTickPriceHarvester>()
-                .SingleInstance();  
-            
+                .SingleInstance();
+
             builder.RegisterType<IcmTradeSessionConnector>()
-                .SingleInstance();   
-            
+                .SingleInstance();
+
             builder.RegisterType<BitfinexModelConverter>()
-                .SingleInstance(); 
-            
+                .SingleInstance();
+
             builder.RegisterType<IcmModelConverter>()
                 .SingleInstance();
 
@@ -157,9 +145,7 @@ namespace TradingBot.Modules
             {
                 container.RegisterType<T>()
                     .As<Exchange>()
-                    .SingleInstance()
-                    .EnableClassInterceptors()
-                    .InterceptedBy(typeof(ExchangeCallsInterceptor));
+                    .SingleInstance();
             }
 
         }

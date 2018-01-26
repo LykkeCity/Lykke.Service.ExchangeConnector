@@ -4,19 +4,16 @@ using System.Net;
 using Lykke.ExternalExchangesApi.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.SwaggerGen;
-using TradingBot.Infrastructure.Monitoring;
 using TradingBot.Models.Api;
 
 namespace TradingBot.Controllers.Api
 {
     public sealed class ExchangesController : BaseApiController
     {
-        private readonly IExchangeRatingValuer _ratingValuer;
 
-        public ExchangesController(IApplicationFacade app, IExchangeRatingValuer ratingValuer)
+        public ExchangesController(IApplicationFacade app)
             : base(app)
         {
-            _ratingValuer = ratingValuer;
         }
 
         /// <summary>
@@ -51,18 +48,6 @@ namespace TradingBot.Controllers.Api
                 State = exchange.State,
                 Instruments = exchange.Instruments
             };
-        }
-
-
-        /// <summary>
-        /// Returns ratings of exchanges
-        /// </summary>
-        /// <returns>A collection of ratings for each enabled exchange</returns>
-        [HttpGet("rating")]
-        [SwaggerOperation("GetRating")]
-        public IReadOnlyCollection<ExchangeRatingModel> GetRating()
-        {
-            return _ratingValuer.Rating;
         }
     }
 }

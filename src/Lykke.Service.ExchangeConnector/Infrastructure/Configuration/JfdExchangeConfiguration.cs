@@ -13,8 +13,6 @@ namespace TradingBot.Infrastructure.Configuration
 
         public bool PubQuotesToRabbit { get; set; }
 
-        public double InitialRating { get; set; }
-
         IReadOnlyCollection<CurrencySymbol> IExchangeConfiguration.SupportedCurrencySymbols => SupportedCurrencySymbols;
 
         public IReadOnlyCollection<JfdCurrencySymbol> SupportedCurrencySymbols { get; set; }

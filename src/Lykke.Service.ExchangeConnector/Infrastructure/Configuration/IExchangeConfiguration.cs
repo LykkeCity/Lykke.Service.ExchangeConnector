@@ -10,8 +10,6 @@ namespace TradingBot.Infrastructure.Configuration
 
         bool PubQuotesToRabbit { get; set; }
 
-        double InitialRating { get; set; }
-
         IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; }
     }
 }

@@ -73,8 +73,8 @@ namespace TradingBot.Controllers.Api
 
         /// <summary>
         /// Places a new order on the exchange
-        ///<param name="orderModel">A new order</param>
         /// </summary>
+        /// <param name="orderModel">A new order</param>
         /// <remarks>In the location header of successful response placed an URL for getting info about the order</remarks>
         [SwaggerOperation("CreateOrder")]
         [HttpPost]

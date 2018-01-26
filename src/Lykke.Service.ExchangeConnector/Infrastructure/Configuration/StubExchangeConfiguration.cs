@@ -10,8 +10,6 @@ namespace TradingBot.Infrastructure.Configuration
 
         public bool PubQuotesToRabbit { get; set; }
 
-        public double InitialRating { get; set; }
-
         public int PricesIntervalInMilliseconds { get; set; }
         
         public IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; set; }

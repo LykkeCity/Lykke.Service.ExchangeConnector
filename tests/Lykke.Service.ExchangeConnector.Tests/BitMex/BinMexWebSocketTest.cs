@@ -57,7 +57,7 @@ namespace TradingBot.Tests.BitMex
             var segment = new ArraySegment<byte>(buffer);
 
             var sb = new StringBuilder();
-            int counter = 0;
+            var counter = 0;
             while (true)
             {
                 var endOfMessage = false;

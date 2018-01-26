@@ -13,8 +13,6 @@ namespace TradingBot.Infrastructure.Configuration
 
         public bool PubQuotesToRabbit { get; set; }
 
-        public double InitialRating { get; set; }
-
         public bool SocketConnection { get; set; }
 
         public RabbitMqExchangeConfiguration RabbitMq { get; set; }

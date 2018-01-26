@@ -43,12 +43,6 @@
             </summary>
             <param name="exchangeName">Name of the specific exchange</param>
         </member>
-        <member name="M:TradingBot.Controllers.Api.ExchangesController.GetRating">
-            <summary>
-            Returns ratings of exchanges
-            </summary>
-            <returns>A collection of ratings for each enabled exchange</returns>
-        </member>
         <member name="T:TradingBot.Controllers.Api.IsAliveController">
             <summary>
             Controller to test service is alive.
@@ -74,11 +68,11 @@
             <param name="exchangeName">The exchange name</param>
         </member>
         <member name="M:TradingBot.Controllers.Api.OrdersController.Post(TradingBot.Models.Api.OrderModel)">
-             <summary>
-             Places a new order on the exchange
+            <summary>
+            Places a new order on the exchange
+            </summary>
             <param name="orderModel">A new order</param>
-             </summary>
-             <remarks>In the location header of successful response placed an URL for getting info about the order</remarks>
+            <remarks>In the location header of successful response placed an URL for getting info about the order</remarks>
         </member>
         <member name="M:TradingBot.Controllers.Api.OrdersController.CancelOrder(System.String,System.String)">
             <summary>

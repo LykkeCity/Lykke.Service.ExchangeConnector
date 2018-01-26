@@ -10,8 +10,6 @@ namespace TradingBot.Infrastructure.Configuration
 
         public bool SaveOrderBooksToAzure { get; set; }
 
-        public double InitialRating { get; set; }
-
         public string ApiKey { get; set; }
 
         public string ApiSecret { get; set; }
