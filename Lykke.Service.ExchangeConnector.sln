@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27130.2010
+VisualStudioVersion = 15.0.26730.8
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lykke.Service.ExchangeConnector", "src\Lykke.Service.ExchangeConnector\Lykke.Service.ExchangeConnector.csproj", "{88397BE8-8599-415B-ADDA-AB8957F21E23}"
 EndProject
@@ -12,6 +12,34 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lykke.Service.ExchangeConnector.Client", "client\Lykke.Service.ExchangeConnector.Client\Lykke.Service.ExchangeConnector.Client.csproj", "{6BE9CFDA-36C0-4997-A875-1ED4C7F611E8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lykke.ExternalExchangesApi", "src\Lykke.ExternalExchangesApi\Lykke.ExternalExchangesApi.csproj", "{BFCBBFE9-FB1D-484D-8045-80580CD85A97}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lykke.Service.ExchangeDataStore", "Lykke.Service.ExchangeDataStore", "{41F36F53-49BB-417A-9A34-A5B319E2AD1C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lykke.Service.ExchangeDataStore", "..\Lykke.Service.ExchangeDataStore\Lykke.Service.ExchangeDataStore\src\Lykke.Service.ExchangeDataStore\Lykke.Service.ExchangeDataStore.csproj", "{E414FDB9-FEEA-4CD0-9BBA-D1541601DF29}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "1. Instrastructure", "1. Instrastructure", "{CC2067D7-1971-47BB-B491-5649EA3C18B2}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lykke.Service.ExchangeDataStore.Core", "..\Lykke.Service.ExchangeDataStore\Lykke.Service.ExchangeDataStore\src\Lykke.Service.ExchangeDataStore.Core\Lykke.Service.ExchangeDataStore.Core.csproj", "{F5B2F6B8-A8CC-4612-8F1D-C063EB8C8955}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2. Repositories", "2. Repositories", "{BF745453-B940-470E-81BC-43FB67703D4E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lykke.Service.ExchangeDataStore.AzureRepositories", "..\Lykke.Service.ExchangeDataStore\Lykke.Service.ExchangeDataStore\src\Lykke.Service.ExchangeDataStore.AzureRepositories\Lykke.Service.ExchangeDataStore.AzureRepositories.csproj", "{4BE49E02-AAAD-460B-8D00-57F412A3D181}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lykke.Service.ExchangeDataStore.Services", "..\Lykke.Service.ExchangeDataStore\Lykke.Service.ExchangeDataStore\src\Lykke.Service.ExchangeDataStore.Services\Lykke.Service.ExchangeDataStore.Services.csproj", "{2D5F52EC-2A27-4045-81ED-72355E2A6325}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution items", "Solution items", "{6CA74DE0-A357-4934-9D8B-FEA3F0A2D690}"
+	ProjectSection(SolutionItems) = preProject
+		..\Lykke.Service.ExchangeDataStore\Lykke.Service.ExchangeDataStore\.gitignore = ..\Lykke.Service.ExchangeDataStore\Lykke.Service.ExchangeDataStore\.gitignore
+		..\Lykke.Service.ExchangeDataStore\Lykke.Service.ExchangeDataStore\README.md = ..\Lykke.Service.ExchangeDataStore\Lykke.Service.ExchangeDataStore\README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "3. Client", "3. Client", "{C9A2CFDE-EA32-4946-B679-7CE6EFA816B8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lykke.Service.ExchangeDataStore.Client", "..\Lykke.Service.ExchangeDataStore\Lykke.Service.ExchangeDataStore\client\Lykke.Service.ExchangeDataStore.Client\Lykke.Service.ExchangeDataStore.Client.csproj", "{3C300C31-97D3-41E8-A627-C53491BDA28B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lykke.Service.ExchangeDataStore.Tests", "..\Lykke.Service.ExchangeDataStore\Lykke.Service.ExchangeDataStore\tests\Lykke.Service.ExchangeDataStore.Tests\Lykke.Service.ExchangeDataStore.Tests.csproj", "{A61FFDEE-5725-4650-A788-6E55EE5EFD5B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "4. Tests", "4. Tests", "{8F9036B1-5106-4C69-B2D2-B78EE52687A0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,12 +63,47 @@ Global
 		{BFCBBFE9-FB1D-484D-8045-80580CD85A97}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BFCBBFE9-FB1D-484D-8045-80580CD85A97}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BFCBBFE9-FB1D-484D-8045-80580CD85A97}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E414FDB9-FEEA-4CD0-9BBA-D1541601DF29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E414FDB9-FEEA-4CD0-9BBA-D1541601DF29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E414FDB9-FEEA-4CD0-9BBA-D1541601DF29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E414FDB9-FEEA-4CD0-9BBA-D1541601DF29}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5B2F6B8-A8CC-4612-8F1D-C063EB8C8955}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5B2F6B8-A8CC-4612-8F1D-C063EB8C8955}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5B2F6B8-A8CC-4612-8F1D-C063EB8C8955}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5B2F6B8-A8CC-4612-8F1D-C063EB8C8955}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4BE49E02-AAAD-460B-8D00-57F412A3D181}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4BE49E02-AAAD-460B-8D00-57F412A3D181}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4BE49E02-AAAD-460B-8D00-57F412A3D181}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4BE49E02-AAAD-460B-8D00-57F412A3D181}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D5F52EC-2A27-4045-81ED-72355E2A6325}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D5F52EC-2A27-4045-81ED-72355E2A6325}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D5F52EC-2A27-4045-81ED-72355E2A6325}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D5F52EC-2A27-4045-81ED-72355E2A6325}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C300C31-97D3-41E8-A627-C53491BDA28B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C300C31-97D3-41E8-A627-C53491BDA28B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C300C31-97D3-41E8-A627-C53491BDA28B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C300C31-97D3-41E8-A627-C53491BDA28B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A61FFDEE-5725-4650-A788-6E55EE5EFD5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A61FFDEE-5725-4650-A788-6E55EE5EFD5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A61FFDEE-5725-4650-A788-6E55EE5EFD5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A61FFDEE-5725-4650-A788-6E55EE5EFD5B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{AFEA1A4B-9A43-4A08-AB42-82F76C949E4A} = {4BB87FE5-BB88-4763-8368-2064A3D7E059}
+		{E414FDB9-FEEA-4CD0-9BBA-D1541601DF29} = {41F36F53-49BB-417A-9A34-A5B319E2AD1C}
+		{CC2067D7-1971-47BB-B491-5649EA3C18B2} = {41F36F53-49BB-417A-9A34-A5B319E2AD1C}
+		{F5B2F6B8-A8CC-4612-8F1D-C063EB8C8955} = {CC2067D7-1971-47BB-B491-5649EA3C18B2}
+		{BF745453-B940-470E-81BC-43FB67703D4E} = {41F36F53-49BB-417A-9A34-A5B319E2AD1C}
+		{4BE49E02-AAAD-460B-8D00-57F412A3D181} = {BF745453-B940-470E-81BC-43FB67703D4E}
+		{2D5F52EC-2A27-4045-81ED-72355E2A6325} = {CC2067D7-1971-47BB-B491-5649EA3C18B2}
+		{6CA74DE0-A357-4934-9D8B-FEA3F0A2D690} = {41F36F53-49BB-417A-9A34-A5B319E2AD1C}
+		{C9A2CFDE-EA32-4946-B679-7CE6EFA816B8} = {41F36F53-49BB-417A-9A34-A5B319E2AD1C}
+		{3C300C31-97D3-41E8-A627-C53491BDA28B} = {C9A2CFDE-EA32-4946-B679-7CE6EFA816B8}
+		{A61FFDEE-5725-4650-A788-6E55EE5EFD5B} = {8F9036B1-5106-4C69-B2D2-B78EE52687A0}
+		{8F9036B1-5106-4C69-B2D2-B78EE52687A0} = {41F36F53-49BB-417A-9A34-A5B319E2AD1C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {49A9C75C-770F-4032-8403-7569CEB2921B}
