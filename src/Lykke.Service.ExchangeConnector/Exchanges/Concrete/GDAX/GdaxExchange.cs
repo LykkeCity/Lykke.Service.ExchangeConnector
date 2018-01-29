@@ -46,6 +46,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             _tickPriceHandler = tickPriceHandler;
             _tradeHandler = tradeHandler;
 
+            _orderBooksHarvester.MaxOrderBookRate = configuration.MaxOrderBookRate;
 
             _restApi = CreateRestApiClient();
             _websocketApi = CreateWebSocketsApiClient();

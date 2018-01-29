@@ -22,6 +22,8 @@ namespace TradingBot.Infrastructure.Configuration
 
         public string UserAgent { get; set; }
 
+        public int MaxOrderBookRate { get; set; }
+
         public IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; set; }
     }
 }
