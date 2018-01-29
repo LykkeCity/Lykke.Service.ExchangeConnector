@@ -8,6 +8,7 @@ using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Models.Api;
 using TradingBot.Trading;
 using TradingBot.Repositories;
 
@@ -216,5 +217,7 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
             return Task.FromResult(new ExecutionReport(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType, signal.OrderId,
                 isCanceled ? OrderExecutionStatus.Cancelled : OrderExecutionStatus.Unknown));
         }
+
+        public override StreamingSupport StreamingSupport => new StreamingSupport(false, false, false);
     }
 }

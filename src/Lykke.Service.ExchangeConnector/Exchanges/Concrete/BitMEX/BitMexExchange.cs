@@ -138,6 +138,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return model;
         }
 
+        public override StreamingSupport StreamingSupport => new StreamingSupport(true, true, true);
+
         private static IReadOnlyList<Order> EnsureCorrectResponse(string id, object response)
         {
             if (response is Error error)

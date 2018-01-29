@@ -46,7 +46,8 @@ namespace TradingBot.Controllers.Api
             {
                 Name = exchangeName,
                 State = exchange.State,
-                Instruments = exchange.Instruments
+                Instruments = exchange.Instruments,
+                StreamingSupport = exchange.StreamingSupport
             };
         }
     }

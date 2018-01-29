@@ -6,6 +6,7 @@ using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Models.Api;
 using TradingBot.Trading;
 using TradingBot.Repositories;
 
@@ -70,5 +71,7 @@ namespace TradingBot.Exchanges.Concrete.HistoricalData
         {
             throw new NotImplementedException();
         }
+
+        public override StreamingSupport StreamingSupport => new StreamingSupport(false, false, false);
     }
 }

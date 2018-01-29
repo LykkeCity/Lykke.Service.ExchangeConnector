@@ -13,6 +13,7 @@ using TradingBot.Exchanges.Concrete.Kraken.Endpoints;
 using TradingBot.Exchanges.Concrete.Kraken.Entities;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Models.Api;
 using TradingBot.Trading;
 using TradingBot.Repositories;
 
@@ -210,6 +211,8 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                     x.Key,
                     ConvertStatus(x.Value.Status)));
         }
+
+        public override StreamingSupport StreamingSupport => new StreamingSupport(false, false, false);
 
         public async Task<IEnumerable<ExecutionReport>> GetExecutedOrders(DateTime start, TimeSpan timeout)
         {

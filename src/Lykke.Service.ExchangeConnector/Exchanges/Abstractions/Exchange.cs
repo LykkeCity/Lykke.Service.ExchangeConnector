@@ -109,5 +109,7 @@ namespace TradingBot.Exchanges.Abstractions
         {
             throw new NotSupportedException();
         }
+
+        public abstract StreamingSupport StreamingSupport { get; }
     }
 }

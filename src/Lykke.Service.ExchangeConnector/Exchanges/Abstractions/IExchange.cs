@@ -18,7 +18,7 @@ namespace TradingBot.Exchanges.Abstractions
         Task<IEnumerable<AccountBalance>> GetAccountBalance(TimeSpan timeout);
 
         Task<IReadOnlyCollection<TradeBalanceModel>> GetTradeBalances(TimeSpan timeout);
-        
+
         Task<ExecutionReport> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout);
 
         Task<ExecutionReport> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout);
@@ -28,5 +28,7 @@ namespace TradingBot.Exchanges.Abstractions
         Task<IEnumerable<ExecutionReport>> GetOpenOrders(TimeSpan timeout);
 
         Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout);
+
+        StreamingSupport StreamingSupport { get; }
     }
 }

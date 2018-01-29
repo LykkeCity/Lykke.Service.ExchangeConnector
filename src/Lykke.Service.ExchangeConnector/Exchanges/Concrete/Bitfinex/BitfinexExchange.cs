@@ -127,6 +127,8 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             return positions;
         }
 
+        public override StreamingSupport StreamingSupport => new StreamingSupport(true, true, true);
+
         private IReadOnlyCollection<PositionModel> ExchangePositionsToPositionModel(IEnumerable<Position> response, IReadOnlyList<MarginInfo> marginInfo)
         {
             var marginByCurrency = marginInfo[0].MarginLimits.ToDictionary(ml => ml.OnPair, ml => ml, StringComparer.InvariantCultureIgnoreCase);

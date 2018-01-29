@@ -126,6 +126,8 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             return _modelConverter.ConvertPositionReport(reports);
         }
 
+        public override StreamingSupport StreamingSupport => new StreamingSupport(true, false, false);
+
         public override Task<ExecutionReport> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             throw new NotImplementedException();

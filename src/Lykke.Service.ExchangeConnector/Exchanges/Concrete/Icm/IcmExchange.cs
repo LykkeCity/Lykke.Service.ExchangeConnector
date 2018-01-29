@@ -119,6 +119,8 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return _converter.ConvertPositionReport(resp);
         }
 
+        public override StreamingSupport StreamingSupport => new StreamingSupport(true, false, false);
+
         public override Task<ExecutionReport> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
             throw new NotImplementedException();

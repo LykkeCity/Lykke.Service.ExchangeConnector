@@ -18,6 +18,7 @@ using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Infrastructure.Wamp;
+using TradingBot.Models.Api;
 using TradingBot.Repositories;
 using TradingBot.Trading;
 using AssetPair = TradingBot.Exchanges.Concrete.LykkeExchange.Entities.AssetPair;
@@ -324,6 +325,8 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             return new ExecutionReport(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
                 signal.OrderId, OrderExecutionStatus.Cancelled);
         }
+
+        public override StreamingSupport StreamingSupport => new StreamingSupport(true, true, true);
 
         public async Task CancelAllOrders()
         {
