@@ -218,6 +218,6 @@ namespace TradingBot.Exchanges.Concrete.StubImplementation
                 isCanceled ? OrderExecutionStatus.Cancelled : OrderExecutionStatus.Unknown));
         }
 
-        public override StreamingSupport StreamingSupport => new StreamingSupport(false, false, false);
+        public override StreamingSupport StreamingSupport => new StreamingSupport(false, false);
     }
 }

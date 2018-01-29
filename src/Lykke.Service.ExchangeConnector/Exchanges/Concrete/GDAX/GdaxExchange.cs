@@ -175,7 +175,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             throw new NotSupportedException();
         }
 
-        public override StreamingSupport StreamingSupport => new StreamingSupport(true, true, true);
+        public override StreamingSupport StreamingSupport => new StreamingSupport(true, true);
 
         protected override async void StartImpl()
         {

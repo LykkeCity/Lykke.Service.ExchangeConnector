@@ -52,7 +52,7 @@ namespace TradingBot.Exchanges.Concrete.Oanda
             throw new NotImplementedException();
         }
 
-        public override StreamingSupport StreamingSupport => new StreamingSupport(false, false, false);
+        public override StreamingSupport StreamingSupport => new StreamingSupport(false, false);
 
         protected async Task<bool> EstablishConnectionImpl(CancellationToken cancellationToken)
         {

@@ -127,7 +127,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             return positions;
         }
 
-        public override StreamingSupport StreamingSupport => new StreamingSupport(true, true, true);
+        public override StreamingSupport StreamingSupport => new StreamingSupport(true, true);
 
         private IReadOnlyCollection<PositionModel> ExchangePositionsToPositionModel(IEnumerable<Position> response, IReadOnlyList<MarginInfo> marginInfo)
         {

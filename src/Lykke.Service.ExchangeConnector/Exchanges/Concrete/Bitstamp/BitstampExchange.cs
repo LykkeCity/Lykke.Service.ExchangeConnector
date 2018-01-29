@@ -67,6 +67,6 @@ namespace TradingBot.Exchanges.Concrete.Bitstamp
             throw new NotImplementedException();
         }
 
-        public override StreamingSupport StreamingSupport => new StreamingSupport(false, false, false);
+        public override StreamingSupport StreamingSupport => new StreamingSupport(false, false);
     }
 }

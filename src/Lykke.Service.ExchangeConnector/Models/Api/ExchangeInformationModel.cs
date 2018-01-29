@@ -48,16 +48,11 @@ namespace TradingBot.Models.Api
         /// </summary>
         public bool Orders { get; }
 
-        /// <summary>
-        /// Can stream position updates
-        /// </summary>
-        public bool Positions { get; }
 
-        public StreamingSupport(bool orderBooks, bool orders, bool positions)
+        public StreamingSupport(bool orderBooks, bool orders)
         {
             OrderBooks = orderBooks;
             Orders = orders;
-            Positions = positions;
         }
     }
 }

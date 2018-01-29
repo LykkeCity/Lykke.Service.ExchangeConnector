@@ -326,7 +326,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                 signal.OrderId, OrderExecutionStatus.Cancelled);
         }
 
-        public override StreamingSupport StreamingSupport => new StreamingSupport(true, true, true);
+        public override StreamingSupport StreamingSupport => new StreamingSupport(true, true);
 
         public async Task CancelAllOrders()
         {

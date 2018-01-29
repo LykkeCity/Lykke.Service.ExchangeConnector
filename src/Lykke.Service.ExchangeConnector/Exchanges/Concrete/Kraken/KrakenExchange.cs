@@ -212,7 +212,7 @@ namespace TradingBot.Exchanges.Concrete.Kraken
                     ConvertStatus(x.Value.Status)));
         }
 
-        public override StreamingSupport StreamingSupport => new StreamingSupport(false, false, false);
+        public override StreamingSupport StreamingSupport => new StreamingSupport(false, false);
 
         public async Task<IEnumerable<ExecutionReport>> GetExecutedOrders(DateTime start, TimeSpan timeout)
         {
