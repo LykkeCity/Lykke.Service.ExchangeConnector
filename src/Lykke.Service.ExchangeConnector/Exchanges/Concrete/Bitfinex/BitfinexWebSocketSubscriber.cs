@@ -6,6 +6,7 @@ using Castle.Components.DictionaryAdapter;
 using Common.Log;
 using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient.Model;
 using Lykke.ExternalExchangesApi.Shared;
+using Newtonsoft.Json;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.WebSockets;
 
@@ -60,8 +61,9 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             try
             {
                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1)))
+                using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, CancellationToken))
                 {
-                    await Messenger.SendRequestAsync(new PingRequest(), cts.Token);
+                    await Messenger.SendRequestAsync(new PingRequest(), linkedCts.Token);
                     RechargePingPong();
                 }
             }
@@ -85,12 +87,22 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         protected override async Task HandleResponse(string json, CancellationToken token)
         {
-            var msg = EventResponse.Parse(json) ?? (dynamic)HeartbeatResponse.Parse(json) ?? TradeExecutionUpdate.Parse(json);
+            dynamic msg = null;
+            try
+            {
+                msg = EventResponse.Parse(json) ?? (dynamic)HeartbeatResponse.Parse(json) ?? TradeExecutionUpdate.Parse(json);
+
+            }
+            catch (JsonSerializationException)
+            {
+                await _log.WriteWarningAsync(nameof(HandleResponse), "Unexpected message", json);
+            }
             if (msg != null)
             {
                 await HandleResponse(msg);
                 RechargePingPong();
             }
+
         }
 
 #pragma warning disable S1172 // Unused method parameters should be removed
@@ -127,8 +139,18 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         private async Task<bool> HandleResponse(InfoResponse info)
         {
-            await Log.WriteInfoAsync("Connecting to Bitmiex", "Connected", $"Protocol version {info.Version}");
+            await Log.WriteInfoAsync("Connecting to Bitfinex", "Connected", $"Protocol version {info.Version}");
             return false;
+        }
+
+        private static Task HandleResponse(ErrorEventMessageResponse response)
+        {
+            throw new InvalidOperationException($"Event: {response.Event} Code: {response.Code} Message: {response.Message}");
+        }
+
+        private async Task HandleResponse(EventMessageResponse response)
+        {
+            await Log.WriteInfoAsync(nameof(HandleResponse), "An event message from bitfinex", $"Event: {response.Event} Code: {response.Code} Message: {response.Message}");
         }
 
         public override void Stop()

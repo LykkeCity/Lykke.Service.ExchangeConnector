@@ -81,6 +81,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         public void Dispose()
         {
             _socketSubscriber.Stop();
+            _socketSubscriber.Dispose();
         }
 
         public void Stop()

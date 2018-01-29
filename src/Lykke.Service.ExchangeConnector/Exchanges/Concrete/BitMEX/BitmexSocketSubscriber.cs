@@ -40,8 +40,9 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             try
             {
                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1)))
+                using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, CancellationToken))
                 {
-                    await Messenger.SendRequestAsync(Ping, cts.Token);
+                    await Messenger.SendRequestAsync(Ping, linkedCts.Token);
                     RechargePingPong();
                 }
             }

@@ -91,7 +91,7 @@ namespace Lykke.ExternalExchangesApi.Shared
             }
             catch (Exception ex)
             {
-                await _log.WriteErrorAsync(nameof(ConnectAsync), "An exception occurred while sending request", ex);
+                await _log.WriteWarningAsync(nameof(ConnectAsync), request.ToString(), "An exception occurred while sending request", ex);
                 throw;
             }
         }
@@ -103,13 +103,17 @@ namespace Lykke.ExternalExchangesApi.Shared
             using (var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, cancellationToken))
             {
 
-                var buffer = new byte[10000];
+                var buffer = new byte[16535];
                 var segment = new ArraySegment<byte>(buffer);
                 var sb = new StringBuilder();
                 var endOfMessage = false;
                 while (!endOfMessage)
                 {
                     var re = await _clientWebSocket.ReceiveAsync(segment, linkedToken.Token);
+                    if (re.MessageType == WebSocketMessageType.Close)
+                    {
+                        throw new OperationCanceledException("The remote host requested connection closing");
+                    }
                     sb.Append(DecodeText(segment.Array.Take(re.Count).ToArray()));
                     endOfMessage = re.EndOfMessage;
                 }
@@ -133,7 +137,7 @@ namespace Lykke.ExternalExchangesApi.Shared
         {
             if (_clientWebSocket != null && _clientWebSocket.State == WebSocketState.Open)
             {
-                await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Good bye", cancellationToken);
+                await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Good bye", cancellationToken);
             }
         }
     }

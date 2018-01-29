@@ -25,6 +25,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
         private readonly ExchangeConverters _converters;
         private readonly Timer _heartBeatMonitoringTimer;
         protected TimeSpan HeartBeatPeriod { get; set; } = TimeSpan.FromSeconds(30);
+        private readonly TimeSpan _snapshotRefreshPeriod = TimeSpan.FromSeconds(5);
         private CancellationTokenSource _cancellationTokenSource;
         private Task _messageLoopTask;
         private readonly IHandler<OrderBook> _newOrderBookHandler;
@@ -33,6 +34,8 @@ namespace TradingBot.Exchanges.Concrete.Shared
         private int _orderBooksReceivedInLastTimeFrame;
         private Task _measureTask;
         private long _publishedToRabbit;
+        private readonly Timer _snapshotRefreshTimer;
+        private volatile bool _restartInProgress;
 
         protected IExchangeConfiguration ExchangeConfiguration { get; }
 
@@ -60,23 +63,30 @@ namespace TradingBot.Exchanges.Concrete.Shared
             CancellationToken = _cancellationTokenSource.Token;
 
             _heartBeatMonitoringTimer = new Timer(RestartMessenger);
+            _snapshotRefreshTimer = new Timer(RestartMessenger);
         }
 
-        private async void RestartMessenger(object state)
+        private void RestartMessenger(object state)
         {
-            await Log.WriteWarningAsync(nameof(RestartMessenger), "Monitoring heartbeat",
-                $"Heart stopped. Restarting {GetType().Name}");
-            Stop();
+            if (_restartInProgress)
+            {
+                return;
+            }
+
+            _restartInProgress = true;
             try
             {
-                await _messageLoopTask;
+                Log.WriteWarningAsync(nameof(RestartMessenger), string.Empty, $"Restart requested. Restarting {GetType().Name}").GetAwaiter().GetResult();
+                Stop();
+                Start();
             }
-            catch (OperationCanceledException)
+            finally
             {
-
+                _restartInProgress = false;
             }
-            Start();
         }
+
+
 
         protected void RechargeHeartbeat()
         {
@@ -105,12 +115,14 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
             _cancellationTokenSource = new CancellationTokenSource();
             CancellationToken = _cancellationTokenSource.Token;
-            _measureTask = Task.Run(Measure, _cancellationTokenSource.Token);
+            _measureTask?.Dispose();
+            _measureTask = Task.Run(Measure, CancellationToken);
             StartReading();
         }
 
         protected virtual void StartReading()
         {
+            _messageLoopTask?.Dispose();
             _messageLoopTask = Task.Run(MessageLoop, CancellationToken);
         }
 
@@ -118,12 +130,11 @@ namespace TradingBot.Exchanges.Concrete.Shared
         {
             Log.WriteInfoAsync(nameof(Stop), "Stopping", $"Stopping {GetType().Name}").GetAwaiter().GetResult();
             _cancellationTokenSource?.Cancel();
-            SwallowCanceledException(() =>
-                _messageLoopTask?.GetAwaiter().GetResult());
-            SwallowCanceledException(() =>
-                _measureTask?.GetAwaiter().GetResult());
+            SwallowException(() => _messageLoopTask?.GetAwaiter().GetResult());
+            SwallowException(() => _measureTask?.GetAwaiter().GetResult());
             _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = null;
+            _snapshotRefreshTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
 
         private async Task MessageLoop()
@@ -207,8 +218,12 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         protected async Task HandleOrderBookSnapshotAsync(string pair, DateTime timeStamp, IEnumerable<OrderBookItem> orders)
         {
-            var orderBookSnapshot = new OrderBookSnapshot(ExchangeName, pair, timeStamp, ExchangeConfiguration.SupportedCurrencySymbols);
+            var orderBookSnapshot = new OrderBookSnapshot(ExchangeName, pair, timeStamp, Log, ExchangeConfiguration.SupportedCurrencySymbols);
             orderBookSnapshot.AddOrUpdateOrders(orders);
+            if (!await orderBookSnapshot.DetectNegativeSpread())
+            {
+                PostponeSnapshotRefresh();
+            }
 
             if (ExchangeConfiguration.SaveOrderBooksToAzure)
                 await OrderBookSnapshotsRepository.SaveAsync(orderBookSnapshot);
@@ -237,6 +252,11 @@ namespace TradingBot.Exchanges.Concrete.Shared
                     throw new ArgumentOutOfRangeException(nameof(orderEventType), orderEventType, null);
             }
 
+            if (!await orderBookSnapshot.DetectNegativeSpread())
+            {
+                PostponeSnapshotRefresh();
+            }
+
             if (ExchangeConfiguration.SaveOrderBooksToAzure)
             {
                 await OrderBookEventsRepository.SaveAsync(new OrderBookEvent
@@ -249,6 +269,11 @@ namespace TradingBot.Exchanges.Concrete.Shared
             }
 
             await PublishOrderBookSnapshotAsync();
+        }
+
+        private void PostponeSnapshotRefresh()
+        {
+            _snapshotRefreshTimer.Change(_snapshotRefreshPeriod, Timeout.InfiniteTimeSpan);
         }
 
         private bool NeedThrottle()
@@ -294,18 +319,20 @@ namespace TradingBot.Exchanges.Concrete.Shared
                 Stop();
                 _messageLoopTask?.Dispose();
                 _heartBeatMonitoringTimer?.Dispose();
+                _snapshotRefreshTimer.Dispose();
                 _measureTask?.Dispose();
             }
         }
 
-        private void SwallowCanceledException(Action action)
+        private void SwallowException(Action action)
         {
             try
             {
                 action();
             }
-            catch (OperationCanceledException)
+            catch (Exception ex)
             {
+                Log.WriteInfoAsync("Stopping", ex.Message, $"Exception was thrown while stopping. Ignore it. {ex}").GetAwaiter().GetResult();
             }
         }
     }

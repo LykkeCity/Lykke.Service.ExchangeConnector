@@ -2,7 +2,7 @@
 
 namespace TradingBot.Infrastructure.Configuration
 {
-    public class RabbitMqExchangeConfiguration
+    public sealed class RabbitMqExchangeConfiguration
     {
         public bool Enabled { get; set; }
         
@@ -11,6 +11,7 @@ namespace TradingBot.Infrastructure.Configuration
         [Optional]
         public string Queue { get; set; }
         
+        [AmqpCheck]
         public string ConnectionString { get; set; }
     }
 }
