@@ -101,7 +101,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         public virtual void Start()
         {
-            Log.WriteInfoAsync(nameof(Start), "Starting", $"Starting {GetType().Name}").Wait();
+            Log.WriteInfoAsync(nameof(Start), "Starting", $"Starting {GetType().Name}").GetAwaiter().GetResult();
 
             _cancellationTokenSource = new CancellationTokenSource();
             CancellationToken = _cancellationTokenSource.Token;
@@ -116,7 +116,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         public virtual void Stop()
         {
-            Log.WriteInfoAsync(nameof(Stop), "Stopping", $"Stopping {GetType().Name}").Wait();
+            Log.WriteInfoAsync(nameof(Stop), "Stopping", $"Stopping {GetType().Name}").GetAwaiter().GetResult();
             _cancellationTokenSource?.Cancel();
             SwallowCanceledException(() =>
                 _messageLoopTask?.GetAwaiter().GetResult());
@@ -205,9 +205,9 @@ namespace TradingBot.Exchanges.Concrete.Shared
             return _orderBookSnapshots.TryGetValue(pair, out orderBookSnapshot);
         }
 
-        protected async Task HandleOrdebookSnapshotAsync(string pair, DateTime timeStamp, IEnumerable<OrderBookItem> orders)
+        protected async Task HandleOrderBookSnapshotAsync(string pair, DateTime timeStamp, IEnumerable<OrderBookItem> orders)
         {
-            var orderBookSnapshot = new OrderBookSnapshot(ExchangeName, pair, timeStamp);
+            var orderBookSnapshot = new OrderBookSnapshot(ExchangeName, pair, timeStamp, ExchangeConfiguration.SupportedCurrencySymbols);
             orderBookSnapshot.AddOrUpdateOrders(orders);
 
             if (ExchangeConfiguration.SaveOrderBooksToAzure)

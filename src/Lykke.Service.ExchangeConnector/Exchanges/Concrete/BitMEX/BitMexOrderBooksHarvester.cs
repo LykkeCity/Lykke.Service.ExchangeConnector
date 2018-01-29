@@ -68,7 +68,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 case Action.Partial:
                     foreach (var symbolGroup in groupByPair)
                     {
-                        await HandleOrdebookSnapshotAsync(symbolGroup.Key, DateTime.UtcNow, orderBookItems);
+                        await HandleOrderBookSnapshotAsync(symbolGroup.Key, DateTime.UtcNow, orderBookItems);
                     }
                     break;
                 case Action.Update:

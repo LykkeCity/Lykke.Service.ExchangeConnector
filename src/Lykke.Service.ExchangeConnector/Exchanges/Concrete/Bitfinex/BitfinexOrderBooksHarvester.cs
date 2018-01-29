@@ -139,7 +139,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         {
             var pair = _channels[snapshot.ChannelId].Pair;
 
-            await HandleOrdebookSnapshotAsync(pair,
+            await HandleOrderBookSnapshotAsync(pair,
                 DateTime.UtcNow, // TODO: Get this from the server
                 snapshot.Orders.Select(BitfinexModelConverter.ToOrderBookItem));
         }

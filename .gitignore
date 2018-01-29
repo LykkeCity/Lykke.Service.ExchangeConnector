@@ -61,3 +61,4 @@ node_modules
 
 /src/Lykke.Service.ExchangeConnector/store
 *.DotSettings
+/src/Lykke.Service.ExchangeConnector/Lykke.Service.ExchangeConnector.xml

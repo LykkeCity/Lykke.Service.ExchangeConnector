@@ -126,7 +126,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
                 .Union(orderBook.Bids.Select(order =>
                     _converters.GdaxOrderBookItemToOrderBookItem(symbol, true, order)));
 
-            await HandleOrdebookSnapshotAsync(symbol, DateTime.UtcNow, orders);
+            await HandleOrderBookSnapshotAsync(symbol, DateTime.UtcNow, orders);
 
             _symbolsLastSequenceNumbers[symbol] = orderBook.Sequence;
         }

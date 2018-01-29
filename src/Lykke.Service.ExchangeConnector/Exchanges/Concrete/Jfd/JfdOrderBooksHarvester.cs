@@ -105,7 +105,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
                 }
             }
 
-            await HandleOrdebookSnapshotAsync(symbol, DateTime.UtcNow, orders);
+            await HandleOrderBookSnapshotAsync(symbol, DateTime.UtcNow, orders);
         }
 
 

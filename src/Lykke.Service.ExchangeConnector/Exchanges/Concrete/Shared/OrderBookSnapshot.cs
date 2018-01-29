@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using TradingBot.Infrastructure.Configuration;
 
 namespace TradingBot.Exchanges.Concrete.Shared
 {
@@ -19,7 +21,9 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         public string GeneratedId { get; internal set; }
 
-        public OrderBookSnapshot(string source, string assetPair, DateTime orderBookTimestamp)
+        private readonly HashSet<string> _invertedAssetIds;
+
+        public OrderBookSnapshot(string source, string assetPair, DateTime orderBookTimestamp, IEnumerable<CurrencySymbol> config)
         {
             InternalTimestamp = DateTime.UtcNow;
             Source = source;
@@ -27,6 +31,9 @@ namespace TradingBot.Exchanges.Concrete.Shared
             Asks = new Dictionary<string, OrderBookItem>();
             Bids = new Dictionary<string, OrderBookItem>();
             OrderBookTimestamp = orderBookTimestamp;
+            _invertedAssetIds = config.Where(c => c.OrderBookVolumeInQuoteCcy)
+                .Select(c => c.ExchangeSymbol)
+                .ToHashSet();
         }
 
         public void AddOrUpdateOrders(IEnumerable<OrderBookItem> newOrders)
@@ -39,6 +46,8 @@ namespace TradingBot.Exchanges.Concrete.Shared
                     {
                         order.Price = storedOrder.Price;
                     }
+
+                    InvertSize(order);
                     Bids[order.Id] = order;
                 }
                 else
@@ -47,8 +56,17 @@ namespace TradingBot.Exchanges.Concrete.Shared
                     {
                         order.Price = storedOrder.Price;
                     }
+                    InvertSize(order);
                     Asks[order.Id] = order;
                 }
+            }
+        }
+
+        private void InvertSize(OrderBookItem order)
+        {
+            if (_invertedAssetIds.Contains(order.Symbol))
+            {
+                order.Size = order.Size / order.Price;
             }
         }
 
