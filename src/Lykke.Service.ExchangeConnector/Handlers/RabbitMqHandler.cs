@@ -33,7 +33,6 @@ namespace TradingBot.Handlers
                 .SetSerializer(new GenericRabbitModelConverter<T>())
                 .SetLogger(log)
                 .SetPublishStrategy(new DefaultFanoutPublishStrategy(publisherSettings))
-                .SetConsole(new LogToConsole())
                 .PublishSynchronously()
                 .Start();
         }

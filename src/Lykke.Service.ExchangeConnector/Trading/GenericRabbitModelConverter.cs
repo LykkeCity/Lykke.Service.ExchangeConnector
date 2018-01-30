@@ -8,7 +8,6 @@ namespace TradingBot.Trading
 {
     internal sealed class GenericRabbitModelConverter<T> : IRabbitMqSerializer<T>, IMessageDeserializer<T>
     {
-        //private const string Iso8601DateFormat = @"yyyy-MM-ddTHH:mm:ss.fffzzz";
         private readonly JsonSerializerSettings _serializeSettings = new JsonSerializerSettings
         {
             ContractResolver = new CamelCasePropertyNamesContractResolver(),

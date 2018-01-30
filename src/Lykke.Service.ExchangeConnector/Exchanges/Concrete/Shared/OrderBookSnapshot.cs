@@ -1,17 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using Common.Log;
 using TradingBot.Infrastructure.Configuration;
 
 namespace TradingBot.Exchanges.Concrete.Shared
 {
     internal sealed class OrderBookSnapshot
     {
+        private readonly ILog _log;
         public string Source { get; }
 
         public string AssetPair { get; }
 
-        public DateTime InternalTimestamp { get; }
+        private DateTime InternalTimestamp { get; }
 
         public DateTime OrderBookTimestamp { get; }
 
@@ -23,8 +26,9 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
         private readonly HashSet<string> _invertedAssetIds;
 
-        public OrderBookSnapshot(string source, string assetPair, DateTime orderBookTimestamp, IEnumerable<CurrencySymbol> config)
+        public OrderBookSnapshot(string source, string assetPair, DateTime orderBookTimestamp, ILog log, IEnumerable<CurrencySymbol> config)
         {
+            _log = log;
             InternalTimestamp = DateTime.UtcNow;
             Source = source;
             AssetPair = assetPair;
@@ -60,6 +64,22 @@ namespace TradingBot.Exchanges.Concrete.Shared
                     Asks[order.Id] = order;
                 }
             }
+        }
+
+        public async Task<bool> DetectNegativeSpread()
+        {
+            if (Asks.Any() && Bids.Any())
+            {
+                var bestAsk = Asks.Values.Min(ob => ob.Price);
+                var bestBid = Bids.Values.Max(ob => ob.Price);
+                if (bestAsk < bestBid)
+                {
+                    await _log.WriteInfoAsync(nameof(DetectNegativeSpread), $"Exchange {Source} AssetPair {AssetPair} Ask {bestAsk} Bid {bestBid}", "Negative spread detected");
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void InvertSize(OrderBookItem order)

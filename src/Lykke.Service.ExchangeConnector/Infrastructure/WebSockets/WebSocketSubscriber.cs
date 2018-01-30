@@ -29,9 +29,9 @@ namespace TradingBot.Infrastructure.WebSockets
             _heartBeatMonitoringTimer = new Timer(ForceStopMessenger);
         }
 
-        private async void ForceStopMessenger(object state)
+        private void ForceStopMessenger(object state)
         {
-            await Log.WriteWarningAsync(nameof(ForceStopMessenger), "Monitoring heartbeat", $"Heart stopped. Restarting {GetType().Name}");
+            Log.WriteWarningAsync(nameof(ForceStopMessenger), "Monitoring heartbeat", $"Heart stopped. Restarting {GetType().Name}").GetAwaiter().GetResult();
 
             lock (_sync)
             {
@@ -130,7 +130,7 @@ namespace TradingBot.Infrastructure.WebSockets
                 }
                 catch (Exception)
                 {
-                    // Nothig can do here
+                    // Nothing can do here
                 }
             }
         }
@@ -161,10 +161,14 @@ namespace TradingBot.Infrastructure.WebSockets
                     _heartBeatMonitoringTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
                     throw;
                 }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     _heartBeatMonitoringTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-                    await Log.WriteErrorAsync(nameof(MessageLoopImpl), $"An exception occurred while working with WebSocket. Reconnect in {smallTimeout} sec", ex);
+                    await Log.WriteWarningAsync(nameof(MessageLoopImpl), GetType().Name, $"An exception occurred while working with WebSocket. Reconnect in {smallTimeout} sec", ex);
                     throw;
                 }
             });
@@ -173,31 +177,30 @@ namespace TradingBot.Infrastructure.WebSockets
 
         private void StartImpl()
         {
-            Log.WriteInfoAsync(nameof(Start), "Starting", $"Starting {GetType().Name}").Wait();
+            Log.WriteInfoAsync(nameof(Start), "Starting", $"Starting {GetType().Name}").GetAwaiter().GetResult();
             _cancellationTokenSource = new CancellationTokenSource();
             CancellationToken = _cancellationTokenSource.Token;
+            _messageLoopTask?.Dispose();
             _messageLoopTask = Task.Run(MessageLoop, _cancellationTokenSource.Token);
         }
 
         private void StopImpl()
         {
-            Log.WriteInfoAsync(nameof(Stop), "Stopping", $"Stopping {GetType().Name}").Wait();
+            Log.WriteInfoAsync(nameof(Stop), "Stopping", $"Stopping {GetType().Name}").GetAwaiter().GetResult();
             _cancellationTokenSource?.Cancel();
             try
             {
                 _messageLoopTask?.GetAwaiter().GetResult();
             }
-            catch (OperationCanceledException)
+            catch (Exception ex)
             {
-            }
-            catch (AuthenticationException)
-            {
-
+                Log.WriteInfoAsync("Stopping", ex.Message, $"Exception was thrown while stopping. Ignore it. {ex}").GetAwaiter().GetResult();
             }
             // Stop heartbeat timer can be recharged in the loop
             _heartBeatMonitoringTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = null;
+
         }
 
         private void ValidateInstance()
@@ -211,7 +214,7 @@ namespace TradingBot.Infrastructure.WebSockets
         #region "IDispose Implementation"
         public void Dispose()
         {
-            this.Dispose(true);
+            Dispose(true);
         }
 
         protected virtual void Dispose(bool disposing)

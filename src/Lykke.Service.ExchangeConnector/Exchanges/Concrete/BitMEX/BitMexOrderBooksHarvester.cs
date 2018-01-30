@@ -25,7 +25,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             OrderBookEventsRepository orderBookEventsRepository,
             IBitmexSocketSubscriber socketSubscriber,
             IHandler<OrderBook> orderBookHandler) :
-            base(BitMexExchange.Name, configuration, 
+            base(BitMexExchange.Name, configuration,
                 new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookSnapshotsRepository, orderBookEventsRepository, orderBookHandler)
         {
             _socketSubscriber = socketSubscriber;

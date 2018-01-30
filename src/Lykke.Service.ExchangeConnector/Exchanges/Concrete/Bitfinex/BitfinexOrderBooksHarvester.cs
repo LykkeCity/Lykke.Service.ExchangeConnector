@@ -85,7 +85,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         {
             foreach (var instrument in instruments)
             {
-                var request = SubscribeOrderBooksRequest.BuildRequest(instrument, "F0", "R0");
+                var request = SubscribeOrderBooksRequest.BuildRequest(instrument, "F1", "R0");
                 await Messenger.SendRequestAsync(request, CancellationToken);
                 var response = await GetResponse();
                 await HandleResponse(response);
