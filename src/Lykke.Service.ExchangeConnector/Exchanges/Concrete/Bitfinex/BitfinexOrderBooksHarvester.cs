@@ -43,6 +43,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
                 while (!CancellationToken.IsCancellationRequested)
                 {
                     var resp = await GetResponse();
+                    RechargeHeartbeat();
                     await HandleResponse(resp);
                 }
             }
