@@ -170,7 +170,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             throw new NotSupportedException();
         }
 
-        public override Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout)
+        public override Task<IReadOnlyCollection<PositionModel>> GetPositionsAsync(TimeSpan timeout)
         {
             throw new NotSupportedException();
         }

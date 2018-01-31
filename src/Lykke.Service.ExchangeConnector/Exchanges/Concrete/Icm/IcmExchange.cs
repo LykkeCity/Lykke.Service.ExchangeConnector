@@ -91,7 +91,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             return _converter.ConvertExecutionReport(response);
         }
 
-        public override async Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout)
+        public override async Task<IReadOnlyCollection<PositionModel>> GetPositionsAsync(TimeSpan timeout)
         {
             var request = new RequestForPositions
             {

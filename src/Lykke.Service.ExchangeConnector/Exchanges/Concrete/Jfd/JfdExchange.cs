@@ -107,7 +107,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             return models;
         }
 
-        public override async Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout)
+        public override async Task<IReadOnlyCollection<PositionModel>> GetPositionsAsync(TimeSpan timeout)
         {
             var pr = new RequestForPositions
             {

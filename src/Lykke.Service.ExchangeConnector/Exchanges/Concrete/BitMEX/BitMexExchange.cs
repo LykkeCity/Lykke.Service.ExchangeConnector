@@ -122,7 +122,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return new[] { model };
         }
 
-        public override async Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout)
+        public override async Task<IReadOnlyCollection<PositionModel>> GetPositionsAsync(TimeSpan timeout)
         {
             var cts = new CancellationTokenSource(timeout);
             var onlyOpensFileter = "{\"isOpen\":true}";

@@ -36,6 +36,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
         private long _publishedToRabbit;
         private readonly Timer _snapshotRefreshTimer;
         private volatile bool _restartInProgress;
+        private volatile bool _snapshotRefreshScheduled;
 
         protected IExchangeConfiguration ExchangeConfiguration { get; }
 
@@ -62,11 +63,11 @@ namespace TradingBot.Exchanges.Concrete.Shared
             _cancellationTokenSource = new CancellationTokenSource();
             CancellationToken = _cancellationTokenSource.Token;
 
-            _heartBeatMonitoringTimer = new Timer(RestartMessenger);
-            _snapshotRefreshTimer = new Timer(RestartMessenger);
+            _heartBeatMonitoringTimer = new Timer(s => RestartMessenger("No messages from the exchange"));
+            _snapshotRefreshTimer = new Timer(s => RestartMessenger("Refresh order book snapshot"));
         }
 
-        private void RestartMessenger(object state)
+        private void RestartMessenger(string reason)
         {
             if (_restartInProgress)
             {
@@ -74,9 +75,11 @@ namespace TradingBot.Exchanges.Concrete.Shared
             }
 
             _restartInProgress = true;
+            _snapshotRefreshScheduled = false;
+
             try
             {
-                Log.WriteWarningAsync(nameof(RestartMessenger), string.Empty, $"Restart requested. Restarting {GetType().Name}").GetAwaiter().GetResult();
+                Log.WriteWarningAsync(nameof(RestartMessenger), string.Empty, $"Restart requested. The reason: {reason}. Restarting {GetType().Name}").GetAwaiter().GetResult();
                 Stop();
                 Start();
             }
@@ -134,7 +137,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
             SwallowException(() => _measureTask?.GetAwaiter().GetResult());
             _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = null;
-            _snapshotRefreshTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            CancelSnapshotRefresh();
         }
 
         private async Task MessageLoop()
@@ -220,9 +223,13 @@ namespace TradingBot.Exchanges.Concrete.Shared
         {
             var orderBookSnapshot = new OrderBookSnapshot(ExchangeName, pair, timeStamp, Log, ExchangeConfiguration.SupportedCurrencySymbols);
             orderBookSnapshot.AddOrUpdateOrders(orders);
-            if (!await orderBookSnapshot.DetectNegativeSpread())
+            if (await orderBookSnapshot.DetectNegativeSpread())
             {
-                PostponeSnapshotRefresh();
+                ScheduleSnapshotRefresh();
+            }
+            else
+            {
+                CancelSnapshotRefresh();
             }
 
             if (ExchangeConfiguration.SaveOrderBooksToAzure)
@@ -252,9 +259,13 @@ namespace TradingBot.Exchanges.Concrete.Shared
                     throw new ArgumentOutOfRangeException(nameof(orderEventType), orderEventType, null);
             }
 
-            if (!await orderBookSnapshot.DetectNegativeSpread())
+            if (await orderBookSnapshot.DetectNegativeSpread())
             {
-                PostponeSnapshotRefresh();
+                ScheduleSnapshotRefresh();
+            }
+            else
+            {
+                CancelSnapshotRefresh();
             }
 
             if (ExchangeConfiguration.SaveOrderBooksToAzure)
@@ -271,9 +282,26 @@ namespace TradingBot.Exchanges.Concrete.Shared
             await PublishOrderBookSnapshotAsync();
         }
 
-        private void PostponeSnapshotRefresh()
+        private void ScheduleSnapshotRefresh()
         {
+            if (_snapshotRefreshScheduled || _restartInProgress)
+            {
+                return;
+            }
+
+            Log.WriteInfoAsync(nameof(ScheduleSnapshotRefresh), string.Empty, $"Order book snapshot refresh scheduled on {DateTime.UtcNow.Add(_snapshotRefreshPeriod)}").GetAwaiter().GetResult();
+            _snapshotRefreshScheduled = true;
             _snapshotRefreshTimer.Change(_snapshotRefreshPeriod, Timeout.InfiniteTimeSpan);
+        }
+
+        private void CancelSnapshotRefresh()
+        {
+            if (_snapshotRefreshScheduled)
+            {
+                Log.WriteInfoAsync(nameof(CancelSnapshotRefresh), string.Empty, "Order book snapshot refresh canceled").GetAwaiter().GetResult();
+            }
+            _snapshotRefreshScheduled = false;
+            _snapshotRefreshTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
 
         private bool NeedThrottle()

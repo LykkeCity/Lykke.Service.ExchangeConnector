@@ -32,15 +32,17 @@ namespace TradingBot.Controllers.Api
         /// <returns></returns>
         [HttpGet("balance")]
         [SwaggerOperation("GetBalance")]
-        private async Task<IEnumerable<AccountBalance>> GetBalance([Required][FromQuery]string exchangeName)// Intentionally disabled
+        [ProducesResponseType(typeof(IEnumerable<AccountBalance>), 200)]
+        private async Task<IActionResult> GetBalance([Required][FromQuery]string exchangeName)// Intentionally disabled
         {
-            if (string.IsNullOrWhiteSpace(exchangeName))
+            if (string.IsNullOrWhiteSpace(exchangeName) || Application.GetExchange(exchangeName) == null)
             {
-                throw new StatusCodeException(HttpStatusCode.BadRequest, $"Invalid {nameof(exchangeName)}");
+                return BadRequest($"Invalid {nameof(exchangeName)}");
             }
             try
             {
-                return await Application.GetExchange(exchangeName).GetAccountBalance(_timeout);
+
+                return Ok(await Application.GetExchange(exchangeName).GetAccountBalance(_timeout));
             }
             catch (Exception e)
             {
@@ -55,15 +57,16 @@ namespace TradingBot.Controllers.Api
         /// <returns></returns>
         [SwaggerOperation("GetTradeBalance")]
         [HttpGet("tradeBalance")]
-        public async Task<IReadOnlyCollection<TradeBalanceModel>> GetTradeBalance([FromQuery]string exchangeName)
+        [ProducesResponseType(typeof(IReadOnlyCollection<TradeBalanceModel>), 200)]
+        public async Task<IActionResult> GetTradeBalance([FromQuery]string exchangeName)
         {
-            if (string.IsNullOrWhiteSpace(exchangeName))
+            if (string.IsNullOrWhiteSpace(exchangeName) || Application.GetExchange(exchangeName) == null)
             {
-                throw new StatusCodeException(HttpStatusCode.InternalServerError, $"Invalid {nameof(exchangeName)}");
+                return BadRequest($"Invalid {nameof(exchangeName)}");
             }
             try
             {
-                return await Application.GetExchange(exchangeName).GetTradeBalances(_timeout);
+                return Ok(await Application.GetExchange(exchangeName).GetTradeBalances(_timeout));
             }
             catch (Exception e)
             {

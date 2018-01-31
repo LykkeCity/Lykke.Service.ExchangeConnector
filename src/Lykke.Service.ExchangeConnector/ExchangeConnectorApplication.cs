@@ -91,7 +91,7 @@ namespace TradingBot
 
         public IExchange GetExchange(string name)
         {
-            return _exchanges.FirstOrDefault(e => e.Name == name) ?? throw new ArgumentException(@"Invalid exchangeName", nameof(name));
+            return _exchanges.FirstOrDefault(e => e.Name == name);
         }
 
         public void Dispose()
