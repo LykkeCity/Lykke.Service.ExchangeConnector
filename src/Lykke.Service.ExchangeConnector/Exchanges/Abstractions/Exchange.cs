@@ -105,7 +105,7 @@ namespace TradingBot.Exchanges.Abstractions
             throw new NotSupportedException();
         }
 
-        public virtual Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout)
+        public virtual Task<IReadOnlyCollection<PositionModel>> GetPositionsAsync(TimeSpan timeout)
         {
             throw new NotSupportedException();
         }

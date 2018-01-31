@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 using Lykke.ExternalExchangesApi.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.SwaggerGen;
@@ -33,22 +34,22 @@ namespace TradingBot.Controllers.Api
         /// <param name="exchangeName">Name of the specific exchange</param>
         [SwaggerOperation("GetExchangeInfo")]
         [HttpGet("{exchangeName}")]
-        public ExchangeInformationModel Index(string exchangeName)
+        [ProducesResponseType(typeof(ExchangeInformationModel), 200)]
+        public IActionResult Index(string exchangeName)
         {
+            if (string.IsNullOrWhiteSpace(exchangeName) || Application.GetExchange(exchangeName) == null)
+            {
+                return BadRequest($"Invalid {nameof(exchangeName)}");
+            }
             var exchange = Application.GetExchange(exchangeName);
 
-            if (exchange == null)
-            {
-                throw new StatusCodeException(HttpStatusCode.InternalServerError, $"There isn't connected exchange with the name of {exchangeName}. Try GET api/exchanges for the list of all connected exchanges.");
-            }
-
-            return new ExchangeInformationModel
+            return Ok(new ExchangeInformationModel
             {
                 Name = exchangeName,
                 State = exchange.State,
                 Instruments = exchange.Instruments,
                 StreamingSupport = exchange.StreamingSupport
-            };
+            });
         }
     }
 }

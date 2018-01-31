@@ -27,7 +27,7 @@ namespace TradingBot.Exchanges.Abstractions
 
         Task<IEnumerable<ExecutionReport>> GetOpenOrders(TimeSpan timeout);
 
-        Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout);
+        Task<IReadOnlyCollection<PositionModel>> GetPositionsAsync(TimeSpan timeout);
 
         StreamingSupport StreamingSupport { get; }
     }

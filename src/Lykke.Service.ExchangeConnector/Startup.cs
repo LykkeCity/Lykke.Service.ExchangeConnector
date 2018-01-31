@@ -15,13 +15,13 @@ using Lykke.SlackNotification.AzureQueue;
 using AzureStorage;
 using AzureStorage.Blob;
 using AzureStorage.Tables;
+using Lykke.Common.ApiLibrary.Middleware;
 using Newtonsoft.Json;
 using Swashbuckle.AspNetCore.Swagger;
 using TradingBot.Communications;
 using TradingBot.Handlers;
 using TradingBot.Repositories;
 using TradingBot.Infrastructure.Auth;
-using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Modules;
 
@@ -48,10 +48,15 @@ namespace TradingBot
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime appLifetime)
         {
-            app.UseDeveloperExceptionPage();
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
+
             app.UseStaticFiles();
 
-            app.UseMiddleware<StatusCodeExceptionHandler>();
+            app.UseLykkeForwardedHeaders();
+            app.UseLykkeMiddleware("LykkeService", ex => new { Message = "Technical problem" });
 
             app.UseMvc();
             app.UseSwagger(c =>

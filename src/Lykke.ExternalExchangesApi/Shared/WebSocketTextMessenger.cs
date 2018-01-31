@@ -103,7 +103,7 @@ namespace Lykke.ExternalExchangesApi.Shared
             using (var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, cancellationToken))
             {
 
-                var buffer = new byte[16535];
+                var buffer = new byte[512];
                 var segment = new ArraySegment<byte>(buffer);
                 var sb = new StringBuilder();
                 var endOfMessage = false;
