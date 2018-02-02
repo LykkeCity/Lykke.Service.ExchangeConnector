@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Lykke.Service.ExchangeDataStore.Core.Helpers;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 
@@ -32,7 +33,7 @@ namespace Lykke.Service.ExchangeDataStore.Core.Domain.OrderBooks
 
         public string Info()
         {
-            return $"{Source}, {AssetPairId}, {Timestamp}";
+            return $"{Source},{AssetPairId},{Timestamp.ToSnapshotTimestampFormat()}";
         }
 
     }

@@ -170,7 +170,7 @@ namespace Lykke.Service.ExchangeDataStore
 
             aggregateLogger.AddLog(consoleLogger);
 
-            var dbLogConnectionStringManager = settings.Nested(x => x.ExchangeDataStoreService.Db.LogsConnString);
+            var dbLogConnectionStringManager = settings.Nested(x => x.ExchangeDataStoreService.AzureStorage.LogsConnString);
             var dbLogConnectionString = dbLogConnectionStringManager.CurrentValue;
 
             if (string.IsNullOrEmpty(dbLogConnectionString))
@@ -183,7 +183,7 @@ namespace Lykke.Service.ExchangeDataStore
                 throw new InvalidOperationException($"LogsConnString {dbLogConnectionString} is not filled in settings");
 
             var persistenceManager = new LykkeLogToAzureStoragePersistenceManager(
-                AzureTableStorage<LogEntity>.Create(dbLogConnectionStringManager, "ExchangeDataStoreLog", consoleLogger),
+                AzureTableStorage<LogEntity>.Create(dbLogConnectionStringManager, settings.CurrentValue.ExchangeDataStoreService.AzureStorage.LogTableName, consoleLogger),
                 consoleLogger);
 
             // Creating slack notification service, which logs own azure queue processing messages to aggregate log

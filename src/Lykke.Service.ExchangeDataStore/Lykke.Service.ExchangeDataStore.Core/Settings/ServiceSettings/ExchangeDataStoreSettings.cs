@@ -2,7 +2,7 @@
 {
     public class ExchangeDataStoreSettings
     {
-        public DbSettings Db { get; set; }
         public RabbitMqMultyExchangeConfiguration RabbitMq { get; set; }
+        public AzureTableConfiguration AzureStorage { get; set; }
     }
 }
