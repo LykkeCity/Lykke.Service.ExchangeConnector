@@ -1,4 +1,5 @@
-﻿namespace Lykke.Service.ExchangeDataStore.Core.Domain.OrderBooks
+﻿// ReSharper disable UnusedAutoPropertyAccessor.Global
+namespace Lykke.Service.ExchangeDataStore.Core.Domain.OrderBooks
 {
     public class OrderBookItem 
     {

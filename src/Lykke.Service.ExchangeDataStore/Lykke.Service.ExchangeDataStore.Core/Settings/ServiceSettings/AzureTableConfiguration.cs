@@ -1,5 +1,7 @@
-﻿namespace Lykke.Service.ExchangeDataStore.Core.Settings.ServiceSettings
+﻿// ReSharper disable UnusedAutoPropertyAccessor.Global
+namespace Lykke.Service.ExchangeDataStore.Core.Settings.ServiceSettings
 {
+    // ReSharper disable once ClassNeverInstantiated.Global
     public class AzureTableConfiguration
     {
         public string LogsConnString { get; set; }

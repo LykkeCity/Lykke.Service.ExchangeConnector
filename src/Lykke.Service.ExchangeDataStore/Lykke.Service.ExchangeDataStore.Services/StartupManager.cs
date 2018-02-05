@@ -1,6 +1,8 @@
-﻿using System.Threading.Tasks;
-using Common.Log;
+﻿using Common.Log;
 using Lykke.Service.ExchangeDataStore.Core.Services;
+using System.Threading.Tasks;
+// ReSharper disable ClassNeverInstantiated.Global
+// ReSharper disable NotAccessedField.Local
 
 namespace Lykke.Service.ExchangeDataStore.Services
 {

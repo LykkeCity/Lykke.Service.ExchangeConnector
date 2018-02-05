@@ -3,6 +3,8 @@ using Microsoft.Extensions.PlatformAbstractions;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+// ReSharper disable ClassNeverInstantiated.Global
+// ReSharper disable UnusedParameter.Global
 
 namespace Lykke.Service.ExchangeDataStore
 {

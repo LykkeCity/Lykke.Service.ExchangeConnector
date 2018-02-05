@@ -11,4 +11,8 @@
     <PackageReference Include="Lykke.Common" Version="4.2.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Services\DataHarvesters\" />
+  </ItemGroup>
+
 </Project>

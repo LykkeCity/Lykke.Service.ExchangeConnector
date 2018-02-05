@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 
 namespace Lykke.Service.ExchangeDataStore.AzureRepositories.OrderBooks
 {
+    // ReSharper disable once ClassNeverInstantiated.Global - autofac injected
     internal class OrderBookSnapshotsRepository : IOrderBookSnapshotsRepository
     {
         private readonly string _blobContainer;

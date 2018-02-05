@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 
 namespace Lykke.Service.ExchangeDataStore.Services.DataHarvesters
 {
+    // ReSharper disable once ClassNeverInstantiated.Global - autofac instantiated
     public class OrderbookDataHarvester : IStartable, IStopable
     {
         private readonly ILog _log;

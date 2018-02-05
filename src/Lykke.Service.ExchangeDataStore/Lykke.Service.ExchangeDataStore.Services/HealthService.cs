@@ -1,6 +1,7 @@
-﻿using System.Collections.Generic;
-using Lykke.Service.ExchangeDataStore.Core.Domain.Health;
+﻿using Lykke.Service.ExchangeDataStore.Core.Domain.Health;
 using Lykke.Service.ExchangeDataStore.Core.Services;
+using System.Collections.Generic;
+// ReSharper disable ClassNeverInstantiated.Global
 
 namespace Lykke.Service.ExchangeDataStore.Services
 {

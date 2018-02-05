@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+// ReSharper disable UnusedMember.Global
 
 namespace Lykke.Service.ExchangeDataStore.Core.Domain.OrderBooks
 {

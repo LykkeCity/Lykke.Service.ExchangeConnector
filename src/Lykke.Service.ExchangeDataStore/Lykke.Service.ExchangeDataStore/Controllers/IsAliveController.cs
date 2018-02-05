@@ -1,10 +1,9 @@
-﻿using System;
-using System.Linq;
-using System.Net;
-using Lykke.Service.ExchangeDataStore.Core.Services;
+﻿using Lykke.Service.ExchangeDataStore.Core.Services;
 using Lykke.Service.ExchangeDataStore.Models;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using System.Linq;
+using System.Net;
 
 namespace Lykke.Service.ExchangeDataStore.Controllers
 {

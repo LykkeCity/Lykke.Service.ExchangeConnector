@@ -1,9 +1,11 @@
 ﻿using System.Collections.Generic;
+// ReSharper disable UnusedAutoPropertyAccessor.Global
 
 namespace Lykke.Service.ExchangeDataStore.Models
 {
     public class IsAliveResponse
     {
+        
         public string Name { get; set; }
         public string Version { get; set; }
         public string Env { get; set; }
