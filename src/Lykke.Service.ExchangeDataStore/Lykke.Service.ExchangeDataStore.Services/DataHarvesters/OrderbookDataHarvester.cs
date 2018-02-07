@@ -43,12 +43,11 @@ namespace Lykke.Service.ExchangeDataStore.Services.DataHarvesters
                 ConnectionString = _orderBookQueueConfig.ConnectionString,
                 ExchangeName = _orderBookQueueConfig.Exchange,
                 QueueName = _orderBookQueueConfig.Queue,
-                IsDurable = true //is this necessary for a permamnet queue to work?
             };
             var errorStrategy = new DefaultErrorHandlingStrategy(_log, rabbitSettings);
             _rabbit = new RabbitMqSubscriber<OrderBook>(rabbitSettings, errorStrategy)
                 .SetMessageDeserializer(new GenericRabbitModelConverter<OrderBook>())
-                .SetMessageReadStrategy(new MessageReadQueueStrategy()) //make sure messages arrive if using permanent queue ????
+                .SetMessageReadStrategy(new MessageReadQueueStrategy()) 
                 .SetLogger(_log)
                 .Subscribe(async orderBook =>
                 {
