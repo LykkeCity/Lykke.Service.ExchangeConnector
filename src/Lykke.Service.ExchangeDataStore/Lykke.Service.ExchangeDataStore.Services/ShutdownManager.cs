@@ -1,6 +1,8 @@
-﻿using Common.Log;
-using Lykke.Service.ExchangeDataStore.Core.Services;
+﻿using Lykke.Service.ExchangeDataStore.Core.Services;
+using Lykke.Service.ExchangeDataStore.Services.DataHarvesters;
+using Lykke.Service.ExchangeDataStore.Services.DataPersisters;
 using System.Threading.Tasks;
+
 // ReSharper disable ClassNeverInstantiated.Global
 
 namespace Lykke.Service.ExchangeDataStore.Services
@@ -12,17 +14,19 @@ namespace Lykke.Service.ExchangeDataStore.Services
 
     public class ShutdownManager : IShutdownManager
     {
-        // ReSharper disable once NotAccessedField.Local
-        private readonly ILog _log;
+        private readonly OrderbookDataPersister _dataPersister;
+        private readonly OrderbookDataHarvester _dataHarvester;
 
-        public ShutdownManager(ILog log)
+        public ShutdownManager(OrderbookDataPersister dataPersister, OrderbookDataHarvester dataHarvester)
         {
-            _log = log;
+            _dataPersister = dataPersister;
+            _dataHarvester = dataHarvester;
         }
 
         public async Task StopAsync()
         {
-            // TODO: Implement your shutdown logic here. Good idea is to log every step
+            _dataHarvester.Stop();
+            _dataPersister.Stop();
 
             await Task.CompletedTask;
         }

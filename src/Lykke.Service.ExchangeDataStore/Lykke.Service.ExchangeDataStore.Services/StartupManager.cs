@@ -1,6 +1,8 @@
-﻿using Common.Log;
-using Lykke.Service.ExchangeDataStore.Core.Services;
+﻿using Lykke.Service.ExchangeDataStore.Core.Services;
+using Lykke.Service.ExchangeDataStore.Services.DataHarvesters;
+using Lykke.Service.ExchangeDataStore.Services.DataPersisters;
 using System.Threading.Tasks;
+
 // ReSharper disable ClassNeverInstantiated.Global
 // ReSharper disable NotAccessedField.Local
 
@@ -15,18 +17,23 @@ namespace Lykke.Service.ExchangeDataStore.Services
 
     public class StartupManager : IStartupManager
     {
-        private readonly ILog _log;
+        private readonly OrderbookDataPersister _dataPersister;
+        private readonly OrderbookDataHarvester _dataHarvester;
 
-        public StartupManager(ILog log)
+
+
+        public StartupManager(OrderbookDataPersister dataPersister, OrderbookDataHarvester dataHarvester)
         {
-            _log = log;
+            _dataPersister = dataPersister;
+            _dataHarvester = dataHarvester;
         }
 
         public async Task StartAsync()
         {
-            // TODO: Implement your startup logic here. Good idea is to log every step
+            _dataPersister.Start();
+            _dataHarvester.Start();
 
-            await Task.CompletedTask;
+             await Task.CompletedTask;
         }
     }
 }

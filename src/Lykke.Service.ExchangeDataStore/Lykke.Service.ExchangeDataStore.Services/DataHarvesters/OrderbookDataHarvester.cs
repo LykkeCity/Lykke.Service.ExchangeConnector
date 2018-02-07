@@ -1,12 +1,11 @@
-﻿using Autofac;
-using Common;
-using Common.Log;
+﻿using Common.Log;
 using Lykke.RabbitMqBroker;
 using Lykke.RabbitMqBroker.Subscriber;
 using Lykke.Service.ExchangeDataStore.Core.Domain.Events;
 using Lykke.Service.ExchangeDataStore.Core.Domain.OrderBooks;
 using Lykke.Service.ExchangeDataStore.Core.Settings.ServiceSettings;
 using Lykke.Service.ExchangeDataStore.Services.Helpers;
+using System;
 using System.Threading.Tasks;
 
 // ReSharper disable MemberCanBePrivate.Global - AsyncEvent must be public
@@ -14,7 +13,7 @@ using System.Threading.Tasks;
 namespace Lykke.Service.ExchangeDataStore.Services.DataHarvesters
 {
     // ReSharper disable once ClassNeverInstantiated.Global - autofac instantiated
-    public class OrderbookDataHarvester : IStartable, IStopable
+    public class OrderbookDataHarvester : IDisposable
     {
         private readonly ILog _log;
         private RabbitMqSubscriber<OrderBook> _rabbit;
@@ -43,13 +42,13 @@ namespace Lykke.Service.ExchangeDataStore.Services.DataHarvesters
             {
                 ConnectionString = _orderBookQueueConfig.ConnectionString,
                 ExchangeName = _orderBookQueueConfig.Exchange,
-                QueueName = _orderBookQueueConfig.Queue
+                QueueName = _orderBookQueueConfig.Queue,
+                IsDurable = true //is this necessary for a permamnet queue to work?
             };
             var errorStrategy = new DefaultErrorHandlingStrategy(_log, rabbitSettings);
             _rabbit = new RabbitMqSubscriber<OrderBook>(rabbitSettings, errorStrategy)
                 .SetMessageDeserializer(new GenericRabbitModelConverter<OrderBook>())
-                .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
-                .SetConsole(new LogToConsole())
+                .SetMessageReadStrategy(new MessageReadQueueStrategy()) //make sure messages arrive if using permanent queue ????
                 .SetLogger(_log)
                 .Subscribe(async orderBook =>
                 {
@@ -70,6 +69,7 @@ namespace Lykke.Service.ExchangeDataStore.Services.DataHarvesters
 
         public void Dispose()
         {
+            _rabbit?.Stop();
             _rabbit?.Dispose();
         }
 
@@ -79,7 +79,7 @@ namespace Lykke.Service.ExchangeDataStore.Services.DataHarvesters
             {
                 return;
             }
-            _rabbit.Stop();
+            _rabbit?.Stop();
             _log.WriteInfoAsync(Component, "Initializing", "", "Stopped");
 
         }

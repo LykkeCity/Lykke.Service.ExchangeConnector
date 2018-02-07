@@ -1,10 +1,14 @@
-﻿using Lykke.Service.ExchangeDataStore.Core.Helpers;
+﻿using Lykke.AzureStorage.Tables;
+using Lykke.Service.ExchangeDataStore.Core.Helpers;
 using System;
+using System.Threading;
 
 namespace Lykke.Service.ExchangeDataStore.AzureRepositories.OrderBooks
 {
-    public sealed class OrderBookSnapshotEntity: BaseEntity
+    public sealed class OrderBookSnapshotEntity: AzureTableEntity
     {
+        private static int _rowKeySuffix = 0;
+
         public string UniqueId => $"{PartitionKey}_{RowKey}";
 
         public string Exchange { get; }
@@ -24,7 +28,7 @@ namespace Lykke.Service.ExchangeDataStore.AzureRepositories.OrderBooks
             AssetPair = assetPair;
 
             PartitionKey = $"{exchange}_{assetPair}".RemoveSpecialCharacters('-', '_', '.');
-            RowKey = snapShotTimestamp.ToSnapshotTimestampFormat();
+            RowKey = snapShotTimestamp.ToSnapshotTimestampFormat() + Interlocked.Increment(ref _rowKeySuffix); 
         }
     }
 }

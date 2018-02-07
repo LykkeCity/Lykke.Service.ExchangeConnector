@@ -1,6 +1,10 @@
 ﻿using Autofac;
+using AzureStorage;
+using AzureStorage.Blob;
+using AzureStorage.Tables;
 using Common.Log;
-using Lykke.Service.ExchangeDataStore.AzureRepositories;
+using Lykke.Service.ExchangeDataStore.AzureRepositories.OrderBooks;
+using Lykke.Service.ExchangeDataStore.Core.Domain.OrderBooks;
 using Lykke.Service.ExchangeDataStore.Core.Services;
 using Lykke.Service.ExchangeDataStore.Core.Settings.ServiceSettings;
 using Lykke.Service.ExchangeDataStore.Services;
@@ -23,7 +27,7 @@ namespace Lykke.Service.ExchangeDataStore.Modules
 
         protected override void Load(ContainerBuilder builder)
         {
-            RegisterRepos(builder);
+            BindAzureRepositories(builder);
             RegisterLocalTypes(builder);
             
         }
@@ -32,16 +36,24 @@ namespace Lykke.Service.ExchangeDataStore.Modules
         {
             builder.RegisterInstance(_log).As<ILog>().SingleInstance();
             builder.RegisterInstance(_settings.CurrentValue.AzureStorage);
-            builder.RegisterType<OrderbookDataHarvester>().As<IStartable>().WithParameter("orderBookQueueConfig", _settings.CurrentValue.RabbitMq.OrderBooks).SingleInstance();
-            builder.RegisterType<OrderbookDataPersister>().As<IStartable>().SingleInstance();
+            builder.RegisterType<OrderbookDataHarvester>().WithParameter("orderBookQueueConfig", _settings.CurrentValue.RabbitMq.OrderBooks).SingleInstance();
+            builder.RegisterType<OrderbookDataPersister>().SingleInstance();
             builder.RegisterType<HealthService>().As<IHealthService>().SingleInstance();
             builder.RegisterType<StartupManager>().As<IStartupManager>();
             builder.RegisterType<ShutdownManager>().As<IShutdownManager>();
         }
 
-        private void RegisterRepos(ContainerBuilder builder)
+        private void BindAzureRepositories(ContainerBuilder container)
         {
-            builder.BindAzureRepositories(_settings, _log);
+            var azureBlobStorage = AzureBlobStorage.Create(
+                _settings.ConnectionString(i => i.AzureStorage.EntitiesConnString));
+            container.RegisterInstance(azureBlobStorage).As<IBlobStorage>().SingleInstance();
+
+            var orderBookSnapshotStorage = AzureTableStorage<OrderBookSnapshotEntity>.Create(
+                _settings.ConnectionString(i => i.AzureStorage.EntitiesConnString), _settings.CurrentValue.AzureStorage.EntitiesTableName, _log);
+            container.RegisterInstance(orderBookSnapshotStorage).As<INoSQLTableStorage<OrderBookSnapshotEntity>>().SingleInstance();
+
+            container.RegisterType<OrderBookSnapshotsRepository>().As<IOrderBookSnapshotsRepository>();
         }
     }
 }

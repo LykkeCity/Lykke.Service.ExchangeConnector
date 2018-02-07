@@ -9,12 +9,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Lykke.Service.ExchangeDataStore.AzureRepositories.OrderBooks
 {
     // ReSharper disable once ClassNeverInstantiated.Global - autofac injected
-    internal class OrderBookSnapshotsRepository : IOrderBookSnapshotsRepository
+    public class OrderBookSnapshotsRepository : IOrderBookSnapshotsRepository
     {
         private readonly string _blobContainer;
         private static readonly string _className = nameof(OrderBookSnapshotsRepository);
@@ -35,7 +36,7 @@ namespace Lykke.Service.ExchangeDataStore.AzureRepositories.OrderBooks
             _blobContainer = dbConfig.EntitiesBlobContainerName;
         }
 
-        public async Task SaveAsync(IOrderBookSnapshot orderBook)
+        public async Task SaveAsync(IOrderBookSnapshot orderBook, CancellationToken cancelToken)
         {
             var orders = orderBook.Asks.Union(orderBook.Bids);
             var tableEntity = new OrderBookSnapshotEntity(orderBook.Source, orderBook.AssetPair, orderBook.Timestamp);
@@ -43,7 +44,7 @@ namespace Lykke.Service.ExchangeDataStore.AzureRepositories.OrderBooks
 
             // Retry to save 5 times
             var retryPolicy = Policy
-                .Handle<Exception>(ex => !(ex is OperationCanceledException))
+                .Handle<Exception>(ex => !(ex is OperationCanceledException) && !cancelToken.IsCancellationRequested)
                 .WaitAndRetryAsync(5, attempt => TimeSpan.FromSeconds(5));
 
             await retryPolicy.ExecuteAsync(async () =>
@@ -51,14 +52,17 @@ namespace Lykke.Service.ExchangeDataStore.AzureRepositories.OrderBooks
                 var blobName = tableEntity.UniqueId;
                 try
                 {
-                    await _tableStorage.InsertAsync(tableEntity);
-                    await _blobStorage.SaveBlobAsync(_blobContainer, blobName, Encoding.UTF8.GetBytes(serializedOrders));
-                    await _log.WriteInfoAsync(_className, _className,
-                        $"Orderbook for {orderBook.Source} and asset pair {orderBook.AssetPair} " +
-                        $"published to Azure table {_tableStorage.Name}. Orders published to blob container {_blobContainer} and " +
-                        $"blob {blobName}");
+                    if (!cancelToken.IsCancellationRequested)
+                    {
+                        await _tableStorage.InsertAsync(tableEntity);
+                        await _blobStorage.SaveBlobAsync(_blobContainer, blobName, Encoding.UTF8.GetBytes(serializedOrders));
+                        await _log.WriteInfoAsync(_className, _className,
+                            $"Orderbook for {orderBook.Source} and asset pair {orderBook.AssetPair} " +
+                            $"published to Azure table {_tableStorage.Name}. Orders published to blob container {_blobContainer} and " +
+                            $"blob {blobName}");
 
-                    orderBook.GeneratedId = tableEntity.UniqueId;
+                        orderBook.GeneratedId = tableEntity.UniqueId;
+                    }
                 }
                 catch (Exception ex)
                 {

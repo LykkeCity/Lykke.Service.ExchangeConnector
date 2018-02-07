@@ -1,9 +1,10 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading;
+using System.Threading.Tasks;
 
 namespace Lykke.Service.ExchangeDataStore.Core.Domain.OrderBooks
 {
     public interface IOrderBookSnapshotsRepository
     {
-        Task SaveAsync(IOrderBookSnapshot orderBook);
+        Task SaveAsync(IOrderBookSnapshot orderBook, CancellationToken cancelToken);
     }
 }
