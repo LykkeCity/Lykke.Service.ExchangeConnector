@@ -43,6 +43,7 @@ namespace Lykke.Service.ExchangeDataStore.Services.DataHarvesters
                 ConnectionString = _orderBookQueueConfig.ConnectionString,
                 ExchangeName = _orderBookQueueConfig.Exchange,
                 QueueName = _orderBookQueueConfig.Queue,
+                IsDurable = true
             };
             var errorStrategy = new DefaultErrorHandlingStrategy(_log, rabbitSettings);
             _rabbit = new RabbitMqSubscriber<OrderBook>(rabbitSettings, errorStrategy)
