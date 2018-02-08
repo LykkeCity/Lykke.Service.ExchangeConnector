@@ -1,17 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
-using Common.Log;
-using TradingBot.Communications;
+﻿using Common.Log;
 using Lykke.ExternalExchangesApi.Exceptions;
 using Lykke.ExternalExchangesApi.Exchanges.Abstractions.Models;
 using Lykke.ExternalExchangesApi.Exchanges.GDAX.RestClient;
 using Lykke.ExternalExchangesApi.Exchanges.GDAX.RestClient.Entities;
 using Lykke.ExternalExchangesApi.Exchanges.GDAX.WssClient;
 using Lykke.ExternalExchangesApi.Exchanges.GDAX.WssClient.Entities;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
+using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
@@ -46,6 +46,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             _tickPriceHandler = tickPriceHandler;
             _tradeHandler = tradeHandler;
 
+            _orderBooksHarvester.MaxOrderBookRate = configuration.MaxOrderBookRate;
 
             _restApi = CreateRestApiClient();
             _websocketApi = CreateWebSocketsApiClient();
@@ -187,6 +188,9 @@ namespace TradingBot.Exchanges.Concrete.GDAX
                 _orderBooksHarvester.Start();
 
                 OnConnected();
+
+                await _websocketApi.ConnectAsync(_webSocketCtSource.Token);
+
 
                 await _websocketApi.SubscribeToPrivateUpdatesAsync(Instruments.Select(i => i.Name).ToList(),
                     _webSocketCtSource.Token);
