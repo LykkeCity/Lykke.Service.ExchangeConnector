@@ -1,12 +1,11 @@
-﻿using System;
+﻿using Common.Log;
+using Polly;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Log;
-using Polly;
-using TradingBot.Communications;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
@@ -17,8 +16,6 @@ namespace TradingBot.Exchanges.Concrete.Shared
     internal abstract class OrderBooksHarvesterBase : IDisposable
     {
         protected readonly ILog Log;
-        protected readonly OrderBookSnapshotsRepository OrderBookSnapshotsRepository;
-        protected readonly OrderBookEventsRepository OrderBookEventsRepository;
         protected CancellationToken CancellationToken;
 
         private readonly ConcurrentDictionary<string, OrderBookSnapshot> _orderBookSnapshots;
@@ -45,12 +42,9 @@ namespace TradingBot.Exchanges.Concrete.Shared
         public int MaxOrderBookRate { get; set; }
 
         protected OrderBooksHarvesterBase(string exchangeName, IExchangeConfiguration exchangeConfiguration, ILog log,
-            OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository,
             IHandler<OrderBook> newOrderBookHandler)
         {
             ExchangeConfiguration = exchangeConfiguration;
-            OrderBookSnapshotsRepository = orderBookSnapshotsRepository;
-            OrderBookEventsRepository = orderBookEventsRepository;
             _newOrderBookHandler = newOrderBookHandler;
             ExchangeName = exchangeName;
 
@@ -232,9 +226,6 @@ namespace TradingBot.Exchanges.Concrete.Shared
                 CancelSnapshotRefresh();
             }
 
-            if (ExchangeConfiguration.SaveOrderBooksToAzure)
-                await OrderBookSnapshotsRepository.SaveAsync(orderBookSnapshot);
-
             _orderBookSnapshots[pair] = orderBookSnapshot;
 
             await PublishOrderBookSnapshotAsync();
@@ -266,17 +257,6 @@ namespace TradingBot.Exchanges.Concrete.Shared
             else
             {
                 CancelSnapshotRefresh();
-            }
-
-            if (ExchangeConfiguration.SaveOrderBooksToAzure)
-            {
-                await OrderBookEventsRepository.SaveAsync(new OrderBookEvent
-                {
-                    SnapshotId = orderBookSnapshot.GeneratedId,
-                    EventType = orderEventType,
-                    OrderEventTimestamp = DateTime.UtcNow,
-                    OrderItems = orders
-                });
             }
 
             await PublishOrderBookSnapshotAsync();

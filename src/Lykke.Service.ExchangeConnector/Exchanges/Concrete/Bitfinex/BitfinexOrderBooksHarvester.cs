@@ -1,11 +1,10 @@
-﻿using System;
+﻿using Common.Log;
+using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient.Model;
+using Lykke.ExternalExchangesApi.Shared;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Common.Log;
-using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient.Model;
-using Lykke.ExternalExchangesApi.Shared;
-using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
@@ -20,12 +19,10 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         private readonly IHandler<TickPrice> _tickPriceHandler;
 
         public BitfinexOrderBooksHarvester(BitfinexExchangeConfiguration configuration,
-            OrderBookSnapshotsRepository orderBookSnapshotsRepository,
-            OrderBookEventsRepository orderBookEventsRepository,
             IHandler<OrderBook> orderBookHandler,
             IHandler<TickPrice> tickPriceHandler,
             ILog log)
-        : base(BitfinexExchange.Name, configuration, new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookSnapshotsRepository, orderBookEventsRepository, orderBookHandler)
+        : base(BitfinexExchange.Name, configuration, new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookHandler)
         {
             _configuration = configuration;
             _channels = new Dictionary<long, Channel>();

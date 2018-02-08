@@ -9,8 +9,6 @@ namespace TradingBot.Infrastructure.Configuration
 
         public string Password { get; set; }
 
-        public bool SaveOrderBooksToAzure { get; set; }
-
         public bool PubQuotesToRabbit { get; set; }
 
         IReadOnlyCollection<CurrencySymbol> IExchangeConfiguration.SupportedCurrencySymbols => SupportedCurrencySymbols;

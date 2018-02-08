@@ -1,29 +1,29 @@
-﻿using System;
-using System.Linq;
+﻿using Autofac;
+using Autofac.Extensions.DependencyInjection;
+using AzureStorage;
+using AzureStorage.Blob;
+using AzureStorage.Tables;
+using Common.Log;
+using Lykke.Common.ApiLibrary.Middleware;
 using Lykke.Common.ApiLibrary.Swagger;
+using Lykke.Logs;
+using Lykke.SettingsReader;
+using Lykke.SlackNotification.AzureQueue;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Autofac;
-using Autofac.Extensions.DependencyInjection;
-using Common.Log;
-using Lykke.Logs;
-using Lykke.SettingsReader;
-using Lykke.SlackNotification.AzureQueue;
-using AzureStorage;
-using AzureStorage.Blob;
-using AzureStorage.Tables;
-using Lykke.Common.ApiLibrary.Middleware;
 using Newtonsoft.Json;
 using Swashbuckle.AspNetCore.Swagger;
+using System;
+using System.Linq;
 using TradingBot.Communications;
 using TradingBot.Handlers;
-using TradingBot.Repositories;
 using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Modules;
+using TradingBot.Repositories;
 
 namespace TradingBot
 {
@@ -160,14 +160,6 @@ namespace TradingBot
                 var signalsStorage = AzureTableStorage<TranslatedSignalTableEntity>.Create(
                     settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.EntitiesConnString), settings.AzureStorage.TranslatedSignalsTableName, log);
                 builder.RegisterInstance(signalsStorage).As<INoSQLTableStorage<TranslatedSignalTableEntity>>().SingleInstance();
-
-                var orderBookSnapshotStorage = AzureTableStorage<OrderBookSnapshotEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.EntitiesConnString), "orderBookSnapshots", log);
-                builder.RegisterInstance(orderBookSnapshotStorage).As<INoSQLTableStorage<OrderBookSnapshotEntity>>().SingleInstance();
-
-                var orderBookEventsStorage = AzureTableStorage<OrderBookEventEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.EntitiesConnString), "orderBookEvents", log);
-                builder.RegisterInstance(orderBookEventsStorage).As<INoSQLTableStorage<OrderBookEventEntity>>().SingleInstance();
 
                 var azureBlobStorage = AzureBlobStorage.Create(
                     settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.EntitiesConnString));

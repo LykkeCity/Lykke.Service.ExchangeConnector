@@ -1,7 +1,5 @@
-﻿using System.Threading.Tasks;
-using Common.Log;
+﻿using Common.Log;
 using Lykke.ExternalExchangesApi.Shared;
-using TradingBot.Communications;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
@@ -13,8 +11,8 @@ namespace TradingBot.Exchanges.Concrete.Shared
         protected IMessenger<TRequest, TResponse> Messenger;
 
         protected OrderBooksWebSocketHarvester(string exchangeName, IExchangeConfiguration exchangeConfiguration, IMessenger<TRequest, TResponse> messanger, ILog log,
-            OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository, IHandler<OrderBook> orderBookHandler)
-            : base(exchangeName, exchangeConfiguration, log, orderBookSnapshotsRepository, orderBookEventsRepository, orderBookHandler)
+            IHandler<OrderBook> orderBookHandler)
+            : base(exchangeName, exchangeConfiguration, log, orderBookHandler)
         {
             Messenger = messanger;
         }
