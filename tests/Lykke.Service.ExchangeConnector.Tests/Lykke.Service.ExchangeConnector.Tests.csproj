@@ -8,7 +8,7 @@
     <Content Include="..\..\src\Lykke.Service.ExchangeConnector\FIX44.xml" Link="Icm\FIX44.xml" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Lykke.AzureStorage" Version="5.0.0" />
+    <PackageReference Include="Lykke.AzureStorage" Version="5.0.1" />
     <PackageReference Include="Lykke.PusherClient" Version="1.0.3" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.5.0" />
     <PackageReference Include="Moq" Version="4.8.1" />
