@@ -5,7 +5,6 @@ namespace TradingBot.Infrastructure.Configuration
     public class BitstampConfiguration : IExchangeConfiguration
     {
         public bool Enabled { get; set; }
-        public bool SaveOrderBooksToAzure { get; set; }
         public bool PubQuotesToRabbit { get; set; }
         public string ApplicationKey { get; set; }
 
