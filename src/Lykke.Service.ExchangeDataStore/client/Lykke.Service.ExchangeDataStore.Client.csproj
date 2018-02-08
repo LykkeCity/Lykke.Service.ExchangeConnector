@@ -24,7 +24,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Lykke.Common" Version="4.2.0" />
+    <PackageReference Include="Lykke.Common" Version="4.4.2" />
     <PackageReference Include="Microsoft.Rest.ClientRuntime" Version="2.3.10" />
   </ItemGroup>
 
