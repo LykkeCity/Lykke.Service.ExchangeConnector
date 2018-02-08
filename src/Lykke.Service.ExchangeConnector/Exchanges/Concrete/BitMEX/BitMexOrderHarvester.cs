@@ -55,7 +55,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 case Action.Update:
                     foreach (var row in table.Data)
                     {
-                        var trade = _mapper.OrderToTrade(row);
+                        var trade = BitMexModelConverter.OrderToTrade(row);
 
                         if (trade.ExecutionStatus == OrderExecutionStatus.Unknown)
                         {

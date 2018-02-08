@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Lykke.Common" Version="4.4.2" />
-    <PackageReference Include="Lykke.RabbitMqBroker" Version="4.4.0" />
+    <PackageReference Include="Lykke.RabbitMqBroker" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup>
