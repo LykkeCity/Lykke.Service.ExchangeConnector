@@ -32,9 +32,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Lykke.Common" Version="4.3.0" />
+    <PackageReference Include="Lykke.Common" Version="4.4.2" />
     <PackageReference Include="Lykke.Fix" Version="1.0.9" />
-    <PackageReference Include="Lykke.Logs" Version="3.5.1" />
+    <PackageReference Include="Lykke.Logs" Version="3.5.2" />
     <PackageReference Include="Microsoft.Rest.ClientRuntime" Version="2.3.10" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="Polly" Version="5.7.0" />
