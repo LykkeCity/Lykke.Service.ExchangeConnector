@@ -141,7 +141,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             }
         }
 
-        public static TradeType ConvertTradeType(string signalTradeType)
+        private static TradeType ConvertTradeType(string signalTradeType)
         {
             // HACK!!! the direction is inverted
             switch (signalTradeType)
@@ -160,9 +160,9 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             switch (side)
             {
                 case Side.Buy:
-                    return TradeType.Buy;
-                case Side.Sell:
                     return TradeType.Sell;
+                case Side.Sell:
+                    return TradeType.Buy;
                 default:
                     return TradeType.Unknown;
             }
