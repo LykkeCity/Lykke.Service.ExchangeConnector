@@ -37,6 +37,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="FluentValidation.AspNetCore" Version="7.4.0" />
     <PackageReference Include="Lykke.Common" Version="4.4.2" />
     <PackageReference Include="Lykke.Common.ApiLibrary" Version="1.3.1" />
     <PackageReference Include="Lykke.Logs" Version="3.6.0" />

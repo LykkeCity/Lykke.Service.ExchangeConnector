@@ -2,11 +2,13 @@
 using Autofac.Extensions.DependencyInjection;
 using AzureStorage.Tables;
 using Common.Log;
+using FluentValidation.AspNetCore;
 using Lykke.Common.ApiLibrary.Middleware;
 using Lykke.Common.ApiLibrary.Swagger;
 using Lykke.Logs;
 using Lykke.Service.ExchangeDataStore.Core.Services;
 using Lykke.Service.ExchangeDataStore.Core.Settings;
+using Lykke.Service.ExchangeDataStore.Models.ValidationModels;
 using Lykke.Service.ExchangeDataStore.Modules;
 using Lykke.SettingsReader;
 using Lykke.SlackNotification.AzureQueue;
@@ -16,6 +18,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Threading.Tasks;
+
 // ReSharper disable ClassNeverInstantiated.Global
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 // ReSharper disable UnusedMember.Global
@@ -44,11 +47,15 @@ namespace Lykke.Service.ExchangeDataStore
         {
             try
             {
-                services.AddMvc()
+                services.AddMvc(options =>
+                    {
+                        options.Filters.Add<ValidateModelAttribute>();
+                    })
+                    .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<Startup>())
                     .AddJsonOptions(options =>
                     {
                         options.SerializerSettings.ContractResolver =
-                            new Newtonsoft.Json.Serialization.DefaultContractResolver();
+                        new Newtonsoft.Json.Serialization.DefaultContractResolver();
                     });
 
                 services.AddSwaggerGen(options =>

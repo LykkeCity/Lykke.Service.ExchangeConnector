@@ -6,10 +6,12 @@ using Common.Log;
 using Lykke.Service.ExchangeDataStore.AzureRepositories.OrderBooks;
 using Lykke.Service.ExchangeDataStore.Core.Domain.OrderBooks;
 using Lykke.Service.ExchangeDataStore.Core.Services;
+using Lykke.Service.ExchangeDataStore.Core.Services.OrderBooks;
 using Lykke.Service.ExchangeDataStore.Core.Settings.ServiceSettings;
 using Lykke.Service.ExchangeDataStore.Services;
 using Lykke.Service.ExchangeDataStore.Services.DataHarvesters;
 using Lykke.Service.ExchangeDataStore.Services.DataPersisters;
+using Lykke.Service.ExchangeDataStore.Services.Domain;
 using Lykke.SettingsReader;
 
 namespace Lykke.Service.ExchangeDataStore.Modules
@@ -29,7 +31,7 @@ namespace Lykke.Service.ExchangeDataStore.Modules
         {
             BindAzureRepositories(builder);
             RegisterLocalTypes(builder);
-            
+            RegisterLocalServices(builder);
         }
 
         private void RegisterLocalTypes(ContainerBuilder builder)
@@ -53,7 +55,13 @@ namespace Lykke.Service.ExchangeDataStore.Modules
                 _settings.ConnectionString(i => i.AzureStorage.EntitiesConnString), _settings.CurrentValue.AzureStorage.EntitiesTableName, _log);
             container.RegisterInstance(orderBookSnapshotStorage).As<INoSQLTableStorage<OrderBookSnapshotEntity>>().SingleInstance();
 
+            container.RegisterType<OrderBookRepository>().As<IOrderBookRepository>();
             container.RegisterType<OrderBookSnapshotsRepository>().As<IOrderBookSnapshotsRepository>();
+        }
+
+        private void RegisterLocalServices(ContainerBuilder builder)
+        {
+            builder.RegisterType<OrderBookService>().As<IOrderBookService>();
         }
     }
 }
