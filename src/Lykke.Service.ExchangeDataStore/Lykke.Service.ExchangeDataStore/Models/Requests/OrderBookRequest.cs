@@ -2,7 +2,7 @@
 
 namespace Lykke.Service.ExchangeDataStore.Models.Requests
 {
-    public class GetOrderBooksRequest
+    public class OrderBookRequest
     {
         [FromRoute]
         public string ExchangeName { get; set; }
