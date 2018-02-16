@@ -34,6 +34,7 @@ namespace Lykke.Service.ExchangeDataStore.Services.Domain
             var orderBooks = (await _orderBookRepo.GetAsync(exchangeName, instrument, from, to, _cancellationSource.Token)).OrderBy(o=>o.Timestamp);
 
             var result = new List<TickPrice>();
+            var tickInstrument = new Instrument(exchangeName, instrument);
 
             orderBooks.ForEach(orderBook =>
             {
@@ -44,7 +45,7 @@ namespace Lykke.Service.ExchangeDataStore.Services.Domain
 
                 if (!result.Any() || IsBidOrAskDifferentInLatestTick(latestTick, lowestAsk, highestBid))
                 {
-                    result.Add(new TickPrice(new Instrument(exchangeName, instrument), orderBook.Timestamp, lowestAsk, highestBid));
+                    result.Add(new TickPrice(tickInstrument, orderBook.Timestamp, lowestAsk, highestBid));
                 }
             });
 
