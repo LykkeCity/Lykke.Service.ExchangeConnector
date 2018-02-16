@@ -4,7 +4,7 @@ using Lykke.Service.ExchangeDataStore.Models.Requests;
 namespace Lykke.Service.ExchangeDataStore.Models.ValidationModels
 {
     // ReSharper disable once UnusedMember.Global - auto invoked by the framework
-    public class GetOrderBooksRequestValidationModel : AbstractValidator<GetOrderBooksRequest>
+    public class GetOrderBooksRequestValidationModel : AbstractValidator<OrderBookRequest>
     {
         public GetOrderBooksRequestValidationModel()
         {
