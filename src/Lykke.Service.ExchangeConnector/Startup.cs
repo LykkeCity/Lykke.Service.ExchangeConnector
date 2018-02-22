@@ -54,7 +54,7 @@ namespace TradingBot
 
             app.UseStaticFiles();
 
-            app.UseLykkeForwardedHeaders();
+            //app.UseLykkeForwardedHeaders();
             app.UseLykkeMiddleware("LykkeService", ex => new { Message = "Technical problem" });
 
             app.UseMvc();
@@ -108,8 +108,17 @@ namespace TradingBot
                 services.AddSwaggerGen(options =>
                 {
                     options.DefaultLykkeConfiguration("v1", "ExchangeConnectorAPI");
-                    options.AddSecurityDefinition("CustomScheme", new ApiKeyScheme { In = "header", Description = "Please insert API key into field", Name = ApiKeyAuthAttribute.HeaderName, Type = "apiKey" });
+                    //options.AddSecurityDefinition("CustomScheme", new ApiKeyScheme { In = "header", Description = "Please insert API key into field", Name = ApiKeyAuthAttribute.HeaderName, Type = "apiKey" });
+                    options.OperationFilter<HeaderAccessOperationFilter>();
                 });
+
+                services.AddAuthentication(options =>
+                    {
+                        options.DefaultAuthenticateScheme = AuthConstants.AuthenticationScheme;
+                        options.DefaultChallengeScheme = AuthConstants.AuthenticationScheme;
+                    })
+                    .AddScheme<AuthOptions, AuthHandler>(AuthConstants.AuthenticationScheme,
+                        AuthConstants.AuthenticationScheme, options => { });
 
                 var settingsManager = Configuration.LoadSettings<TradingBotSettings>("SettingsUrl");
 
@@ -144,8 +153,10 @@ namespace TradingBot
                         .CreateLogger();
                 }
 
-                ApiKeyAuthAttribute.ApiKey = settings.AspNet.ApiKey;
+                //ApiKeyAuthAttribute.ApiKey = settings.AspNet.ApiKey;
                 //   SignedModelAuthAttribute.ApiKey = settings.AspNet.ApiKey; //TODO use it somewhere
+                AuthHandler.ApiKey = settings.AspNet.ApiKey;
+
 
                 builder.RegisterInstance(log).As<ILog>().SingleInstance();
 

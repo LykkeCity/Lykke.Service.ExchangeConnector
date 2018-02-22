@@ -5,6 +5,7 @@ using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Lykke.ExternalExchangesApi.Exceptions;
+using Microsoft.AspNetCore.Authorization;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Configuration;
@@ -12,7 +13,10 @@ using TradingBot.Models.Api;
 
 namespace TradingBot.Controllers.Api
 {
-    [ApiKeyAuth]
+    //[ApiKeyAuth]
+    [Authorize]
+    [SignatureHeaders]
+    //[Route("api/v1/[controller]")]
     public sealed class PositionsController : BaseApiController
     {
         private readonly TimeSpan _timeout;
