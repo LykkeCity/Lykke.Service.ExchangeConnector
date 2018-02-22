@@ -1,1 +1,0 @@
-﻿Place interfaces of your services in this folder. Group their in subfolder by business functions
