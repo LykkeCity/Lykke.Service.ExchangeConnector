@@ -17,9 +17,6 @@
     <CodeAnalysisRuleSet>Lykke.Service.ExchangeConnector.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="Repositories\OrderBookItemEntity.cs" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="Lykke.AzureQueueIntegration" Version="2.0.1" />
     <PackageReference Include="Lykke.AzureStorage" Version="5.0.1" />
     <PackageReference Include="Lykke.Common" Version="4.4.2" />
