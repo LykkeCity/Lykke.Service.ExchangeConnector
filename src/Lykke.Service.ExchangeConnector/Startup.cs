@@ -54,6 +54,8 @@ namespace TradingBot
             app.UseStaticFiles();
 
             //app.UseLykkeForwardedHeaders();
+
+            app.UseAuthentication();
             app.UseLykkeMiddleware("LykkeService", ex => new { Message = "Technical problem" });
 
             app.UseMvc();

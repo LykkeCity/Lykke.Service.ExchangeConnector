@@ -13,10 +13,8 @@ using TradingBot.Models.Api;
 
 namespace TradingBot.Controllers.Api
 {
-    //[ApiKeyAuth]
     [Authorize]
     [SignatureHeaders]
-    //[Route("api/v1/[controller]")]
     public sealed class PositionsController : BaseApiController
     {
         private readonly TimeSpan _timeout;
