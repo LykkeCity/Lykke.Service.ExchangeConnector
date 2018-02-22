@@ -1,7 +1,6 @@
 ﻿using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using AzureStorage;
-using AzureStorage.Blob;
 using AzureStorage.Tables;
 using Common.Log;
 using Lykke.Common.ApiLibrary.Middleware;
@@ -159,10 +158,6 @@ namespace TradingBot
                 var signalsStorage = AzureTableStorage<TranslatedSignalTableEntity>.Create(
                     settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.EntitiesConnString), settings.AzureStorage.TranslatedSignalsTableName, log);
                 builder.RegisterInstance(signalsStorage).As<INoSQLTableStorage<TranslatedSignalTableEntity>>().SingleInstance();
-
-                var azureBlobStorage = AzureBlobStorage.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.EntitiesConnString));
-                builder.RegisterInstance(azureBlobStorage).As<IBlobStorage>().SingleInstance();
 
                 builder.RegisterModule(new ServiceModule(settings, log));
 
