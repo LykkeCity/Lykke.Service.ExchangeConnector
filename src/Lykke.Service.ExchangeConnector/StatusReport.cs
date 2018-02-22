@@ -1,9 +1,9 @@
-﻿using System;
+﻿using AzureStorage;
+using Microsoft.WindowsAzure.Storage.Table;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AzureStorage;
-using Microsoft.WindowsAzure.Storage.Table;
 using TradingBot.Communications;
 
 namespace TradingBot
@@ -27,7 +27,7 @@ namespace TradingBot
             
             var now = DateTime.UtcNow;
             var timePoint = now.AddMinutes(-3);
-            var rowKey = timePoint.ToString("yyyy-MM-dd HH:mm:ss");
+            var rowKey = timePoint.ToString("yyyy-MM-dd HH:mm:ss"); //
 
             var query = new TableQuery<PriceTableEntity>()
                 .Where(TableQuery.GenerateFilterCondition("RowKey", QueryComparisons.GreaterThan, rowKey));
