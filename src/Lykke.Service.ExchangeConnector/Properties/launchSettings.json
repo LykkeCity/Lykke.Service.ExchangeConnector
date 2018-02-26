@@ -18,7 +18,7 @@
     "TradingBot": {
       "commandName": "Project",
       "environmentVariables": {
-        "settingsUrl": "appsettings.Development.json",
+        "settingsUrl": "https://settings-dev-k8s.lykkex.net/3ec11bb5-20e4-44df-b4aa-d5c2d4b90800_ExchangeConnectorAE",
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "applicationUrl": "http://localhost:5000/"
