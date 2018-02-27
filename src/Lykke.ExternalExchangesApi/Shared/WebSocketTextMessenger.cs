@@ -1,12 +1,12 @@
-﻿using System;
+﻿using Common.Log;
+using Newtonsoft.Json;
+using Polly;
+using System;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Log;
-using Newtonsoft.Json;
-using Polly;
 
 namespace Lykke.ExternalExchangesApi.Shared
 {
@@ -38,16 +38,18 @@ namespace Lykke.ExternalExchangesApi.Shared
             await _log.WriteInfoAsync(nameof(ConnectAsync), "Connecting to WebSocket", $"API endpoint {_endpointUrl}");
             var uri = new Uri(_endpointUrl);
 
-            const int attempts = 20;
+            const int policyMaxRetries = 20;
+            int attemptsCount = 0;
             var retryPolicy = Policy
                 .Handle<Exception>(e => !cancellationToken.IsCancellationRequested)
-                .WaitAndRetryAsync(attempts, attempt => TimeSpan.FromSeconds(3));
+                .WaitAndRetryAsync(policyMaxRetries, attempt => TimeSpan.FromSeconds(3));
             try
             {
                 await retryPolicy.ExecuteAsync(async () =>
                 {
                     try
                     {
+                        attemptsCount+=1;
                         _clientWebSocket = new ClientWebSocket();
                         using (var connectionTimeoutCts = new CancellationTokenSource(_responseTimeout))
                         using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, connectionTimeoutCts.Token))
@@ -58,7 +60,7 @@ namespace Lykke.ExternalExchangesApi.Shared
                     }
                     catch (Exception ex)
                     {
-                        if (!cancellationToken.IsCancellationRequested)
+                        if (!cancellationToken.IsCancellationRequested && attemptsCount == 1)
                         {
                             await _log.WriteWarningAsync(nameof(ConnectAsync), $"Unable to connect to {_endpointUrl}. Retry in 3 sec.", ex.Message);
                         }
@@ -71,7 +73,7 @@ namespace Lykke.ExternalExchangesApi.Shared
                 if (!cancellationToken.IsCancellationRequested)
                 {
                     await _log.WriteErrorAsync(nameof(ConnectAsync),
-                        $"Unable to connect to {_endpointUrl} after {attempts} attempts", ex);
+                        $"Unable to connect to {_endpointUrl} after {policyMaxRetries} attempts", ex);
                 }
                 throw;
             }
