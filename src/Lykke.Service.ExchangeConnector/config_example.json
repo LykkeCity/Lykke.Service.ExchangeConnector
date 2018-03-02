@@ -1,0 +1,234 @@
+﻿{
+  "TradingBot": {
+    "AspNet": {
+      "apiKey": "",
+      "apiTimeout": "",
+      "host": "" 
+    },
+    "Exchanges": {
+      "Icm": {
+        "enabled": false,
+        "pubQuotesToRabbit": false,
+        "saveOrderBooksToAzure": false,
+        "socketConnection": false,
+        "InitialRating": 5,
+        "username": "",
+        "password": "",
+        "RabbitMq": {
+          "enabled": false,
+          "exchange": "",
+          "queue": "",
+          "connectionString": ""
+        },
+        "supportedCurrencySymbols": [
+          {
+            "LykkeSymbol": "",
+            "ExchangeSymbol": "",
+            "InitialMarginPercent": 1,
+            "MaintMarginPercent": 1
+          }
+        ],
+        "fixconfiguration": []
+      },
+      "Kraken": {
+        "enabled": false,
+        "pubQuotesToRabbit": false,
+        "saveOrderBooksToAzure": false,
+        "InitialRating": 5,
+        "apiKey": "",
+        "privateKey": "",
+        "supportedCurrencySymbols": [
+          {
+            "LykkeSymbol": "",
+            "ExchangeSymbol": ""
+          },
+          {
+            "LykkeSymbol": "",
+            "ExchangeSymbol": ""
+          },
+          {
+            "LykkeSymbol": "",
+            "ExchangeSymbol": ""
+          }
+        ]
+      },
+      "Lykke": {
+        "enabled": false,
+        "clientId": "",
+        "apiKey": "",
+        "pubQuotesToRabbit": false,
+        "saveOrderBooksToAzure": false,
+        "InitialRating": 5,
+        "endpointUrl": "",
+        "supportedCurrencySymbols": [],
+        "WampEndpoint": {
+          "Url": "",
+          "PricesRealm": "",
+          "PricesTopic": ""
+        },
+        "rabbitMq": {
+          "orderbook": {
+            "enabled": false,
+            "exchange": "",
+            "queue": "",
+            "connectionString": ""
+          },
+          "orders": {
+            "enabled": false,
+            "exchange": "",
+            "queue": "",
+            "connectionString": ""
+          }
+        }
+      },
+      "BitMex": {
+        "enabled": false,
+        "apiKey": "",
+        "ApiSecret": "",
+        "pubQuotesToRabbit": false,
+        "saveOrderBooksToAzure": false,
+        "initialRating": 5,
+        "endpointUrl": "",
+        "webSocketEndpointUrl": "",
+        "maxOrderBookRate": 2,
+        "supportedCurrencySymbols": [
+          {
+            "LykkeSymbol": "",
+            "ExchangeSymbol": ""
+          }
+        ]
+      },
+      "Bitfinex": {
+        "enabled": false,
+        "apiKey": "",
+        "ApiSecret": "",
+        "pubQuotesToRabbit": false,
+        "saveOrderBooksToAzure": true,
+        "InitialRating": 5,
+        "endpointUrl": "",
+        "WebSocketEndpointUrl": "",
+        "maxOrderBookRate": 2,
+        "supportedCurrencySymbols": [
+          {
+            "LykkeSymbol": "",
+            "ExchangeSymbol": ""
+          },
+          {
+            "LykkeSymbol": "",
+            "ExchangeSymbol": ""
+          }
+        ]
+      },
+      "GDAX": {
+        "enabled": false,
+        "InitialRating": 5,
+        "apiKey": "",
+        "apiSecret": "",
+        "passPhrase": "",
+        "userAgent": "",
+        "pubQuotesToRabbit": false,
+        "saveOrderBooksToAzure": true,
+        "restEndpointUrl": "",
+        "wssEndpointUrl": "",
+        "supportedCurrencySymbols": [
+          {
+            "LykkeSymbol": "",
+            "ExchangeSymbol": ""
+          },
+          {
+            "LykkeSymbol": "",
+            "ExchangeSymbol": ""
+          }
+        ]
+      },
+      "Stub": {
+        "enabled": false,
+        "pubQuotesToRabbit": false,
+        "saveOrderBooksToAzure": false,
+        "InitialRating": 5,
+        "pricesIntervalInMilliseconds": 1000,
+        "PricesPerInterval": 10,
+        "supportedCurrencySymbols": []
+      },
+      "HistoricalData": {
+        "enabled": false,
+        "pubQuotesToRabbit": false,
+        "saveOrderBooksToAzure": false,
+        "InitialRating": 5,
+        "baseDirectory": "",
+        "fileName": "",
+        "startDate": "",
+        "endDate": "",
+        "supportedCurrencySymbols": []
+      },
+      "Jfd": {
+        "enabled": false,
+        "pubQuotesToRabbit": false,
+        "initialRating": 5,
+        "saveOrderBooksToAzure": false,
+        "maxOrderBookRate": 200,
+        "password": "",
+        "supportedCurrencySymbols": [
+          {
+            "LykkeSymbol": "",
+            "ExchangeSymbol": "",
+            "InitialMarginPercent": 1,
+            "MaintMarginPercent": 1
+          }
+        ],
+        "tradingFixConfiguration": [],
+        "quotingFixConfiguration": []
+      }
+    },
+    "AzureStorage": {
+      "enabled": false,
+      "LogsConnString": "",
+      "logTableName": "",
+      "EntitiesConnString": "",
+      "translatedSignalsTableName": ""
+    },
+    "rabbitMQ": {
+      "tickPrices": {
+        "enabled": false,
+        "connectionString": "",
+        "exchange": ""
+      },
+      "signals": {
+        "enabled": false,
+        "connectionString": ""
+      },
+      "trades": {
+        "enabled": false,
+        "connectionString": "",
+        "exchange": ""
+      },
+      "acknowledgements": {
+        "enabled": false,
+        "connectionString": "",
+        "exchange": ""
+      },
+      "orderBooks": {
+        "enabled": false,
+        "connectionString": "",
+        "exchange": ""
+      }
+    },
+    "SaveQuotesToAzure": {
+      "icm": false,
+      "kraken": false,
+      "lykke": false,
+      "bitmex": false,
+      "bitfinex": false,
+      "gdax": false,
+      "stub": false,
+      "historicaldata": false,
+      "jfd": false
+    }
+  },
+  "SlackNotifications": {
+    "AzureQueue": {
+      "ConnectionString": "",
+      "QueueName": ""
+    }
+  }
+}
