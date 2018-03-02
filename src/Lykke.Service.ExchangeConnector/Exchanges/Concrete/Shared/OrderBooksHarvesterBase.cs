@@ -293,7 +293,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
             var result = false;
             if (MaxOrderBookRate == 0)
             {
-                return true;
+                return result;
             }
             if (_orderBooksReceivedInLastTimeFrame >= MaxOrderBookRate)
             {
