@@ -28,7 +28,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             OrderBookSnapshotsRepository orderBookSnapshotsRepository,
             OrderBookEventsRepository orderBookEventsRepository,
             IHandler<OrderBook> orderBookHandler)
-            : base(JfdExchange.Name, configuration, new JfdQuotesSessionConnector(GetConnectorConfig(configuration), log), 
+            : base(JfdExchange.Name, configuration, new JfdQuotesSessionConnector(GetConnectorConfig(configuration), log),
                   log, orderBookSnapshotsRepository, orderBookEventsRepository, orderBookHandler)
         {
             _configuration = configuration;
@@ -83,26 +83,24 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             var equFun = new Func<OrderBookItem, OrderBookItem, bool>((item1, item2) => item1.Id == item2.Id);
             var hashFunc = new Func<OrderBookItem, int>(item => item.Id.GetHashCode());
             var orders = new List<OrderBookItem>();
-            for (var i = 0; i < snapshot.NoMDEntries.Obj; i++)
-            {
-                for (var j = 1; j <= snapshot.NoMDEntries.Obj; j++)
-                {
-                    var ob = snapshot.GetGroup(j, new MarketDataSnapshotFullRefresh.NoMDEntriesGroup());
-                    var dir = ob.GetField(new MDEntryType()).Obj;
-                    var price = ob.GetField(new MDEntryPx()).Obj;
-                    var size = ob.GetField(new MDEntrySize()).Obj;
-                    var id = long.Parse(ob.GetField(new QuoteEntryID()).Obj);
 
-                    var ordeItem = new OrderBookItem(equFun, hashFunc)
-                    {
-                        Id = id.ToString(),
-                        Symbol = symbol,
-                        IsBuy = dir == MDEntryType.BID,
-                        Price = price,
-                        Size = size
-                    };
-                    orders.Add(ordeItem);
-                }
+            for (var j = 1; j <= snapshot.NoMDEntries.Obj; j++)
+            {
+                var ob = snapshot.GetGroup(j, new MarketDataSnapshotFullRefresh.NoMDEntriesGroup());
+                var dir = ob.GetField(new MDEntryType()).Obj;
+                var price = ob.GetField(new MDEntryPx()).Obj;
+                var size = ob.GetField(new MDEntrySize()).Obj;
+                var id = long.Parse(ob.GetField(new QuoteEntryID()).Obj);
+
+                var ordeItem = new OrderBookItem(equFun, hashFunc)
+                {
+                    Id = id.ToString(),
+                    Symbol = symbol,
+                    IsBuy = dir == MDEntryType.BID,
+                    Price = price,
+                    Size = size
+                };
+                orders.Add(ordeItem);
             }
 
             await HandleOrdebookSnapshotAsync(symbol, DateTime.UtcNow, orders);
