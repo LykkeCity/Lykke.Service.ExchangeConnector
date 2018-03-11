@@ -28,6 +28,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
     internal class LykkeExchange : Exchange
     {
         private readonly IHandler<TickPrice> _tickPriceHandler;
+        private readonly IHandler<OrderBook> _orderBookHandler;
         private readonly IHandler<ExecutionReport> _tradeHandler;
         public new static readonly string Name = "lykke";
         private new LykkeExchangeConfiguration Config => (LykkeExchangeConfiguration) base.Config;
@@ -40,10 +41,11 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         private readonly Dictionary<string, decimal> _lastBids;
         private readonly Dictionary<string, decimal> _lastAsks;
 
-        public LykkeExchange(LykkeExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, IHandler<TickPrice> tickPriceHandler, IHandler<ExecutionReport> tradeHandler, ILog log)
+        public LykkeExchange(LykkeExchangeConfiguration config, TranslatedSignalsRepository translatedSignalsRepository, IHandler<TickPrice> tickPriceHandler, IHandler<OrderBook> orderBookHandler, IHandler<ExecutionReport> tradeHandler, ILog log)
             : base(Name, config, translatedSignalsRepository, log)
         {
             _tickPriceHandler = tickPriceHandler;
+            _orderBookHandler = orderBookHandler;
             _tradeHandler = tradeHandler;
             var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Add("api-key", Config.ApiKey);
@@ -153,6 +155,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     {
                         var tickPrice = new TickPrice(instrument, orderBook.Timestamp, bestAsk, bestBid);
                         await _tickPriceHandler.Handle(tickPrice);
+                        await _orderBookHandler.Handle(orderBook);
                     }
                 }
             }
