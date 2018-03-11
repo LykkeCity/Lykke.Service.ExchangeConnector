@@ -18,6 +18,8 @@ using TradingBot.Exchanges.Concrete.StubImplementation;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
+using TradingOrderBook = TradingBot.Trading.OrderBook;
+using LykkeOrderBook = TradingBot.Exchanges.Concrete.LykkeExchange.Entities.OrderBook;
 
 namespace TradingBot.Modules
 {
@@ -126,12 +128,19 @@ namespace TradingBot.Modules
 
             RegisterRabbitMqHandler<TickPrice>(builder, _config.RabbitMq.TickPrices, "tickHandler");
             RegisterRabbitMqHandler<ExecutionReport>(builder, _config.RabbitMq.Trades);
-            RegisterRabbitMqHandler<OrderBook>(builder, _config.RabbitMq.OrderBooks);
+            RegisterRabbitMqHandler<TradingOrderBook>(builder, _config.RabbitMq.OrderBooks, "orderBookHandler");
 
             builder.RegisterType<TickPriceHandlerDecorator>()
-                .WithParameter((info, context) => info.Name == "rabbitMqHandler", (info, context) => context.ResolveNamed<IHandler<TickPrice>>("tickHandler"))
+                .WithParameter((info, context) => info.Name == "rabbitMqHandler",
+                               (info, context) => context.ResolveNamed<IHandler<TickPrice>>("tickHandler"))
                 .SingleInstance()
                 .As<IHandler<TickPrice>>();
+
+            builder.RegisterType<OrderBookHandlerDecorator>()
+                .WithParameter((info, context) => info.Name == "rabbitMqHandler",
+                    (info, context) => context.ResolveNamed<IHandler<TradingOrderBook>>("orderBookHandler"))
+                .SingleInstance()
+                .As<IHandler<LykkeOrderBook>>();
         }
 
         private static void RegisterExchange<T>(ContainerBuilder container, bool enabled)
