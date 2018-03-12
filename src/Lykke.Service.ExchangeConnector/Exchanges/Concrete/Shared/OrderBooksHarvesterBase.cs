@@ -192,7 +192,14 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
             foreach (var orderBook in orderBooks)
             {
-                await _newOrderBookHandler.Handle(orderBook);
+                if (orderBook.Asks.Any() || orderBook.Bids.Any())
+                {
+                    await _newOrderBookHandler.Handle(orderBook);
+                }
+                else
+                {
+                    await Log.WriteInfoAsync(nameof(PublishOrderBookSnapshotAsync), $"Source: {orderBook.Source} AssetPairId: {orderBook.AssetPairId}", "skip empty order book");
+                }
             }
         }
 
