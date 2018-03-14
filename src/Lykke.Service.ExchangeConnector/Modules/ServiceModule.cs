@@ -1,4 +1,5 @@
 ﻿using Autofac;
+using Common;
 using Common.Log;
 using Lykke.ExternalExchangesApi.Exchanges.Icm.FixClient;
 using Lykke.RabbitMqBroker;
@@ -90,6 +91,9 @@ namespace TradingBot.Modules
                 .SingleInstance();
 
             builder.RegisterType<IcmTickPriceHarvester>()
+                .As<IStartable>()
+                .As<IStopable>()
+                .AsSelf()
                 .SingleInstance();
 
             builder.RegisterType<IcmTradeSessionConnector>()
