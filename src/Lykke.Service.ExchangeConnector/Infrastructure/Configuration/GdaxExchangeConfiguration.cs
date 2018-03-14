@@ -22,9 +22,10 @@ namespace TradingBot.Infrastructure.Configuration
         public string UserAgent { get; set; }
 
         public int MaxOrderBookRate { get; set; }
-
+        
         [Optional]
         public bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
+
         public IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; set; }
     }
 }

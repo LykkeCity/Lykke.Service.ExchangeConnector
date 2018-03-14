@@ -7,8 +7,7 @@ namespace TradingBot.Infrastructure.Configuration
         bool Enabled { get; set; }
 
         bool PubQuotesToRabbit { get; set; }
-
-        
+       
         bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
 
         IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; }
