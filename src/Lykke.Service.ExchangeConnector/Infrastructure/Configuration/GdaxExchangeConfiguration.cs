@@ -4,6 +4,17 @@ namespace TradingBot.Infrastructure.Configuration
 {
     public sealed class GdaxExchangeConfiguration : IExchangeConfiguration
     {
+
+        public GdaxExchangeConfiguration()
+        {
+            UseSupportedCurrencySymbolsAsFilter = true;
+        }
+
+        public double InitialRating { get; set; }
+
+        [Lykke.SettingsReader.Attributes.Optional]
+        public bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
+
         public bool Enabled { get; set; }
 
         public bool PubQuotesToRabbit { get; set; }

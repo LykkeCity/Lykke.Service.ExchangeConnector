@@ -9,6 +9,9 @@ namespace TradingBot.Infrastructure.Configuration
 
         public bool PubQuotesToRabbit { get; set; }
 
+        [Lykke.SettingsReader.Attributes.Optional]
+        public bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
+
         public string BaseDirectory { get; set; }
         
         public string FileName { get; set; }
