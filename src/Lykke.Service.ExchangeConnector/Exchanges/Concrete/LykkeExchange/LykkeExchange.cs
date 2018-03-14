@@ -129,8 +129,13 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         
         private async Task HandleOrderBook(OrderBook orderBook)
         {
-            var instrument = Instruments.SingleOrDefault(x => 
-                string.Compare(x.Name, orderBook.AssetPair, StringComparison.InvariantCultureIgnoreCase) == 0);
+            var instrument = Instruments.FirstOrDefault(x => string.Compare(x.Name, orderBook.AssetPair, StringComparison.InvariantCultureIgnoreCase) == 0);
+
+            if (instrument == null && Config.UseSupportedCurrencySymbolsAsFilter == false)
+            {
+                instrument = new Instrument(Name, orderBook.AssetPair);
+            }
+
             if (instrument != null)
             {
                 if (orderBook.Prices.Any())
@@ -141,12 +146,12 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     if (orderBook.IsBuy)
                     {
                         _lastBids[instrument.Name] = bestBid = orderBook.Prices.Select(x => x.Price).OrderByDescending(x => x).First();
-                        bestAsk = _lastAsks[instrument.Name];
+                        bestAsk = _lastAsks.ContainsKey(instrument.Name) ? _lastAsks[instrument.Name] : 0;
                     }
                     else
                     {
                         _lastAsks[instrument.Name] = bestAsk = orderBook.Prices.Select(x => x.Price).OrderBy(x => x).First();
-                        bestBid = _lastBids[instrument.Name];
+                        bestBid = _lastBids.ContainsKey(instrument.Name) ? _lastBids[instrument.Name] : 0;
                     }
                     
                     if (bestBid > 0 && bestAsk > 0)
