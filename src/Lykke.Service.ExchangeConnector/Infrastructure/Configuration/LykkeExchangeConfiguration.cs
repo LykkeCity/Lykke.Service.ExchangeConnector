@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Lykke.SettingsReader.Attributes;
+using System.Collections.Generic;
 
 namespace TradingBot.Infrastructure.Configuration
 {
@@ -15,6 +16,9 @@ namespace TradingBot.Infrastructure.Configuration
         public string ClientId { get; set; }
 
         public WampEndpointConfiguration WampEndpoint { get; set; }
+
+        [Optional]
+        public bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
 
         public IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; set; }
         

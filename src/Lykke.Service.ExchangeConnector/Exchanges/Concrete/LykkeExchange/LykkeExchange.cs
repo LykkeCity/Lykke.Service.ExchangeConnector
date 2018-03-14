@@ -1,16 +1,16 @@
-﻿using System;
+﻿using Common.Log;
+using Lykke.ExternalExchangesApi.Exceptions;
+using Lykke.ExternalExchangesApi.Exchanges.Abstractions;
+using Lykke.RabbitMqBroker;
+using Lykke.RabbitMqBroker.Subscriber;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Log;
-using Lykke.ExternalExchangesApi.Exceptions;
-using Lykke.ExternalExchangesApi.Exchanges.Abstractions;
-using Lykke.RabbitMqBroker;
-using Lykke.RabbitMqBroker.Subscriber;
-using Newtonsoft.Json;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.LykkeExchange.Entities;
@@ -97,8 +97,16 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
         
         private async Task HandleOrderBook(OrderBook orderBook)
         {
-            var instrument = Instruments.SingleOrDefault(x => 
-                string.Compare(x.Name, orderBook.AssetPair, StringComparison.InvariantCultureIgnoreCase) == 0);
+            Instrument instrument;
+            if (!Config.UseSupportedCurrencySymbolsAsFilter.HasValue || Config.UseSupportedCurrencySymbolsAsFilter.Value)
+            {
+                instrument = Instruments.SingleOrDefault(x => string.Compare(x.Name, orderBook.AssetPair, StringComparison.InvariantCultureIgnoreCase) == 0);
+            }
+            else
+            {
+                instrument = new Instrument(Name, orderBook.AssetPair) ;
+            }
+
             if (instrument != null)
             {
                 if (orderBook.Prices.Any())
