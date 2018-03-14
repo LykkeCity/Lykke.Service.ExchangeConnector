@@ -10,6 +10,7 @@ using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
 using Xunit;
+using OrderBook = TradingBot.Exchanges.Concrete.LykkeExchange.Entities.OrderBook;
 
 namespace Lykke.Service.ExchangeConnector.Tests.LykkeApiTests
 {
@@ -33,8 +34,9 @@ namespace Lykke.Service.ExchangeConnector.Tests.LykkeApiTests
         public LykkeApiTests()
         {
             var tickPriceHandler = new Mock<IHandler<TickPrice>>().Object;
+            var orderBookHandler = new Mock<IHandler<OrderBook>>().Object;
             _tradeHandler = new Mock<IHandler<ExecutionReport>>().Object;
-            Exchange = new LykkeExchange(config, null, tickPriceHandler, _tradeHandler, new LogToConsole());
+            Exchange = new LykkeExchange(config, null, tickPriceHandler, orderBookHandler, _tradeHandler, new LogToConsole());
         }
 
 
@@ -48,9 +50,11 @@ namespace Lykke.Service.ExchangeConnector.Tests.LykkeApiTests
         public async Task OpenAndClosePrices()
         {
             var listForPrices = new List<TickPrice>();
+            var listForBooks = new List<OrderBook>();
 
             var tickPriceHandler = new TickPriceHandler(listForPrices);
-            Exchange = new LykkeExchange(config, null, tickPriceHandler, _tradeHandler, new LogToConsole());
+            var orderBookHandler = new OrderBookHandler(listForBooks);
+            Exchange = new LykkeExchange(config, null, tickPriceHandler, orderBookHandler, _tradeHandler, new LogToConsole());
 
             var exchange = Exchange;
 
@@ -59,6 +63,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.LykkeApiTests
             exchange.Stop();
 
             Assert.True(listForPrices.Any());
+
         }
 
         class TickPriceHandler : IHandler<TickPrice>
@@ -71,6 +76,22 @@ namespace Lykke.Service.ExchangeConnector.Tests.LykkeApiTests
             }
 
             public Task Handle(TickPrice message)
+            {
+                list.Add(message);
+                return Task.FromResult(0);
+            }
+        }
+
+        class OrderBookHandler : IHandler<OrderBook>
+        {
+            private readonly List<OrderBook> list;
+
+            public OrderBookHandler(List<OrderBook> list)
+            {
+                this.list = list;
+            }
+
+            public Task Handle(OrderBook message)
             {
                 list.Add(message);
                 return Task.FromResult(0);

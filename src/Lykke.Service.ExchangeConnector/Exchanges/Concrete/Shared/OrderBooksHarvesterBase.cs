@@ -137,18 +137,22 @@ namespace TradingBot.Exchanges.Concrete.Shared
         private async Task MessageLoop()
         {
             const int smallTimeout = 5;
+            const int maxAttemptsBeforeLogError = 20;
             var retryPolicy = Policy
                 .Handle<Exception>(ex => !CancellationToken.IsCancellationRequested)
                 .WaitAndRetryForeverAsync(attempt =>
                 {
-                    if (attempt % 60 == 0)
+                    if (attempt == 1)
                     {
-                        Log.WriteErrorAsync("Receiving messages from the socket", "Unable to recover the connection after 60 attempts. Will try in 5 min. ", null).GetAwaiter().GetResult();
+                        Log.WriteWarningAsync(nameof(OrderBooksHarvesterBase), "Receiving messages from the socket", "Unable to establish connection with server. Will try in 5 sec. ").GetAwaiter().GetResult();
                     }
-                    return attempt % 60 == 0
-                        ? TimeSpan.FromMinutes(5)
-                        : TimeSpan.FromSeconds(smallTimeout);
-                }); // After every 60 attempts wait 5min 
+
+                    if (attempt % maxAttemptsBeforeLogError == 0)
+                    {
+                        Log.WriteErrorAsync(nameof(OrderBooksHarvesterBase), "Receiving messages from the socket", new Exception($"Unable to recover the connection after { maxAttemptsBeforeLogError } attempts. Will try in 5 min.")).GetAwaiter().GetResult();
+                    }
+                    return attempt % maxAttemptsBeforeLogError == 0 ? TimeSpan.FromMinutes(5) : TimeSpan.FromSeconds(smallTimeout);
+                }); // After every maxAttemptsBeforeLogError attempts wait 5min 
 
             await retryPolicy.ExecuteAsync(async () =>
              {
@@ -188,7 +192,14 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
             foreach (var orderBook in orderBooks)
             {
-                await _newOrderBookHandler.Handle(orderBook);
+                if (orderBook.Asks.Any() || orderBook.Bids.Any())
+                {
+                    await _newOrderBookHandler.Handle(orderBook);
+                }
+                else
+                {
+                    await Log.WriteInfoAsync(nameof(PublishOrderBookSnapshotAsync), $"Source: {orderBook.Source} AssetPairId: {orderBook.AssetPairId}", "skip empty order book");
+                }
             }
         }
 

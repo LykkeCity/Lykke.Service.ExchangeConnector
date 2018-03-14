@@ -11,9 +11,10 @@ namespace TradingBot.Infrastructure.Configuration
         public string Password { get; set; }
 
         public bool PubQuotesToRabbit { get; set; }
-
+        
         [Optional]
         public bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
+
         IReadOnlyCollection<CurrencySymbol> IExchangeConfiguration.SupportedCurrencySymbols => SupportedCurrencySymbols;
 
         public IReadOnlyCollection<JfdCurrencySymbol> SupportedCurrencySymbols { get; set; }

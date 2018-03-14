@@ -89,7 +89,7 @@ namespace TradingBot
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
             ILog log = new LogToConsole();
-            string appName = nameof(TradingBot);
+            var appName = nameof(TradingBot);
             // Register dependencies, populate the services from
             // the collection, and build the container. If you want
             // to dispose of the container at the end of the app,
