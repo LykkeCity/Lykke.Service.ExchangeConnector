@@ -28,10 +28,6 @@ namespace TradingBot.Exchanges.Abstractions
             TranslatedSignalsRepository translatedSignalsRepository, ILog log)
         {
             Name = name;
-            if (!config.UseSupportedCurrencySymbolsAsFilter.HasValue)
-            {
-                config.UseSupportedCurrencySymbolsAsFilter = true;
-            }
             Config = config;
             State = ExchangeState.Initializing;
             LykkeLog = log;

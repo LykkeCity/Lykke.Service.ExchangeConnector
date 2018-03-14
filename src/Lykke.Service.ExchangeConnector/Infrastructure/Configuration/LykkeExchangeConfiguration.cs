@@ -23,6 +23,11 @@ namespace TradingBot.Infrastructure.Configuration
         public IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; set; }
         
         public RabbitMqLykkeConfiguration RabbitMq { get; set; }
+
+        public LykkeExchangeConfiguration()
+        {
+            UseSupportedCurrencySymbolsAsFilter = true;
+        }
     }
 
     public class WampEndpointConfiguration
