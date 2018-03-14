@@ -1,5 +1,4 @@
 ﻿using Autofac;
-using Autofac.Extras.DynamicProxy;
 using Common.Log;
 using Lykke.ExternalExchangesApi.Exchanges.Icm.FixClient;
 using Lykke.RabbitMqBroker;
@@ -18,8 +17,9 @@ using TradingBot.Exchanges.Concrete.LykkeExchange;
 using TradingBot.Exchanges.Concrete.StubImplementation;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
-using TradingBot.Infrastructure.Monitoring;
 using TradingBot.Trading;
+using TradingOrderBook = TradingBot.Trading.OrderBook;
+using LykkeOrderBook = TradingBot.Exchanges.Concrete.LykkeExchange.Entities.OrderBook;
 
 namespace TradingBot.Modules
 {
@@ -43,21 +43,7 @@ namespace TradingBot.Modules
 
             builder.RegisterType<TranslatedSignalsRepository>();
 
-            builder.RegisterType<OrderBookEventsRepository>();
-
-            builder.RegisterType<OrderBookSnapshotsRepository>();
-
             builder.RegisterType<ExchangeFactory>();
-
-            builder.RegisterType<ExchangeCallsInterceptor>()
-                .SingleInstance();
-
-            builder.RegisterType<ExchangeStatisticsCollector>()
-                .SingleInstance();
-
-            builder.RegisterType<ExchangeRatingValuer>()
-                .As<IExchangeRatingValuer>()
-                .SingleInstance();
 
             builder.RegisterType<ExchangeConnectorApplication>()
                 .As<IApplicationFacade>()
@@ -97,21 +83,21 @@ namespace TradingBot.Modules
                 .SingleInstance();
 
             builder.RegisterType<JfdModelConverter>()
-                .SingleInstance();         
-            
+                .SingleInstance();
+
             builder.RegisterType<AzureFixMessagesRepository>()
                 .As<IAzureFixMessagesRepository>()
-                .SingleInstance();    
-            
+                .SingleInstance();
+
             builder.RegisterType<IcmTickPriceHarvester>()
-                .SingleInstance();  
-            
+                .SingleInstance();
+
             builder.RegisterType<IcmTradeSessionConnector>()
-                .SingleInstance();   
-            
+                .SingleInstance();
+
             builder.RegisterType<BitfinexModelConverter>()
-                .SingleInstance(); 
-            
+                .SingleInstance();
+
             builder.RegisterType<IcmModelConverter>()
                 .SingleInstance();
 
@@ -142,12 +128,19 @@ namespace TradingBot.Modules
 
             RegisterRabbitMqHandler<TickPrice>(builder, _config.RabbitMq.TickPrices, "tickHandler");
             RegisterRabbitMqHandler<ExecutionReport>(builder, _config.RabbitMq.Trades);
-            RegisterRabbitMqHandler<OrderBook>(builder, _config.RabbitMq.OrderBooks);
+            RegisterRabbitMqHandler<TradingOrderBook>(builder, _config.RabbitMq.OrderBooks, "orderBookHandler");
 
             builder.RegisterType<TickPriceHandlerDecorator>()
-                .WithParameter((info, context) => info.Name == "rabbitMqHandler", (info, context) => context.ResolveNamed<IHandler<TickPrice>>("tickHandler"))
+                .WithParameter((info, context) => info.Name == "rabbitMqHandler",
+                               (info, context) => context.ResolveNamed<IHandler<TickPrice>>("tickHandler"))
                 .SingleInstance()
                 .As<IHandler<TickPrice>>();
+
+            builder.RegisterType<OrderBookHandlerDecorator>()
+                .WithParameter((info, context) => info.Name == "rabbitMqHandler",
+                    (info, context) => context.ResolveNamed<IHandler<TradingOrderBook>>("orderBookHandler"))
+                .SingleInstance()
+                .As<IHandler<LykkeOrderBook>>();
         }
 
         private static void RegisterExchange<T>(ContainerBuilder container, bool enabled)
@@ -157,9 +150,7 @@ namespace TradingBot.Modules
             {
                 container.RegisterType<T>()
                     .As<Exchange>()
-                    .SingleInstance()
-                    .EnableClassInterceptors()
-                    .InterceptedBy(typeof(ExchangeCallsInterceptor));
+                    .SingleInstance();
             }
 
         }

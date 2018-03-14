@@ -107,7 +107,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             return models;
         }
 
-        public override async Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout)
+        public override async Task<IReadOnlyCollection<PositionModel>> GetPositionsAsync(TimeSpan timeout)
         {
             var pr = new RequestForPositions
             {
@@ -125,6 +125,8 @@ namespace TradingBot.Exchanges.Concrete.Jfd
 
             return _modelConverter.ConvertPositionReport(reports);
         }
+
+        public override StreamingSupport StreamingSupport => new StreamingSupport(true, false);
 
         public override Task<ExecutionReport> CancelOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {

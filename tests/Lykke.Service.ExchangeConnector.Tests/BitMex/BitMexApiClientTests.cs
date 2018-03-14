@@ -82,7 +82,7 @@ namespace TradingBot.Tests.BitMex
             }
             sb.AppendLine();
 
-            HttpResponseMessage response = await base.SendAsync(request, cancellationToken);
+            var response = await base.SendAsync(request, cancellationToken);
 
             sb.AppendLine("Response:");
             sb.AppendLine(response.ToString());

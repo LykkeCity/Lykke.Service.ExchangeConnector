@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Lykke.SettingsReader.Attributes;
+using System.Collections.Generic;
 
 namespace TradingBot.Infrastructure.Configuration
 {
@@ -6,10 +7,7 @@ namespace TradingBot.Infrastructure.Configuration
     {
         public bool Enabled { get; set; }
 
-        public bool SaveOrderBooksToAzure { get; set; }
-
         public bool PubQuotesToRabbit { get; set; }
-        public double InitialRating { get; set; }
 
         public string ApiKey { get; set; }
         
@@ -19,9 +17,17 @@ namespace TradingBot.Infrastructure.Configuration
 
         public WampEndpointConfiguration WampEndpoint { get; set; }
 
+        [Optional]
+        public bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
+
         public IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; set; }
         
         public RabbitMqLykkeConfiguration RabbitMq { get; set; }
+
+        public LykkeExchangeConfiguration()
+        {
+            UseSupportedCurrencySymbolsAsFilter = true;
+        }
     }
 
     public class WampEndpointConfiguration

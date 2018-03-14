@@ -35,12 +35,17 @@ namespace TradingBot.Controllers.Api
         /// </summary>
         [SwaggerOperation("GetOpenedOrders")]
         [HttpGet]
-        private async Task<IEnumerable<ExecutionReport>> Index([FromQuery, Required] string exchangeName) // Intentionally disabled
+        [ProducesResponseType(typeof(IEnumerable<ExecutionReport>), 200)]
+        private async Task<IActionResult> Index([FromQuery, Required] string exchangeName) // Intentionally disabled
         {
+            if (string.IsNullOrWhiteSpace(exchangeName) || Application.GetExchange(exchangeName) == null)
+            {
+                return BadRequest($"Invalid {nameof(exchangeName)}");
+            }
             try
             {
                 var exchange = Application.GetExchange(exchangeName);
-                return await exchange.GetOpenOrders(_timeout);
+                return Ok(await exchange.GetOpenOrders(_timeout));
             }
             catch (Exception e)
             {
@@ -56,12 +61,17 @@ namespace TradingBot.Controllers.Api
         /// <param name="exchangeName">The exchange name</param>
         [SwaggerOperation("GetOrder")]
         [HttpGet("{id}")]
-        public async Task<ExecutionReport> GetOrder(string id, [FromQuery, Required] string exchangeName, [FromQuery, Required] string instrument)
+        [ProducesResponseType(typeof(ExecutionReport), 200)]
+        public async Task<IActionResult> GetOrder(string id, [FromQuery, Required] string exchangeName, [FromQuery, Required] string instrument)
         {
+            if (string.IsNullOrWhiteSpace(exchangeName) || Application.GetExchange(exchangeName) == null)
+            {
+                return BadRequest($"Invalid {nameof(exchangeName)}");
+            }
             try
             {
                 var exchange = Application.GetExchange(exchangeName);
-                return await exchange.GetOrder(id, new Instrument(exchangeName, instrument), _timeout);
+                return Ok(await exchange.GetOrder(id, new Instrument(exchangeName, instrument), _timeout));
 
             }
             catch (Exception e)
@@ -73,12 +83,13 @@ namespace TradingBot.Controllers.Api
 
         /// <summary>
         /// Places a new order on the exchange
-        ///<param name="orderModel">A new order</param>
         /// </summary>
+        /// <param name="orderModel">A new order</param>
         /// <remarks>In the location header of successful response placed an URL for getting info about the order</remarks>
         [SwaggerOperation("CreateOrder")]
         [HttpPost]
-        public async Task<ExecutionReport> Post([FromBody] OrderModel orderModel)
+        [ProducesResponseType(typeof(ExecutionReport), 200)]
+        public async Task<IActionResult> Post([FromBody] OrderModel orderModel)
         {
             try
             {
@@ -86,9 +97,9 @@ namespace TradingBot.Controllers.Api
                 {
                     throw new StatusCodeException(HttpStatusCode.BadRequest, "Order has to be specified");
                 }
-                if (string.IsNullOrEmpty(orderModel.ExchangeName))
+                if (string.IsNullOrWhiteSpace(orderModel.ExchangeName) || Application.GetExchange(orderModel.ExchangeName) == null)
                 {
-                    ModelState.AddModelError(nameof(orderModel.ExchangeName), "Exchange cannot be null");
+                    return BadRequest($"Invalid {nameof(orderModel.ExchangeName)}");
                 }
 
                 if (Math.Abs((orderModel.DateTime - DateTime.UtcNow).TotalMilliseconds) >=
@@ -121,7 +132,7 @@ namespace TradingBot.Controllers.Api
 
                     translatedSignal.SetExecutionResult(result);
 
-                    return result;
+                    return Ok(result);
                 }
                 catch (Exception e)
                 {
@@ -156,13 +167,14 @@ namespace TradingBot.Controllers.Api
         /// <param name="exchangeName">The exchange name</param>
         [SwaggerOperation("CancelOrder")]
         [HttpDelete("{id}")]
-        public async Task<ExecutionReport> CancelOrder(string id, [FromQuery, Required]string exchangeName)
+        [ProducesResponseType(typeof(ExecutionReport), 200)]
+        public async Task<IActionResult> CancelOrder(string id, [FromQuery, Required]string exchangeName)
         {
             try
             {
-                if (string.IsNullOrEmpty(exchangeName))
+                if (string.IsNullOrWhiteSpace(exchangeName) || Application.GetExchange(exchangeName) == null)
                 {
-                    throw new StatusCodeException(HttpStatusCode.InternalServerError, "Exchange has to be specified");
+                    return BadRequest($"Invalid {nameof(exchangeName)}");
                 }
 
                 var instrument = new Instrument(exchangeName, string.Empty);
@@ -181,7 +193,7 @@ namespace TradingBot.Controllers.Api
                     if (result.ExecutionStatus == OrderExecutionStatus.Rejected)
                         throw new StatusCodeException(HttpStatusCode.BadRequest, $"Exchange return status: {result.ExecutionStatus}", null);
 
-                    return result;
+                    return Ok(result);
                 }
                 catch (Exception e)
                 {

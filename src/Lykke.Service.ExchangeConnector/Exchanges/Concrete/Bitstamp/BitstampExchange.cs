@@ -5,6 +5,7 @@ using PusherClient.DotNetCore;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Models.Api;
 using TradingBot.Repositories;
 using TradingBot.Trading;
 
@@ -65,5 +66,7 @@ namespace TradingBot.Exchanges.Concrete.Bitstamp
         {
             throw new NotImplementedException();
         }
+
+        public override StreamingSupport StreamingSupport => new StreamingSupport(false, false);
     }
 }

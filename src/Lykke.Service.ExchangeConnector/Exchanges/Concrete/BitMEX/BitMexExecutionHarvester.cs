@@ -46,7 +46,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             switch (table.Action)
             {
                 case Action.Insert:
-                    var acks = table.Data.Select(row => _mapper.OrderToTrade(row));
+                    var acks = table.Data.Select(BitMexModelConverter.OrderToTrade);
                     foreach (var ack in acks)
                     {
                         if (ack.ExecutionStatus != OrderExecutionStatus.Fill)
@@ -81,6 +81,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         public void Dispose()
         {
             _socketSubscriber.Stop();
+            _socketSubscriber.Dispose();
         }
 
         public void Stop()

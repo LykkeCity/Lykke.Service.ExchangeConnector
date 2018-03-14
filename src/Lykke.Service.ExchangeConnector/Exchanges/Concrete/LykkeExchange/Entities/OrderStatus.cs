@@ -10,6 +10,7 @@
         NoLiquidity,
         UnknownAsset,
         Cancelled,
-        LeadToNegativeSpread
+        LeadToNegativeSpread,
+        InvalidFee
     }
 }

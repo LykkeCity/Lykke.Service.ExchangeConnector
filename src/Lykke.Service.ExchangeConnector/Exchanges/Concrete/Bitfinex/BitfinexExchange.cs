@@ -114,7 +114,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             return trades;
         }
 
-        public override async Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout)
+        public override async Task<IReadOnlyCollection<PositionModel>> GetPositionsAsync(TimeSpan timeout)
         {
             var cts = new CancellationTokenSource(timeout);
             var response = await _exchangeApi.GetActivePositions(cts.Token);
@@ -126,6 +126,8 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             var positions = ExchangePositionsToPositionModel((IReadOnlyCollection<Position>)response, marginInfo);
             return positions;
         }
+
+        public override StreamingSupport StreamingSupport => new StreamingSupport(true, true);
 
         private IReadOnlyCollection<PositionModel> ExchangePositionsToPositionModel(IEnumerable<Position> response, IReadOnlyList<MarginInfo> marginInfo)
         {

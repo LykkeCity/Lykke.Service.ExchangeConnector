@@ -6,11 +6,9 @@ namespace TradingBot.Infrastructure.Configuration
     {
         bool Enabled { get; set; }
 
-        bool SaveOrderBooksToAzure { get; set; }
-
         bool PubQuotesToRabbit { get; set; }
-
-        double InitialRating { get; set; }
+       
+        bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
 
         IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; }
     }

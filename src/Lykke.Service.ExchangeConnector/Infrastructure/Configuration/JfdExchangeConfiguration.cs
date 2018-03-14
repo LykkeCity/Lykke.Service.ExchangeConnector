@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Lykke.SettingsReader.Attributes;
+using System.Collections.Generic;
 using System.IO;
 
 namespace TradingBot.Infrastructure.Configuration
@@ -9,11 +10,10 @@ namespace TradingBot.Infrastructure.Configuration
 
         public string Password { get; set; }
 
-        public bool SaveOrderBooksToAzure { get; set; }
-
         public bool PubQuotesToRabbit { get; set; }
-
-        public double InitialRating { get; set; }
+        
+        [Optional]
+        public bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
 
         IReadOnlyCollection<CurrencySymbol> IExchangeConfiguration.SupportedCurrencySymbols => SupportedCurrencySymbols;
 

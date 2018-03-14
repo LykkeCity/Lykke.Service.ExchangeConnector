@@ -55,7 +55,6 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
         public override async Task<ExecutionReport> AddOrderAndWaitExecution(TradingSignal signal, TranslatedSignalTableEntity translatedSignal, TimeSpan timeout)
         {
-            //  var symbol = BitMexModelConverter.ConvertSymbolFromLykkeToBitMex(instrument.Name, _configuration);
             var symbol = "XBTUSD"; //HACK Hard code!
             var volume = BitMexModelConverter.ConvertVolume(signal.Volume);
             var orderType = BitMexModelConverter.ConvertOrderType(signal.OrderType);
@@ -123,7 +122,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             return new[] { model };
         }
 
-        public override async Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout)
+        public override async Task<IReadOnlyCollection<PositionModel>> GetPositionsAsync(TimeSpan timeout)
         {
             var cts = new CancellationTokenSource(timeout);
             var onlyOpensFileter = "{\"isOpen\":true}";
@@ -137,6 +136,8 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             var model = ((IReadOnlyCollection<Position>)response).Select(BitMexModelConverter.ExchangePositionToModel).ToArray();
             return model;
         }
+
+        public override StreamingSupport StreamingSupport => new StreamingSupport(true, true);
 
         private static IReadOnlyList<Order> EnsureCorrectResponse(string id, object response)
         {
