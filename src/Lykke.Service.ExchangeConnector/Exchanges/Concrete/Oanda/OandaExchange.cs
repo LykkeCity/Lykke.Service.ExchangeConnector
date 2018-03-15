@@ -8,6 +8,7 @@ using System;
 using Common.Log;
 using TradingBot.Communications;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Models.Api;
 using TradingBot.Trading;
 using TradingBot.Repositories;
 
@@ -50,6 +51,8 @@ namespace TradingBot.Exchanges.Concrete.Oanda
         {
             throw new NotImplementedException();
         }
+
+        public override StreamingSupport StreamingSupport => new StreamingSupport(false, false);
 
         protected async Task<bool> EstablishConnectionImpl(CancellationToken cancellationToken)
         {

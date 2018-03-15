@@ -1,16 +1,17 @@
 ﻿using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using Newtonsoft.Json;
 using TradingBot.Trading;
 
 namespace TradingBot.Models.Api
 {
-    public sealed class OrderModel : ISignedModel
+    public class OrderModel : ISignedModel
     {
-        [Required]
+        [JsonProperty(Required = Required.Always)]
         public string ExchangeName { get; set; }
 
-        [Required]
+        [JsonProperty(Required = Required.Always)]
         public string Instrument { get; set; }
 
         [Required]
@@ -25,7 +26,7 @@ namespace TradingBot.Models.Api
         [Range(0.0, double.MaxValue)]
         public decimal? Price { get; set; }
 
-        [Required]
+        [JsonProperty(Required = Required.Always)]
         [Range(0.0001, double.MaxValue)]
         public decimal Volume { get; set; }
 

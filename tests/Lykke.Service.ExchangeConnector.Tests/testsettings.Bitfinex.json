@@ -2,7 +2,6 @@
   "enabled": true,
   "apiKey": "",
   "ApiSecret": "",
-  "saveQuotesToAzure": false,
   "saveOrderBooksToAzure": false,
   "pubQuotesToRabbit": false,
   "InitialRating": 5,

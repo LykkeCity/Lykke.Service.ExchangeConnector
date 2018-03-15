@@ -11,7 +11,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
         private readonly IReadOnlyCollection<CurrencySymbol> _currencySymbols;
         private readonly string _exchangeName;
 
-        public ExchangeConverters(IReadOnlyCollection<CurrencySymbol> currencySymbols, 
+        public ExchangeConverters(IReadOnlyCollection<CurrencySymbol> currencySymbols,
             string exchangeName)
         {
             _currencySymbols = currencySymbols;
@@ -32,7 +32,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
         public Instrument ExchangeSymbolToLykkeInstrument(string exchangeSymbol)
         {
             var foundSymbol = _currencySymbols
-               .FirstOrDefault(s => s.ExchangeSymbol == exchangeSymbol);
+               .FirstOrDefault(s => string.Equals(s.ExchangeSymbol, exchangeSymbol, StringComparison.InvariantCultureIgnoreCase));
             if (foundSymbol == null)
             {
                 throw new ArgumentException(

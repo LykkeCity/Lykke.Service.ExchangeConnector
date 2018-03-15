@@ -4,11 +4,18 @@ namespace TradingBot.Infrastructure.Configuration
 {
     public sealed class GdaxExchangeConfiguration : IExchangeConfiguration
     {
+
+        public GdaxExchangeConfiguration()
+        {
+            UseSupportedCurrencySymbolsAsFilter = true;
+        }
+
         public double InitialRating { get; set; }
 
-        public bool Enabled { get; set; }
+        [Lykke.SettingsReader.Attributes.Optional]
+        public bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
 
-        public bool SaveOrderBooksToAzure { get; set; }
+        public bool Enabled { get; set; }
 
         public bool PubQuotesToRabbit { get; set; }
 
@@ -23,6 +30,8 @@ namespace TradingBot.Infrastructure.Configuration
         public string WssEndpointUrl { get; set; }
 
         public string UserAgent { get; set; }
+
+        public int MaxOrderBookRate { get; set; }
 
         public IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; set; }
     }

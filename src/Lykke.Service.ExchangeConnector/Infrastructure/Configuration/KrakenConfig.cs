@@ -4,13 +4,17 @@ namespace TradingBot.Infrastructure.Configuration
 {
     public class KrakenConfig : IExchangeConfiguration
     {
-        public bool Enabled { get; set; }
+        public KrakenConfig()
+        {
+            UseSupportedCurrencySymbolsAsFilter = true;
+        }
 
-        public bool SaveOrderBooksToAzure { get; set; }
+        public bool Enabled { get; set; }
 
         public bool PubQuotesToRabbit { get; set; }
 
-        public double InitialRating { get; set; }
+        [Lykke.SettingsReader.Attributes.Optional]
+        public bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
 
         public string ApiKey { get; set; }
         

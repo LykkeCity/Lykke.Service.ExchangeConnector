@@ -31,14 +31,12 @@ namespace TradingBot.Exchanges.Abstractions
             State = ExchangeState.Initializing;
             LykkeLog = log;
 
-            if (config.SupportedCurrencySymbols == null || 
-                config.SupportedCurrencySymbols.Count == 0)
+            Instruments = config.SupportedCurrencySymbols?.Select(x => new Instrument(Name, x.LykkeSymbol)).ToList() ?? new List<Instrument>();
+
+            if (!Instruments.Any() && config.UseSupportedCurrencySymbolsAsFilter != false)
             {
                 throw new ArgumentException($"There is no instruments in the settings for {Name} exchange");
             }
-
-            Instruments = config.SupportedCurrencySymbols
-                .Select(x => new Instrument(Name, x.LykkeSymbol)).ToList();
         }
 
         public void Start()
@@ -105,9 +103,11 @@ namespace TradingBot.Exchanges.Abstractions
             throw new NotSupportedException();
         }
 
-        public virtual Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout)
+        public virtual Task<IReadOnlyCollection<PositionModel>> GetPositionsAsync(TimeSpan timeout)
         {
             throw new NotSupportedException();
         }
+
+        public abstract StreamingSupport StreamingSupport { get; }
     }
 }

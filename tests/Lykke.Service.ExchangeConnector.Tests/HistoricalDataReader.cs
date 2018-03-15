@@ -34,7 +34,7 @@ namespace TradingBot.Tests
 
         public IEnumerator<TickPrice> GetEnumerator()
         {
-            for (int i = 0; i < paths.Length; i++)
+            for (var i = 0; i < paths.Length; i++)
             {
                 //reader = File.OpenText(paths[i]);
 
@@ -61,7 +61,7 @@ namespace TradingBot.Tests
 
         public void ForEach(Action<TickPrice> action)
         {
-            for (int i = 0; i < paths.Length; i++)
+            for (var i = 0; i < paths.Length; i++)
             {
                 var lines = File.ReadAllLines(paths[i]);
                 
