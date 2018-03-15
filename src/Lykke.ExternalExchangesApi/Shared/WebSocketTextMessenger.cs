@@ -1,12 +1,12 @@
-﻿using System;
+﻿using Common.Log;
+using Newtonsoft.Json;
+using Polly;
+using System;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Log;
-using Newtonsoft.Json;
-using Polly;
 
 namespace Lykke.ExternalExchangesApi.Shared
 {
@@ -34,43 +34,33 @@ namespace Lykke.ExternalExchangesApi.Shared
             await _log.WriteInfoAsync(nameof(ConnectAsync), "Connecting to WebSocket", $"API endpoint {_endpointUrl}");
             var uri = new Uri(_endpointUrl);
 
-            const int attempts = 20;
+            const int policyMaxAttempts = 20;
+            const int retrySeconds = 3;
             var retryPolicy = Policy
                 .Handle<Exception>(e => !cancellationToken.IsCancellationRequested)
-                .WaitAndRetryAsync(attempts, attempt => TimeSpan.FromSeconds(3));
-            try
-            {
-                await retryPolicy.ExecuteAsync(async () =>
+                .WaitAndRetryAsync(policyMaxAttempts, attempt => TimeSpan.FromSeconds(retrySeconds),
+                (exception, timeSpan, attempt, context) =>
                 {
-                    try
+                    if (attempt == 1)
                     {
-                        _clientWebSocket = new ClientWebSocket();
-                        using (var connectionTimeoutCts = new CancellationTokenSource(_responseTimeout))
-                        using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, connectionTimeoutCts.Token))
-                        {
-                            await _clientWebSocket.ConnectAsync(uri, linkedCts.Token);
-                        }
-                        await _log.WriteInfoAsync(nameof(ConnectAsync), "Successfully connected to WebSocket", $"API endpoint {_endpointUrl}");
+                        _log.WriteWarningAsync(nameof(ConnectAsync), $"Unable to connect to {_endpointUrl}. Retry in {retrySeconds} sec.", exception.Message).GetAwaiter().GetResult();
                     }
-                    catch (Exception ex)
+                    if (attempt % policyMaxAttempts == 0)
                     {
-                        if (!cancellationToken.IsCancellationRequested)
-                        {
-                            await _log.WriteWarningAsync(nameof(ConnectAsync), $"Unable to connect to {_endpointUrl}. Retry in 3 sec.", ex.Message);
-                        }
-                        throw;
+                        _log.WriteErrorAsync(nameof(ConnectAsync), $"Unable to connect to {_endpointUrl} after {policyMaxAttempts} attempts", exception).GetAwaiter().GetResult();
                     }
                 });
-            }
-            catch (Exception ex)
+
+            await retryPolicy.ExecuteAsync(async () =>
             {
-                if (!cancellationToken.IsCancellationRequested)
+                _clientWebSocket = new ClientWebSocket();
+                using (var connectionTimeoutCts = new CancellationTokenSource(_responseTimeout))
+                using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, connectionTimeoutCts.Token))
                 {
-                    await _log.WriteErrorAsync(nameof(ConnectAsync),
-                        $"Unable to connect to {_endpointUrl} after {attempts} attempts", ex);
+                    await _clientWebSocket.ConnectAsync(uri, linkedCts.Token);
                 }
-                throw;
-            }
+                await _log.WriteInfoAsync(nameof(ConnectAsync), "Successfully connected to WebSocket", $"API endpoint {_endpointUrl}");
+            });
         }
 
 

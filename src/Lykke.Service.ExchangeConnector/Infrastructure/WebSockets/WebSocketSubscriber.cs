@@ -1,9 +1,9 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Common.Log;
+﻿using Common.Log;
 using Lykke.ExternalExchangesApi.Shared;
 using Polly;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace TradingBot.Infrastructure.WebSockets
 {
@@ -137,16 +137,22 @@ namespace TradingBot.Infrastructure.WebSockets
         private async Task MessageLoop()
         {
             const int smallTimeout = 5;
+            const int maxAttemptsBeforeLogError = 20;
             var retryPolicy = Policy
                 .Handle<Exception>(ex => !(ex is AuthenticationException) && !CancellationToken.IsCancellationRequested)
                 .WaitAndRetryForeverAsync(attempt =>
                 {
-                    if (attempt % 60 == 0)
+                    if (attempt == 1)
                     {
-                        Log.WriteErrorAsync("Receiving messages from the socket", "Unable to recover the connection after 60 attempts. Will try in 5 min. ", null).GetAwaiter().GetResult();
+                        Log.WriteWarningAsync(nameof(WebSocketSubscriber), "Receiving messages from the socket", "Unable to establish connection with server. Will retry in 5 secs. ").GetAwaiter().GetResult();
                     }
-                    return attempt % 60 == 0 ? TimeSpan.FromMinutes(5) : TimeSpan.FromSeconds(smallTimeout);
-                }); // After every 60 attempts wait 5min 
+
+                    if (attempt % maxAttemptsBeforeLogError == 0)
+                    {
+                        Log.WriteErrorAsync(nameof(WebSocketSubscriber), "Receiving messages from the socket", new Exception($"Unable to recover the connection after { maxAttemptsBeforeLogError } attempts. Will try in 5 min.")).GetAwaiter().GetResult();
+                    }
+                    return attempt % maxAttemptsBeforeLogError == 0 ? TimeSpan.FromMinutes(5) : TimeSpan.FromSeconds(smallTimeout);
+                }); // After every maxAttemptsBeforeLogError  attempts wait 5min 
 
             await retryPolicy.ExecuteAsync(async () =>
             {
@@ -159,6 +165,10 @@ namespace TradingBot.Infrastructure.WebSockets
                 {
                     await Log.WriteErrorAsync(nameof(MessageLoopImpl), $"AuthenticationException. Will not try to reconnect. Check the API keys in the settings", ex);
                     _heartBeatMonitoringTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                    throw;
+                }
+                catch (OperationCanceledException)
+                {
                     throw;
                 }
                 catch (Exception ex)

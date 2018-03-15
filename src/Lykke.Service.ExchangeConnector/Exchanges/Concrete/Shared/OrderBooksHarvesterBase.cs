@@ -1,11 +1,11 @@
-﻿using System;
+﻿using Common.Log;
+using Polly;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Log;
-using Polly;
 using TradingBot.Communications;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
@@ -129,18 +129,22 @@ namespace TradingBot.Exchanges.Concrete.Shared
         private async Task MessageLoop()
         {
             const int smallTimeout = 5;
+            const int maxAttemptsBeforeLogError = 20;
             var retryPolicy = Policy
                 .Handle<Exception>(ex => !CancellationToken.IsCancellationRequested)
                 .WaitAndRetryForeverAsync(attempt =>
                 {
-                    if (attempt % 60 == 0)
+                    if (attempt == 1)
                     {
-                        Log.WriteErrorAsync("Receiving messages from the socket", "Unable to recover the connection after 60 attempts. Will try in 5 min. ", null).GetAwaiter().GetResult();
+                        Log.WriteWarningAsync(nameof(OrderBooksHarvesterBase), "Receiving messages from the socket", "Unable to establish connection with server. Will try in 5 sec. ").GetAwaiter().GetResult();
                     }
-                    return attempt % 60 == 0
-                        ? TimeSpan.FromMinutes(5)
-                        : TimeSpan.FromSeconds(smallTimeout);
-                }); // After every 60 attempts wait 5min 
+
+                    if (attempt % maxAttemptsBeforeLogError == 0)
+                    {
+                        Log.WriteErrorAsync(nameof(OrderBooksHarvesterBase), "Receiving messages from the socket", new Exception($"Unable to recover the connection after { maxAttemptsBeforeLogError } attempts. Will try in 5 min.")).GetAwaiter().GetResult();
+                    }
+                    return attempt % maxAttemptsBeforeLogError == 0 ? TimeSpan.FromMinutes(5) : TimeSpan.FromSeconds(smallTimeout);
+                }); // After every maxAttemptsBeforeLogError attempts wait 5min 
 
             await retryPolicy.ExecuteAsync(async () =>
              {
