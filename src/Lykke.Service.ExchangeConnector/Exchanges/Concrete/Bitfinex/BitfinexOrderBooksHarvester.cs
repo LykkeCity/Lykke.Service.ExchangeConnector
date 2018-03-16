@@ -1,10 +1,14 @@
 ﻿using Common.Log;
+using Lykke.ExternalExchangesApi.Exceptions;
+using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient;
+using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient.Model;
 using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.WebSocketClient.Model;
 using Lykke.ExternalExchangesApi.Shared;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
@@ -17,6 +21,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         private readonly BitfinexExchangeConfiguration _configuration;
         private readonly Dictionary<long, Channel> _channels;
         private readonly IHandler<TickPrice> _tickPriceHandler;
+        private readonly IBitfinexApi _exchangeApi;
 
         public BitfinexOrderBooksHarvester(BitfinexExchangeConfiguration configuration,
             IHandler<OrderBook> orderBookHandler,
@@ -27,6 +32,11 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             _configuration = configuration;
             _channels = new Dictionary<long, Channel>();
             _tickPriceHandler = tickPriceHandler;
+            var credenitals = new BitfinexServiceClientCredentials(configuration.ApiKey, configuration.ApiSecret);
+            _exchangeApi = new BitfinexApi(credenitals)
+            {
+                BaseUri = new Uri(configuration.EndpointUrl)
+            };
         }
 
 
@@ -65,19 +75,41 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
                 TickerResponse.Parse(json) ??
                 OrderBookSnapshotResponse.Parse(json) ??
                 (dynamic)OrderBookUpdateResponse.Parse(json) ??
-                HeartbeatResponse.Parse(json);
+                HeartbeatResponse.Parse(json); 
             return result;
         }
 
         private async Task Subscribe()
         {
-            _channels.Clear();
-            var instruments = _configuration.SupportedCurrencySymbols
-                .Select(s => s.ExchangeSymbol)
-                .ToList();
+            var instrumentsToSubscribeFor = _configuration.SupportedCurrencySymbols?
+                                  .Select(s => s.ExchangeSymbol)
+                                  .ToList() ??  new List<string>();
 
-            await SubscribeToOrderBookAsync(instruments);
-            await SubscribeToTickerAsync(instruments);
+            if (_configuration.UseSupportedCurrencySymbolsAsFilter == false)
+            {
+                var response = await _exchangeApi.GetAllSymbols(CancellationToken);
+                if (response is Error error)
+                {
+                    throw new ApiException(error.Message);
+                }
+                var instrumentsFromExchange = ((IReadOnlyList<string>)response).Select(i=>i.ToUpper()).ToList();
+
+                foreach (var exchInstr in instrumentsFromExchange)
+                {
+                    if (!instrumentsToSubscribeFor.Contains(exchInstr))
+                    {
+                        instrumentsToSubscribeFor.Add(exchInstr);
+                    }
+                }
+            }
+
+            if (!instrumentsToSubscribeFor.Any())
+            {
+                await Log.WriteWarningAsync(nameof(Subscribe), "Subscribing for orderbooks", "Instruments list is empty - its either not set in config and UseSupportedCurrencySymbolsAsFilter is set to true or exchange returned empty symbols list. No symbols to subscribe for.");
+            }
+
+            await SubscribeToOrderBookAsync(instrumentsToSubscribeFor);
+            await SubscribeToTickerAsync(instrumentsToSubscribeFor);
         }
 
         private async Task SubscribeToOrderBookAsync(IEnumerable<string> instruments)

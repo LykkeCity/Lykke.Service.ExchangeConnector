@@ -6,6 +6,11 @@ namespace TradingBot.Infrastructure.Configuration
 {
     public sealed class JfdExchangeConfiguration : IExchangeConfiguration
     {
+        public JfdExchangeConfiguration()
+        {
+            UseSupportedCurrencySymbolsAsFilter = true;
+        }
+
         public bool Enabled { get; set; }
 
         public string Password { get; set; }
@@ -13,7 +18,7 @@ namespace TradingBot.Infrastructure.Configuration
         public bool PubQuotesToRabbit { get; set; }
         
         [Optional]
-        public bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
+        public bool UseSupportedCurrencySymbolsAsFilter { get; set; }
 
         IReadOnlyCollection<CurrencySymbol> IExchangeConfiguration.SupportedCurrencySymbols => SupportedCurrencySymbols;
 

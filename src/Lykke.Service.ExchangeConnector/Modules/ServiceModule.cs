@@ -1,4 +1,5 @@
 ﻿using Autofac;
+using Common;
 using Common.Log;
 using Lykke.ExternalExchangesApi.Exchanges.Icm.FixClient;
 using Lykke.RabbitMqBroker;
@@ -18,8 +19,8 @@ using TradingBot.Exchanges.Concrete.StubImplementation;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
-using TradingOrderBook = TradingBot.Trading.OrderBook;
 using LykkeOrderBook = TradingBot.Exchanges.Concrete.LykkeExchange.Entities.OrderBook;
+using TradingOrderBook = TradingBot.Trading.OrderBook;
 
 namespace TradingBot.Modules
 {
@@ -90,8 +91,11 @@ namespace TradingBot.Modules
                 .SingleInstance();
 
             builder.RegisterType<IcmTickPriceHarvester>()
-                .SingleInstance();
-
+                .As<IStartable>()
+                .As<IStopable>()
+                .AsSelf()
+                .SingleInstance();  
+            
             builder.RegisterType<IcmTradeSessionConnector>()
                 .SingleInstance();
 

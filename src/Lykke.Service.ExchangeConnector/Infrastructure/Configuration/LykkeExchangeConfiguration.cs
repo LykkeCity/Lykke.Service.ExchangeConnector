@@ -9,6 +9,9 @@ namespace TradingBot.Infrastructure.Configuration
 
         public bool PubQuotesToRabbit { get; set; }
 
+        [Optional]
+        public bool UseSupportedCurrencySymbolsAsFilter { get; set; }
+
         public string ApiKey { get; set; }
         
         public string EndpointUrl { get; set; }
@@ -16,9 +19,6 @@ namespace TradingBot.Infrastructure.Configuration
         public string ClientId { get; set; }
 
         public WampEndpointConfiguration WampEndpoint { get; set; }
-
-        [Optional]
-        public bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
 
         public IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; set; }
         

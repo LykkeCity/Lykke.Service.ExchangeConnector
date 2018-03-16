@@ -5,6 +5,14 @@ namespace TradingBot.Infrastructure.Configuration
 {
     public sealed class GdaxExchangeConfiguration : IExchangeConfiguration
     {
+        public GdaxExchangeConfiguration()
+        {
+            UseSupportedCurrencySymbolsAsFilter = true;
+        }
+
+        [Optional]
+        public bool UseSupportedCurrencySymbolsAsFilter { get; set; }
+
         public bool Enabled { get; set; }
 
         public bool PubQuotesToRabbit { get; set; }
@@ -23,9 +31,6 @@ namespace TradingBot.Infrastructure.Configuration
 
         public int MaxOrderBookRate { get; set; }
         
-        [Optional]
-        public bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
-
         public IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; set; }
     }
 }

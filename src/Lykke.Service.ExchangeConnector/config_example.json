@@ -9,7 +9,6 @@
       "Icm": {
         "enabled": false,
         "pubQuotesToRabbit": false,
-        "saveOrderBooksToAzure": false,
         "socketConnection": false,
         "InitialRating": 5,
         "username": "",
@@ -33,7 +32,6 @@
       "Kraken": {
         "enabled": false,
         "pubQuotesToRabbit": false,
-        "saveOrderBooksToAzure": false,
         "InitialRating": 5,
         "apiKey": "",
         "privateKey": "",
@@ -57,7 +55,6 @@
         "clientId": "",
         "apiKey": "",
         "pubQuotesToRabbit": false,
-        "saveOrderBooksToAzure": false,
         "InitialRating": 5,
         "endpointUrl": "",
         "supportedCurrencySymbols": [],
@@ -86,7 +83,6 @@
         "apiKey": "",
         "ApiSecret": "",
         "pubQuotesToRabbit": false,
-        "saveOrderBooksToAzure": false,
         "initialRating": 5,
         "endpointUrl": "",
         "webSocketEndpointUrl": "",
@@ -103,7 +99,6 @@
         "apiKey": "",
         "ApiSecret": "",
         "pubQuotesToRabbit": false,
-        "saveOrderBooksToAzure": true,
         "InitialRating": 5,
         "endpointUrl": "",
         "WebSocketEndpointUrl": "",
@@ -127,7 +122,6 @@
         "passPhrase": "",
         "userAgent": "",
         "pubQuotesToRabbit": false,
-        "saveOrderBooksToAzure": true,
         "restEndpointUrl": "",
         "wssEndpointUrl": "",
         "supportedCurrencySymbols": [
@@ -144,7 +138,6 @@
       "Stub": {
         "enabled": false,
         "pubQuotesToRabbit": false,
-        "saveOrderBooksToAzure": false,
         "InitialRating": 5,
         "pricesIntervalInMilliseconds": 1000,
         "PricesPerInterval": 10,
@@ -153,7 +146,6 @@
       "HistoricalData": {
         "enabled": false,
         "pubQuotesToRabbit": false,
-        "saveOrderBooksToAzure": false,
         "InitialRating": 5,
         "baseDirectory": "",
         "fileName": "",
@@ -165,7 +157,6 @@
         "enabled": false,
         "pubQuotesToRabbit": false,
         "initialRating": 5,
-        "saveOrderBooksToAzure": false,
         "maxOrderBookRate": 200,
         "password": "",
         "supportedCurrencySymbols": [
@@ -212,17 +203,6 @@
         "connectionString": "",
         "exchange": ""
       }
-    },
-    "SaveQuotesToAzure": {
-      "icm": false,
-      "kraken": false,
-      "lykke": false,
-      "bitmex": false,
-      "bitfinex": false,
-      "gdax": false,
-      "stub": false,
-      "historicaldata": false,
-      "jfd": false
     }
   },
   "SlackNotifications": {

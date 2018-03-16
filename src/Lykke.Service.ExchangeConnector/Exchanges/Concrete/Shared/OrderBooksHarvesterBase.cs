@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using TradingBot.Communications;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
@@ -51,7 +52,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
             Log = log.CreateComponentScope(GetType().Name);
 
             _converters = new ExchangeConverters(exchangeConfiguration.SupportedCurrencySymbols,
-                string.Empty);
+                string.Empty, exchangeConfiguration.UseSupportedCurrencySymbolsAsFilter);
 
             _orderBookSnapshots = new ConcurrentDictionary<string, OrderBookSnapshot>();
             _cancellationTokenSource = new CancellationTokenSource();
@@ -174,33 +175,33 @@ namespace TradingBot.Exchanges.Concrete.Shared
              });
         }
 
-        private async Task PublishOrderBookSnapshotAsync()
+        private async Task PublishOrderBookSnapshotAsync(string pair)
         {
             _lastSecPublicationsNum++;
             if (NeedThrottle())
             {
                 return;
             }
-            var orderBooks = _orderBookSnapshots.Values
-                .Select(obs => new OrderBook(
-                    ExchangeName,
-                    _converters.ExchangeSymbolToLykkeInstrument(obs.AssetPair).Name,
-                    obs.Asks.Values.Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
-                    obs.Bids.Values.Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
-                    DateTime.UtcNow));
+
+            var obs = _orderBookSnapshots[pair];
+            var orderBook = new OrderBook(
+                     ExchangeName,
+                     _converters.ExchangeSymbolToLykkeInstrument(obs.AssetPair).Name,
+                     obs.Asks.Values.Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
+                     obs.Bids.Values.Select(i => new VolumePrice(i.Price, i.Size)).ToArray(),
+                     DateTime.UtcNow);
             _publishedToRabbit++;
 
-            foreach (var orderBook in orderBooks)
+            if (orderBook.Asks.Any() || orderBook.Bids.Any())
             {
-                if (orderBook.Asks.Any() || orderBook.Bids.Any())
-                {
-                    await _newOrderBookHandler.Handle(orderBook);
-                }
-                else
-                {
-                    await Log.WriteInfoAsync(nameof(PublishOrderBookSnapshotAsync), $"Source: {orderBook.Source} AssetPairId: {orderBook.AssetPairId}", "skip empty order book");
-                }
+                await _newOrderBookHandler.Handle(orderBook);
             }
+
+            else
+            {
+                await Log.WriteInfoAsync(nameof(PublishOrderBookSnapshotAsync), $"Source: {orderBook.Source} AssetPairId: {orderBook.AssetPairId}", "skip empty order book");
+            }
+
         }
 
         protected abstract Task MessageLoopImpl();
@@ -239,7 +240,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
 
             _orderBookSnapshots[pair] = orderBookSnapshot;
 
-            await PublishOrderBookSnapshotAsync();
+            await PublishOrderBookSnapshotAsync(pair);
         }
 
         protected async Task HandleOrdersEventsAsync(string pair,
@@ -270,7 +271,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
                 CancelSnapshotRefresh();
             }
 
-            await PublishOrderBookSnapshotAsync();
+            await PublishOrderBookSnapshotAsync(pair);
         }
 
         private void ScheduleSnapshotRefresh()

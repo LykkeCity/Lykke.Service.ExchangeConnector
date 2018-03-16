@@ -40,7 +40,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             : base(Name, configuration, translatedSignalsRepository, log)
         {
             _configuration = configuration;
-            _converters = new GdaxConverters(configuration.SupportedCurrencySymbols, Name);
+            _converters = new GdaxConverters(configuration.SupportedCurrencySymbols, Name, configuration);
 
             _orderBooksHarvester = orderBookHarvester;
             _tickPriceHandler = tickPriceHandler;

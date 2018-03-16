@@ -1,18 +1,18 @@
-﻿using System;
+﻿using Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
-using Newtonsoft.Json;
-using Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Models.Api;
 using TradingBot.Trading;
 using Instrument = TradingBot.Trading.Instrument;
 using Order = Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models.Order;
-using Position = Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models.Position;
 using OrdStatus = Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model.OrdStatus;
-using Side = Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model.Side;
+using Position = Lykke.ExternalExchangesApi.Exchanges.BitMex.AutorestClient.Models.Position;
 using RowItem = Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model.RowItem;
+using Side = Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model.Side;
 using TradeType = TradingBot.Trading.TradeType;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
@@ -21,7 +21,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
     {
         private const decimal SatoshiRate = 100000000;
 
-        public BitMexModelConverter(IReadOnlyCollection<CurrencySymbol> currencySymbols) : base(currencySymbols, BitMexExchange.Name)
+        public BitMexModelConverter(IReadOnlyCollection<CurrencySymbol> currencySymbols, BitMexExchangeConfiguration config) : base(currencySymbols, BitMexExchange.Name, config.UseSupportedCurrencySymbolsAsFilter)
         {
 
         }

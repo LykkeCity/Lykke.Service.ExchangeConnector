@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.GDAX.Entities;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Handlers;
@@ -38,7 +39,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             _websocketApi = CreateWebSocketsApiClient();
             _restApi = CreateRestApiClient();
             _converters = new GdaxConverters(_configuration.SupportedCurrencySymbols,
-                ExchangeName);
+                ExchangeName, configuration);
         }
 
         protected override async Task MessageLoopImpl()

@@ -5,9 +5,19 @@ namespace TradingBot.Infrastructure.Configuration
 {
     public sealed class BitMexExchangeConfiguration : IExchangeConfiguration
     {
+        public BitMexExchangeConfiguration()
+        {
+            UseSupportedCurrencySymbolsAsFilter = true;
+        }
+
         public bool Enabled { get; set; }
 
         public bool PubQuotesToRabbit { get; set; }
+
+
+
+        [Optional]
+        public bool UseSupportedCurrencySymbolsAsFilter { get; set; }
 
         public string ApiKey { get; set; }
 
@@ -19,8 +29,6 @@ namespace TradingBot.Infrastructure.Configuration
 
         public int MaxOrderBookRate { get; set; }
 
-        [Optional]
-        public bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
         public IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; set; }
     }
 }

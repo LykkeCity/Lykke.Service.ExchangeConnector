@@ -6,11 +6,20 @@ namespace TradingBot.Infrastructure.Configuration
 {
     public class IcmExchangeConfiguration : IExchangeConfiguration
     {
+        public IcmExchangeConfiguration()
+        {
+            UseSupportedCurrencySymbolsAsFilter = true;
+        }
+
         public bool Enabled { get; set; }
         
         public string Password { get; set; }
 
         public bool PubQuotesToRabbit { get; set; }
+
+
+        [Lykke.SettingsReader.Attributes.Optional]
+        public bool UseSupportedCurrencySymbolsAsFilter { get; set; }
 
         public bool SocketConnection { get; set; }
 
@@ -18,8 +27,6 @@ namespace TradingBot.Infrastructure.Configuration
         
         public string[] FixConfiguration { get; set; }
 
-        [Optional]
-        public bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
         IReadOnlyCollection<CurrencySymbol> IExchangeConfiguration.SupportedCurrencySymbols => SupportedCurrencySymbols;
 
         public IReadOnlyCollection<IcmCurrencySymbol> SupportedCurrencySymbols { get; set; }

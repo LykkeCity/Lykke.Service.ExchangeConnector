@@ -10,6 +10,10 @@ namespace TradingBot.Infrastructure.Configuration
 
         public bool PubQuotesToRabbit { get; set; }
 
+
+        [Optional]
+        public bool UseSupportedCurrencySymbolsAsFilter { get; set; }
+
         public string BaseDirectory { get; set; }
         
         public string FileName { get; set; }
@@ -18,8 +22,6 @@ namespace TradingBot.Infrastructure.Configuration
         
         public DateTime EndDate { get; set; }
 
-        [Optional]
-        public bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
         public IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; set; }
     }
 }
