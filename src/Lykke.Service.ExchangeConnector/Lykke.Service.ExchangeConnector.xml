@@ -444,6 +444,13 @@
             <param name="mu">yearly trend</param>
             <param name="random">the source of randomness</param>
         </member>
+        <member name="P:TradingBot.Infrastructure.Configuration.IExchangeConfiguration.UseSupportedCurrencySymbolsAsFilter">
+            <summary>
+            Use SupportedCurrencySymbols as filter of instrument for stream to rabbitmq
+            true or null - provide only this instrument with mapping name
+            false - provide all instrument and mapping name use this array
+            </summary>
+        </member>
         <member name="P:TradingBot.Models.Api.OrderModel.DateTime">
             <summary>
             Date and time must be in 5 minutes threshold from UTC now

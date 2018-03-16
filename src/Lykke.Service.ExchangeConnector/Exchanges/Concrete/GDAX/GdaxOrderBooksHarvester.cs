@@ -1,17 +1,17 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Common.Log;
-using TradingBot.Communications;
-using TradingBot.Exchanges.Concrete.GDAX.Entities;
+﻿using Common.Log;
 using Lykke.ExternalExchangesApi.Exchanges.GDAX.RestClient;
 using Lykke.ExternalExchangesApi.Exchanges.GDAX.RestClient.Entities;
 using Lykke.ExternalExchangesApi.Exchanges.GDAX.WssClient;
 using Lykke.ExternalExchangesApi.Exchanges.GDAX.WssClient.Entities;
 using Lykke.ExternalExchangesApi.Helpers;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using TradingBot.Communications;
+using TradingBot.Exchanges.Concrete.GDAX.Entities;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
@@ -40,7 +40,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             _websocketApi = CreateWebSocketsApiClient();
             _restApi = CreateRestApiClient();
             _converters = new GdaxConverters(_configuration.SupportedCurrencySymbols,
-                ExchangeName);
+                ExchangeName, configuration);
         }
 
         protected override async Task MessageLoopImpl()

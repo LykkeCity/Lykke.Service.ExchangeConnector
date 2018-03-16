@@ -17,7 +17,7 @@ namespace TradingBot.Infrastructure.Configuration
         /// true or null - provide only this instrument with mapping name
         /// false - provide all instrument and mapping name use this array
         /// </summary>
-        bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
+        bool UseSupportedCurrencySymbolsAsFilter { get; set; }
 
         IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; }
     }

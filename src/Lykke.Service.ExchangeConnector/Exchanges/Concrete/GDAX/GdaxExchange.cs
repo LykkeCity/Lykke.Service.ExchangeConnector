@@ -1,17 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
-using Common.Log;
-using TradingBot.Communications;
+﻿using Common.Log;
 using Lykke.ExternalExchangesApi.Exceptions;
 using Lykke.ExternalExchangesApi.Exchanges.Abstractions.Models;
 using Lykke.ExternalExchangesApi.Exchanges.GDAX.RestClient;
 using Lykke.ExternalExchangesApi.Exchanges.GDAX.RestClient.Entities;
 using Lykke.ExternalExchangesApi.Exchanges.GDAX.WssClient;
 using Lykke.ExternalExchangesApi.Exchanges.GDAX.WssClient.Entities;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
+using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
@@ -40,7 +40,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             : base(Name, configuration, translatedSignalsRepository, log)
         {
             _configuration = configuration;
-            _converters = new GdaxConverters(configuration.SupportedCurrencySymbols, Name);
+            _converters = new GdaxConverters(configuration.SupportedCurrencySymbols, Name, configuration);
 
             _orderBooksHarvester = orderBookHarvester;
             _tickPriceHandler = tickPriceHandler;

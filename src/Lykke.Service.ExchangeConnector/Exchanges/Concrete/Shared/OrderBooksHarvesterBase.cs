@@ -1,11 +1,11 @@
-﻿using System;
+﻿using Common.Log;
+using Polly;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Log;
-using Polly;
 using TradingBot.Communications;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
@@ -53,7 +53,7 @@ namespace TradingBot.Exchanges.Concrete.Shared
             Log = log.CreateComponentScope(GetType().Name);
 
             _converters = new ExchangeConverters(exchangeConfiguration.SupportedCurrencySymbols,
-                string.Empty);
+                string.Empty, exchangeConfiguration.UseSupportedCurrencySymbolsAsFilter);
 
             _orderBookSnapshots = new ConcurrentDictionary<string, OrderBookSnapshot>();
             _cancellationTokenSource = new CancellationTokenSource();
