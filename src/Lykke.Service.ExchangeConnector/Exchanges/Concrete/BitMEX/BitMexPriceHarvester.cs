@@ -1,12 +1,12 @@
-﻿using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Autofac;
+﻿using Autofac;
 using Common;
 using Common.Log;
-using Newtonsoft.Json;
 using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient;
 using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model;
+using Newtonsoft.Json;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
@@ -29,7 +29,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             _socketSubscriber = socketSubscriber;
             _log = log;
             _tickPriceHandler = tickPriceHandler;
-            _mapper = new BitMexModelConverter(configuration.SupportedCurrencySymbols);
+            _mapper = new BitMexModelConverter(configuration.SupportedCurrencySymbols, configuration);
         }
 
         private async Task HandleResponseAsync(TableResponse table)

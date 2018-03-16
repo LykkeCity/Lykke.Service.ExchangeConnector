@@ -14,7 +14,7 @@ namespace TradingBot.Infrastructure.Configuration
         public bool PubQuotesToRabbit { get; set; }
         public double InitialRating { get; set; }
         [Lykke.SettingsReader.Attributes.Optional]
-        public bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
+        public bool UseSupportedCurrencySymbolsAsFilter { get; set; }
         public string ApplicationKey { get; set; }
 
         public IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; set; }
