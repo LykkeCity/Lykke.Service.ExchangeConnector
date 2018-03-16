@@ -13,5 +13,6 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient
         Task<object> GetBalances(CancellationToken cancellationToken = default);
         Task<object> GetMarginInformation(CancellationToken cancellationToken = default);
         Task<object> GetActivePositions(CancellationToken cancellationToken = default);
+        Task<object> GetAllSymbols(CancellationToken cancellationToken = default);
     }
 }

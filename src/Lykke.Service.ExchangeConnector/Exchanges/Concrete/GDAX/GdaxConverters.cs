@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Lykke.ExternalExchangesApi.Exchanges.GDAX.RestClient.Entities;
+using System;
 using System.Collections.Generic;
-using Lykke.ExternalExchangesApi.Exchanges.GDAX.RestClient.Entities;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
@@ -11,7 +11,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
     internal class GdaxConverters: ExchangeConverters
     {
         public GdaxConverters(IReadOnlyCollection<CurrencySymbol> currencySymbols, 
-            string exchangeName): base(currencySymbols, exchangeName)
+            string exchangeName, GdaxExchangeConfiguration config): base(currencySymbols, exchangeName, config.UseSupportedCurrencySymbolsAsFilter)
         {
 
         }
