@@ -25,7 +25,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             JfdModelConverter modelConverter,
             ILog log,
             IHandler<OrderBook> orderBookHandler)
-            : base(JfdExchange.Name, configuration, new JfdQuotesSessionConnector(GetConnectorConfig(configuration), log),
+            : base(JfdExchange.Name, configuration, new JfdQuotesSessionConnector(GetConnectorConfig(configuration), log), 
                   log, orderBookHandler)
         {
             _configuration = configuration;

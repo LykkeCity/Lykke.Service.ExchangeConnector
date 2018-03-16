@@ -13,7 +13,7 @@ namespace TradingBot.Infrastructure.Configuration
         public bool Enabled { get; set; }
         public bool PubQuotesToRabbit { get; set; }
 
-        [Lykke.SettingsReader.Attributes.Optional]
+        [Optional]
         public bool UseSupportedCurrencySymbolsAsFilter { get; set; }
         public string ApplicationKey { get; set; }
 

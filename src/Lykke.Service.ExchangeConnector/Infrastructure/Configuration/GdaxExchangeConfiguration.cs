@@ -5,6 +5,7 @@ namespace TradingBot.Infrastructure.Configuration
 {
     public sealed class GdaxExchangeConfiguration : IExchangeConfiguration
     {
+
         public GdaxExchangeConfiguration()
         {
             UseSupportedCurrencySymbolsAsFilter = true;
