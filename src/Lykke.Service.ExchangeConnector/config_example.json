@@ -135,24 +135,6 @@
           }
         ]
       },
-      "Stub": {
-        "enabled": false,
-        "pubQuotesToRabbit": false,
-        "InitialRating": 5,
-        "pricesIntervalInMilliseconds": 1000,
-        "PricesPerInterval": 10,
-        "supportedCurrencySymbols": []
-      },
-      "HistoricalData": {
-        "enabled": false,
-        "pubQuotesToRabbit": false,
-        "InitialRating": 5,
-        "baseDirectory": "",
-        "fileName": "",
-        "startDate": "",
-        "endDate": "",
-        "supportedCurrencySymbols": []
-      },
       "Jfd": {
         "enabled": false,
         "pubQuotesToRabbit": false,
@@ -184,16 +166,7 @@
         "connectionString": "",
         "exchange": ""
       },
-      "signals": {
-        "enabled": false,
-        "connectionString": ""
-      },
       "trades": {
-        "enabled": false,
-        "connectionString": "",
-        "exchange": ""
-      },
-      "acknowledgements": {
         "enabled": false,
         "connectionString": "",
         "exchange": ""

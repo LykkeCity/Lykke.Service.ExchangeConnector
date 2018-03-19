@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.GDAX.Entities;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Handlers;

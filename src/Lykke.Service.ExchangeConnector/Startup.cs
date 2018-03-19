@@ -10,15 +10,11 @@ using Lykke.SettingsReader;
 using Lykke.SlackNotification.AzureQueue;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Swashbuckle.AspNetCore.Swagger;
 using System;
-using System.Linq;
-using TradingBot.Communications;
-using TradingBot.Handlers;
 using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Modules;
@@ -33,7 +29,6 @@ namespace TradingBot
         private ILog _log;
 
 
-        private INoSQLTableStorage<PriceTableEntity> _pricesStorage;
 
         public Startup(IHostingEnvironment env)
         {
@@ -74,15 +69,6 @@ namespace TradingBot
             appLifetime.ApplicationStopping.Register(ShutDownHandler);
             appLifetime.ApplicationStopped.Register(() => ApplicationContainer.Dispose());
 
-            app.Run(async (context) =>
-            {
-                // TODO: get for all enabled exchanges
-                var report = await StatusReport.Create(_pricesStorage);
-
-                var response = $"Status: {(report.LastPrices.Any() ? "OK" : "FAIL")}\n\nLast prices:\n{string.Join("\n", report.LastPrices)}";
-
-                await context.Response.WriteAsync(response);
-            });
         }
 
         // This method gets called by the runtime. Use this method to add services to the container.
@@ -149,12 +135,6 @@ namespace TradingBot
 
                 builder.RegisterInstance(log).As<ILog>().SingleInstance();
 
-                _pricesStorage = AzureTableStorage<PriceTableEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.EntitiesConnString), "tickPrices", log);
-
-                var fixMessagesStorage = AzureTableStorage<FixMessageTableEntity>.Create(
-                    settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.EntitiesConnString), "fixMessages", log);
-                builder.RegisterInstance(fixMessagesStorage).As<INoSQLTableStorage<FixMessageTableEntity>>().SingleInstance();
 
                 var signalsStorage = AzureTableStorage<TranslatedSignalTableEntity>.Create(
                     settingsManager.ConnectionString(i => i.TradingBot.AzureStorage.EntitiesConnString), settings.AzureStorage.TranslatedSignalsTableName, log);
@@ -199,7 +179,6 @@ namespace TradingBot
                 // NOTE: Service can't recieve and process requests here, so you can destroy all resources
 
                 ApplicationContainer.Resolve<IApplicationFacade>().Stop();
-                ApplicationContainer.Resolve<TradingSignalsHandler>().Stop();
 
             }
             catch (Exception ex)

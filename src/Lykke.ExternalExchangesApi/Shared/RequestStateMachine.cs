@@ -2,7 +2,6 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
-using Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient;
 using QuickFix;
 using ILog = Common.Log.ILog;
 

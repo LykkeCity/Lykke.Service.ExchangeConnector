@@ -2,20 +2,16 @@
 using Common;
 using Common.Log;
 using Lykke.ExternalExchangesApi.Exchanges.Icm.FixClient;
-using Lykke.RabbitMqBroker;
-using Lykke.RabbitMqBroker.Subscriber;
 using TradingBot.Communications;
 using TradingBot.Exchanges;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.Bitfinex;
 using TradingBot.Exchanges.Concrete.BitMEX;
 using TradingBot.Exchanges.Concrete.GDAX;
-using TradingBot.Exchanges.Concrete.HistoricalData;
 using TradingBot.Exchanges.Concrete.Icm;
 using TradingBot.Exchanges.Concrete.Jfd;
 using TradingBot.Exchanges.Concrete.Kraken;
 using TradingBot.Exchanges.Concrete.LykkeExchange;
-using TradingBot.Exchanges.Concrete.StubImplementation;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Trading;
@@ -86,9 +82,6 @@ namespace TradingBot.Modules
             builder.RegisterType<JfdModelConverter>()
                 .SingleInstance();
 
-            builder.RegisterType<AzureFixMessagesRepository>()
-                .As<IAzureFixMessagesRepository>()
-                .SingleInstance();
 
             builder.RegisterType<IcmTickPriceHarvester>()
                 .As<IStartable>()
@@ -105,12 +98,6 @@ namespace TradingBot.Modules
             builder.RegisterType<IcmModelConverter>()
                 .SingleInstance();
 
-            builder.RegisterType<TradingSignalsHandler>()
-                .WithParameter("apiTimeout", _config.AspNet.ApiTimeout)
-                .WithParameter("enabled", _config.RabbitMq.Signals.Enabled)
-                .As<IStartable>()
-                .AsSelf()
-                .SingleInstance();
 
             foreach (var cfg in _config.Exchanges)
             {
@@ -120,15 +107,12 @@ namespace TradingBot.Modules
 
             RegisterExchange<IcmExchange>(builder, _config.Exchanges.Icm.Enabled);
             RegisterExchange<KrakenExchange>(builder, _config.Exchanges.Kraken.Enabled);
-            RegisterExchange<StubExchange>(builder, _config.Exchanges.Stub.Enabled);
-            RegisterExchange<HistoricalDataExchange>(builder, _config.Exchanges.HistoricalData.Enabled);
             RegisterExchange<LykkeExchange>(builder, _config.Exchanges.Lykke.Enabled);
             RegisterExchange<BitMexExchange>(builder, _config.Exchanges.BitMex.Enabled);
             RegisterExchange<BitfinexExchange>(builder, _config.Exchanges.Bitfinex.Enabled);
             RegisterExchange<GdaxExchange>(builder, _config.Exchanges.Gdax.Enabled);
             RegisterExchange<JfdExchange>(builder, _config.Exchanges.Jfd.Enabled);
 
-            RegisterTradeSignalSubscriber(builder);
 
             RegisterRabbitMqHandler<TickPrice>(builder, _config.RabbitMq.TickPrices, "tickHandler");
             RegisterRabbitMqHandler<ExecutionReport>(builder, _config.RabbitMq.Trades);
@@ -169,24 +153,6 @@ namespace TradingBot.Modules
                 .As<IHandler<T>>();
         }
 
-        private void RegisterTradeSignalSubscriber(ContainerBuilder container)
-        {
-            var subscriberSettings = new RabbitMqSubscriptionSettings
-            {
-                ConnectionString = _config.RabbitMq.Signals.ConnectionString,
-                ExchangeName = _config.RabbitMq.Signals.Exchange,
-                QueueName = _config.RabbitMq.Signals.Queue,
-                IsDurable = false
-            };
 
-            var errorStrategy = new DefaultErrorHandlingStrategy(_log, subscriberSettings);
-            var subscriber = new RabbitMqSubscriber<TradingSignal>(subscriberSettings, errorStrategy)
-                .SetMessageDeserializer(new GenericRabbitModelConverter<TradingSignal>())
-                .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
-                .SetConsole(new LogToConsole())
-                .SetLogger(_log);
-
-            container.Register(c => subscriber);
-        }
     }
 }
