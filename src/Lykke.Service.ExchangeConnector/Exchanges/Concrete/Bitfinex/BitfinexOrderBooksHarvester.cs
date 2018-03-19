@@ -8,7 +8,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;

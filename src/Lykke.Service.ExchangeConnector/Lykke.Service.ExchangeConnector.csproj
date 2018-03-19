@@ -47,13 +47,6 @@
     <PackageReference Include="SonarAnalyzer.CSharp" Version="6.8.2.4717" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Exchanges\Concrete\Bitstamp\" />
-    <Folder Include="Exchanges\Concrete\Oanda\Entities\Orders\" />
-    <Folder Include="Exchanges\Concrete\StubImplementation\" />
-    <Folder Include="Infrastructure\Logging\" />
-    <Folder Include="Views\Shared\" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\Lykke.ExternalExchangesApi\Lykke.ExternalExchangesApi.csproj" />
   </ItemGroup>
   <ItemGroup>

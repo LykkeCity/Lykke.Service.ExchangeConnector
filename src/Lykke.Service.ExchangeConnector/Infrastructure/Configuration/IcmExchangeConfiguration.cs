@@ -1,5 +1,4 @@
-﻿using Lykke.SettingsReader.Attributes;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 
 namespace TradingBot.Infrastructure.Configuration

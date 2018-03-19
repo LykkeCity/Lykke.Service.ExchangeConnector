@@ -6,7 +6,7 @@ using TradingBot.Trading;
 
 namespace TradingBot.Models.Api
 {
-    public class OrderModel : ISignedModel
+    public class OrderModel 
     {
         [JsonProperty(Required = Required.Always)]
         public string ExchangeName { get; set; }
@@ -35,9 +35,6 @@ namespace TradingBot.Models.Api
         /// </summary>
         public DateTime DateTime { get; set; }
 
-        public string GetStringToSign()
-        {
-            return $"{DateTime:s}{Instrument}{TradeType}{OrderType}{Price:0.0000}{Volume:0.0000}";
-        }
+
     }
 }
