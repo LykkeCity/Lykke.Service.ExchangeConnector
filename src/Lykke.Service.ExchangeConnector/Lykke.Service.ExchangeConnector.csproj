@@ -17,12 +17,6 @@
     <CodeAnalysisRuleSet>Lykke.Service.ExchangeConnector.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="Exchanges\Concrete\Oanda\**" />
-    <Content Remove="Exchanges\Concrete\Oanda\**" />
-    <EmbeddedResource Remove="Exchanges\Concrete\Oanda\**" />
-    <None Remove="Exchanges\Concrete\Oanda\**" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="Lykke.AzureQueueIntegration" Version="2.0.1" />
     <PackageReference Include="Lykke.AzureStorage" Version="7.0.2" />
     <PackageReference Include="Lykke.Common" Version="6.0.0" />
