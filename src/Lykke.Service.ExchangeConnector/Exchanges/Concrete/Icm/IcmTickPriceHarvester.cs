@@ -49,16 +49,21 @@ namespace TradingBot.Exchanges.Concrete.Icm
                 QueueName = config.RabbitMq.Queue
             };
             var errorStrategy = new DefaultErrorHandlingStrategy(_log, rabbitSettings);
-            _rabbit = new RabbitMqSubscriber<OrderBook>(rabbitSettings, errorStrategy)
-                .SetMessageDeserializer(new GenericRabbitModelConverter<OrderBook>())
-                .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
-                .SetConsole(new LogToConsole())
-                .SetLogger(_log)
-                .Subscribe(HandleOrderBook);
+
+            if (!_config.Enabled)
+            {
+                _rabbit = new RabbitMqSubscriber<OrderBook>(rabbitSettings, errorStrategy)
+                    .SetMessageDeserializer(new GenericRabbitModelConverter<OrderBook>())
+                    .SetMessageReadStrategy(new MessageReadWithTemporaryQueueStrategy())
+                    .SetConsole(new LogToConsole())
+                    .SetLogger(_log)
+                    .Subscribe(HandleOrderBook);
+            }
         }
 
         private async Task HandleOrderBook(OrderBook orderBook)
         {
+
             if (_instruments.Contains(orderBook.Asset) || _config.UseSupportedCurrencySymbolsAsFilter == false)
             {
                 var tickPrice = _modelConverter.ToTickPrice(orderBook);
@@ -90,7 +95,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
         public void Start()
         {
-            if (!_enabled)
+            if (!_enabled || _rabbit == null)
             {
                 return;
             }
@@ -105,7 +110,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
         public void Stop()
         {
-            if (!_enabled)
+            if (!_enabled || _rabbit == null)
             {
                 return;
             }
