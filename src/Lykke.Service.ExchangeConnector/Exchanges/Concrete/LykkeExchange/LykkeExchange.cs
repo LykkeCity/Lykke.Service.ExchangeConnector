@@ -67,6 +67,11 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
 
         protected override void StartImpl()
         {
+            if (!Config.Enabled)
+            {
+                return;
+            }
+
             LykkeLog.WriteInfoAsync(nameof(LykkeExchange), nameof(StartImpl), string.Empty, $"Starting {Name} exchange").Wait();
 
             ctSource = new CancellationTokenSource();
@@ -225,6 +230,10 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
 
         protected override void StopImpl()
         {
+            if (!Config.Enabled)
+            {
+                return;
+            }
             this.wampSubscriber?.Stop();
             ctSource?.Cancel();
             OnStopped();
