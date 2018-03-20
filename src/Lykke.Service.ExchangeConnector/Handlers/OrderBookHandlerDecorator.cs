@@ -12,7 +12,7 @@ namespace TradingBot.Handlers
     {
         public static readonly string Name = "lykke";
         private readonly IHandler<TradingOrderBook> _rabbitMqHandler;
-        private readonly Dictionary<string, LykkeOrderBook> halfOrderBooks = new Dictionary<string, LykkeOrderBook>();
+        private readonly Dictionary<string, LykkeOrderBook> _halfOrderBooks = new Dictionary<string, LykkeOrderBook>();
 
         public OrderBookHandlerDecorator(IHandler<TradingOrderBook> rabbitMqHandler)
         {
@@ -21,22 +21,17 @@ namespace TradingBot.Handlers
 
         public async Task Handle(LykkeOrderBook message)
         {
+            // Update current order book
+            var currentKey = message.AssetPair + message.IsBuy;
+            _halfOrderBooks[currentKey] = message;
+
             // Find a pair and send it
             var wantedKey = message.AssetPair + !message.IsBuy;
-            halfOrderBooks.TryGetValue(wantedKey, out var otherHalf);
-            if (otherHalf != null)
+            if (_halfOrderBooks.TryGetValue(wantedKey, out var otherHalf))
             {
                 var fullOrderBook = CreateOrderBook(Name, message, otherHalf);
                 await _rabbitMqHandler.Handle(fullOrderBook);
             }
-
-            // Update current order book
-            var currentKey = message.AssetPair + message.IsBuy;
-            if (halfOrderBooks.ContainsKey(currentKey))
-            {
-                halfOrderBooks.Remove(currentKey);
-            }
-            halfOrderBooks.Add(currentKey, message);
         }
 
         private TradingOrderBook CreateOrderBook(string exchangeName, LykkeOrderBook one, LykkeOrderBook another)
