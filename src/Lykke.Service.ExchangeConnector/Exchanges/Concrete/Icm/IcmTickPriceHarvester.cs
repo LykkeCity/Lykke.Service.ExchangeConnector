@@ -50,7 +50,7 @@ namespace TradingBot.Exchanges.Concrete.Icm
             };
             var errorStrategy = new DefaultErrorHandlingStrategy(_log, rabbitSettings);
 
-            if (!_config.Enabled)
+            if (_config.Enabled)
             {
                 _rabbit = new RabbitMqSubscriber<OrderBook>(rabbitSettings, errorStrategy)
                     .SetMessageDeserializer(new GenericRabbitModelConverter<OrderBook>())
