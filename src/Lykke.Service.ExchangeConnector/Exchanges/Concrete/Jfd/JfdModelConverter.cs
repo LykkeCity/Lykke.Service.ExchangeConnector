@@ -1,8 +1,8 @@
-﻿using System;
+﻿using QuickFix.Fields;
+using QuickFix.FIX44;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using QuickFix.Fields;
-using QuickFix.FIX44;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Models.Api;
@@ -29,7 +29,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             public const int OzEquity = 8886;
         }
 
-        public JfdModelConverter(JfdExchangeConfiguration configuration) : base(configuration.SupportedCurrencySymbols, JfdExchange.Name)
+        public JfdModelConverter(JfdExchangeConfiguration configuration) : base(configuration.SupportedCurrencySymbols, JfdExchange.Name, configuration.UseSupportedCurrencySymbolsAsFilter)
         {
             _configuration = configuration;
         }

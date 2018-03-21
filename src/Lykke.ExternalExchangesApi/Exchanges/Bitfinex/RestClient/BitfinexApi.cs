@@ -1,4 +1,9 @@
-﻿using System;
+﻿using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient.Model;
+using Lykke.ExternalExchangesApi.Shared;
+using Microsoft.Rest;
+using Microsoft.Rest.Serialization;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
@@ -6,11 +11,6 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient.Model;
-using Lykke.ExternalExchangesApi.Shared;
-using Microsoft.Rest;
-using Microsoft.Rest.Serialization;
-using Newtonsoft.Json;
 
 namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient
 {
@@ -24,6 +24,7 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient
         private const string ActiveOrdersRequestUrl = @"/v1/orders";
         private const string ActivePositionsRequestUrl = @"/v1/positions";
         private const string MarginInfoRequstUrl = @"/v1/margin_infos";
+        private const string AllSymbolsRequestUrl = @"/v1/symbols";
 
 
         private const string BaseBitfinexUrl = @"https://api.bitfinex.com";
@@ -184,14 +185,28 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient
             return response;
         }
 
+        public async Task<object> GetAllSymbols(CancellationToken cancellationToken = default)
+        {
+            var response = await GetRestResponse<IReadOnlyList<string>>(new BitfinexGetBase{Request = AllSymbolsRequestUrl }, cancellationToken);
+
+            return response;
+        }
+
         private async Task<object> GetRestResponse<T>(BitfinexPostBase obj, CancellationToken cancellationToken)
         {
             using (var request = await GetRestRequest(obj, cancellationToken))
-            using (var response = await HttpClient.SendAsync(request, cancellationToken))
             {
-                var responseBody = await CheckError<T>(response);
-                return responseBody;
+                return await SendHttpRequestAndGetResponse<T>(request, cancellationToken);
             }
+        }
+
+        private async Task<object> GetRestResponse<T>(BitfinexGetBase obj, CancellationToken cancellationToken)
+        {
+            using (var request = GetRestRequest(obj))
+            {
+                return await SendHttpRequestAndGetResponse<T>(request, cancellationToken);
+            }
+            
         }
 
         private async Task<HttpRequestMessage> GetRestRequest(BitfinexPostBase obj, CancellationToken cancellationToken)
@@ -212,9 +227,27 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient
             return httpRequest;
         }
 
+        private HttpRequestMessage GetRestRequest(BitfinexGetBase obj)
+        {
+
+            var httpRequest = new HttpRequestMessage
+            {
+                Method = new HttpMethod("GET"),
+                RequestUri = new Uri(BaseUri, obj.Request)
+            };
+
+            return httpRequest;
+        }
 
 
-
+        private async Task<object> SendHttpRequestAndGetResponse<T>(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            using (var response = await HttpClient.SendAsync(request, cancellationToken))
+            {
+                var responseBody = await CheckError<T>(response);
+                return responseBody;
+            }
+        }
 
         private async Task<object> CheckError<T>(HttpResponseMessage response)
         {

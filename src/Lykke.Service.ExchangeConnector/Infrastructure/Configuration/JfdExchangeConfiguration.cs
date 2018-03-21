@@ -21,7 +21,7 @@ namespace TradingBot.Infrastructure.Configuration
         public double InitialRating { get; set; }
 
         [Lykke.SettingsReader.Attributes.Optional]
-        public bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
+        public bool UseSupportedCurrencySymbolsAsFilter { get; set; }
 
         IReadOnlyCollection<CurrencySymbol> IExchangeConfiguration.SupportedCurrencySymbols => SupportedCurrencySymbols;
 
