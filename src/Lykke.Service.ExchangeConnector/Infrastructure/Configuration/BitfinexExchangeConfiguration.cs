@@ -4,6 +4,11 @@ namespace TradingBot.Infrastructure.Configuration
 {
     public sealed class BitfinexExchangeConfiguration : IExchangeConfiguration
     {
+        public BitfinexExchangeConfiguration()
+        {
+            UseSupportedCurrencySymbolsAsFilter = true;
+        }
+
         public bool Enabled { get; set; }
 
         public bool PubQuotesToRabbit { get; set; }
@@ -11,6 +16,9 @@ namespace TradingBot.Infrastructure.Configuration
         public bool SaveOrderBooksToAzure { get; set; }
 
         public double InitialRating { get; set; }
+
+        [Lykke.SettingsReader.Attributes.Optional]
+        public bool? UseSupportedCurrencySymbolsAsFilter { get; set; }
 
         public string ApiKey { get; set; }
 
