@@ -32,10 +32,13 @@ namespace TradingBot.Handlers
                 var fullOrderBook = CreateOrderBook(message, otherHalf);
 
                 // If bestAsk < bestBid then ignore the order book as outdated
-                if (fullOrderBook.Asks.Any() && fullOrderBook.Bids.Any() && fullOrderBook.Asks.Min(x => x.Price) < fullOrderBook.Bids.Max(x => x.Price))
-                    return;
+                var isOutdated = fullOrderBook.Asks.Any() && fullOrderBook.Bids.Any() &&
+                                 fullOrderBook.Asks.Min(x => x.Price) < fullOrderBook.Bids.Max(x => x.Price);
 
-                await _rabbitMqHandler.Handle(fullOrderBook);
+                if (!isOutdated)
+                {
+                    await _rabbitMqHandler.Handle(fullOrderBook);
+                }
             }
         }
 
