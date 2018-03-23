@@ -56,7 +56,7 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
 
         public void FromAdmin(Message message, SessionID sessionId)
         {
-            if (message is TestRequest)
+            if (message is TestRequest || message is Logon)
             {
                 _responsesQueue.Add(message, CancellationToken.None);
             }
