@@ -30,7 +30,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
         {
             _configuration = configuration;
             _modelConverter = modelConverter;
-            HeartBeatPeriod = Timeout.InfiniteTimeSpan; // FIX has its own heartbeat mechanism
+            HeartBeatPeriod = TimeSpan.FromSeconds(90); // Just in case if QuickFix doesn't detect connection failure.
         }
 
         private static FixConnectorConfiguration GetConnectorConfig(JfdExchangeConfiguration exchangeConfiguration)
@@ -43,9 +43,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             try
             {
                 await Messenger.ConnectAsync(CancellationToken);
-                await Subscribe();
                 RechargeHeartbeat();
-
 
                 while (!CancellationToken.IsCancellationRequested)
                 {
@@ -70,6 +68,13 @@ namespace TradingBot.Exchanges.Concrete.Jfd
         private async Task HandleTableResponse(TestRequest heartbeat)
         {
             await Log.WriteInfoAsync(nameof(HandleTableResponse), "Heartbeat received", heartbeat.TestReqID.Obj);
+        }
+
+        private Task HandleTableResponse(Logon logon)
+        {
+            Log.WriteInfo(nameof(HandleTableResponse), "Logon received received. Subscribe on quotes", "");
+
+            return Subscribe();
         }
 
 
