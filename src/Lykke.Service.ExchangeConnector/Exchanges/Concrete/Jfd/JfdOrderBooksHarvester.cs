@@ -72,7 +72,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
 
         private Task HandleTableResponse(Logon logon)
         {
-            Log.WriteInfo(nameof(HandleTableResponse), "Logon received received. Subscribe on quotes", "");
+            Log.WriteInfo(nameof(HandleTableResponse), "Logon received. Subscribe to quotes", "");
 
             return Subscribe();
         }

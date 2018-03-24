@@ -36,9 +36,8 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
             var storeFactory = new FileStoreFactory(settings);
             var logFactory = new LykkeLogFactory(_log, false, false);
             _socketInitiator = new SocketInitiator(this, storeFactory, settings, logFactory);
-
+            RechargeQuotesTcs();
         }
-
 
 
         public void ToAdmin(Message message, SessionID sessionId)
