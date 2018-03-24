@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
@@ -37,39 +36,9 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         private string GetHexHashSignature(string payload)
         {
-            HMACSHA384 hmac = new HMACSHA384(Encoding.UTF8.GetBytes(_apiSecret));
-            byte[] hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
+            var hmac = new HMACSHA384(Encoding.UTF8.GetBytes(_apiSecret));
+            var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
             return BitConverter.ToString(hash).Replace("-", "").ToLower();
-        }
-
-        private static async Task<string> GetContent(HttpRequestMessage request)
-        {
-            return request.Content == null ? string.Empty : await request.Content.ReadAsStringAsync();
-        }
-
-
-        private static long GetNonce()
-        {
-            var yearBegin = new DateTime(1990, 1, 1);
-            return DateTime.UtcNow.Ticks - yearBegin.Ticks;
-        }
-
-        private byte[] hmacsha256(byte[] keyByte, byte[] messageBytes)
-        {
-            using (var hash = new HMACSHA256(keyByte))
-            {
-                return hash.ComputeHash(messageBytes);
-            }
-        }
-
-        private static string ByteArrayToString(IReadOnlyCollection<byte> ba)
-        {
-            var hex = new StringBuilder(ba.Count * 2);
-            foreach (var b in ba)
-            {
-                hex.AppendFormat("{0:x2}", b);
-            }
-            return hex.ToString();
         }
     }
 }

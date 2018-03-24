@@ -2,8 +2,6 @@
   "enabled": true,
   "apiKey": "",
   "ApiSecret": "",
-  "saveQuotesToAzure": false,
-  "saveOrderBooksToAzure": false,
   "pubQuotesToRabbit": false,
   "InitialRating": 5,
   "endpointUrl": "https://api.bitfinex.com/v1",

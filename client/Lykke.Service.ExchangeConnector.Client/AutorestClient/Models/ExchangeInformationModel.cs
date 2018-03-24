@@ -11,6 +11,9 @@ namespace Lykke.Service.ExchangeConnector.Client.Models
     using System.Collections.Generic;
     using System.Linq;
 
+    /// <summary>
+    /// Information about the exchange
+    /// </summary>
     public partial class ExchangeInformationModel
     {
         /// <summary>
@@ -24,15 +27,20 @@ namespace Lykke.Service.ExchangeConnector.Client.Models
         /// <summary>
         /// Initializes a new instance of the ExchangeInformationModel class.
         /// </summary>
-        /// <param name="state">Possible values include: 'Initializing',
-        /// 'Connecting', 'ReconnectingAfterError', 'Connected',
-        /// 'ReceivingPrices', 'ExecuteOrders', 'ErrorState', 'Stopped',
-        /// 'Stopping'</param>
-        public ExchangeInformationModel(ExchangeState state, string name = default(string), IList<Instrument> instruments = default(IList<Instrument>))
+        /// <param name="state">A current state of the exchange. Possible
+        /// values include: 'Initializing', 'Connecting',
+        /// 'ReconnectingAfterError', 'Connected', 'ReceivingPrices',
+        /// 'ExecuteOrders', 'ErrorState', 'Stopped', 'Stopping'</param>
+        /// <param name="name">A name of the exchange</param>
+        /// <param name="instruments">Supported instruments</param>
+        /// <param name="streamingSupport">A description of the exchange
+        /// streaming capabilities</param>
+        public ExchangeInformationModel(ExchangeState state, string name = default(string), IList<Instrument> instruments = default(IList<Instrument>), StreamingSupport streamingSupport = default(StreamingSupport))
         {
             Name = name;
             Instruments = instruments;
             State = state;
+            StreamingSupport = streamingSupport;
             CustomInit();
         }
 
@@ -42,22 +50,31 @@ namespace Lykke.Service.ExchangeConnector.Client.Models
         partial void CustomInit();
 
         /// <summary>
+        /// Gets or sets a name of the exchange
         /// </summary>
         [JsonProperty(PropertyName = "name")]
         public string Name { get; set; }
 
         /// <summary>
+        /// Gets or sets supported instruments
         /// </summary>
         [JsonProperty(PropertyName = "instruments")]
         public IList<Instrument> Instruments { get; set; }
 
         /// <summary>
-        /// Gets or sets possible values include: 'Initializing', 'Connecting',
-        /// 'ReconnectingAfterError', 'Connected', 'ReceivingPrices',
-        /// 'ExecuteOrders', 'ErrorState', 'Stopped', 'Stopping'
+        /// Gets or sets a current state of the exchange. Possible values
+        /// include: 'Initializing', 'Connecting', 'ReconnectingAfterError',
+        /// 'Connected', 'ReceivingPrices', 'ExecuteOrders', 'ErrorState',
+        /// 'Stopped', 'Stopping'
         /// </summary>
         [JsonProperty(PropertyName = "state")]
         public ExchangeState State { get; set; }
+
+        /// <summary>
+        /// Gets or sets a description of the exchange streaming capabilities
+        /// </summary>
+        [JsonProperty(PropertyName = "streamingSupport")]
+        public StreamingSupport StreamingSupport { get; set; }
 
         /// <summary>
         /// Validate the object.

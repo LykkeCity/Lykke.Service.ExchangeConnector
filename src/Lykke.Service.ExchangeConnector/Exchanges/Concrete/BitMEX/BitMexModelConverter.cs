@@ -43,6 +43,12 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             };
         }
 
+        private static Instrument GetInstrument()
+        {
+            var instr = new Instrument(BitMexExchange.Name, "USDBTC"); //HACK Hard code!
+            return instr;
+        }
+
         public static ExecutionReport OrderToTrade(Order order)
         {
             var execTime = order.TransactTime ?? DateTime.UtcNow;
@@ -50,9 +56,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             var execVolume = (decimal)(order.CumQty ?? 0);
             var tradeType = ConvertTradeType(order.Side);
             var status = ConvertExecutionStatus(order.OrdStatus);
-            //  var instr = ConvertSymbolFromBitMexToLykke(order.Symbol, configuration);
-            var instr = new Instrument(BitMexExchange.Name, "USDBTC"); //HACK Hard code!
-
+            var instr = GetInstrument();
             return new ExecutionReport(instr, execTime, execPrice, execVolume, tradeType, order.OrderID, status)
             {
                 ClientOrderId = order.ClOrdID,
@@ -65,9 +69,9 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         }
 
 
-        public ExecutionReport OrderToTrade(RowItem row)
+        public static ExecutionReport OrderToTrade(RowItem row)
         {
-            var lykkeInstrument = ExchangeSymbolToLykkeInstrument(row.Symbol);
+            var lykkeInstrument = GetInstrument();
             return new ExecutionReport(
                 lykkeInstrument,
                 row.Timestamp,
@@ -141,7 +145,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             }
         }
 
-        public static TradeType ConvertTradeType(string signalTradeType)
+        private static TradeType ConvertTradeType(string signalTradeType)
         {
             // HACK!!! the direction is inverted
             switch (signalTradeType)
@@ -160,9 +164,9 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
             switch (side)
             {
                 case Side.Buy:
-                    return TradeType.Buy;
-                case Side.Sell:
                     return TradeType.Sell;
+                case Side.Sell:
+                    return TradeType.Buy;
                 default:
                     return TradeType.Unknown;
             }

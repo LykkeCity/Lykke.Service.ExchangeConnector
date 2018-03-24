@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Common.Log;
 using Lykke.ExternalExchangesApi.Shared;
 using Moq;
-using Lykke.ExternalExchangesApi.Shared;
 using TradingBot.Infrastructure.WebSockets;
 using Xunit;
 
@@ -44,9 +43,9 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
         {
             // Setup
 
-            TimeSpan heartbeat = TimeSpan.FromSeconds(1);
-            TimeSpan waitTime = TimeSpan.FromSeconds(1.5);
-            TimeSpan executionTime = TimeSpan.FromSeconds(2);
+            var heartbeat = TimeSpan.FromSeconds(1);
+            var waitTime = TimeSpan.FromSeconds(1.5);
+            var executionTime = TimeSpan.FromSeconds(2);
 
             var log = new LogToMemory();
             var messenger = CreateDefaultMockMessenger();
@@ -81,9 +80,9 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
         {
             // Setup
 
-            TimeSpan waitTime = TimeSpan.FromMilliseconds(100);
-            TimeSpan controlTime = TimeSpan.FromMilliseconds(300);
-            TimeSpan executionTime = TimeSpan.FromSeconds(10);
+            var waitTime = TimeSpan.FromMilliseconds(100);
+            var controlTime = TimeSpan.FromMilliseconds(300);
+            var executionTime = TimeSpan.FromSeconds(10);
 
             var log = new LogToMemory();
             var messenger = CreateDefaultMockMessenger();
@@ -97,7 +96,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
 
             // Execute
 
-            Stopwatch watch = new Stopwatch();
+            var watch = new Stopwatch();
             watch.Start();
 
             socket.Start();
@@ -125,9 +124,9 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
         {
             // Setup
 
-            TimeSpan waitTime = TimeSpan.FromMilliseconds(100);
-            TimeSpan controlTime = TimeSpan.FromMilliseconds(300);
-            TimeSpan executionTime = TimeSpan.FromSeconds(10);
+            var waitTime = TimeSpan.FromMilliseconds(100);
+            var controlTime = TimeSpan.FromMilliseconds(300);
+            var executionTime = TimeSpan.FromSeconds(10);
             var log = new LogToMemory();
 
             var messenger = CreateDefaultMockMessenger();
@@ -142,7 +141,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
 
             // Execute
 
-            Stopwatch watch = new Stopwatch();
+            var watch = new Stopwatch();
             watch.Start();
 
             socket.Start();
@@ -170,8 +169,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
         {
             // Setup
 
-            TimeSpan heartbeat = TimeSpan.FromMilliseconds(500);
-            TimeSpan waitTime = TimeSpan.FromMilliseconds(1000);
+            var heartbeat = TimeSpan.FromMilliseconds(500);
+            var waitTime = TimeSpan.FromMilliseconds(1000);
 
             var log = new LogToMemory();
             var messenger = CreateDefaultMockMessenger();
@@ -209,7 +208,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
 
             // Execute
 
-            for (int i = 0; i < 10; i++)
+            for (var i = 0; i < 10; i++)
             {
                 messenger
                     .Setup(m => m.GetResponseAsync(It.IsAny<CancellationToken>()))
@@ -373,8 +372,8 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
         {
             // Setup
 
-            TimeSpan heartbeat = TimeSpan.FromMilliseconds(500);
-            TimeSpan waitTime = TimeSpan.FromMilliseconds(1000);
+            var heartbeat = TimeSpan.FromMilliseconds(500);
+            var waitTime = TimeSpan.FromMilliseconds(1000);
 
             var log = new LogToMemory();
             var messenger = CreateDefaultMockMessenger();
@@ -436,7 +435,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Infrastructure.WebSockets
         {
             // Setup
 
-            TimeSpan heartbeat = Timeout.InfiniteTimeSpan;
+            var heartbeat = Timeout.InfiniteTimeSpan;
             var lk = new ManualResetEventSlim(false);
             var log = new LogToMemory();
             var messenger = CreateDefaultMockMessenger();

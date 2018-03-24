@@ -1,22 +1,15 @@
-﻿using System.Collections.Generic;
+﻿using Lykke.SettingsReader.Attributes;
+using System.Collections.Generic;
 
 namespace TradingBot.Infrastructure.Configuration
 {
     public class LykkeExchangeConfiguration : IExchangeConfiguration
     {
-        public LykkeExchangeConfiguration()
-        {
-            UseSupportedCurrencySymbolsAsFilter = true;
-        }
-
         public bool Enabled { get; set; }
 
-        public bool SaveOrderBooksToAzure { get; set; }
-
         public bool PubQuotesToRabbit { get; set; }
-        public double InitialRating { get; set; }
 
-        [Lykke.SettingsReader.Attributes.Optional]
+        [Optional]
         public bool UseSupportedCurrencySymbolsAsFilter { get; set; }
 
         public string ApiKey { get; set; }
@@ -30,6 +23,11 @@ namespace TradingBot.Infrastructure.Configuration
         public IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; set; }
         
         public RabbitMqLykkeConfiguration RabbitMq { get; set; }
+
+        public LykkeExchangeConfiguration()
+        {
+            UseSupportedCurrencySymbolsAsFilter = true;
+    }
     }
 
     public class WampEndpointConfiguration

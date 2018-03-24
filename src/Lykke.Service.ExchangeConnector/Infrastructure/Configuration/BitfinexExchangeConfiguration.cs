@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Lykke.SettingsReader.Attributes;
+using System.Collections.Generic;
 
 namespace TradingBot.Infrastructure.Configuration
 {
@@ -13,11 +14,8 @@ namespace TradingBot.Infrastructure.Configuration
 
         public bool PubQuotesToRabbit { get; set; }
 
-        public bool SaveOrderBooksToAzure { get; set; }
 
-        public double InitialRating { get; set; }
-
-        [Lykke.SettingsReader.Attributes.Optional]
+        [Optional]
         public bool UseSupportedCurrencySymbolsAsFilter { get; set; }
 
         public string ApiKey { get; set; }

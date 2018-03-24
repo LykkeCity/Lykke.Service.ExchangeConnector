@@ -8,7 +8,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
@@ -24,12 +23,10 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         private readonly IBitfinexApi _exchangeApi;
 
         public BitfinexOrderBooksHarvester(BitfinexExchangeConfiguration configuration,
-            OrderBookSnapshotsRepository orderBookSnapshotsRepository,
-            OrderBookEventsRepository orderBookEventsRepository,
             IHandler<OrderBook> orderBookHandler,
             IHandler<TickPrice> tickPriceHandler,
             ILog log)
-        : base(BitfinexExchange.Name, configuration, new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookSnapshotsRepository, orderBookEventsRepository, orderBookHandler)
+        : base(BitfinexExchange.Name, configuration, new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookHandler)
         {
             _configuration = configuration;
             _channels = new Dictionary<long, Channel>();
@@ -52,6 +49,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
                 while (!CancellationToken.IsCancellationRequested)
                 {
                     var resp = await GetResponse();
+                    RechargeHeartbeat();
                     await HandleResponse(resp);
                 }
             }
@@ -117,7 +115,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         {
             foreach (var instrument in instruments)
             {
-                var request = SubscribeOrderBooksRequest.BuildRequest(instrument, "F0", "R0");
+                var request = SubscribeOrderBooksRequest.BuildRequest(instrument, "F1", "R0");
                 await Messenger.SendRequestAsync(request, CancellationToken);
                 var response = await GetResponse();
                 await HandleResponse(response);
@@ -142,7 +140,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         private async Task HandleResponse(SubscribedResponse response)
         {
-            await Log.WriteInfoAsync(nameof(HandleResponse), "Subscribing on the order book", $"Event: {response.Event} Pair: {response.Pair}");
+            await Log.WriteInfoAsync(nameof(HandleResponse), "Subscribing on the order book", $"Event: {response.Event} Channel: {response.Channel} Pair: {response.Pair}");
 
             if (!_channels.TryGetValue(response.ChanId, out var channel))
             {
@@ -163,7 +161,6 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         private async Task HandleResponse(HeartbeatResponse heartbeat)
         {
-            RechargeHeartbeat();
             await Log.WriteInfoAsync(nameof(HandleResponse), $"Bitfinex channel {_channels[heartbeat.ChannelId].Pair} heartbeat", string.Empty);
         }
 
@@ -171,7 +168,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         {
             var pair = _channels[snapshot.ChannelId].Pair;
 
-            await HandleOrdebookSnapshotAsync(pair,
+            await HandleOrderBookSnapshotAsync(pair,
                 DateTime.UtcNow, // TODO: Get this from the server
                 snapshot.Orders.Select(BitfinexModelConverter.ToOrderBookItem));
         }
@@ -210,7 +207,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             return _tickPriceHandler.Handle(tickPrice);
         }
 
-        private class Channel
+        private sealed class Channel
         {
             public long Id { get; }
             public string Pair { get; }

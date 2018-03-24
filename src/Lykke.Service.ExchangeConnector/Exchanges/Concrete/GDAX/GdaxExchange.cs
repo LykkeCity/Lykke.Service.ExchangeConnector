@@ -46,6 +46,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             _tickPriceHandler = tickPriceHandler;
             _tradeHandler = tradeHandler;
 
+            _orderBooksHarvester.MaxOrderBookRate = configuration.MaxOrderBookRate;
 
             _restApi = CreateRestApiClient();
             _websocketApi = CreateWebSocketsApiClient();
@@ -170,10 +171,12 @@ namespace TradingBot.Exchanges.Concrete.GDAX
             throw new NotSupportedException();
         }
 
-        public override Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout)
+        public override Task<IReadOnlyCollection<PositionModel>> GetPositionsAsync(TimeSpan timeout)
         {
             throw new NotSupportedException();
         }
+
+        public override StreamingSupport StreamingSupport => new StreamingSupport(true, true);
 
         protected override async void StartImpl()
         {
@@ -185,6 +188,9 @@ namespace TradingBot.Exchanges.Concrete.GDAX
                 _orderBooksHarvester.Start();
 
                 OnConnected();
+
+                await _websocketApi.ConnectAsync(_webSocketCtSource.Token);
+
 
                 await _websocketApi.SubscribeToPrivateUpdatesAsync(Instruments.Select(i => i.Name).ToList(),
                     _webSocketCtSource.Token);

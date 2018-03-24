@@ -84,17 +84,6 @@ namespace Lykke.Service.ExchangeConnector.Client
         Task<HttpOperationResponse<ExchangeInformationModel>> GetExchangeInfoWithHttpMessagesAsync(string exchangeName, Dictionary<string, List<string>> customHeaders = null, CancellationToken cancellationToken = default(CancellationToken));
 
         /// <summary>
-        /// Returns ratings of exchanges
-        /// </summary>
-        /// <param name='customHeaders'>
-        /// The headers that will be added to request.
-        /// </param>
-        /// <param name='cancellationToken'>
-        /// The cancellation token.
-        /// </param>
-        Task<HttpOperationResponse<IList<ExchangeRatingModel>>> GetRatingWithHttpMessagesAsync(Dictionary<string, List<string>> customHeaders = null, CancellationToken cancellationToken = default(CancellationToken));
-
-        /// <summary>
         /// Checks service is alive
         /// </summary>
         /// <param name='customHeaders'>
@@ -144,13 +133,13 @@ namespace Lykke.Service.ExchangeConnector.Client
 
         /// <summary>
         /// Places a new order on the exchange
-        /// &lt;param name="orderModel"&gt;A new order&lt;/param&gt;
         /// </summary>
         /// <remarks>
         /// In the location header of successful response placed an URL for
         /// getting info about the order
         /// </remarks>
         /// <param name='orderModel'>
+        /// A new order
         /// </param>
         /// <param name='customHeaders'>
         /// The headers that will be added to request.

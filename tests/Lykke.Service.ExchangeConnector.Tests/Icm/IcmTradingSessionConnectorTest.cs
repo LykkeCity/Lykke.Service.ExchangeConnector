@@ -214,7 +214,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Icm
 
         private void WaitForState(FixConnectorState state, int timeout)
         {
-            for (int i = 0; i < timeout; i++)
+            for (var i = 0; i < timeout; i++)
             {
                 Thread.Sleep(1000);
                 if (_connector.State == state)

@@ -17,8 +17,6 @@
     <CodeAnalysisRuleSet>Lykke.Service.ExchangeConnector.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Autofac.Extras.DynamicProxy" Version="4.4.0" />
-    <PackageReference Include="Castle.Core" Version="4.2.1" />
     <PackageReference Include="Lykke.AzureQueueIntegration" Version="2.0.1" />
     <PackageReference Include="Lykke.AzureStorage" Version="7.0.2" />
     <PackageReference Include="Lykke.Common" Version="6.0.0" />
@@ -47,13 +45,6 @@
     <PackageReference Include="Microsoft.Rest.ClientRuntime" Version="2.3.10" />
     <PackageReference Include="Polly" Version="5.8.0" />
     <PackageReference Include="SonarAnalyzer.CSharp" Version="6.8.2.4717" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Exchanges\Concrete\Bitstamp\" />
-    <Folder Include="Exchanges\Concrete\Oanda\Entities\Orders\" />
-    <Folder Include="Exchanges\Concrete\StubImplementation\" />
-    <Folder Include="Infrastructure\Logging\" />
-    <Folder Include="Views\Shared\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Lykke.ExternalExchangesApi\Lykke.ExternalExchangesApi.csproj" />

@@ -6,7 +6,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Lykke.ExternalExchangesApi.Exceptions;
 using Lykke.ExternalExchangesApi.Exchanges.Abstractions;
 using Lykke.ExternalExchangesApi.Helpers;
@@ -15,7 +14,6 @@ using TradingBot.Exchanges.Concrete.Kraken.Requests;
 using TradingBot.Exchanges.Concrete.Kraken.Responses;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
-using TradingBot.Infrastructure.Logging;
 using TradingBot.Trading;
 using TradingBot.Repositories;
 
@@ -23,7 +21,6 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
 {
     public class PrivateData
     {
-        private readonly ILogger logger = Logging.CreateLogger<PrivateData>();
         
         private readonly string endpointUrl = $"{Urls.ApiBase}/0/private";
         private const string ApiKeyHeader = "API-Key";
@@ -134,7 +131,6 @@ namespace TradingBot.Exchanges.Concrete.Kraken.Endpoints
             var np = nonce + Convert.ToChar(0) + props;
             var hash = Sha256(np);
             
-            logger.LogDebug($"Making a request with props {props}");
 
             var z = new byte[pathBytes.Length + hash.Length];
             pathBytes.CopyTo(z, 0);

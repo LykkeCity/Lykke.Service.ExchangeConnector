@@ -1,13 +1,13 @@
-﻿using System.Threading.Tasks;
+﻿using Common.Log;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Common.Log;
+using System.Threading.Tasks;
 using TradingBot.Communications;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Models.Api;
-using TradingBot.Trading;
 using TradingBot.Repositories;
+using TradingBot.Trading;
 
 namespace TradingBot.Exchanges.Abstractions
 {
@@ -103,9 +103,11 @@ namespace TradingBot.Exchanges.Abstractions
             throw new NotSupportedException();
         }
 
-        public virtual Task<IReadOnlyCollection<PositionModel>> GetPositions(TimeSpan timeout)
+        public virtual Task<IReadOnlyCollection<PositionModel>> GetPositionsAsync(TimeSpan timeout)
         {
             throw new NotSupportedException();
         }
+
+        public abstract StreamingSupport StreamingSupport { get; }
     }
 }

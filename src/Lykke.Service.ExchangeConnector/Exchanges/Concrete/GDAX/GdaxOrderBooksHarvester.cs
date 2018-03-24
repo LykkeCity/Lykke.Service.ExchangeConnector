@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using TradingBot.Communications;
 using TradingBot.Exchanges.Concrete.GDAX.Entities;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Handlers;
@@ -29,9 +28,8 @@ namespace TradingBot.Exchanges.Concrete.GDAX
         private readonly GdaxConverters _converters;
 
         public GdaxOrderBooksHarvester(GdaxExchangeConfiguration configuration, ILog log,
-            OrderBookSnapshotsRepository orderBookSnapshotsRepository, OrderBookEventsRepository orderBookEventsRepository,
             IHandler<OrderBook> orderBookHandler)
-            : base(GdaxExchange.Name, configuration, log, orderBookSnapshotsRepository, orderBookEventsRepository, orderBookHandler)
+            : base(GdaxExchange.Name, configuration, log, orderBookHandler)
         {
             _configuration = configuration;
             _symbolsLastSequenceNumbers = new ConcurrentDictionary<string, long>();
@@ -126,7 +124,7 @@ namespace TradingBot.Exchanges.Concrete.GDAX
                 .Union(orderBook.Bids.Select(order =>
                     _converters.GdaxOrderBookItemToOrderBookItem(symbol, true, order)));
 
-            await HandleOrdebookSnapshotAsync(symbol, DateTime.UtcNow, orders);
+            await HandleOrderBookSnapshotAsync(symbol, DateTime.UtcNow, orders);
 
             _symbolsLastSequenceNumbers[symbol] = orderBook.Sequence;
         }

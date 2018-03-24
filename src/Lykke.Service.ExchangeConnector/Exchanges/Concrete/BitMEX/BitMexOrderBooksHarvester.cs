@@ -1,11 +1,10 @@
-﻿using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Common.Log;
-using Lykke.ExternalExchangesApi.Shared;
+﻿using Common.Log;
 using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient;
 using Lykke.ExternalExchangesApi.Exchanges.BitMex.WebSocketClient.Model;
-using TradingBot.Communications;
+using Lykke.ExternalExchangesApi.Shared;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using TradingBot.Exchanges.Concrete.Shared;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
@@ -21,12 +20,10 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         public BitMexOrderBooksHarvester(
             BitMexExchangeConfiguration configuration,
             ILog log,
-            OrderBookSnapshotsRepository orderBookSnapshotsRepository,
-            OrderBookEventsRepository orderBookEventsRepository,
             IBitmexSocketSubscriber socketSubscriber,
             IHandler<OrderBook> orderBookHandler) :
-            base(BitMexExchange.Name, configuration, 
-                new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookSnapshotsRepository, orderBookEventsRepository, orderBookHandler)
+            base(BitMexExchange.Name, configuration,
+                new WebSocketTextMessenger(configuration.WebSocketEndpointUrl, log), log, orderBookHandler)
         {
             _socketSubscriber = socketSubscriber;
 
@@ -68,7 +65,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
                 case Action.Partial:
                     foreach (var symbolGroup in groupByPair)
                     {
-                        await HandleOrdebookSnapshotAsync(symbolGroup.Key, DateTime.UtcNow, orderBookItems);
+                        await HandleOrderBookSnapshotAsync(symbolGroup.Key, DateTime.UtcNow, orderBookItems);
                     }
                     break;
                 case Action.Update:

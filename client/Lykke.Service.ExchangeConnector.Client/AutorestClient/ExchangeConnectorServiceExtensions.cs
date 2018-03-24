@@ -79,23 +79,6 @@ namespace Lykke.Service.ExchangeConnector.Client
             }
 
             /// <summary>
-            /// Returns ratings of exchanges
-            /// </summary>
-            /// <param name='operations'>
-            /// The operations group for this extension method.
-            /// </param>
-            /// <param name='cancellationToken'>
-            /// The cancellation token.
-            /// </param>
-            public static async Task<IList<ExchangeRatingModel>> GetRatingAsync(this IExchangeConnectorService operations, CancellationToken cancellationToken = default(CancellationToken))
-            {
-                using (var _result = await operations.GetRatingWithHttpMessagesAsync(null, cancellationToken).ConfigureAwait(false))
-                {
-                    return _result.Body;
-                }
-            }
-
-            /// <summary>
             /// Checks service is alive
             /// </summary>
             /// <param name='operations'>
@@ -163,7 +146,6 @@ namespace Lykke.Service.ExchangeConnector.Client
 
             /// <summary>
             /// Places a new order on the exchange
-            /// &lt;param name="orderModel"&gt;A new order&lt;/param&gt;
             /// </summary>
             /// <remarks>
             /// In the location header of successful response placed an URL for getting
@@ -173,6 +155,7 @@ namespace Lykke.Service.ExchangeConnector.Client
             /// The operations group for this extension method.
             /// </param>
             /// <param name='orderModel'>
+            /// A new order
             /// </param>
             /// <param name='cancellationToken'>
             /// The cancellation token.

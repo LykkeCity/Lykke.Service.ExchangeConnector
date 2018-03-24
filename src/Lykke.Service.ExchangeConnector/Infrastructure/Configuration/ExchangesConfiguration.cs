@@ -9,10 +9,6 @@ namespace TradingBot.Infrastructure.Configuration
 
         public KrakenConfig Kraken { get; set; }
 
-        public StubExchangeConfiguration Stub { get; set; }
-
-        public HistoricalDataConfig HistoricalData { get; set; }
-
         public LykkeExchangeConfiguration Lykke { get; set; }
 
         public BitMexExchangeConfiguration BitMex { get; set; }
@@ -27,8 +23,6 @@ namespace TradingBot.Infrastructure.Configuration
         {
             yield return Icm;
             yield return Kraken;
-            yield return Stub;
-            yield return HistoricalData;
             yield return Lykke;
             yield return BitMex;
             yield return Bitfinex;

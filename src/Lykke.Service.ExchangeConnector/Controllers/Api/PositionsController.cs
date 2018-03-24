@@ -30,16 +30,17 @@ namespace TradingBot.Controllers.Api
         /// <param name="exchangeName">The exchange name</param>
         [SwaggerOperation("GetOpenedPosition")]
         [HttpGet]
-        public Task<IReadOnlyCollection<PositionModel>> Index([FromQuery, Required] string exchangeName)
+        [ProducesResponseType(typeof(IReadOnlyCollection<PositionModel>), 200)]
+        public async Task<IActionResult> Index([FromQuery, Required] string exchangeName)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(exchangeName))
+                if (string.IsNullOrWhiteSpace(exchangeName) || Application.GetExchange(exchangeName) == null)
                 {
-                    throw new StatusCodeException(HttpStatusCode.InternalServerError, $"Invalid {nameof(exchangeName)}");
+                    return BadRequest($"Invalid {nameof(exchangeName)}");
                 }
                 var exchange = Application.GetExchange(exchangeName);
-                return exchange.GetPositions(_timeout);
+                return Ok(await exchange.GetPositionsAsync(_timeout));
 
             }
             catch (Exception e)

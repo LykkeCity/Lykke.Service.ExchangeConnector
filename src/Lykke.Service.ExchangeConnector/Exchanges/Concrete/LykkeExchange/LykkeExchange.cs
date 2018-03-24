@@ -1,16 +1,16 @@
-﻿using System;
+﻿using Common.Log;
+using Lykke.ExternalExchangesApi.Exceptions;
+using Lykke.ExternalExchangesApi.Exchanges.Abstractions;
+using Lykke.RabbitMqBroker;
+using Lykke.RabbitMqBroker.Subscriber;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Log;
-using Lykke.ExternalExchangesApi.Exceptions;
-using Lykke.ExternalExchangesApi.Exchanges.Abstractions;
-using Lykke.RabbitMqBroker;
-using Lykke.RabbitMqBroker.Subscriber;
-using Newtonsoft.Json;
 using TradingBot.Communications;
 using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.LykkeExchange.Entities;
@@ -18,6 +18,7 @@ using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Infrastructure.Wamp;
+using TradingBot.Models.Api;
 using TradingBot.Repositories;
 using TradingBot.Trading;
 using AssetPair = TradingBot.Exchanges.Concrete.LykkeExchange.Entities.AssetPair;
@@ -80,39 +81,6 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             StartRabbitMqTickPriceSubscription();
             StartRabbitMqOrdersSubscription();
             OnConnected();
-        }
-
-        private async Task GetInitialTickPrices()
-        {
-            foreach (var instrument in Instruments)
-            {
-                try
-                {
-                    var orderBook =
-                        await apiClient.MakeGetRequestAsync<List<OrderBook>>(
-                            $"{Config.EndpointUrl}/api/OrderBooks/{instrument.Name}", ctSource.Token);
-                    var tickPrices = orderBook.GroupBy(x => x.AssetPair)
-                        .Select(g => new TickPrice(
-                            new Instrument(Name, g.Key),
-                            g.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow,
-                            g.FirstOrDefault(ob => !ob.IsBuy)?.Prices.Select(x => x.Price).DefaultIfEmpty(0).Min() ?? 0,
-                            g.FirstOrDefault(ob => ob.IsBuy)?.Prices.Select(x => x.Price).DefaultIfEmpty(0).Max() ?? 0)
-                        )
-                        .Where(x => x.Ask > 0 && x.Bid > 0);
-
-                    foreach (var tickPrice in tickPrices)
-                    {
-                        _lastAsks[instrument.Name] = tickPrice.Ask;
-                        _lastBids[instrument.Name] = tickPrice.Bid;
-                        
-                        await _tickPriceHandler.Handle(tickPrice);
-                    }
-                }
-                catch (Exception e)
-                {
-                    await LykkeLog.WriteErrorAsync(nameof(LykkeExchange), nameof(GetInitialTickPrices), e);
-                }
-            }
         }
 
         private void StartRabbitMqTickPriceSubscription()
@@ -305,7 +273,11 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                     {
                         return new ExecutionReport(signal.Instrument, DateTime.UtcNow, marketOrderResponse.Result,
                             signal.Volume, signal.TradeType,
-                            signal.OrderId, OrderExecutionStatus.Fill);
+                            null, OrderExecutionStatus.Fill)
+                        {
+                            Success = true,
+                            ClientOrderId = signal.OrderId
+                        };
                     }
                     else
                     {
@@ -325,7 +297,7 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                                 Volume = signal.Volume,
                                 Price = signal.Price ?? 0
                             }),
-                        translatedSignal.RequestSent, translatedSignal.ResponseReceived,
+                            translatedSignal.RequestSent, translatedSignal.ResponseReceived,
                             cts.Token);
                         
                         var orderPlaced = limitOrderResponse != null && Guid.TryParse(limitOrderResponse, out var orderId);
@@ -333,9 +305,13 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                         if (orderPlaced)
                         {
                             translatedSignal.ExternalId = orderId.ToString();
-                        return new ExecutionReport(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume,
+                            return new ExecutionReport(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume,
                                 signal.TradeType,
-                            orderId.ToString(), OrderExecutionStatus.New);
+                                orderId.ToString(), OrderExecutionStatus.New)
+                            {
+                                Success = true,
+                                ClientOrderId = signal.OrderId
+                            };
                         }
                         else
                         {
@@ -366,6 +342,8 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             return new ExecutionReport(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume, signal.TradeType,
                 signal.OrderId, OrderExecutionStatus.Cancelled);
         }
+
+        public override StreamingSupport StreamingSupport => new StreamingSupport(true, true);
 
         public async Task CancelAllOrders()
         {

@@ -94,14 +94,14 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
             request.AddGroup(askGroup);
 
             await _connector.SendRequestAsync(request, CancellationToken.None);
-            for (int i = 0; i < symbols.Length; i++)
+            for (var i = 0; i < symbols.Length; i++)
             {
                 var resp = await _connector.GetResponseAsync(CancellationToken.None);
 
                 if (resp is MarketDataSnapshotFullRefresh snapshot)
                 {
                     var symbol = snapshot.Symbol.Obj;
-                    for (int j = 1; j <= snapshot.NoMDEntries.Obj; j++)
+                    for (var j = 1; j <= snapshot.NoMDEntries.Obj; j++)
                     {
                         var ob = resp.GetGroup(j, new MarketDataSnapshotFullRefresh.NoMDEntriesGroup());
                         var dir = ob.GetField(new MDEntryType()).Obj;
@@ -154,14 +154,14 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
             request.AddGroup(askGroup);
 
             await _connector.SendRequestAsync(request, CancellationToken.None);
-            for (int i = 0; i < 1000; i++)
+            for (var i = 0; i < 1000; i++)
             {
                 var resp = await _connector.GetResponseAsync(CancellationToken.None);
 
                 if (resp is MarketDataSnapshotFullRefresh snapshot)
                 {
                     var symbol = snapshot.Symbol.Obj;
-                    for (int j = 1; j <= snapshot.NoMDEntries.Obj; j++)
+                    for (var j = 1; j <= snapshot.NoMDEntries.Obj; j++)
                     {
                         var ob = resp.GetGroup(j, new MarketDataSnapshotFullRefresh.NoMDEntriesGroup());
                         var dir = ob.GetField(new MDEntryType()).Obj;
@@ -213,14 +213,14 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
             request.AddGroup(askGroup);
 
             await _connector.SendRequestAsync(request, CancellationToken.None);
-            for (int i = 0; i < 2; i++)
+            for (var i = 0; i < 2; i++)
             {
                 var resp = await _connector.GetResponseAsync(CancellationToken.None);
 
                 if (resp is MarketDataSnapshotFullRefresh snapshot)
                 {
                     var symbol = snapshot.Symbol.Obj;
-                    for (int j = 1; j <= snapshot.NoMDEntries.Obj; j++)
+                    for (var j = 1; j <= snapshot.NoMDEntries.Obj; j++)
                     {
                         var ob = resp.GetGroup(j, new MarketDataSnapshotFullRefresh.NoMDEntriesGroup());
                         var dir = ob.GetField(new MDEntryType()).Obj;
@@ -240,7 +240,7 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
 
         private void WaitForState(FixConnectorState state, int timeout)
         {
-            for (int i = 0; i < timeout; i++)
+            for (var i = 0; i < timeout; i++)
             {
                 Thread.Sleep(1000);
                 if (_connector.State == state)
