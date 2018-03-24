@@ -22,7 +22,7 @@ namespace TradingBot.Handlers
         private readonly IHandler<ExecutionReport> _acknowledHandler;
         private readonly IHandler<ExecutionReport> _tradeHandler;
         private readonly TranslatedSignalsRepository translatedSignalsRepository;
-        private readonly TimeSpan tradingSignalsThreshold = TimeSpan.FromMinutes(10);
+        private readonly TimeSpan tradingSignalsThreshold = TimeSpan.FromMinutes(5);
         private readonly TimeSpan apiTimeout;
         private readonly RabbitMqSubscriber<TradingSignal> _messageProducer;
         private readonly bool _enabled;
@@ -46,9 +46,9 @@ namespace TradingBot.Handlers
             if (enabled)
             {
                 messageProducer.Subscribe(Handle);
-            }
         }
-
+        }
+        
         public Task Handle(TradingSignal message)
         {
             if (message == null || message.Instrument == null || string.IsNullOrEmpty(message.Instrument.Name))
@@ -57,9 +57,9 @@ namespace TradingBot.Handlers
                     nameof(TradingSignalsHandler),
                     nameof(Handle),
                     message?.ToString(),
-                    $"Received an unconsistent signal");
+                    "Received an unconsistent signal");
             }
-
+            
             if (!exchanges.ContainsKey(message.Instrument.Exchange))
             {
                 return logger.WriteWarningAsync(
@@ -68,14 +68,14 @@ namespace TradingBot.Handlers
                         message.ToString(),
                         $"Received a trading signal for unconnected exchange {message.Instrument.Exchange}");
             }
-
-            return HandleTradingSignals(exchanges[message.Instrument.Exchange], message);
+                
+            return HandleTradingSignals(exchanges[message.Instrument.Exchange], message);    
         }
 
         private async Task HandleTradingSignals(Exchange exchange, TradingSignal signal)
         {
             await logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleTradingSignals), signal.ToString(), "New trading signal to be handled.");
-
+            
             var translatedSignal = new TranslatedSignalTableEntity(SignalSource.RabbitQueue, signal);
 
             try
@@ -88,7 +88,7 @@ namespace TradingBot.Handlers
                     case OrderCommand.Cancel:
                         await HandleCancellation(signal, translatedSignal, exchange);
                         break;
-
+                        
                     default:
                         throw new ArgumentOutOfRangeException(nameof(signal));
                 }
@@ -130,7 +130,7 @@ namespace TradingBot.Handlers
 
                 bool orderFilled = executedTrade.ExecutionStatus == OrderExecutionStatus.Fill ||
                                    executedTrade.ExecutionStatus == OrderExecutionStatus.PartialFill;
-    
+
                 if (orderAdded || orderFilled)
                 {
                     await logger.WriteInfoAsync(nameof(TradingSignalsHandler),
@@ -148,30 +148,23 @@ namespace TradingBot.Handlers
                     translatedSignal.Failure($"Added order is in unexpected status: {executedTrade}");
                 }
 
-                logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), signal.ToString(),
-                    "About to call AcknowledgementsHandlers").Wait();
                 await _acknowledHandler.Handle(CreateAcknowledgement(exchange, orderAdded, signal, translatedSignal));
-                logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), signal.ToString(),
-                    "AcknowledgementsHandlers are called").Wait();
 
                 if (orderFilled)
                 {
-                    logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), signal.ToString(),
-                        "About to call ExecutedTradeHandlers").Wait();
                     await _tradeHandler.Handle(executedTrade);
-                    logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), signal.ToString(),
-                        "ExecutedTradeHandlers are called").Wait();
                 }
+            }
+            catch (ApiException e)
+            {
+                await logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), signal.ToString(), e.Message);
+                translatedSignal.Failure(e);
+                await _acknowledHandler.Handle(CreateAcknowledgement(exchange, false, signal, translatedSignal, e));
             }
             catch (Exception e)
             {
-                await logger.WriteErrorAsync(nameof(TradingSignalsHandler),
-                    nameof(HandleCreation),
-                    signal.ToString(),
-                    e);
-
+                await logger.WriteErrorAsync(nameof(TradingSignalsHandler), nameof(HandleCreation), signal.ToString(), e);
                 translatedSignal.Failure(e);
-
                 await _acknowledHandler.Handle(CreateAcknowledgement(exchange, false, signal, translatedSignal, e));
             }
         }
@@ -185,16 +178,7 @@ namespace TradingBot.Handlers
 
                 if (executedTrade.ExecutionStatus == OrderExecutionStatus.Cancelled)
                 {
-                    logger.WriteInfoAsync(nameof(TradingSignalsHandler),
-                        nameof(HandleCancellation),
-                        signal.ToString(),
-                        "Canceled order. About to call ExecutedTradeHandlers").Wait();
-
-
                     await _tradeHandler.Handle(executedTrade);
-
-                    logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCancellation), signal.ToString(),
-                        "ExecutedTradeHandlers are called").Wait();
                 }
                 else
                 {
@@ -205,6 +189,13 @@ namespace TradingBot.Handlers
                         signal.ToString(),
                         message);
                 }
+            }
+            catch (ApiException e)
+            {
+                translatedSignal.Failure(e);
+                await logger.WriteInfoAsync(nameof(TradingSignalsHandler), nameof(HandleCancellation),
+                    signal.ToString(),
+                    e.Message);
             }
             catch (Exception e)
             {
@@ -247,7 +238,7 @@ namespace TradingBot.Handlers
             {
                 ack.FailureType = OrderStatusUpdateFailureType.None;
             }
-
+            
             return ack;
         }
 
@@ -256,8 +247,8 @@ namespace TradingBot.Handlers
             if (_enabled)
             {
                 _messageProducer.Start();
-            }
-        }
+    }
+}
 
         public void Dispose()
         {

@@ -16,6 +16,7 @@ using TradingBot.Exchanges.Abstractions;
 using TradingBot.Exchanges.Concrete.LykkeExchange.Entities;
 using TradingBot.Handlers;
 using TradingBot.Infrastructure.Configuration;
+using TradingBot.Infrastructure.Exceptions;
 using TradingBot.Infrastructure.Wamp;
 using TradingBot.Repositories;
 using TradingBot.Trading;
@@ -76,7 +77,6 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
 
             //StartWampConnection(); // TODO: wamp sends strange tickprices with ask=bid, temporary switch to direct rabbitmq connection:
 
-            GetInitialTickPrices().Wait();
             StartRabbitMqTickPriceSubscription();
             StartRabbitMqOrdersSubscription();
             OnConnected();
@@ -314,30 +314,37 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
 
                 case OrderType.Limit:
 
-                    var limitOrderResponse = await apiClient.MakePostRequestAsync<string>(
-                        $"{Config.EndpointUrl}/api/Orders/limit",
-                        CreateHttpContent(new LimitOrderRequest()
-                        {
-                            AssetPairId = signal.Instrument.Name,
-                            OrderAction = signal.TradeType,
-                            Volume = signal.Volume,
-                            Price = signal.Price ?? 0
-                        }),
+                    try
+                    {
+                        var limitOrderResponse = await apiClient.MakePostRequestAsync<string>(
+                            $"{Config.EndpointUrl}/api/Orders/limit",
+                            CreateHttpContent(new LimitOrderRequest()
+                            {
+                                AssetPairId = signal.Instrument.Name,
+                                OrderAction = signal.TradeType,
+                                Volume = signal.Volume,
+                                Price = signal.Price ?? 0
+                            }),
                         translatedSignal.RequestSent, translatedSignal.ResponseReceived,
-                        cts.Token);
+                            cts.Token);
+                        
+                        var orderPlaced = limitOrderResponse != null && Guid.TryParse(limitOrderResponse, out var orderId);
 
-                    var orderPlaced = limitOrderResponse != null && Guid.TryParse(limitOrderResponse, out var orderId);
-
-                    if (orderPlaced)
-                    {
-                        translatedSignal.ExternalId = orderId.ToString();
+                        if (orderPlaced)
+                        {
+                            translatedSignal.ExternalId = orderId.ToString();
                         return new ExecutionReport(signal.Instrument, DateTime.UtcNow, signal.Price ?? 0, signal.Volume,
-                            signal.TradeType,
+                                signal.TradeType,
                             orderId.ToString(), OrderExecutionStatus.New);
+                        }
+                        else
+                        {
+                            throw new ApiException("Unexpected result from exchange");
+                        }
                     }
-                    else
+                    catch (ApiException e) when (e.Message.Contains("ReservedVolumeHigherThanBalance"))
                     {
-                        throw new ApiException("Unexpected result from exchange");
+                        throw new InsufficientFundsException($"Not enough funds to placing order {signal}", e);
                     }
 
                 default:

@@ -36,9 +36,8 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
             var storeFactory = new FileStoreFactory(settings);
             var logFactory = new LykkeLogFactory(_log, false, false);
             _socketInitiator = new SocketInitiator(this, storeFactory, settings, logFactory);
-
+            RechargeQuotesTcs();
         }
-
 
 
         public void ToAdmin(Message message, SessionID sessionId)
@@ -56,7 +55,7 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient
 
         public void FromAdmin(Message message, SessionID sessionId)
         {
-            if (message is TestRequest)
+            if (message is TestRequest || message is Logon)
             {
                 _responsesQueue.Add(message, CancellationToken.None);
             }
