@@ -39,8 +39,12 @@ namespace TradingBot.Exchanges.Concrete.Icm
             _config = config;
             _converter = converter;
             _tickPriceHarvester = tickPriceHarvester;
-            _tradeSessionConnector = new IcmTradeSessionConnector(new FixConnectorConfiguration(config.Password, config.GetFixConfigAsReader()), log);
             _log = log;
+
+            if (_config.SocketConnection)
+            {
+                _tradeSessionConnector = new IcmTradeSessionConnector(new FixConnectorConfiguration(config.Password, config.GetFixConfigAsReader()), log);
+            }
         }
 
         protected override void StartImpl()
@@ -71,7 +75,10 @@ namespace TradingBot.Exchanges.Concrete.Icm
 
         protected override void StopImpl()
         {
-            _tradeSessionConnector.Stop();
+            if (_config.SocketConnection)
+            {
+                _tradeSessionConnector.Stop();
+            }
             _tickPriceHarvester.Stop();
             OnStopped();
         }

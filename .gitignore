@@ -65,3 +65,5 @@ node_modules
 appsettings.json
 /src/Lykke.Service.ExchangeConnector/Lykke.Service.ExchangeConnector.xml
 /src/Lykke.Service.ExchangeDataStore/client/Lykke.Service.ExchangeDataStore.Client.xml
+/src/Lykke.Service.ExchangeConnector/65aa6dc9-8253-4369-ad90-45bcc737d824
+/src/Lykke.Service.ExchangeConnector/88c90e18-a9c9-485d-96cb-a778016cf6ea_ExchangeConnector_MT_STP
