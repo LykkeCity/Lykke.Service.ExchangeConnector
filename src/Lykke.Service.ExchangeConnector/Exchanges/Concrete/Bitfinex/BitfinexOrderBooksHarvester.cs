@@ -41,6 +41,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         protected override async Task MessageLoopImpl()
         {
+            if (Messenger == null) return;
             try
             {
                 await Messenger.ConnectAsync(CancellationToken);
@@ -115,10 +116,17 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
         {
             foreach (var instrument in instruments)
             {
-                var request = SubscribeOrderBooksRequest.BuildRequest(instrument, "F1", "R0");
-                await Messenger.SendRequestAsync(request, CancellationToken);
-                var response = await GetResponse();
-                await HandleResponse(response);
+                try
+                {
+                    var request = SubscribeOrderBooksRequest.BuildRequest(instrument, "F1", "R0");
+                    await Messenger.SendRequestAsync(request, CancellationToken);
+                    var response = await GetResponse();
+                    await HandleResponse(response);
+                }
+                catch (Exception ex)
+                {
+                    await Log.WriteWarningAsync(nameof(BitfinexOrderBooksHarvester), nameof(SubscribeToOrderBookAsync), instrument, ex);
+                }
             }
         }
 
@@ -159,9 +167,10 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             throw new InvalidOperationException($"Event: {response.Event} Code: {response.Code} Message: {response.Message}");
         }
 
-        private async Task HandleResponse(HeartbeatResponse heartbeat)
+        // ReSharper disable once UnusedParameter.Local
+        private Task HandleResponse(HeartbeatResponse heartbeat)
         {
-            await Log.WriteInfoAsync(nameof(HandleResponse), $"Bitfinex channel {_channels[heartbeat.ChannelId].Pair} heartbeat", string.Empty);
+            return Task.CompletedTask;
         }
 
         private async Task HandleResponse(OrderBookSnapshotResponse snapshot)
