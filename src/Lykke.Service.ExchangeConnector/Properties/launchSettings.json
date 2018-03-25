@@ -18,7 +18,7 @@
     "TradingBot": {
       "commandName": "Project",
       "environmentVariables": {
-        "settingsUrl": "exahangeconnectordatastore",
+        "settingsUrl": "appsettings.Development.json",
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "applicationUrl": "http://localhost:5000/"
