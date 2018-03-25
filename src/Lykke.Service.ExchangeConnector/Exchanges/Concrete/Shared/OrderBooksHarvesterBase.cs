@@ -238,7 +238,6 @@ namespace TradingBot.Exchanges.Concrete.Shared
             }
 
             _orderBookSnapshots[pair] = orderBookSnapshot;
-
             await PublishOrderBookSnapshotAsync(pair);
         }
 
@@ -266,11 +265,10 @@ namespace TradingBot.Exchanges.Concrete.Shared
                 ScheduleSnapshotRefresh();
             }
             else
-                {
+            {
                 CancelSnapshotRefresh();
+                await PublishOrderBookSnapshotAsync(pair);
             }
-
-            await PublishOrderBookSnapshotAsync(pair);
         }
 
         private void ScheduleSnapshotRefresh()
