@@ -38,7 +38,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         protected override async Task Connect(CancellationToken token)
         {
-            if (_authenticate)
+            if (_authenticate && !string.IsNullOrEmpty(_configuration.ApiKey) && !string.IsNullOrEmpty(_configuration.ApiSecret))
             {
                 if (string.IsNullOrEmpty(_configuration.ApiKey) || string.IsNullOrEmpty(_configuration.ApiSecret))
                 {
