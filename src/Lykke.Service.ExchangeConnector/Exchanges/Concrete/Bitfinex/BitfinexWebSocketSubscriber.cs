@@ -38,21 +38,18 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         protected override async Task Connect(CancellationToken token)
         {
-            if (_authenticate && !string.IsNullOrEmpty(_configuration.ApiKey) && !string.IsNullOrEmpty(_configuration.ApiSecret))
-            {
-                if (string.IsNullOrEmpty(_configuration.ApiKey) || string.IsNullOrEmpty(_configuration.ApiSecret))
-                {
-                    const string error = "ApiKey and ApiSecret must be specified to authenticate the Bitfinex web socket subscription.";
-                    await Log.WriteFatalErrorAsync(nameof(Connect), nameof(Connect), new AuthenticationException(error));
-                    throw new AuthenticationException(error);
-                }
+            await base.Connect(token);
 
-                await base.Connect(token);
-                await Authenticate(token);
-            }
-            else
+            if (_authenticate)
             {
-                await base.Connect(token);
+                if (!string.IsNullOrEmpty(_configuration.ApiKey) && !string.IsNullOrEmpty(_configuration.ApiSecret))
+                {
+                    await Authenticate(token);                    
+                }
+                else
+                {
+                    await Log.WriteWarningAsync(nameof(BitfinexWebSocketSubscriber), nameof(Connect), "ApiKey and ApiSecret must be specified to authenticate the Bitfinex web socket subscription.");
+                }
             }
         }
 
