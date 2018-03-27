@@ -126,6 +126,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
                 catch (Exception ex)
                 {
                     await Log.WriteWarningAsync(nameof(BitfinexOrderBooksHarvester), nameof(SubscribeToOrderBookAsync), instrument, ex);
+                    throw;
                 }
             }
         }
