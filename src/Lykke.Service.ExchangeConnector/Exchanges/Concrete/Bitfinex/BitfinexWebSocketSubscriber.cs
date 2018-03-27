@@ -46,7 +46,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
                     await Log.WriteFatalErrorAsync(nameof(Connect), nameof(Connect), new AuthenticationException(error));
                     throw new AuthenticationException(error);
                 }
-
+                
                 await base.Connect(token);
                 await Authenticate(token);
             }

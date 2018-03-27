@@ -18,8 +18,6 @@ namespace TradingBot.Infrastructure.Configuration
         
         public string ClientId { get; set; }
 
-        public WampEndpointConfiguration WampEndpoint { get; set; }
-
         public IReadOnlyCollection<CurrencySymbol> SupportedCurrencySymbols { get; set; }
         
         public RabbitMqLykkeConfiguration RabbitMq { get; set; }

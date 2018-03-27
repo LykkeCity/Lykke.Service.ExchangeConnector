@@ -79,7 +79,12 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
             //StartWampConnection(); // TODO: wamp sends strange tickprices with ask=bid, temporary switch to direct rabbitmq connection:
 
             StartRabbitMqTickPriceSubscription();
-            StartRabbitMqOrdersSubscription();
+
+            if (!string.IsNullOrEmpty(Config.ClientId))
+            {
+                StartRabbitMqOrdersSubscription();
+            }
+
             OnConnected();
         }
 

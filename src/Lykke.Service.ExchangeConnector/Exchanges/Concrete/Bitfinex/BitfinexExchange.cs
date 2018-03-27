@@ -23,6 +23,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
     internal class BitfinexExchange : Exchange
     {
         private readonly BitfinexModelConverter _modelConverter;
+        private readonly BitfinexExchangeConfiguration _configuration;
         private readonly BitfinexOrderBooksHarvester _orderBooksHarvester;
         private readonly BitfinexExecutionHarvester _executionHarvester;
         private readonly IBitfinexApi _exchangeApi;
@@ -35,6 +36,7 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
             : base(Name, configuration, translatedSignalsRepository, log)
         {
             _modelConverter = new BitfinexModelConverter(configuration);
+            _configuration = configuration;
             _orderBooksHarvester = orderBooksHarvester;
             _executionHarvester = executionHarvester;
             var credenitals = new BitfinexServiceClientCredentials(configuration.ApiKey, configuration.ApiSecret);
@@ -209,14 +211,20 @@ namespace TradingBot.Exchanges.Concrete.Bitfinex
 
         protected override void StartImpl()
         {
-            _executionHarvester.Start();
+            if (_configuration.EnableExecution)
+            {
+                _executionHarvester.Start();
+            }
             _orderBooksHarvester.Start();
             OnConnected();
         }
 
         protected override void StopImpl()
         {
-            _executionHarvester.Stop();
+            if (_configuration.EnableExecution)
+            {
+                _executionHarvester.Stop();
+            }
             _orderBooksHarvester.Stop();
         }
 

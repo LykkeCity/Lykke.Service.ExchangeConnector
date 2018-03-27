@@ -5,18 +5,16 @@ namespace TradingBot.Infrastructure.Configuration
 {
     public sealed class BitfinexExchangeConfiguration : IExchangeConfiguration
     {
-        public BitfinexExchangeConfiguration()
-        {
-            UseSupportedCurrencySymbolsAsFilter = true;
-        }
-
         public bool Enabled { get; set; }
 
         public bool PubQuotesToRabbit { get; set; }
 
+        [Optional]
+        public bool EnableExecution { get; set; } = true;
+
 
         [Optional]
-        public bool UseSupportedCurrencySymbolsAsFilter { get; set; }
+        public bool UseSupportedCurrencySymbolsAsFilter { get; set; } = true;
 
         public string ApiKey { get; set; }
 
