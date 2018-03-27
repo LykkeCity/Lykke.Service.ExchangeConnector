@@ -8,11 +8,15 @@ namespace TradingBot.Infrastructure.Configuration
         public BitfinexExchangeConfiguration()
         {
             UseSupportedCurrencySymbolsAsFilter = true;
+            EnableExecution = true;
         }
 
         public bool Enabled { get; set; }
 
         public bool PubQuotesToRabbit { get; set; }
+
+        [Optional]
+        public bool EnableExecution { get; set; }
 
 
         [Optional]
