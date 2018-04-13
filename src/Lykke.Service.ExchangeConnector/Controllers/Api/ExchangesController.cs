@@ -8,7 +8,6 @@ namespace TradingBot.Controllers.Api
 {
     public sealed class ExchangesController : BaseApiController
     {
-
         public ExchangesController(IApplicationFacade app)
             : base(app)
         {

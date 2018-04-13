@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Lykke.ExternalExchangesApi.Exceptions;
+using Microsoft.AspNetCore.Authorization;
 using TradingBot.Infrastructure.Auth;
 using TradingBot.Infrastructure.Configuration;
 using TradingBot.Models.Api;
@@ -13,7 +14,8 @@ using TradingBot.Trading;
 
 namespace TradingBot.Controllers.Api
 {
-    [ApiKeyAuth]
+    [Authorize]
+    [SignatureHeaders]
     public sealed class AccountController : BaseApiController
     {
         private readonly TimeSpan _timeout;
@@ -22,7 +24,6 @@ namespace TradingBot.Controllers.Api
             : base(app)
         {
             _timeout = appSettings.AspNet.ApiTimeout;
-
         }
 
         /// <summary>
@@ -41,7 +42,6 @@ namespace TradingBot.Controllers.Api
             }
             try
             {
-
                 return Ok(await Application.GetExchange(exchangeName).GetAccountBalance(_timeout));
             }
             catch (Exception e)
