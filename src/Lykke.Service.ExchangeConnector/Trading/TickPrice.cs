@@ -31,14 +31,25 @@ namespace TradingBot.Trading
 	    
 		public DateTime Time { get; }
 
-		public decimal Ask { get; }
+	    [JsonProperty("ask")]
+        public decimal Ask { get; }
 
-		public decimal Bid { get; }
+	    [JsonProperty("bid")]
+        public decimal Bid { get; }
 
 		[JsonIgnore]
 		public decimal Mid { get; }
 
-		public override string ToString()
+        [JsonProperty("source")]
+        public string NewFormartSource { get; set; }
+
+	    [JsonProperty("asset")]
+	    public string NewFormartAsset => Instrument.Name;
+
+	    [JsonProperty("timestamp")]
+	    public DateTime NewFormartTimestamp => Time;
+
+        public override string ToString()
 		{
 			return $"TickPrice for {Instrument}: Time={Time}, Ask={Ask}, Bid={Bid}, Mid={Mid}";
 		}
