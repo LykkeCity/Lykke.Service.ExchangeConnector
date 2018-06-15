@@ -1,5 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <Authors>Lykke</Authors>
@@ -12,25 +11,20 @@
     <FileVersion>1.0.1.0</FileVersion>
     <Version>1.0.1</Version>
   </PropertyGroup>
-
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
-
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
-
   <ItemGroup>
     <None Remove="Exchanges\BitMex\BitMex.json" />
   </ItemGroup>
-
   <ItemGroup>
     <Content Include="Exchanges\BitMex\BitMex.json">
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="Lykke.Common" Version="6.0.0" />
     <PackageReference Include="Lykke.Fix" Version="1.0.9" />
@@ -38,5 +32,4 @@
     <PackageReference Include="Microsoft.Rest.ClientRuntime" Version="2.3.10" />
     <PackageReference Include="Polly" Version="5.8.0" />
   </ItemGroup>
-
 </Project>
