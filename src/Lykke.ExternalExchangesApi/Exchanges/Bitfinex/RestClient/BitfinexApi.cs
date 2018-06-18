@@ -11,6 +11,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Lykke.ExternalExchangesApi.Helpers;
 
 namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient
 {
@@ -34,7 +35,7 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient
 
         public Uri BaseUri { get; set; }
 
-        private readonly ServiceClientCredentials _credentials;
+        private readonly BitfinexServiceClientCredentials _credentials;
 
         /// <summary>
         /// Gets or sets json serialization settings.
@@ -46,7 +47,7 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient
         /// </summary>
         public JsonSerializerSettings DeserializationSettings { get; private set; }
 
-        public BitfinexApi(ServiceClientCredentials credentials)
+        public BitfinexApi(BitfinexServiceClientCredentials credentials)
         {
             _credentials = credentials;
             Initialize();
@@ -209,22 +210,28 @@ namespace Lykke.ExternalExchangesApi.Exchanges.Bitfinex.RestClient
             
         }
 
-        private async Task<HttpRequestMessage> GetRestRequest(BitfinexPostBase obj, CancellationToken cancellationToken)
+        private Task<HttpRequestMessage> GetRestRequest(BitfinexPostBase obj, CancellationToken cancellationToken)
         {
-
-            // Create HTTP transport objects
-            var httpRequest = new HttpRequestMessage
+            return EpochNonce.Lock(_credentials.ApiKey, async nonce =>
             {
-                Method = new HttpMethod("POST"),
-                RequestUri = new Uri(BaseUri, obj.Request)
-            };
 
-            var jsonObj = SafeJsonConvert.SerializeObject((object) obj, (JsonSerializerSettings) SerializationSettings);
-            httpRequest.Content = new StringContent(jsonObj, Encoding.UTF8, "application/json");
+                obj.Nonce = nonce.ToString(CultureInfo.InvariantCulture);
 
-            await _credentials.ProcessHttpRequestAsync(httpRequest, cancellationToken).ConfigureAwait(false);
+                // Create HTTP transport objects
+                var httpRequest = new HttpRequestMessage
+                {
+                    Method = new HttpMethod("POST"),
+                    RequestUri = new Uri(BaseUri, obj.Request)
+                };
 
-            return httpRequest;
+                var jsonObj =
+                    SafeJsonConvert.SerializeObject((object) obj, (JsonSerializerSettings) SerializationSettings);
+                httpRequest.Content = new StringContent(jsonObj, Encoding.UTF8, "application/json");
+
+                await _credentials.ProcessHttpRequestAsync(httpRequest, cancellationToken).ConfigureAwait(false);
+
+                return httpRequest;
+            }, LockKind.EpochMilliseconds);
         }
 
         private HttpRequestMessage GetRestRequest(BitfinexGetBase obj)
