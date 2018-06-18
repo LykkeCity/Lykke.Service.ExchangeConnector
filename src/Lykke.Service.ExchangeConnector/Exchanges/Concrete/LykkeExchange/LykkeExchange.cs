@@ -304,8 +304,9 @@ namespace TradingBot.Exchanges.Concrete.LykkeExchange
                             }),
                             translatedSignal.RequestSent, translatedSignal.ResponseReceived,
                             cts.Token);
-                        
-                        var orderPlaced = limitOrderResponse != null && Guid.TryParse(limitOrderResponse, out var orderId);
+
+                        var parsed = Guid.TryParse(limitOrderResponse, out var orderId);
+                        var orderPlaced = limitOrderResponse != null && parsed;
 
                         if (orderPlaced)
                         {
