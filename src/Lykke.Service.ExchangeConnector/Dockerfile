@@ -1,4 +1,4 @@
-FROM microsoft/aspnetcore:2.0
+FROM microsoft/dotnet:2.1.0-aspnetcore-runtime
 WORKDIR app/
 COPY . .
 EXPOSE 5040
