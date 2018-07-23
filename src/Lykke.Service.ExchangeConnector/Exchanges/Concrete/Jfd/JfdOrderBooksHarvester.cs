@@ -30,7 +30,7 @@ namespace TradingBot.Exchanges.Concrete.Jfd
         {
             _configuration = configuration;
             _modelConverter = modelConverter;
-            HeartBeatPeriod = TimeSpan.MaxValue;
+            HeartBeatPeriod = Timeout.InfiniteTimeSpan;
         }
 
         private static FixConnectorConfiguration GetConnectorConfig(JfdExchangeConfiguration exchangeConfiguration)
