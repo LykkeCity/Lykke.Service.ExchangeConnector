@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Lykke.ExternalExchangesApi.Shared;
 using Microsoft.Rest;
 
 namespace TradingBot.Exchanges.Concrete.BitMEX
@@ -13,6 +14,7 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
     {
         private readonly string _apiKey;
         private readonly string _apiSecret;
+        private static readonly TimeSpan ExpirationTimeout = TimeSpan.FromSeconds(5);
 
         public BitMexServiceClientCredentials(string apiKey, string apiSecret)
         {
@@ -23,24 +25,24 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
 
         public override async Task ProcessHttpRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var nonce = GetNonce().ToString();
+            var expire = GetExpire();
             var content = await GetContent(request);
-            var message = request.Method.Method + request.RequestUri.PathAndQuery + nonce + content;
+            var message = request.Method.Method + request.RequestUri.PathAndQuery + expire + content;
             var signatureBytes = hmacsha256(Encoding.UTF8.GetBytes(_apiSecret), Encoding.UTF8.GetBytes(message));
             var signatureString = ByteArrayToString(signatureBytes);
 
-            request.Headers.Add("api-nonce", nonce);
+            request.Headers.Add("api-expires", expire.ToString());
             request.Headers.Add("api-key", _apiKey);
             request.Headers.Add("api-signature", signatureString);
         }
 
         public object[] BuildAuthArguments(string path)
         {
-            var nonce = GetNonce();
-            var message = path + nonce.ToString();
+            var expire = GetExpire();
+            var message = path + expire;
             var signatureBytes = hmacsha256(Encoding.UTF8.GetBytes(_apiSecret), Encoding.UTF8.GetBytes(message));
             var signatureString = ByteArrayToString(signatureBytes);
-            return new object[] { _apiKey, nonce, signatureString };
+            return new object[] { _apiKey, expire, signatureString };
         }
 
         private static async Task<string> GetContent(HttpRequestMessage request)
@@ -49,10 +51,9 @@ namespace TradingBot.Exchanges.Concrete.BitMEX
         }
 
 
-        private static long GetNonce()
+        private static long GetExpire()
         {
-            var yearBegin = new DateTime(1990, 1, 1);
-            return DateTime.UtcNow.Ticks - yearBegin.Ticks;
+            return UnixTimeConverter.ToUnixTime(DateTime.UtcNow.Add(ExpirationTimeout));
         }
 
         private byte[] hmacsha256(byte[] keyByte, byte[] messageBytes)
