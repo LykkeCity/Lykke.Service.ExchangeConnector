@@ -19,7 +19,7 @@
   <ItemGroup>
     <PackageReference Include="Lykke.AzureQueueIntegration" Version="2.1.0" />
     <PackageReference Include="Lykke.AzureStorage" Version="8.4.1" />
-    <PackageReference Include="Lykke.Common" Version="6.8.6" />
+    <PackageReference Include="Lykke.Common" Version="7.0.3" />
     <PackageReference Include="Lykke.Common.ApiLibrary" Version="1.7.2" />
     <PackageReference Include="Lykke.Fix" Version="1.0.9" />
     <PackageReference Include="Lykke.PusherClient" Version="1.0.3" />
