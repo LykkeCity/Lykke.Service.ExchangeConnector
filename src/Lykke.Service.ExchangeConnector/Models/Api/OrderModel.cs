@@ -35,6 +35,6 @@ namespace TradingBot.Models.Api
         /// </summary>
         public DateTime DateTime { get; set; }
 
-
+        public string OrderId { get; set; }
     }
 }
