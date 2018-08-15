@@ -25,12 +25,12 @@ namespace TradingBot.Exchanges.Concrete.Jfd
             JfdModelConverter modelConverter,
             ILog log,
             IHandler<OrderBook> orderBookHandler)
-            : base(JfdExchange.Name, configuration, new JfdQuotesSessionConnector(GetConnectorConfig(configuration), log), 
+            : base(JfdExchange.Name, configuration, new JfdQuotesSessionConnector(GetConnectorConfig(configuration), log),
                   log, orderBookHandler)
         {
             _configuration = configuration;
             _modelConverter = modelConverter;
-            HeartBeatPeriod = TimeSpan.FromSeconds(90); // Just in case if QuickFix doesn't detect connection failure.
+            HeartBeatPeriod = Timeout.InfiniteTimeSpan;
         }
 
         private static FixConnectorConfiguration GetConnectorConfig(JfdExchangeConfiguration exchangeConfiguration)

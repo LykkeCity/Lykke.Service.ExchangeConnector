@@ -157,7 +157,9 @@ namespace TradingBot.Controllers.Api
 
         private static string GetUniqueOrderId(OrderModel orderModel)
         {
-            return orderModel.ExchangeName + DateTime.UtcNow.Ticks;
+            return string.IsNullOrWhiteSpace(orderModel.OrderId)
+                ? orderModel.OrderId
+                : orderModel.ExchangeName + DateTime.UtcNow.Ticks;
         }
 
         /// <summary>
