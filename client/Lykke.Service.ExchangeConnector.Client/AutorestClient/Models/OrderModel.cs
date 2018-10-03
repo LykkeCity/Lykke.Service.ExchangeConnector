@@ -4,6 +4,8 @@
 // regenerated.
 // </auto-generated>
 
+using System.ComponentModel;
+
 namespace Lykke.Service.ExchangeConnector.Client.Models
 {
     using Microsoft.Rest;
@@ -31,7 +33,9 @@ namespace Lykke.Service.ExchangeConnector.Client.Models
         /// 'GoodTillCancel', 'FillOrKill'</param>
         /// <param name="dateTime">Date and time must be in 5 minutes threshold
         /// from UTC now</param>
-        public OrderModel(TradeType tradeType, OrderType orderType, TimeInForce timeInForce, double volume, System.DateTime dateTime, string exchangeName = default(string), string instrument = default(string), double? price = default(double?))
+        public OrderModel(TradeType tradeType, OrderType orderType, TimeInForce timeInForce, double volume, 
+            System.DateTime dateTime, string exchangeName = default(string), string instrument = default(string), 
+            double? price = default(double?), TradeRequestModality modality = TradeRequestModality.Regular)
         {
             ExchangeName = exchangeName;
             Instrument = instrument;
@@ -41,6 +45,7 @@ namespace Lykke.Service.ExchangeConnector.Client.Models
             Price = price;
             Volume = volume;
             DateTime = dateTime;
+            Modality = modality;
             CustomInit();
         }
 
@@ -94,6 +99,9 @@ namespace Lykke.Service.ExchangeConnector.Client.Models
         /// </summary>
         [JsonProperty(PropertyName = "dateTime")]
         public System.DateTime DateTime { get; set; }
+
+        [DefaultValue(TradeRequestModality.Regular)]
+        public TradeRequestModality Modality { get; set; }
 
         /// <summary>
         /// Validate the object.

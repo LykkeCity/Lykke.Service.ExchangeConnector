@@ -35,6 +35,9 @@ namespace TradingBot.Models.Api
         /// </summary>
         public DateTime DateTime { get; set; }
 
+        public string OrderId { get; set; }
 
+        [DefaultValue(TradeRequestModality.Regular)]
+        public TradeRequestModality Modality { get; set; }
     }
 }

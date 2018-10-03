@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Log;
+using Lykke.Common.Log;
 using Lykke.ExternalExchangesApi.Exchanges.Jfd.FixClient;
 using QuickFix.Fields;
 using QuickFix.FIX44;
@@ -9,6 +10,7 @@ using TradingBot.Infrastructure.Configuration;
 using Xunit;
 using Xunit.Abstractions;
 using Lykke.ExternalExchangesApi.Shared;
+using Microsoft.Extensions.Logging;
 
 namespace Lykke.Service.ExchangeConnector.Tests.Jfd
 {
@@ -288,10 +290,25 @@ namespace Lykke.Service.ExchangeConnector.Tests.Jfd
             {
                 _underlying = new TestOutputHelperWrapper(underlying);
             }
-            public Task WriteInfoAsync(string component, string process, string context, string info, DateTime? dateTime = null)
+
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter) where TState : LogEntryParameters
             {
-                _underlying.WriteLine(info);
-                return Task.CompletedTask;
+                
+            }
+
+            public bool IsEnabled(LogLevel logLevel)
+            {
+                return true;
+            }
+
+            public IDisposable BeginScope(string scopeMessage)
+            {
+                throw new NotImplementedException();
+            }
+
+            public async Task WriteInfoAsync(string component, string process, string context, string info, DateTime? dateTime = null)
+            {
+                throw new NotImplementedException();
             }
 
             public Task WriteMonitorAsync(string component, string process, string context, string info, DateTime? dateTime = null)
